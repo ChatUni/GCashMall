@@ -1,0 +1,13 @@
+{
+  "name": "todo13-functions",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Netlify functions for todo13",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "mongodb": "^6.0.0"
+  }
+}
