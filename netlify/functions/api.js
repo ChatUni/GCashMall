@@ -1,8 +1,10 @@
-import { getTodos, saveTodo, deleteTodo } from './utils/handlers.js'
+import { getTodos, saveTodo, deleteTodo, getCategories, getProducts } from './utils/handlers.js'
 
 const apiHandlers = {
   get: {
     todos: (params) => getTodos(params),
+    categories: (params) => getCategories(params),
+    products: (params) => getProducts(params),
   },
   post: {
     todo: (body) => saveTodo(body),

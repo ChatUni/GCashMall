@@ -1,0 +1,30 @@
+.bottom-bar {
+  background-color: black;
+  height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.bottom-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.bottom-bar-link {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 10px 20px;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.bottom-bar-link:hover {
+  color: #ccc;
+}

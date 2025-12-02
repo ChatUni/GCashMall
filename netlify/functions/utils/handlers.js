@@ -46,6 +46,43 @@ const deleteTodo = async (body) => {
   }
 }
 
+const getCategories = async (params) => {
+  try {
+    const categories = await get('categories', {}, {}, { name: 1 })
+    return {
+      success: true,
+      data: categories
+    }
+  } catch (error) {
+    throw new Error(`Failed to get categories: ${error.message}`)
+  }
+}
+
+const getProducts = async (params) => {
+  try {
+    let filter = {}
+    
+    if (params.category) {
+      filter.category = params.category
+    }
+    
+    if (params.search) {
+      filter.$or = [
+        { name: { $regex: params.search, $options: 'i' } },
+        { description: { $regex: params.search, $options: 'i' } }
+      ]
+    }
+    
+    const products = await get('products', filter, {}, { name: 1 })
+    return {
+      success: true,
+      data: products
+    }
+  } catch (error) {
+    throw new Error(`Failed to get products: ${error.message}`)
+  }
+}
+
 const validateGetTodosParams = (params) => {
   // No specific validation needed for getting todos
 }
@@ -89,4 +126,4 @@ const prepareTodoData = (body) => {
   return todoData
 }
 
-export { getTodos, saveTodo, deleteTodo }
+export { getTodos, saveTodo, deleteTodo, getCategories, getProducts }
