@@ -15,7 +15,21 @@ const connectDB = async () => {
   try {
     const client = new MongoClient(mongoUri)
     await client.connect()
-    cachedDb = client.db()
+    
+    // Determine database name based on environment
+    const appName = 'todo13'
+    let dbName = appName
+    
+    if (process.env.NODE_ENV === 'production') {
+      dbName = appName
+    } else if (process.env.NODE_ENV === 'qa') {
+      dbName = `${appName}-qa`
+    } else {
+      // local development
+      dbName = `${appName}-dev`
+    }
+    
+    cachedDb = client.db(dbName)
     return cachedDb
   } catch (error) {
     throw new Error(`Failed to connect to MongoDB: ${error.message}`)

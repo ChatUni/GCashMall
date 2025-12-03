@@ -1,8 +1,14 @@
-import { save } from './db.js'
+import { save, remove } from './db.js'
 
 const seedData = async () => {
   try {
     console.log('Starting to seed database...')
+    
+    // Clear existing data
+    console.log('Clearing existing categories and products...')
+    await remove('categories', {})
+    await remove('products', {})
+    console.log('Existing data cleared.')
     
     // Seed categories
     const categories = [
@@ -35,7 +41,7 @@ const seedData = async () => {
     const savedCategories = []
     for (const category of categories) {
       const result = await save('categories', category)
-      savedCategories.push(result)
+      savedCategories.push({ ...category, _id: result.insertedId })
       console.log(`Saved category: ${category.name}`)
     }
     
@@ -140,6 +146,7 @@ const seedData = async () => {
     }
     
     console.log('Database seeding completed successfully!')
+    process.exit(0)
     
   } catch (error) {
     console.error('Error seeding database:', error)

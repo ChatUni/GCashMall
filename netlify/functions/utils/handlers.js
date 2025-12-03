@@ -1,4 +1,5 @@
 import { get, save, remove } from './db.js'
+import { ObjectId } from 'mongodb'
 
 const getTodos = async (params) => {
   validateGetTodosParams(params)
@@ -63,7 +64,7 @@ const getProducts = async (params) => {
     let filter = {}
     
     if (params.category) {
-      filter.category = params.category
+      filter.category = new ObjectId(params.category)
     }
     
     if (params.search) {

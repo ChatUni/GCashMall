@@ -11,7 +11,7 @@ Horizontal
 ## Style
 
 - Bg color: sky blue
-- height: 120px
+- height: 60px
 
 ## Components
 
