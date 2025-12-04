@@ -11,6 +11,7 @@ Horizontal
 
 - Bg color: black
 - height: 60px
+- full window width
 - align center
 
 ## Interaction

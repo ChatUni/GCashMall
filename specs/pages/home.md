@@ -17,6 +17,8 @@ Vertical
 - wrappable
 - number of items in a row: desktop - 4, mobile - 2
 - all items have the same width and height regardless of content
+- items evenly distributed in a row
+- full window width
 
 ### Product Category
 

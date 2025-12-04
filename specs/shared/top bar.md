@@ -12,6 +12,7 @@ Horizontal
 
 - Bg color: sky blue
 - height: 60px
+- full window width
 
 ## Components
 
