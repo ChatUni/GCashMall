@@ -14,9 +14,7 @@ Vertical
 
 #### Style
 
-- wrappable
-- number of items in a row: desktop - 4, mobile - 2
-- all items have the same width and height regardless of content
+Use shared card list style
 
 ### Product
 

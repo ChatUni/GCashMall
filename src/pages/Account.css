@@ -1,3 +1,5 @@
+@import '../components/CardList.css';
+
 .account-page {
   min-height: 100vh;
   display: flex;
@@ -6,7 +8,6 @@
 
 .account-content {
   flex: 1;
-  padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -17,31 +18,24 @@
   font-weight: bold;
   text-align: left;
   margin-bottom: 30px;
+  padding: 24px 24px 0 24px;
   color: #333;
 }
 
 .account-feature-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  width: 100%;
+  /* Uses shared card-list styles with account-specific overrides */
+}
+
+/* Account page: desktop - 3 items per row */
+.account-feature-list > * {
+  flex: 0 0 calc((100% - 40px) / 3);
+  height: 130px;
 }
 
 .feature-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 24px;
-  height: 130px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
-}
-
-.feature-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
 }
 
 .feature-content {
@@ -78,28 +72,20 @@
 }
 
 /* Responsive design */
+/* Account page: tablet - 2 items per row */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .account-feature-list > * {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
+
+/* Account page: mobile - 1 item per row */
 @media (max-width: 768px) {
-  .account-feature-list {
-    grid-template-columns: 1fr;
+  .account-feature-list > * {
+    flex: 0 0 100%;
   }
   
   .page-title {
     font-size: 30px;
-  }
-  
-  .account-content {
-    padding: 15px;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .account-feature-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1025px) {
-  .account-feature-list {
-    grid-template-columns: repeat(3, 1fr);
   }
 }

@@ -22,29 +22,22 @@ Vertical
 
 #### Style
 
-- wrappable layout
+Use shared card list style
+
 - number of items per row: desktop - 3, tablet - 2, mobile - 1
-- all items have the same width and height regardless of content
-- grid spacing consistent with product list (gap 20–24 px)
-- white background, rounded corners, shadow
-- padding: 24 px
 - height: fixed (e.g., 130 px or scaled proportionally)
 
 ### Feature Card
+
+Use shared card.
 
 #### Layout
 
 Vertical
 - icon
 - feature info
-- white background, rounded corners, shadow
 
-#### Interaction
-- on hover: card elevation, deeper shadow
-- the entire card is clickable 
-- pointer cursor
-
-### Feature Card Info
+### Feature Info
 
 #### Layout
 
@@ -59,8 +52,7 @@ Vertical
 - description: black, size 14
 - align left across all components
 
-#### Account Feature Items
-Each item is treated as a product-list card:
+#### Data
 
 1. Your Account
 - Manage your personal profile and preferences.

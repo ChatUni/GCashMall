@@ -67,7 +67,7 @@ const Account: React.FC = () => {
       <TopBar />
       <main className="account-content">
         <h1 className="page-title">Your Account</h1>
-        <div className="account-feature-list">
+        <div className="account-feature-list card-list">
           {accountFeatures.map((feature) => (
             <Card
               key={feature._id}

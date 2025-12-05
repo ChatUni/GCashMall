@@ -54,7 +54,7 @@ const ProductList: React.FC = () => {
     <div className="product-list-page">
       <TopBar />
       <main className="product-list-content">
-        <div className="products-grid">
+        <div className="products-grid card-list">
           {products.map((product) => (
             <Card
               key={product._id}

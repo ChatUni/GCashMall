@@ -1,3 +1,5 @@
+@import '../components/CardList.css';
+
 .product-list-page {
   min-height: 100vh;
   display: flex;
@@ -6,7 +8,6 @@
 
 .product-list-content {
   flex: 1;
-  padding: 40px 20px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -14,10 +15,7 @@
 }
 
 .products-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  width: 100%;
+  /* Uses shared card-list styles */
 }
 
 .product-card {
@@ -83,15 +81,6 @@
 }
 
 @media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
-  
-  .product-list-content {
-    padding: 20px 15px;
-  }
-  
   .product-name {
     font-size: 16px;
   }

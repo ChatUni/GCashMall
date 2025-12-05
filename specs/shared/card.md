@@ -6,6 +6,7 @@ A container component.
 
 - rounded corner: 4px
 - shadows on all 4 sides
+- bg color: white
 
 ## Interaction
 
