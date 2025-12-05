@@ -18,3 +18,10 @@ export interface ApiResponse<T> {
   data?: T
   error?: string
 }
+
+export interface AccountFeature {
+  _id: string
+  name: string
+  description: string
+  icon?: string
+}

@@ -1,8 +1,8 @@
 {
-  "name": "todo13-functions",
+  "name": "GCashMall-functions",
   "version": "1.0.0",
   "type": "module",
-  "description": "Netlify functions for todo13",
+  "description": "Netlify functions for GCashMall",
   "main": "api.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

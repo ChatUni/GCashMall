@@ -17,7 +17,7 @@ const connectDB = async () => {
     await client.connect()
     
     // Determine database name based on environment
-    const appName = 'todo13'
+    const appName = 'GCashMall'
     let dbName = appName
     
     if (process.env.NODE_ENV === 'production') {

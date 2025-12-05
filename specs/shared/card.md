@@ -9,4 +9,4 @@ A container component.
 
 ## Interaction
 
-- on hover: enlarge the card by 4px each side, animate the change in 0.3 sec
+- on hover: scale up by 2%, animate the change in 0.3 sec
