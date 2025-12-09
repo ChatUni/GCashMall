@@ -6,6 +6,7 @@ Horizontal
 
 - app logo
 - search bar
+- language switch
 - cart
 
 ## Style
@@ -37,3 +38,12 @@ input box and search button are connected as a combo, rounded corner on the comb
 #### Interaction
 
 - on click: go to product list page with the search query
+
+### Language switch
+
+It shows the icon of the current selected language.
+
+#### Interaction
+
+- on click: shows a dropdown with all supported languages (icon and name). When a language icon or name  is clicked, switch to that language, re-render the page with the selected language.
+
