@@ -2,60 +2,45 @@ import React from 'react'
 import Card from '../components/Card'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
+import { useLanguage } from '../context/LanguageContext'
 import type { AccountFeature } from '../types'
 import './Account.css'
 
+const featureKeys = [
+  'yourAccount',
+  'yourOrdersReturns',
+  'yourWishlist',
+  'yourPayments',
+  'yourMembershipPoints',
+  'yourShoppingRecords',
+  'customerService',
+  'loginSecurity',
+] as const
+
+const featureIcons: Record<string, string> = {
+  yourAccount: '👤',
+  yourOrdersReturns: '📦',
+  yourWishlist: '❤️',
+  yourPayments: '💳',
+  yourMembershipPoints: '⭐',
+  yourShoppingRecords: '📊',
+  customerService: '🎧',
+  loginSecurity: '🔒',
+}
+
 const Account: React.FC = () => {
-  const accountFeatures: AccountFeature[] = [
-    {
-      _id: '1',
-      name: 'Your Account',
-      description: 'Manage your personal profile and preferences.',
-      icon: '👤'
-    },
-    {
-      _id: '2',
-      name: 'Your Orders & Returns',
-      description: 'Track, return, cancel orders or reorder items.',
-      icon: '📦'
-    },
-    {
-      _id: '3',
-      name: 'Your Wishlist',
-      description: 'Save items you love and review them anytime.',
-      icon: '❤️'
-    },
-    {
-      _id: '4',
-      name: 'Your Payments',
-      description: 'Manage cards and view recent transactions.',
-      icon: '💳'
-    },
-    {
-      _id: '5',
-      name: 'Your Membership & Points',
-      description: 'View membership status and redeem rewards.',
-      icon: '⭐'
-    },
-    {
-      _id: '6',
-      name: 'Your Shopping Records',
-      description: 'Review past purchases and browsing history.',
-      icon: '📊'
-    },
-    {
-      _id: '7',
-      name: 'Customer Service',
-      description: 'Get help or contact support for assistance.',
-      icon: '🎧'
-    },
-    {
-      _id: '8',
-      name: 'Login & Security',
-      description: 'Manage password, email, and mobile number.',
-      icon: '🔒'
-    }
-  ]
+  const { t } = useLanguage()
+
+  const getAccountFeatures = (): AccountFeature[] => {
+    return featureKeys.map((key, index) => ({
+      _id: String(index + 1),
+      name: t.account.features[key].name,
+      description: t.account.features[key].description,
+      icon: featureIcons[key],
+    }))
+  }
+
+  const accountFeatures = getAccountFeatures()
 
   const handleFeatureClick = (featureId: string) => {
     console.log(`Feature clicked: ${featureId}`)
@@ -66,7 +51,7 @@ const Account: React.FC = () => {
     <div className="account-page">
       <TopBar />
       <main className="account-content">
-        <h1 className="page-title">Your Account</h1>
+        <h1 className="page-title">{t.account.pageTitle}</h1>
         <div className="account-feature-list card-list">
           {accountFeatures.map((feature) => (
             <Card

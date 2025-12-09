@@ -5,13 +5,13 @@
 Vertical
 
 - shared top bar 
-- Page title: Your Account
+- Page title: "Your Account"
 - account feature list 
 - shared bottom bar
 
 ## Components
 
-### Page title: Your Account
+### Page title
 
 #### Style
 
@@ -54,26 +54,26 @@ Vertical
 
 #### Data
 
-1. Your Account
-- Manage your personal profile and preferences.
+1. "Your Account"
+- "Manage your personal profile and preferences."
 
-2. Your Orders & Returns
-- Track, return, cancel orders or reorder items.
+2. "Your Orders & Returns"
+- "Track, return, cancel orders or reorder items."
 
-3. Your Wishlist
-- Save items you love and review them anytime.
+3. "Your Wishlist"
+- "Save items you love and review them anytime."
 
-4. Your Payments
-- Manage cards and view recent transactions.
+4. "Your Payments"
+- "Manage cards and view recent transactions."
 
-5. Your Membership & Points
-- View membership status and redeem rewards.
+5. "Your Membership & Points"
+- "View membership status and redeem rewards."
 
-6. Your Shopping Records
-- Review past purchases and browsing history.
+6. "Your Shopping Records"
+- "Review past purchases and browsing history."
 
-7. Customer Service
-- Get help or contact support for assistance.
+7. "Customer Service"
+- "Get help or contact support for assistance."
 
-8. Login & Security
-- Manage password, email, and mobile number.
+8. "Login & Security"
+- "Manage password, email, and mobile number."
