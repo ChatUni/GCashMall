@@ -25,3 +25,10 @@ export interface AccountFeature {
   description: string
   icon?: string
 }
+
+export interface Series {
+  _id: string
+  name: string
+  description: string
+  cover: string
+}

@@ -84,6 +84,18 @@ const getProducts = async (params) => {
   }
 }
 
+const getSeries = async (params) => {
+  try {
+    const series = await get('series', {}, {}, { name: 1 })
+    return {
+      success: true,
+      data: series
+    }
+  } catch (error) {
+    throw new Error(`Failed to get series: ${error.message}`)
+  }
+}
+
 const validateGetTodosParams = (params) => {
   // No specific validation needed for getting todos
 }
@@ -127,4 +139,4 @@ const prepareTodoData = (body) => {
   return todoData
 }
 
-export { getTodos, saveTodo, deleteTodo, getCategories, getProducts }
+export { getTodos, saveTodo, deleteTodo, getCategories, getProducts, getSeries }
