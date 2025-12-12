@@ -1,4 +1,4 @@
-# Calculator
+# GCashMall
 
 This is an online store app, with multi-language support.
 

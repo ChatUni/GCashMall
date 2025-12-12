@@ -86,13 +86,28 @@ const getProducts = async (params) => {
 
 const getSeries = async (params) => {
   try {
-    const series = await get('series', {}, {}, { name: 1 })
+    const seriesFromDb = await get('series', {}, {}, { seriesName: 1 })
+    const mappedSeries = seriesFromDb.map(mapSeriesFromDb)
     return {
       success: true,
-      data: series
+      data: mappedSeries
     }
   } catch (error) {
     throw new Error(`Failed to get series: ${error.message}`)
+  }
+}
+
+const mapSeriesFromDb = (dbSeries) => {
+  if (!dbSeries) return null
+  
+  return {
+    _id: dbSeries._id,
+    id: dbSeries.seriesId,
+    name: dbSeries.seriesName,
+    description: dbSeries.description,
+    cover: dbSeries.coverUrl,
+    genreId: dbSeries.typesDetail?.typeId,
+    genre: dbSeries.typesDetail?.typeName
   }
 }
 
