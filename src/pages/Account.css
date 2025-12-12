@@ -1,0 +1,91 @@
+@import '../components/CardList.css';
+
+.account-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-content {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: bold;
+  text-align: left;
+  margin-bottom: 30px;
+  padding: 24px 24px 0 24px;
+  color: #333;
+}
+
+.account-feature-list {
+  /* Uses shared card-list styles with account-specific overrides */
+}
+
+/* Account page: desktop - 3 items per row */
+.account-feature-list > * {
+  flex: 0 0 calc((100% - 40px) / 3);
+  height: 130px;
+}
+
+.feature-card {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.feature-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+}
+
+.feature-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.feature-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  flex: 1;
+}
+
+.feature-name {
+  color: #007bff;
+  font-weight: bold;
+  font-size: 20px;
+  margin: 0 0 8px 0;
+}
+
+.feature-description {
+  color: #333;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Responsive design */
+/* Account page: tablet - 2 items per row */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .account-feature-list > * {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
+
+/* Account page: mobile - 1 item per row */
+@media (max-width: 768px) {
+  .account-feature-list > * {
+    flex: 0 0 100%;
+  }
+  
+  .page-title {
+    font-size: 30px;
+  }
+}

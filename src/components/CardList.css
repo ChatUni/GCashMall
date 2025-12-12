@@ -1,0 +1,30 @@
+/* Shared Card List Styles */
+/* Based on specs/shared/style.md */
+
+.card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-list > * {
+  flex: 0 0 calc((100% - 60px) / 4);
+  min-width: 0;
+}
+
+/* Tablet: 3 items per row */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .card-list > * {
+    flex: 0 0 calc((100% - 40px) / 3);
+  }
+}
+
+/* Mobile: 2 items per row */
+@media (max-width: 768px) {
+  .card-list > * {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
