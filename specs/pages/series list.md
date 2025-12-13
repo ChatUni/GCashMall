@@ -30,6 +30,7 @@ Vertical
 #### Interaction
 
 - on hover: cover image is enlarged by 5%
+- show full description in tooltip
 
 ### Cover
 
@@ -49,4 +50,4 @@ Vertical
 
 - align left
 - name: blue, bold, size 20
-- description: black, size 14
+- description: black, size 14, only 3 lines, overflow use ...

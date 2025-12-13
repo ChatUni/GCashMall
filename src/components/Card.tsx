@@ -5,13 +5,15 @@ interface CardProps {
   children: React.ReactNode
   onClick?: () => void
   className?: string
+  title?: string
 }
 
-const Card: React.FC<CardProps> = ({ children, onClick, className = '' }) => {
+const Card: React.FC<CardProps> = ({ children, onClick, className = '', title }) => {
   return (
-    <div 
+    <div
       className={`card ${className}`}
       onClick={onClick}
+      title={title}
     >
       {children}
     </div>

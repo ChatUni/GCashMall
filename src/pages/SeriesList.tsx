@@ -36,7 +36,7 @@ const SeriesList: React.FC = () => {
   )
 
   const renderSeriesCard = (seriesItem: Series) => (
-    <Card key={seriesItem._id} className="series-card">
+    <Card key={seriesItem._id} className="series-card" title={seriesItem.description}>
       <div className="series-content">
         <img
           src={seriesItem.cover}
