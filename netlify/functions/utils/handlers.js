@@ -104,7 +104,7 @@ const mapSeriesFromDb = (dbSeries) => {
     _id: dbSeries._id,
     id: dbSeries.seriesId,
     name: dbSeries.seriesName,
-    description: dbSeries.description,
+    description: dbSeries.summary,
     cover: dbSeries.coverUrl,
     genreId: dbSeries.typesDetail?.typeId,
     genre: dbSeries.typesDetail?.typeName

@@ -9,5 +9,6 @@
 id -> seriesId
 name -> seriesName
 cover -> coverUrl
+description -> summary
 genreId -> typesDetail.typeId
 genre -> typesDetail.typeName
