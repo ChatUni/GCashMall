@@ -35,14 +35,29 @@ const SeriesList: React.FC = () => {
     </div>
   )
 
+  const renderPlayIcon = () => (
+    <div className="series-play-icon">
+      <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </div>
+  )
+
   const renderSeriesCard = (seriesItem: Series) => (
-    <Card key={seriesItem._id} className="series-card" title={seriesItem.description}>
+    <Card
+      key={seriesItem._id}
+      className="series-card"
+      title={seriesItem.description}
+    >
       <div className="series-content">
-        <img
-          src={seriesItem.cover}
-          alt={seriesItem.name}
-          className="series-cover"
-        />
+        <div className="series-cover-container">
+          <img
+            src={seriesItem.cover}
+            alt={seriesItem.name}
+            className="series-cover"
+          />
+          {renderPlayIcon()}
+        </div>
         <div className="series-info">
           <h3 className="series-name">{seriesItem.name}</h3>
           <p className="series-description">{seriesItem.description}</p>

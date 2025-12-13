@@ -28,6 +28,11 @@
   flex-direction: column;
 }
 
+.series-cover-container {
+  position: relative;
+  overflow: hidden;
+}
+
 .series-cover {
   width: 100%;
   aspect-ratio: 3 / 4;
@@ -37,6 +42,31 @@
 
 .series-card:hover .series-cover {
   transform: scale(1.05);
+}
+
+.series-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.series-play-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.series-card:hover .series-play-icon {
+  opacity: 1;
 }
 
 .series-info {

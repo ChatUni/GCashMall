@@ -29,7 +29,9 @@ Vertical
 
 #### Interaction
 
-- on hover: cover image is enlarged by 5%
+- on hover:
+  - cover image is enlarged by 5%
+  - show a play icon (white) with round background (black, 50% opaque) at the center of the cover
 - show full description in tooltip
 
 ### Cover
