@@ -31,6 +31,12 @@ Vertical
 
 - on hover: cover image is enlarged by 5%
 
+### Cover
+
+#### Style
+
+- aspect ratio 3:4
+
 ### Series Info
 
 #### Layout
