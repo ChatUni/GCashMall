@@ -47,5 +47,6 @@ export const en = {
   series: {
     loading: 'Loading series...',
     noSeries: 'No series found.',
+    allGenres: 'All',
   },
 }

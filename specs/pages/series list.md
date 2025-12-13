@@ -5,17 +5,43 @@
 Vertical
 
 - shared top bar
-- series list
+- series list content
 - shared bottom bar
 
 ## Components
+
+### Series List Content
+
+### Layout
+
+#### Desktop
+
+Horizontal
+- genre list
+- series list
+
+#### Mobile
+
+- series list
+
+### Genre List
+
+A vertical list of genre, plus 'All' at the top. Sorted by text.
+
+#### Style
+
+- width: 200px
+- vertically scrollable
+
+#### Interaction
+
+- on genre click: filter the series list by the genre
 
 ### Series List
 
 #### Style
 
 Use shared card list style
-
 
 ### Series
 

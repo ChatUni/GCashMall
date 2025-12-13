@@ -86,14 +86,49 @@ const getProducts = async (params) => {
 
 const getSeries = async (params) => {
   try {
-    const seriesFromDb = await get('series', {}, {}, { seriesName: 1 })
+    const filter = buildSeriesFilter(params)
+    const seriesFromDb = await get('series', filter, {}, { seriesName: 1 })
     const mappedSeries = seriesFromDb.map(mapSeriesFromDb)
     return {
       success: true,
-      data: mappedSeries
+      data: mappedSeries,
     }
   } catch (error) {
     throw new Error(`Failed to get series: ${error.message}`)
+  }
+}
+
+const buildSeriesFilter = (params) => {
+  const filter = {}
+
+  if (params.genreId) {
+    filter.typesDetail = {
+      $elemMatch: { typeId: parseInt(params.genreId, 10) },
+    }
+  }
+
+  return filter
+}
+
+const getGenres = async (params) => {
+  try {
+    const genresFromDb = await get('genre', {}, {}, { typeName: 1 })
+    const mappedGenres = genresFromDb.map(mapGenreFromDb)
+    return {
+      success: true,
+      data: mappedGenres,
+    }
+  } catch (error) {
+    throw new Error(`Failed to get genres: ${error.message}`)
+  }
+}
+
+const mapGenreFromDb = (dbGenre) => {
+  if (!dbGenre) return null
+
+  return {
+    id: String(dbGenre.typeId),
+    name: dbGenre.typeName,
   }
 }
 
@@ -154,4 +189,12 @@ const prepareTodoData = (body) => {
   return todoData
 }
 
-export { getTodos, saveTodo, deleteTodo, getCategories, getProducts, getSeries }
+export {
+  getTodos,
+  saveTodo,
+  deleteTodo,
+  getCategories,
+  getProducts,
+  getSeries,
+  getGenres,
+}

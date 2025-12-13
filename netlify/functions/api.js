@@ -1,4 +1,12 @@
-import { getTodos, saveTodo, deleteTodo, getCategories, getProducts, getSeries } from './utils/handlers.js'
+import {
+  getTodos,
+  saveTodo,
+  deleteTodo,
+  getCategories,
+  getProducts,
+  getSeries,
+  getGenres,
+} from './utils/handlers.js'
 
 const apiHandlers = {
   get: {
@@ -6,6 +14,7 @@ const apiHandlers = {
     categories: (params) => getCategories(params),
     products: (params) => getProducts(params),
     series: (params) => getSeries(params),
+    genres: (params) => getGenres(params),
   },
   post: {
     todo: (body) => saveTodo(body),

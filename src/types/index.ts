@@ -35,3 +35,8 @@ export interface Series {
   genreId?: string
   genre?: string
 }
+
+export interface Genre {
+  id: string
+  name: string
+}
