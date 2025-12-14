@@ -59,6 +59,7 @@ Vertical
   - cover image is enlarged by 5%
   - show a play icon (white) with round background (black, 50% opaque) at the center of the cover
 - show full description in tooltip
+- on click: go to series page with the series id
 
 ### Cover
 

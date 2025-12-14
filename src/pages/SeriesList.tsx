@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Card from '../components/Card'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
@@ -8,6 +9,7 @@ import './SeriesList.css'
 
 const SeriesList: React.FC = () => {
   const { t } = useLanguage()
+  const navigate = useNavigate()
   const [series, setSeries] = useState<Series[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
   const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null)
@@ -57,6 +59,10 @@ const SeriesList: React.FC = () => {
     setSelectedGenreId(genreId)
   }
 
+  const handleSeriesClick = (seriesId: string) => {
+    navigate(`/series/${seriesId}`)
+  }
+
   const renderLoading = () => (
     <div className="series-list-page">
       <TopBar />
@@ -78,6 +84,7 @@ const SeriesList: React.FC = () => {
       key={seriesItem._id}
       className="series-card"
       title={seriesItem.description}
+      onClick={() => handleSeriesClick(seriesItem.id)}
     >
       <div className="series-content">
         <div className="series-cover-container">

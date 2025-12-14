@@ -1,0 +1,20 @@
+.series-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.series-player-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: #000;
+  padding: 0;
+}
+
+.series-player {
+  width: 100%;
+  height: calc(100vh - 120px); /* Full height minus top bar and bottom bar */
+  border: none;
+}
