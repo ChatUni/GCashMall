@@ -12,7 +12,7 @@ const SeriesList: React.FC = () => {
   const navigate = useNavigate()
   const [series, setSeries] = useState<Series[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
-  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null)
+  const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const SeriesList: React.FC = () => {
     }
   }
 
-  const fetchSeriesByGenre = async (genreId: string | null) => {
+  const fetchSeriesByGenre = async (genreId: number | null) => {
     try {
       const url = genreId
         ? `/.netlify/functions/api?type=series&genreId=${genreId}`
@@ -55,11 +55,11 @@ const SeriesList: React.FC = () => {
     }
   }
 
-  const handleGenreClick = (genreId: string | null) => {
+  const handleGenreClick = (genreId: number | null) => {
     setSelectedGenreId(genreId)
   }
 
-  const handleSeriesClick = (seriesId: string) => {
+  const handleSeriesClick = (seriesId: number) => {
     navigate(`/series/${seriesId}`)
   }
 

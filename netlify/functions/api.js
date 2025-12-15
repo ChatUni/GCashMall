@@ -6,6 +6,10 @@ import {
   getProducts,
   getSeries,
   getGenres,
+  saveSeries,
+  deleteSeries,
+  uploadImage,
+  deleteImage,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -18,10 +22,14 @@ const apiHandlers = {
   },
   post: {
     todo: (body) => saveTodo(body),
+    saveSeries: (body) => saveSeries(body),
+    uploadImage: (body) => uploadImage(body),
+    deleteImage: (body) => deleteImage(body),
   },
   delete: {
     todo: (body) => deleteTodo(body),
-  }
+    series: (body) => deleteSeries(body),
+  },
 }
 
 export const handler = async (event, context) => {

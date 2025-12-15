@@ -86,15 +86,42 @@ const getProducts = async (params) => {
 
 const getSeries = async (params) => {
   try {
+    if (params.id) {
+      return await getSeriesById(params.id)
+    }
     const filter = buildSeriesFilter(params)
-    const seriesFromDb = await get('series', filter, {}, { seriesName: 1 })
-    const mappedSeries = seriesFromDb.map(mapSeriesFromDb)
+    const series = await get('series', filter, {}, { name: 1 })
+    const normalizedSeries = series.map(normalizeSeries)
     return {
       success: true,
-      data: mappedSeries,
+      data: normalizedSeries,
     }
   } catch (error) {
     throw new Error(`Failed to get series: ${error.message}`)
+  }
+}
+
+const getSeriesById = async (id) => {
+  const series = await get('series', { id: +id }, {}, {}, 1)
+  if (!series || series.length === 0) {
+    return {
+      success: false,
+      error: 'Series not found',
+    }
+  }
+  return {
+    success: true,
+    data: normalizeSeries(series[0]),
+  }
+}
+
+const normalizeSeries = (series) => {
+  if (!series) return null
+  return {
+    ...series,
+    genre: Array.isArray(series.genre)
+      ? series.genre.map((g) => ({ ...g, id: Number(g.id) }))
+      : [],
   }
 }
 
@@ -102,8 +129,8 @@ const buildSeriesFilter = (params) => {
   const filter = {}
 
   if (params.genreId) {
-    filter.typesDetail = {
-      $elemMatch: { typeId: parseInt(params.genreId, 10) },
+    filter.genre = {
+      $elemMatch: { id: Number(params.genreId) },
     }
   }
 
@@ -112,37 +139,90 @@ const buildSeriesFilter = (params) => {
 
 const getGenres = async (params) => {
   try {
-    const genresFromDb = await get('genre', {}, {}, { typeName: 1 })
-    const mappedGenres = genresFromDb.map(mapGenreFromDb)
+    const genres = await get('genre', {}, {}, { name: 1 })
+    const normalizedGenres = genres.map((genre) => ({
+      ...genre,
+      id: Number(genre.id),
+    }))
     return {
       success: true,
-      data: mappedGenres,
+      data: normalizedGenres,
     }
   } catch (error) {
     throw new Error(`Failed to get genres: ${error.message}`)
   }
 }
 
-const mapGenreFromDb = (dbGenre) => {
-  if (!dbGenre) return null
+const saveSeries = async (body) => {
+  validateSaveSeriesBody(body)
 
-  return {
-    id: String(dbGenre.typeId),
-    name: dbGenre.typeName,
+  try {
+    const result = await save('series', body)
+    return {
+      success: true,
+      data: result,
+    }
+  } catch (error) {
+    throw new Error(`Failed to save series: ${error.message}`)
   }
 }
 
-const mapSeriesFromDb = (dbSeries) => {
-  if (!dbSeries) return null
-  
+const validateSaveSeriesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.name || typeof body.name !== 'string') {
+    throw new Error('Series name is required and must be a string')
+  }
+}
+
+const deleteSeries = async (body) => {
+  validateDeleteSeriesBody(body)
+
+  try {
+    const { id } = body
+    const result = await remove('series', { id })
+    return {
+      success: true,
+      data: result,
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete series: ${error.message}`)
+  }
+}
+
+const validateDeleteSeriesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.id) {
+    throw new Error('Series id is required for deletion')
+  }
+}
+
+const uploadImage = async (body) => {
+  // Note: This is a placeholder. In production, this would handle
+  // multipart form data and upload to Cloudinary.
+  // The actual implementation would require parsing multipart data
+  // and using cloudinary SDK.
   return {
-    _id: dbSeries._id,
-    id: dbSeries.seriesId,
-    name: dbSeries.seriesName,
-    description: dbSeries.summary,
-    cover: dbSeries.coverUrl,
-    genreId: dbSeries.typesDetail?.typeId,
-    genre: dbSeries.typesDetail?.typeName
+    success: true,
+    data: {
+      url: body.url || '',
+    },
+  }
+}
+
+const deleteImage = async (body) => {
+  // Note: This is a placeholder. In production, this would
+  // delete the image from Cloudinary using the SDK.
+  return {
+    success: true,
+    data: {
+      deleted: true,
+    },
   }
 }
 
@@ -197,4 +277,8 @@ export {
   getProducts,
   getSeries,
   getGenres,
+  saveSeries,
+  deleteSeries,
+  uploadImage,
+  deleteImage,
 }

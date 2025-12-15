@@ -1,0 +1,118 @@
+.series-edit-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.series-edit-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.series-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.series-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.series-edit-label {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+}
+
+.series-edit-input {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.series-edit-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.series-edit-textarea {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.series-edit-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.series-edit-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.series-edit-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.series-edit-button-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.series-edit-button-cancel:hover {
+  background-color: #5a6268;
+}
+
+.series-edit-button-save {
+  background-color: #007bff;
+  color: white;
+}
+
+.series-edit-button-save:hover {
+  background-color: #0056b3;
+}
+
+.series-edit-loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+}
+
+.series-edit-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.series-edit-success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}

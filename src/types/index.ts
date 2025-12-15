@@ -28,15 +28,14 @@ export interface AccountFeature {
 
 export interface Series {
   _id: string
-  id: string
+  id: number
   name: string
   description: string
   cover: string
-  genreId?: string
-  genre?: string
+  genre: Genre[]
 }
 
 export interface Genre {
-  id: string
+  id: number
   name: string
 }

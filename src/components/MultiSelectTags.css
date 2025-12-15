@@ -1,0 +1,26 @@
+.multi-select-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.multi-select-tag {
+  padding: 6px 12px;
+  border: 1px solid black;
+  border-radius: 2px;
+  background-color: white;
+  color: black;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.multi-select-tag:hover {
+  opacity: 0.8;
+}
+
+.multi-select-tag.selected {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}

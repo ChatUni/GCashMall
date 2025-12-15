@@ -49,4 +49,18 @@ export const en = {
     noSeries: 'No series found.',
     allGenres: 'All',
   },
+  seriesEdit: {
+    name: 'Name',
+    description: 'Description',
+    genre: 'Genre',
+    cover: 'Cover',
+    cancel: 'Cancel',
+    save: 'Save',
+    loading: 'Loading...',
+    loadError: 'Failed to load series.',
+    confirmCancel: 'Are you sure you want to discard changes?',
+    confirmSave: 'Are you sure you want to save?',
+    saveSuccess: 'Series saved successfully.',
+    saveError: 'Failed to save series.',
+  },
 }

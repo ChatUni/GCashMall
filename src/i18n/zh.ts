@@ -49,4 +49,18 @@ export const zh = {
     noSeries: '未找到系列。',
     allGenres: '全部',
   },
+  seriesEdit: {
+    name: '名称',
+    description: '描述',
+    genre: '类型',
+    cover: '封面',
+    cancel: '取消',
+    save: '保存',
+    loading: '加载中...',
+    loadError: '加载系列失败。',
+    confirmCancel: '确定要放弃更改吗？',
+    confirmSave: '确定要保存吗？',
+    saveSuccess: '系列保存成功。',
+    saveError: '保存系列失败。',
+  },
 }
