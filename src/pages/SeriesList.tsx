@@ -63,6 +63,13 @@ const SeriesList: React.FC = () => {
     navigate(`/series/${seriesId}`)
   }
 
+  const handleEditClick = (e: React.MouseEvent, seriesId: number) => {
+    e.stopPropagation()
+    navigate(`/series/${seriesId}/edit`)
+  }
+
+  const sortedGenres = [...genres].sort((a, b) => a.name.localeCompare(b.name))
+
   const renderLoading = () => (
     <div className="series-list-page">
       <TopBar />
@@ -77,6 +84,18 @@ const SeriesList: React.FC = () => {
         <path d="M8 5v14l11-7z" />
       </svg>
     </div>
+  )
+
+  const renderEditIcon = (seriesItem: Series) => (
+    <button
+      className="series-edit-btn"
+      onClick={(e) => handleEditClick(e, seriesItem.id)}
+      aria-label={t.series.edit}
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+      </svg>
+    </button>
   )
 
   const renderSeriesCard = (seriesItem: Series) => (
@@ -98,6 +117,9 @@ const SeriesList: React.FC = () => {
         <div className="series-info">
           <h3 className="series-name">{seriesItem.name}</h3>
           <p className="series-description">{seriesItem.description}</p>
+          <div className="series-actions">
+            {renderEditIcon(seriesItem)}
+          </div>
         </div>
       </div>
     </Card>
@@ -122,7 +144,7 @@ const SeriesList: React.FC = () => {
         >
           {t.series.allGenres}
         </li>
-        {genres.map(renderGenreItem)}
+        {sortedGenres.map(renderGenreItem)}
       </ul>
     </aside>
   )

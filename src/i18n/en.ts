@@ -48,6 +48,7 @@ export const en = {
     loading: 'Loading series...',
     noSeries: 'No series found.',
     allGenres: 'All',
+    edit: 'Edit',
   },
   seriesEdit: {
     name: 'Name',

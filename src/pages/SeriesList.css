@@ -114,6 +114,30 @@
   text-align: left;
 }
 
+.series-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.series-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.series-edit-btn:hover {
+  color: #007bff;
+}
+
+.series-edit-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .series-name {
   color: blue;
   font-weight: bold;

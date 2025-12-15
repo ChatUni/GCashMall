@@ -74,9 +74,15 @@ Vertical
 Vertical
 - name
 - description
+- action icons
+  - edit
 
 #### Style
 
-- align left
-- name: blue, bold, size 20
-- description: black, size 14, only 3 lines, overflow use ...
+- name: align left, blue, bold, size 20
+- description: align left, black, size 14, only 3 lines, overflow use ...
+- action icons: align right
+
+#### Interactions
+
+- on edit click: go to series edit page with the current series

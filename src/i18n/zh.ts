@@ -48,6 +48,7 @@ export const zh = {
     loading: '加载系列中...',
     noSeries: '未找到系列。',
     allGenres: '全部',
+    edit: '编辑',
   },
   seriesEdit: {
     name: '名称',
