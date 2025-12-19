@@ -1,7 +1,29 @@
 export const zh = {
   topBar: {
-    searchPlaceholder: '搜索商品...',
+    searchPlaceholder: '输入剧集名称',
+    home: '首页',
+    genre: '分类',
+    watchHistory: '观看历史',
+    noWatchHistory: '您还没有观看任何剧集。',
     cart: '购物车',
+  },
+  home: {
+    play: '播放',
+    youMightLike: '猜你喜欢',
+    newReleases: '新剧上线',
+    viewMore: '查看更多',
+  },
+  genre: {
+    all: '全部',
+    results: '个结果',
+  },
+  player: {
+    episode: '第',
+    episodes: '剧集列表',
+    download: '下载',
+    share: '分享',
+    addToFavorites: '添加到收藏',
+    removeFromFavorites: '从收藏中移除',
   },
   languages: {
     en: 'English',
@@ -9,6 +31,45 @@ export const zh = {
   },
   account: {
     pageTitle: '您的账户',
+    nav: {
+      overview: '账户概览',
+      watchHistory: '观看历史',
+      favorites: '收藏夹',
+      downloads: '下载',
+      settings: '设置',
+      wallet: '钱包',
+      payment: '支付',
+      membership: '会员',
+      logout: '退出登录',
+    },
+    overview: {
+      title: '账户',
+      subtitle: '管理您的个人资料和偏好设置',
+      loggedIn: '已登录',
+      guest: '访客',
+      editProfile: '编辑资料',
+      changeLanguage: '更改语言',
+      recentActivity: '最近活动',
+      savedFavorites: '收藏内容',
+      viewAll: '查看全部',
+    },
+    watchHistory: {
+      title: '观看历史',
+      clearHistory: '清除历史',
+      syncHistory: '同步历史',
+      emptyTitle: '您还没有观看任何剧集。',
+      emptySubtext: '开始探索以建立您的观看历史。',
+      exploreSeries: '探索剧集',
+    },
+    settings: {
+      title: '设置',
+      preferences: '偏好设置',
+      language: '语言',
+      playbackSpeed: '播放速度',
+      autoplay: '自动播放',
+      notifications: '通知',
+    },
+    comingSoon: '此功能即将推出。',
     features: {
       yourAccount: {
         name: '您的账户',
