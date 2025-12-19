@@ -1,5 +1,13 @@
 import { get, save, remove } from './db.js'
 import { ObjectId } from 'mongodb'
+import { v2 as cloudinary } from 'cloudinary'
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+})
 
 const getTodos = async (params) => {
   validateGetTodosParams(params)
@@ -203,26 +211,71 @@ const validateDeleteSeriesBody = (body) => {
 }
 
 const uploadImage = async (body) => {
-  // Note: This is a placeholder. In production, this would handle
-  // multipart form data and upload to Cloudinary.
-  // The actual implementation would require parsing multipart data
-  // and using cloudinary SDK.
-  return {
-    success: true,
-    data: {
-      url: body.url || '',
-    },
+  validateUploadImageBody(body)
+
+  try {
+    const uploadOptions = {
+      folder: body.folder || 'gcashmall',
+    }
+
+    // If public_id is provided, use it (for updating existing images)
+    if (body.public_id) {
+      uploadOptions.public_id = body.public_id
+      uploadOptions.overwrite = true
+    }
+
+    const result = await cloudinary.uploader.upload(body.image, uploadOptions)
+
+    return {
+      success: true,
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id,
+        width: result.width,
+        height: result.height,
+        format: result.format,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to upload image: ${error.message}`)
   }
 }
 
 const deleteImage = async (body) => {
-  // Note: This is a placeholder. In production, this would
-  // delete the image from Cloudinary using the SDK.
-  return {
-    success: true,
-    data: {
-      deleted: true,
-    },
+  validateDeleteImageBody(body)
+
+  try {
+    const result = await cloudinary.uploader.destroy(body.public_id)
+
+    return {
+      success: true,
+      data: {
+        deleted: result.result === 'ok',
+        result: result.result,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete image: ${error.message}`)
+  }
+}
+
+const validateUploadImageBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.image || typeof body.image !== 'string') {
+    throw new Error('Image data is required and must be a string (base64 or URL)')
+  }
+}
+
+const validateDeleteImageBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.public_id || typeof body.public_id !== 'string') {
+    throw new Error('Image public_id is required for deletion')
   }
 }
 
