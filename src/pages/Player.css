@@ -248,8 +248,8 @@
 }
 
 .favorite-btn svg {
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
 }
 
 .favorite-btn.active {
@@ -705,4 +705,120 @@
   .view-more-text {
     font-size: 9px;
   }
+}
+
+/* Favorite Confirmation Popup */
+.favorite-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.favorite-popup {
+  background-color: #1A1A1E;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.favorite-popup-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorite-popup-icon svg {
+  width: 36px;
+  height: 36px;
+  color: #EF4444;
+}
+
+.favorite-popup-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0 0 12px 0;
+}
+
+.favorite-popup-message {
+  font-size: 14px;
+  color: #9CA3AF;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.favorite-popup-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.favorite-popup-btn {
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border: none;
+}
+
+.favorite-popup-btn:hover {
+  transform: scale(1.02);
+}
+
+.favorite-popup-btn-yes {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.favorite-popup-btn-yes:hover {
+  background-color: #2563EB;
+}
+
+.favorite-popup-btn-no {
+  background-color: #2A2A2E;
+  color: #9CA3AF;
+}
+
+.favorite-popup-btn-no:hover {
+  background-color: #3A3A3E;
+  color: #FFFFFF;
 }

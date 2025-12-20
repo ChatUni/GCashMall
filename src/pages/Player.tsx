@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import { useLanguage } from '../context/LanguageContext'
+import { useFavorites } from '../context/FavoritesContext'
 import './Player.css'
 
 interface Episode {
@@ -50,7 +51,11 @@ const Player: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('English')
   const [episodeRange, setEpisodeRange] = useState('1-40')
-  const [isFavorite, setIsFavorite] = useState(false)
+  const [showFavoritePopup, setShowFavoritePopup] = useState(false)
+  
+  // Use FavoritesContext
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites()
+  const isCurrentFavorite = isFavorite(seriesId || '1')
 
   // Mock series database (matching Home page data)
   const seriesDatabase: { [key: string]: { title: string; description: string; tags: string[]; poster: string } } = {
@@ -310,8 +315,28 @@ const Player: React.FC = () => {
     console.log(`Share to ${platform}`)
   }
 
-  const handleFavorite = () => {
-    setIsFavorite(!isFavorite)
+  const handleFavoriteClick = () => {
+    if (isCurrentFavorite) {
+      // If already a favorite, remove it directly
+      removeFavorite(seriesId || '1')
+    } else {
+      // Show confirmation popup
+      setShowFavoritePopup(true)
+    }
+  }
+
+  const handleConfirmFavorite = () => {
+    addFavorite({
+      id: seriesId || '1',
+      title: mockSeries.title,
+      poster: mockSeries.poster,
+      tag: mockSeries.tags[0] || 'Drama'
+    })
+    setShowFavoritePopup(false)
+  }
+
+  const handleCancelFavorite = () => {
+    setShowFavoritePopup(false)
   }
 
   const handleViewMoreClick = () => {
@@ -465,11 +490,11 @@ const Player: React.FC = () => {
                 </button>
 
                 <button
-                  className={`favorite-btn ${isFavorite ? 'active' : ''}`}
-                  onClick={handleFavorite}
-                  title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  className={`favorite-btn ${isCurrentFavorite ? 'active' : ''}`}
+                  onClick={handleFavoriteClick}
+                  title={isCurrentFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                  <svg viewBox="0 0 24 24" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                   </svg>
                 </button>
@@ -627,6 +652,31 @@ const Player: React.FC = () => {
       </main>
 
       <BottomBar />
+
+      {/* Favorite Confirmation Popup */}
+      {showFavoritePopup && (
+        <div className="favorite-popup-overlay" onClick={handleCancelFavorite}>
+          <div className="favorite-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="favorite-popup-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+              </svg>
+            </div>
+            <h3 className="favorite-popup-title">Add to Favorites?</h3>
+            <p className="favorite-popup-message">
+              Add this series to your favorites? View it later in your account dashboard!
+            </p>
+            <div className="favorite-popup-buttons">
+              <button className="favorite-popup-btn favorite-popup-btn-yes" onClick={handleConfirmFavorite}>
+                Yes
+              </button>
+              <button className="favorite-popup-btn favorite-popup-btn-no" onClick={handleCancelFavorite}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

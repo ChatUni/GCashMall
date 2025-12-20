@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import Card from '../components/Card'
 import { useLanguage } from '../context/LanguageContext'
+import { useFavorites } from '../context/FavoritesContext'
 import './Account.css'
 
 type NavItem = 
@@ -22,14 +24,10 @@ interface WatchHistoryItem {
   thumbnail: string
 }
 
-interface FavoriteItem {
-  id: string
-  title: string
-  thumbnail: string
-}
-
 const Account: React.FC = () => {
   const { t } = useLanguage()
+  const { favorites, removeFavorite } = useFavorites()
+  const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState<NavItem>('overview')
 
   // Mock data for demonstration
@@ -37,12 +35,6 @@ const Account: React.FC = () => {
     { id: '1', title: 'Drama Series A', episode: 'Episode 12', thumbnail: 'https://via.placeholder.com/80x60' },
     { id: '2', title: 'Action Movie B', episode: 'Episode 5', thumbnail: 'https://via.placeholder.com/80x60' },
     { id: '3', title: 'Comedy Show C', episode: 'Episode 8', thumbnail: 'https://via.placeholder.com/80x60' },
-  ]
-
-  const mockFavorites: FavoriteItem[] = [
-    { id: '1', title: 'Favorite Series 1', thumbnail: 'https://via.placeholder.com/80x60' },
-    { id: '2', title: 'Favorite Movie 2', thumbnail: 'https://via.placeholder.com/80x60' },
-    { id: '3', title: 'Favorite Show 3', thumbnail: 'https://via.placeholder.com/80x60' },
   ]
 
   const navItems: { key: NavItem; icon: string; label: string }[] = [
@@ -76,8 +68,16 @@ const Account: React.FC = () => {
   }
 
   const handleResume = (itemId: string) => {
-    console.log(`Resume item: ${itemId}`)
-    // TODO: Navigate to player page
+    navigate(`/player/${itemId}`)
+  }
+
+  const handleFavoriteClick = (seriesId: string) => {
+    navigate(`/player/${seriesId}`)
+  }
+
+  const handleRemoveFavorite = (e: React.MouseEvent, seriesId: string) => {
+    e.stopPropagation()
+    removeFavorite(seriesId)
   }
 
   const renderOverviewContent = () => (
@@ -145,14 +145,26 @@ const Account: React.FC = () => {
           </button>
         </div>
         <div className="activity-list">
-          {mockFavorites.map((item) => (
-            <div key={item.id} className="activity-row">
-              <img src={item.thumbnail} alt={item.title} className="activity-thumbnail" />
-              <div className="activity-info">
-                <span className="activity-title">{item.title}</span>
+          {favorites.length === 0 ? (
+            <p className="empty-message">No favorites yet. Add series from the player page!</p>
+          ) : (
+            favorites.slice(0, 3).map((item) => (
+              <div key={item.id} className="activity-row" onClick={() => handleFavoriteClick(item.id)}>
+                <img src={item.poster} alt={item.title} className="activity-thumbnail" />
+                <div className="activity-info">
+                  <span className="activity-title">{item.title}</span>
+                  <span className="activity-tag">{item.tag}</span>
+                </div>
+                <button
+                  className="remove-favorite-btn"
+                  onClick={(e) => handleRemoveFavorite(e, item.id)}
+                  title="Remove from favorites"
+                >
+                  ✕
+                </button>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </>
@@ -241,6 +253,50 @@ const Account: React.FC = () => {
     </>
   )
 
+  const renderFavoritesContent = () => (
+    <>
+      <div className="content-header">
+        <div className="header-text">
+          <h1 className="content-title">{t.account.nav.favorites}</h1>
+        </div>
+      </div>
+
+      {favorites.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">❤️</div>
+          <p className="empty-text">No favorites yet</p>
+          <p className="empty-subtext">Add series to your favorites from the player page</p>
+          <button className="btn-primary" onClick={() => navigate('/')}>
+            Explore Series
+          </button>
+        </div>
+      ) : (
+        <div className="favorites-grid">
+          {favorites.map((item) => (
+            <div
+              key={item.id}
+              className="favorite-card"
+              onClick={() => handleFavoriteClick(item.id)}
+            >
+              <div className="favorite-poster-container">
+                <img src={item.poster} alt={item.title} className="favorite-poster" />
+                <button
+                  className="favorite-remove-btn"
+                  onClick={(e) => handleRemoveFavorite(e, item.id)}
+                  title="Remove from favorites"
+                >
+                  ✕
+                </button>
+              </div>
+              <h3 className="favorite-title">{item.title}</h3>
+              <span className="favorite-tag">{item.tag}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+
   const renderPlaceholderContent = (title: string) => (
     <>
       <div className="content-header">
@@ -263,7 +319,7 @@ const Account: React.FC = () => {
       case 'settings':
         return renderSettingsContent()
       case 'favorites':
-        return renderPlaceholderContent(t.account.nav.favorites)
+        return renderFavoritesContent()
       case 'downloads':
         return renderPlaceholderContent(t.account.nav.downloads)
       case 'wallet':

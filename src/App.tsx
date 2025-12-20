@@ -5,11 +5,13 @@ import Account from './pages/Account'
 import Genre from './pages/Genre'
 import Player from './pages/Player'
 import { LanguageProvider } from './context/LanguageContext'
+import { FavoritesProvider } from './context/FavoritesContext'
 import './App.css'
 
 function App() {
   return (
     <LanguageProvider>
+      <FavoritesProvider>
       <Router>
         <div className="App">
           <Routes>
@@ -24,6 +26,7 @@ function App() {
           </Routes>
         </div>
       </Router>
+      </FavoritesProvider>
     </LanguageProvider>
   )
 }
