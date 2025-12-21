@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
-import { languageIcons, supportedLanguages, type Language } from '../i18n'
+import { useAuth } from '../context/AuthContext'
+import { useWatchHistory } from '../context/WatchHistoryContext'
+import { languageIcons, supportedLanguages } from '../i18n'
+import type { Language } from '../i18n'
+import LoginModal from './LoginModal'
 import './TopBar.css'
 
 interface SearchSuggestion {
@@ -10,19 +14,16 @@ interface SearchSuggestion {
   tag: string
 }
 
-interface WatchHistoryItem {
-  id: string
-  title: string
-  episode: string
-}
-
 const TopBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
   const [showHistoryPopover, setShowHistoryPopover] = useState(false)
   const [highlightedSuggestion, setHighlightedSuggestion] = useState(-1)
-  const [isLoggedIn] = useState(true) // TODO: Connect to auth state
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  
+  const { isLoggedIn, user } = useAuth()
+  const { watchHistory } = useWatchHistory()
   
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchContainerRef = useRef<HTMLDivElement>(null)
@@ -41,12 +42,8 @@ const TopBar: React.FC = () => {
     { id: '4', title: 'Thriller D', tag: 'Thriller' },
   ]
 
-  // Mock watch history
-  const mockWatchHistory: WatchHistoryItem[] = [
-    { id: '1', title: 'Drama Series A', episode: 'Episode 12' },
-    { id: '2', title: 'Action Movie B', episode: 'Episode 5' },
-    { id: '3', title: 'Comedy Show C', episode: 'Episode 8' },
-  ]
+  // Get recent watch history (limit to 5 items for popover)
+  const recentWatchHistory = watchHistory.slice(0, 5)
 
   // Filter suggestions based on query
   const filteredSuggestions = searchQuery.length >= 1
@@ -128,12 +125,12 @@ const TopBar: React.FC = () => {
   }
 
   const handleHistoryIconClick = () => {
-    navigate('/account')
-    // Navigate to account page with watch history tab
+    // Navigate to account page with watch history tab selected
+    navigate('/account?tab=watchHistory')
   }
 
-  const handleHistoryItemClick = (id: string) => {
-    navigate(`/player/${id}`)
+  const handleHistoryItemClick = (seriesId: string, episodeNumber: number) => {
+    navigate(`/player/${seriesId}/${episodeNumber}`)
     setShowHistoryPopover(false)
   }
 
@@ -141,9 +138,17 @@ const TopBar: React.FC = () => {
     if (isLoggedIn) {
       navigate('/account')
     } else {
-      // TODO: Open login modal
-      console.log('Open login modal')
+      setShowLoginModal(true)
     }
+  }
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false)
+    navigate('/account')
+  }
+
+  const handleLoginClose = () => {
+    setShowLoginModal(false)
   }
 
   const handleLanguageClick = () => {
@@ -255,22 +260,25 @@ const TopBar: React.FC = () => {
                 onMouseLeave={() => setShowHistoryPopover(false)}
               >
                 <div className="popover-header">{t.topBar.watchHistory}</div>
-                {mockWatchHistory.length === 0 ? (
+                {recentWatchHistory.length === 0 ? (
                   <div className="popover-empty">
                     <span className="empty-icon">📺</span>
                     <span className="empty-text">{t.topBar.noWatchHistory}</span>
                   </div>
                 ) : (
                   <div className="popover-list">
-                    {mockWatchHistory.map((item) => (
+                    {recentWatchHistory.map((item) => (
                       <div
-                        key={item.id}
+                        key={item.seriesId}
                         className="popover-item"
-                        onClick={() => handleHistoryItemClick(item.id)}
+                        onClick={() => handleHistoryItemClick(item.seriesId, item.episodeNumber)}
                       >
+                        <div className="popover-item-thumbnail">
+                          <img src={item.poster} alt={item.seriesTitle} className="popover-thumbnail-img" />
+                        </div>
                         <div className="popover-item-info">
-                          <span className="popover-item-title">{item.title}</span>
-                          <span className="popover-item-episode">{item.episode}</span>
+                          <span className="popover-item-title">{item.seriesTitle}</span>
+                          <span className="popover-item-episode">Episode {item.episodeNumber}</span>
                         </div>
                         <span className="popover-item-resume">▶</span>
                       </div>
@@ -285,11 +293,16 @@ const TopBar: React.FC = () => {
           <div
             className={`icon-button account-icon ${isNavActive('/account') ? 'active' : ''}`}
             onClick={handleAccountClick}
+            title={isLoggedIn ? user?.nickname || 'Account' : 'Sign In'}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            {isLoggedIn && user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="topbar-avatar" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            )}
           </div>
 
           {/* Language Switch */}
@@ -315,6 +328,13 @@ const TopBar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleLoginClose}
+        onSuccess={handleLoginSuccess}
+      />
     </header>
   )
 }

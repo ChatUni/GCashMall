@@ -4,6 +4,8 @@ import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import { useLanguage } from '../context/LanguageContext'
 import { useFavorites } from '../context/FavoritesContext'
+import { useWatchHistory } from '../context/WatchHistoryContext'
+import { useDownloads } from '../context/DownloadsContext'
 import './Player.css'
 
 interface Episode {
@@ -52,10 +54,17 @@ const Player: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('English')
   const [episodeRange, setEpisodeRange] = useState('1-40')
   const [showFavoritePopup, setShowFavoritePopup] = useState(false)
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   
   // Use FavoritesContext
   const { addFavorite, removeFavorite, isFavorite } = useFavorites()
   const isCurrentFavorite = isFavorite(seriesId || '1')
+  
+  // Use WatchHistoryContext
+  const { addToHistory } = useWatchHistory()
+  
+  // Use DownloadsContext
+  const { addDownload, isDownloaded } = useDownloads()
 
   // Mock series database (matching Home page data)
   const seriesDatabase: { [key: string]: { title: string; description: string; tags: string[]; poster: string } } = {
@@ -184,6 +193,9 @@ const Player: React.FC = () => {
   }
 
   const currentEpisode = parseInt(episodeId || '1')
+  
+  // Check if current episode is downloaded (after currentEpisode is defined)
+  const isCurrentEpisodeDownloaded = isDownloaded(seriesId || '1', currentEpisode)
 
   // Mock recommended series (same as Home page)
   const recommendedSeries: RecommendedSeries[] = [
@@ -225,6 +237,20 @@ const Player: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [seriesId])
+
+  // Record watch history when viewing an episode
+  useEffect(() => {
+    if (seriesId && currentSeriesData) {
+      addToHistory({
+        seriesId: seriesId,
+        seriesTitle: currentSeriesData.title,
+        episodeNumber: currentEpisode,
+        poster: currentSeriesData.poster,
+        tag: currentSeriesData.tags[0] || 'Drama'
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesId, currentEpisode])
 
   // Control visibility timeout
   useEffect(() => {
@@ -304,11 +330,30 @@ const Player: React.FC = () => {
     navigate(`/genre?category=${encodeURIComponent(tag)}`)
   }
 
-  const handleDownload = () => {
-    // TODO: Check if user is logged in
-    // If logged in: open download modal
-    // If not logged in: open login modal
-    console.log('Download clicked')
+  const handleDownloadClick = () => {
+    if (isCurrentEpisodeDownloaded) {
+      // Already downloaded, could show a message or navigate to downloads
+      console.log('Episode already downloaded')
+    } else {
+      // Show confirmation popup
+      setShowDownloadPopup(true)
+    }
+  }
+
+  const handleConfirmDownload = () => {
+    addDownload({
+      seriesId: seriesId || '1',
+      seriesTitle: mockSeries.title,
+      episodeNumber: currentEpisode,
+      poster: mockSeries.poster,
+      tag: mockSeries.tags[0] || 'Drama',
+      fileSize: '1.2 GB' // Mock file size
+    })
+    setShowDownloadPopup(false)
+  }
+
+  const handleCancelDownload = () => {
+    setShowDownloadPopup(false)
   }
 
   const handleShare = (platform: string) => {
@@ -482,11 +527,20 @@ const Player: React.FC = () => {
                   </select>
                 </div>
 
-                <button className="download-btn" onClick={handleDownload}>
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                  </svg>
-                  <span>{t.player.download}</span>
+                <button
+                  className={`download-btn ${isCurrentEpisodeDownloaded ? 'downloaded' : ''}`}
+                  onClick={handleDownloadClick}
+                >
+                  {isCurrentEpisodeDownloaded ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                    </svg>
+                  )}
+                  <span>{isCurrentEpisodeDownloaded ? 'Downloaded' : t.player.download}</span>
                 </button>
 
                 <button
@@ -671,6 +725,32 @@ const Player: React.FC = () => {
                 Yes
               </button>
               <button className="favorite-popup-btn favorite-popup-btn-no" onClick={handleCancelFavorite}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Confirmation Popup */}
+      {showDownloadPopup && (
+        <div className="download-popup-overlay" onClick={handleCancelDownload}>
+          <div className="download-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="download-popup-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+            </div>
+            <h3 className="download-popup-title">Download Episode?</h3>
+            <p className="download-popup-message">
+              Download "{mockSeries.title} - Episode {currentEpisode.toString().padStart(2, '0')}" for offline viewing?
+              View your downloads in your account dashboard!
+            </p>
+            <div className="download-popup-buttons">
+              <button className="download-popup-btn download-popup-btn-yes" onClick={handleConfirmDownload}>
+                Yes
+              </button>
+              <button className="download-popup-btn download-popup-btn-no" onClick={handleCancelDownload}>
                 No
               </button>
             </div>
