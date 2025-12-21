@@ -1,88 +1,73 @@
 # Series list page
 
 ## Layout
-
 Vertical
-
-- shared top bar
-- series list content
-- shared bottom bar
+- Shared top bar
+- Main content area: Left - Genre filter sidebar, Right - Content grid
+- Shared bottom bar
 
 ## Components
 
-### Series List Content
-
-### Layout
-
-#### Desktop
-
-Horizontal
-- genre list
-- series list
-
-#### Mobile
-
-- series list
-
-### Genre List
-
-A vertical list of genre, plus 'All' at the top. Sorted by text.
+### Genre filter sidebar
+#### Layout
+- Vertical
+- Fixed width on desktop
+- Positioned on the left side of the page
+- Scrollable if content exceeds viewport height
 
 #### Style
+Sidebar Container
+- Background: black / near-black (#0B0B0E)
+- Text color: light gray (#9CA3AF)
+- Padding: vertical spacing between items
+- Subtle divider or spacing between groups (optional)
 
-- width: 200px
-- vertically scrollable
+Genre Item
+- Font size: small–medium
+- Color (default): light gray
+- Cursor: pointer
+
+Active Genre
+- Text color: white
+- Font weight: medium / semibold
+- Visual indicator: Left accent line
+
+Hover State
+- Text color: white
+- Subtle brightness increase
 
 #### Interaction
+- On click: Sets clicked genre as active, Updates the content grid on the right using the selected genre filter, Updates the Section Header text to match the selected genre
+- Active genre remains highlighted
+- Page does not reload (client-side filtering)
 
-- on genre click: filter the series list by the genre
-
-### Series List
-
-#### Style
-
-Use shared card list style
-
-### Series
-
-Use shared card
+### Content Grid Section
 
 #### Layout
-
 Vertical
-- cover
-- series info
-
-#### Interaction
-
-- on hover:
-  - cover image is enlarged by 5%
-  - show a play icon (white) with round background (black, 50% opaque) at the center of the cover
-- show full description in tooltip
-- on click: go to series page with the series id
-
-### Cover
+- section header
+- series card list
 
 #### Style
+- Positioned on the right side of the page
+- Full remaining width after sidebar
 
-- aspect ratio 3:4
+#### Section Header
 
-### Series Info
+##### Style
+- Font size: medium–large
+- Color: white
+- Font weight: semibold
+- Positioned at top-left of the content grid
+- Spacing: small margin-bottom between header and grid
 
-#### Layout
+##### Interaction
+- Header is not clickable (display-only)
+- show result count on the right side of the header
 
-Vertical
-- name
-- description
-- action icons
-  - edit
+#### Series Card List
 
-#### Style
+##### Style
 
-- name: align left, blue, bold, size 20
-- description: align left, black, size 14, only 3 lines, overflow use ...
-- action icons: align right
-
-#### Interactions
-
-- on edit click: go to series edit page with the current series
+- Wrappable layout
+- Number of items in a row: desktop - 4, mobile - 2

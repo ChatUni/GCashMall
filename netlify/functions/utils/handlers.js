@@ -110,7 +110,14 @@ const getSeries = async (params) => {
 }
 
 const getSeriesById = async (id) => {
-  const series = await get('series', { id: +id }, {}, {}, 1)
+  // Try to find by _id first (MongoDB ObjectId string)
+  let series = await get('series', { _id: new ObjectId(id) }, {}, {}, 1)
+  
+  // If not found, try by numeric id
+  if (!series || series.length === 0) {
+    series = await get('series', { id: +id }, {}, {}, 1)
+  }
+  
   if (!series || series.length === 0) {
     return {
       success: false,
@@ -140,6 +147,13 @@ const buildSeriesFilter = (params) => {
     filter.genre = {
       $elemMatch: { id: Number(params.genreId) },
     }
+  }
+
+  if (params.search) {
+    filter.$or = [
+      { name: { $regex: params.search, $options: 'i' } },
+      { description: { $regex: params.search, $options: 'i' } }
+    ]
   }
 
   return filter
@@ -207,6 +221,209 @@ const validateDeleteSeriesBody = (body) => {
 
   if (!body.id) {
     throw new Error('Series id is required for deletion')
+  }
+}
+
+// New handlers for player and account features
+
+const getFeaturedSeries = async (params) => {
+  try {
+    // Get the first series marked as featured, or just the first series
+    let featured = await get('series', { isFeatured: true }, {}, {}, 1)
+    
+    if (!featured || featured.length === 0) {
+      featured = await get('series', {}, {}, { createdAt: -1 }, 1)
+    }
+    
+    if (!featured || featured.length === 0) {
+      return {
+        success: true,
+        data: null
+      }
+    }
+    
+    return {
+      success: true,
+      data: normalizeSeries(featured[0])
+    }
+  } catch (error) {
+    throw new Error(`Failed to get featured series: ${error.message}`)
+  }
+}
+
+const getRecommendations = async (params) => {
+  try {
+    // Get a random selection of series as recommendations
+    const series = await get('series', {}, {}, { createdAt: -1 }, 6)
+    const normalizedSeries = series.map(normalizeSeries)
+    return {
+      success: true,
+      data: normalizedSeries
+    }
+  } catch (error) {
+    throw new Error(`Failed to get recommendations: ${error.message}`)
+  }
+}
+
+const getNewReleases = async (params) => {
+  try {
+    // Get the most recently added series
+    const series = await get('series', {}, {}, { createdAt: -1 }, 6)
+    const normalizedSeries = series.map(normalizeSeries)
+    return {
+      success: true,
+      data: normalizedSeries
+    }
+  } catch (error) {
+    throw new Error(`Failed to get new releases: ${error.message}`)
+  }
+}
+
+const getSearchSuggestions = async (params) => {
+  try {
+    const query = params.q || ''
+    if (!query || query.length < 1) {
+      return { success: true, data: [] }
+    }
+    
+    const series = await get(
+      'series',
+      { name: { $regex: query, $options: 'i' } },
+      { _id: 1, name: 1, genre: 1 },
+      {},
+      5
+    )
+    
+    const suggestions = series.map((s) => ({
+      _id: s._id,
+      seriesId: s._id,
+      title: s.name,
+      tag: s.genre && s.genre.length > 0 ? s.genre[0].name : ''
+    }))
+    
+    return {
+      success: true,
+      data: suggestions
+    }
+  } catch (error) {
+    throw new Error(`Failed to get search suggestions: ${error.message}`)
+  }
+}
+
+const getEpisodes = async (params) => {
+  try {
+    const seriesId = params.seriesId
+    if (!seriesId) {
+      return { success: false, error: 'Series ID is required' }
+    }
+    
+    const episodes = await get(
+      'episodes',
+      { seriesId: seriesId },
+      {},
+      { episodeNumber: 1 }
+    )
+    
+    return {
+      success: true,
+      data: episodes
+    }
+  } catch (error) {
+    throw new Error(`Failed to get episodes: ${error.message}`)
+  }
+}
+
+const getWatchHistory = async (params) => {
+  try {
+    const limit = params.limit ? parseInt(params.limit) : 20
+    const history = await get('watchHistory', {}, {}, { lastWatched: -1 }, limit)
+    return {
+      success: true,
+      data: history
+    }
+  } catch (error) {
+    throw new Error(`Failed to get watch history: ${error.message}`)
+  }
+}
+
+const getFavorites = async (params) => {
+  try {
+    const limit = params.limit ? parseInt(params.limit) : 20
+    const favorites = await get('favorites', {}, {}, { addedAt: -1 }, limit)
+    return {
+      success: true,
+      data: favorites
+    }
+  } catch (error) {
+    throw new Error(`Failed to get favorites: ${error.message}`)
+  }
+}
+
+const getUser = async (params) => {
+  try {
+    // For now, return a mock user or null
+    // In production, this would validate session and return user data
+    const users = await get('users', {}, {}, {}, 1)
+    
+    if (users && users.length > 0) {
+      return {
+        success: true,
+        data: {
+          ...users[0],
+          isLoggedIn: true
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      data: {
+        _id: null,
+        username: 'Guest',
+        email: '',
+        isLoggedIn: false
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to get user: ${error.message}`)
+  }
+}
+
+const login = async (body) => {
+  try {
+    const { email, password } = body
+    
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' }
+    }
+    
+    // For demo purposes, accept any credentials
+    // In production, this would validate against the database
+    const user = {
+      _id: 'demo-user',
+      username: email.split('@')[0],
+      email: email,
+      isLoggedIn: true
+    }
+    
+    return {
+      success: true,
+      data: user
+    }
+  } catch (error) {
+    throw new Error(`Login failed: ${error.message}`)
+  }
+}
+
+const clearWatchHistory = async (body) => {
+  try {
+    await remove('watchHistory', {})
+    return {
+      success: true,
+      data: { cleared: true }
+    }
+  } catch (error) {
+    throw new Error(`Failed to clear watch history: ${error.message}`)
   }
 }
 
@@ -334,4 +551,14 @@ export {
   deleteSeries,
   uploadImage,
   deleteImage,
+  getFeaturedSeries,
+  getRecommendations,
+  getNewReleases,
+  getSearchSuggestions,
+  getEpisodes,
+  getWatchHistory,
+  getFavorites,
+  getUser,
+  login,
+  clearWatchHistory,
 }

@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Card from '../components/Card'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
+import SeriesCard from '../components/SeriesCard'
 import { useLanguage } from '../context/LanguageContext'
+import { apiGet } from '../utils/api'
 import type { Series, Genre } from '../types'
 import './SeriesList.css'
 
 const SeriesList: React.FC = () => {
   const { t } = useLanguage()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [series, setSeries] = useState<Series[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
   const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null)
@@ -20,20 +22,24 @@ const SeriesList: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    fetchSeriesByGenre(selectedGenreId)
-  }, [selectedGenreId])
+    const searchQuery = searchParams.get('search')
+    if (searchQuery) {
+      searchSeries(searchQuery)
+    } else {
+      fetchSeriesByGenre(selectedGenreId)
+    }
+  }, [selectedGenreId, searchParams])
 
   const fetchInitialData = async () => {
-    await Promise.all([fetchGenres(), fetchSeriesByGenre(null)])
+    await fetchGenres()
     setLoading(false)
   }
 
   const fetchGenres = async () => {
     try {
-      const response = await fetch('/.netlify/functions/api?type=genres')
-      const data = await response.json()
-      if (data.success) {
-        setGenres(data.data)
+      const response = await apiGet<Genre[]>('genres')
+      if (response.success && response.data) {
+        setGenres(response.data)
       }
     } catch (error) {
       console.error('Error fetching genres:', error)
@@ -42,16 +48,24 @@ const SeriesList: React.FC = () => {
 
   const fetchSeriesByGenre = async (genreId: number | null) => {
     try {
-      const url = genreId
-        ? `/.netlify/functions/api?type=series&genreId=${genreId}`
-        : '/.netlify/functions/api?type=series'
-      const response = await fetch(url)
-      const data = await response.json()
-      if (data.success) {
-        setSeries(data.data)
+      const params: Record<string, string | number> | undefined = genreId ? { genreId } : undefined
+      const response = await apiGet<Series[]>('series', params)
+      if (response.success && response.data) {
+        setSeries(response.data)
       }
     } catch (error) {
       console.error('Error fetching series:', error)
+    }
+  }
+
+  const searchSeries = async (query: string) => {
+    try {
+      const response = await apiGet<Series[]>('series', { search: query })
+      if (response.success && response.data) {
+        setSeries(response.data)
+      }
+    } catch (error) {
+      console.error('Error searching series:', error)
     }
   }
 
@@ -59,121 +73,80 @@ const SeriesList: React.FC = () => {
     setSelectedGenreId(genreId)
   }
 
-  const handleSeriesClick = (seriesId: number) => {
-    navigate(`/series/${seriesId}`)
+  const handleSeriesClick = (seriesItem: Series) => {
+    navigate(`/player/${seriesItem._id}`)
   }
 
-  const handleEditClick = (e: React.MouseEvent, seriesId: number) => {
-    e.stopPropagation()
-    navigate(`/series/${seriesId}/edit`)
+  const getSelectedGenreName = (): string => {
+    if (selectedGenreId === null) {
+      return t.series.allGenres
+    }
+    const genre = genres.find((g) => g.id === selectedGenreId)
+    return genre?.name || t.series.allGenres
   }
 
   const sortedGenres = [...genres].sort((a, b) => a.name.localeCompare(b.name))
 
-  const renderLoading = () => (
-    <div className="series-list-page">
-      <TopBar />
-      <div className="loading">Loading series...</div>
-      <BottomBar />
-    </div>
-  )
-
-  const renderPlayIcon = () => (
-    <div className="series-play-icon">
-      <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 5v14l11-7z" />
-      </svg>
-    </div>
-  )
-
-  const renderEditIcon = (seriesItem: Series) => (
-    <button
-      className="series-edit-btn"
-      onClick={(e) => handleEditClick(e, seriesItem.id)}
-      aria-label={t.series.edit}
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-      </svg>
-    </button>
-  )
-
-  const renderSeriesCard = (seriesItem: Series) => (
-    <Card
-      key={seriesItem._id}
-      className="series-card"
-      title={seriesItem.description}
-      onClick={() => handleSeriesClick(seriesItem.id)}
-    >
-      <div className="series-content">
-        <div className="series-cover-container">
-          <img
-            src={seriesItem.cover}
-            alt={seriesItem.name}
-            className="series-cover"
-          />
-          {renderPlayIcon()}
-        </div>
-        <div className="series-info">
-          <h3 className="series-name">{seriesItem.name}</h3>
-          <p className="series-description">{seriesItem.description}</p>
-          <div className="series-actions">
-            {renderEditIcon(seriesItem)}
-          </div>
-        </div>
+  if (loading) {
+    return (
+      <div className="series-list-page">
+        <TopBar />
+        <div className="loading">{t.series.loading}</div>
+        <BottomBar />
       </div>
-    </Card>
-  )
+    )
+  }
 
-  const renderGenreItem = (genre: Genre) => (
-    <li
-      key={genre.id}
-      className={`genre-item ${selectedGenreId === genre.id ? 'active' : ''}`}
-      onClick={() => handleGenreClick(genre.id)}
-    >
-      {genre.name}
-    </li>
-  )
-
-  const renderGenreList = () => (
-    <aside className="genre-list">
-      <ul>
-        <li
-          className={`genre-item ${selectedGenreId === null ? 'active' : ''}`}
-          onClick={() => handleGenreClick(null)}
-        >
-          {t.series.allGenres}
-        </li>
-        {sortedGenres.map(renderGenreItem)}
-      </ul>
-    </aside>
-  )
-
-  const renderSeriesGrid = () => (
-    <div className="series-grid-container">
-      <div className="series-grid card-list">{series.map(renderSeriesCard)}</div>
-      {series.length === 0 && (
-        <div className="no-series">{t.series.noSeries}</div>
-      )}
-    </div>
-  )
-
-  const renderSeriesList = () => (
+  return (
     <div className="series-list-page">
       <TopBar />
       <main className="series-list-content">
-        {renderGenreList()}
-        {renderSeriesGrid()}
+        <aside className="genre-sidebar">
+          <ul className="genre-list">
+            <li
+              className={`genre-item ${selectedGenreId === null ? 'active' : ''}`}
+              onClick={() => handleGenreClick(null)}
+            >
+              {t.series.allGenres}
+            </li>
+            {sortedGenres.map((genre) => (
+              <li
+                key={genre.id}
+                className={`genre-item ${selectedGenreId === genre.id ? 'active' : ''}`}
+                onClick={() => handleGenreClick(genre.id)}
+              >
+                {genre.name}
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <div className="content-grid-section">
+          <div className="section-header">
+            <h2 className="section-title">{getSelectedGenreName()}</h2>
+            <span className="result-count">
+              {t.series.resultsCount.replace('{count}', String(series.length))}
+            </span>
+          </div>
+
+          {series.length === 0 ? (
+            <div className="no-series">{t.series.noSeries}</div>
+          ) : (
+            <div className="series-grid">
+              {series.map((seriesItem) => (
+                <SeriesCard
+                  key={seriesItem._id}
+                  series={seriesItem}
+                  onClick={() => handleSeriesClick(seriesItem)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </main>
       <BottomBar />
     </div>
   )
-
-  if (loading) {
-    return renderLoading()
-  }
-
-  return renderSeriesList()
 }
 
 export default SeriesList

@@ -33,9 +33,66 @@ export interface Series {
   description: string
   cover: string
   genre: Genre[]
+  tags?: string[]
+  episodes?: Episode[]
+  languages?: string[]
 }
 
 export interface Genre {
   id: number
   name: string
+}
+
+export interface Episode {
+  _id: string
+  id: number
+  seriesId: string
+  title: string
+  description: string
+  thumbnail: string
+  videoUrl: string
+  duration: number
+  episodeNumber: number
+}
+
+export interface User {
+  _id: string
+  username: string
+  email: string
+  avatar?: string
+  isLoggedIn: boolean
+}
+
+export interface WatchHistoryItem {
+  _id: string
+  seriesId: string
+  seriesTitle: string
+  episodeId: string
+  episodeNumber: number
+  thumbnail: string
+  lastWatched: Date
+  progress: number
+}
+
+export interface FavoriteItem {
+  _id: string
+  seriesId: string
+  seriesTitle: string
+  thumbnail: string
+  addedAt: Date
+}
+
+export interface FeaturedSeries {
+  _id: string
+  series: Series
+  isFeatured: boolean
+}
+
+export type NavItemType = 'home' | 'genre' | 'account' | 'history'
+
+export interface SearchSuggestion {
+  _id: string
+  seriesId: string
+  title: string
+  tag: string
 }

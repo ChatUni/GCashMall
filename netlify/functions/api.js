@@ -10,6 +10,16 @@ import {
   deleteSeries,
   uploadImage,
   deleteImage,
+  getFeaturedSeries,
+  getRecommendations,
+  getNewReleases,
+  getSearchSuggestions,
+  getEpisodes,
+  getWatchHistory,
+  getFavorites,
+  getUser,
+  login,
+  clearWatchHistory,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -19,12 +29,22 @@ const apiHandlers = {
     products: (params) => getProducts(params),
     series: (params) => getSeries(params),
     genres: (params) => getGenres(params),
+    featured: (params) => getFeaturedSeries(params),
+    recommendations: (params) => getRecommendations(params),
+    newReleases: (params) => getNewReleases(params),
+    searchSuggestions: (params) => getSearchSuggestions(params),
+    episodes: (params) => getEpisodes(params),
+    watchHistory: (params) => getWatchHistory(params),
+    favorites: (params) => getFavorites(params),
+    user: (params) => getUser(params),
   },
   post: {
     todo: (body) => saveTodo(body),
     saveSeries: (body) => saveSeries(body),
     uploadImage: (body) => uploadImage(body),
     deleteImage: (body) => deleteImage(body),
+    login: (body) => login(body),
+    clearWatchHistory: (body) => clearWatchHistory(body),
   },
   delete: {
     todo: (body) => deleteTodo(body),
@@ -33,6 +53,11 @@ const apiHandlers = {
 }
 
 export const handler = async (event, context) => {
+  // Handle preflight OPTIONS request
+  if (event.httpMethod === 'OPTIONS') {
+    return createResponse(200, {})
+  }
+
   try {
     const method = event.httpMethod.toLowerCase()
     const queryParams = event.queryStringParameters || {}

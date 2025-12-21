@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import Card from '../components/Card'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
+import { apiGet } from '../utils/api'
 import type { Product } from '../types'
 import './ProductList.css'
 
@@ -20,18 +21,17 @@ const ProductList: React.FC = () => {
       const category = searchParams.get('category')
       const search = searchParams.get('search')
       
-      let url = '/.netlify/functions/api?type=products'
+      const params: Record<string, string | number> = {}
       if (category) {
-        url += `&category=${category}`
+        params.category = category
       }
       if (search) {
-        url += `&search=${search}`
+        params.search = search
       }
 
-      const response = await fetch(url)
-      const data = await response.json()
-      if (data.success) {
-        setProducts(data.data)
+      const response = await apiGet<Product[]>('products', Object.keys(params).length > 0 ? params : undefined)
+      if (response.success && response.data) {
+        setProducts(response.data)
       }
     } catch (error) {
       console.error('Error fetching products:', error)

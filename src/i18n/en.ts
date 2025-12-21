@@ -1,14 +1,54 @@
 export const en = {
   topBar: {
-    searchPlaceholder: 'Search products...',
+    searchPlaceholder: 'Enter the title of the series',
     cart: 'Cart',
+    home: 'Home',
+    genre: 'Genre',
+    watchHistory: 'Watch History',
+    noHistory: "You haven't watched any series yet.",
+    historyTitle: 'Watch History',
   },
   languages: {
     en: 'English',
     zh: '中文',
   },
   account: {
-    pageTitle: 'Your Account',
+    pageTitle: 'Account',
+    subtitle: 'Manage your profile and preferences',
+    loggedIn: 'Logged in',
+    guest: 'Guest',
+    editProfile: 'Edit Profile',
+    changeLanguage: 'Change Language',
+    recentActivity: 'Recent Activity',
+    resume: 'Resume',
+    viewAll: 'View all',
+    savedFavorites: 'Saved / Favorites',
+    nav: {
+      accountOverview: 'Account Overview',
+      watchHistory: 'Watch History',
+      favorites: 'Favorites',
+      downloads: 'Downloads',
+      settings: 'Settings',
+      wallet: 'Wallet',
+      payment: 'Payment',
+      membership: 'Membership',
+      logout: 'Logout',
+    },
+    watchHistory: {
+      title: 'Watch History',
+      clearHistory: 'Clear History',
+      syncHistory: 'Sync history',
+      emptyTitle: "You haven't watched any series yet.",
+      emptySubtext: 'Start exploring to build your history',
+      exploreButton: 'Explore series',
+    },
+    settings: {
+      preferences: 'Preferences',
+      language: 'Language',
+      playbackSpeed: 'Playback Speed',
+      autoplay: 'Autoplay',
+      notifications: 'Notifications',
+    },
     features: {
       yourAccount: {
         name: 'Your Account',
@@ -49,6 +89,7 @@ export const en = {
     noSeries: 'No series found.',
     allGenres: 'All',
     edit: 'Edit',
+    resultsCount: '{count} results',
   },
   seriesEdit: {
     name: 'Name',
@@ -63,5 +104,27 @@ export const en = {
     confirmSave: 'Are you sure you want to save?',
     saveSuccess: 'Series saved successfully.',
     saveError: 'Failed to save series.',
+  },
+  home: {
+    play: 'Play',
+    youMightLike: 'You Might Like',
+    newReleases: 'New Releases',
+  },
+  player: {
+    episodes: 'Episodes',
+    download: 'Download',
+    share: 'Share',
+    addToFavorites: 'Add to favorites',
+    breadcrumbHome: 'GcashReels',
+  },
+  login: {
+    title: 'Login',
+    email: 'Email',
+    password: 'Password',
+    submit: 'Login',
+    close: 'Close',
+  },
+  productCategory: {
+    loading: 'Loading categories...',
   },
 }

@@ -1,0 +1,45 @@
+.recommendation-section {
+  padding: 32px 24px;
+  background-color: #0b0b0e;
+}
+
+.recommendation-section.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #9ca3af;
+}
+
+.recommendation-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.recommendation-carousel {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.recommendation-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.recommendation-list {
+  display: flex;
+  gap: 16px;
+}
+
+.recommendation-item {
+  flex: 0 0 auto;
+  width: 160px;
+}
+
+@media (max-width: 768px) {
+  .recommendation-item {
+    width: 140px;
+  }
+}

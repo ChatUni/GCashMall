@@ -1,14 +1,54 @@
 export const zh = {
   topBar: {
-    searchPlaceholder: '搜索商品...',
+    searchPlaceholder: '输入剧集标题',
     cart: '购物车',
+    home: '首页',
+    genre: '分类',
+    watchHistory: '观看历史',
+    noHistory: '您还没有观看任何剧集。',
+    historyTitle: '观看历史',
   },
   languages: {
     en: 'English',
     zh: '中文',
   },
   account: {
-    pageTitle: '您的账户',
+    pageTitle: '账户',
+    subtitle: '管理您的个人资料和偏好设置',
+    loggedIn: '已登录',
+    guest: '访客',
+    editProfile: '编辑资料',
+    changeLanguage: '更换语言',
+    recentActivity: '最近活动',
+    resume: '继续',
+    viewAll: '查看全部',
+    savedFavorites: '收藏夹',
+    nav: {
+      accountOverview: '账户概览',
+      watchHistory: '观看历史',
+      favorites: '收藏夹',
+      downloads: '下载',
+      settings: '设置',
+      wallet: '钱包',
+      payment: '支付',
+      membership: '会员',
+      logout: '退出登录',
+    },
+    watchHistory: {
+      title: '观看历史',
+      clearHistory: '清除历史',
+      syncHistory: '同步历史',
+      emptyTitle: '您还没有观看任何剧集。',
+      emptySubtext: '开始探索以建立您的观看历史',
+      exploreButton: '探索剧集',
+    },
+    settings: {
+      preferences: '偏好设置',
+      language: '语言',
+      playbackSpeed: '播放速度',
+      autoplay: '自动播放',
+      notifications: '通知',
+    },
     features: {
       yourAccount: {
         name: '您的账户',
@@ -49,6 +89,7 @@ export const zh = {
     noSeries: '未找到系列。',
     allGenres: '全部',
     edit: '编辑',
+    resultsCount: '{count} 个结果',
   },
   seriesEdit: {
     name: '名称',
@@ -63,5 +104,27 @@ export const zh = {
     confirmSave: '确定要保存吗？',
     saveSuccess: '系列保存成功。',
     saveError: '保存系列失败。',
+  },
+  home: {
+    play: '播放',
+    youMightLike: '猜你喜欢',
+    newReleases: '新上线',
+  },
+  player: {
+    episodes: '剧集',
+    download: '下载',
+    share: '分享',
+    addToFavorites: '添加到收藏',
+    breadcrumbHome: 'GcashReels',
+  },
+  login: {
+    title: '登录',
+    email: '邮箱',
+    password: '密码',
+    submit: '登录',
+    close: '关闭',
+  },
+  productCategory: {
+    loading: '加载分类中...',
   },
 }

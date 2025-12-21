@@ -5,10 +5,9 @@ import BottomBar from '../components/BottomBar'
 import MultiSelectTags from '../components/MultiSelectTags'
 import ImageUpload from '../components/ImageUpload'
 import { useLanguage } from '../context/LanguageContext'
-import type { Genre } from '../types'
+import { apiGet, apiPost, apiPostFormData } from '../utils/api'
+import type { Genre, Series } from '../types'
 import './SeriesEdit.css'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8888'
 
 const SeriesEdit = () => {
   const { id } = useParams<{ id: string }>()
@@ -39,9 +38,8 @@ const SeriesEdit = () => {
 
   const fetchGenres = async () => {
     try {
-      const response = await fetch(`${API_BASE}/.netlify/functions/api?type=genres`)
-      const result = await response.json()
-      if (result.success) {
+      const result = await apiGet<Genre[]>('genres')
+      if (result.success && result.data) {
         setGenres(result.data)
       }
     } catch (err) {
@@ -52,8 +50,7 @@ const SeriesEdit = () => {
   const fetchSeries = async (seriesId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE}/.netlify/functions/api?type=series&id=${seriesId}`)
-      const result = await response.json()
+      const result = await apiGet<Series>('series', { id: seriesId })
       if (result.success && result.data) {
         const series = result.data
         setFormData({
@@ -141,11 +138,7 @@ const SeriesEdit = () => {
 
   const deleteExistingCover = async () => {
     try {
-      await fetch(`${API_BASE}/.netlify/functions/api?type=deleteImage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: originalCover }),
-      })
+      await apiPost('deleteImage', { url: originalCover })
     } catch (err) {
       console.error('Failed to delete existing cover:', err)
     }
@@ -158,13 +151,8 @@ const SeriesEdit = () => {
     formDataUpload.append('file', imageFile)
     formDataUpload.append('folder', 'GCash')
 
-    const response = await fetch(`${API_BASE}/.netlify/functions/api?type=uploadImage`, {
-      method: 'POST',
-      body: formDataUpload,
-    })
-
-    const result = await response.json()
-    if (!result.success) {
+    const result = await apiPostFormData<{ url: string }>('uploadImage', formDataUpload)
+    if (!result.success || !result.data) {
       throw new Error(result.error || 'Failed to upload image')
     }
 
@@ -174,13 +162,7 @@ const SeriesEdit = () => {
   const saveSeriesToDb = async (coverUrl: string) => {
     const seriesData = buildSeriesData(coverUrl)
 
-    const response = await fetch(`${API_BASE}/.netlify/functions/api?type=saveSeries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(seriesData),
-    })
-
-    const result = await response.json()
+    const result = await apiPost('saveSeries', seriesData as unknown as Record<string, unknown>)
     if (!result.success) {
       throw new Error(result.error || 'Failed to save series')
     }
