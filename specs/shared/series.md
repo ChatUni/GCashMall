@@ -26,7 +26,7 @@ Title
 
 ## Interaction
 
-- On hover: Poster image slightly scales up，subtle glows and slightly scales up, scale up by 2%, animate the change in 0.3 sec
+- On hover: Poster image slightly scales up，subtle glows, scale up by 2%, animate the change in 0.3 sec. Dim the background, show a big play icon at the center of the image.
 - On click: Navigate to the series page
 
 
