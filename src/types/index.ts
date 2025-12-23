@@ -32,6 +32,7 @@ export interface Series {
   name: string
   description: string
   cover: string
+  videoId?: string
   genre: Genre[]
   tags?: string[]
   episodes?: Episode[]

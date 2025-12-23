@@ -96,6 +96,7 @@ export const zh = {
     description: '描述',
     genre: '类型',
     cover: '封面',
+    video: '视频',
     cancel: '取消',
     save: '保存',
     loading: '加载中...',

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import MultiSelectTags from '../components/MultiSelectTags'
-import ImageUpload from '../components/ImageUpload'
+import MediaUpload from '../components/MediaUpload'
 import { useLanguage } from '../context/LanguageContext'
 import { apiGet, apiPost, apiPostFormData } from '../utils/api'
 import type { Genre, Series } from '../types'
@@ -20,10 +20,13 @@ const SeriesEdit = () => {
     description: '',
     genreIds: [],
     cover: '',
+    videoId: '',
   })
   const [genres, setGenres] = useState<Genre[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [videoFile, setVideoFile] = useState<File | null>(null)
   const [originalCover, setOriginalCover] = useState<string>('')
+  const [originalVideoId, setOriginalVideoId] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,8 +61,10 @@ const SeriesEdit = () => {
           description: series.description,
           genreIds: series.genre ? series.genre.map((g: Genre) => g.id) : [],
           cover: series.cover,
+          videoId: series.videoId || '',
         })
         setOriginalCover(series.cover)
+        setOriginalVideoId(series.videoId || '')
       }
     } catch (err) {
       setError(t.seriesEdit.loadError)
@@ -87,6 +92,13 @@ const SeriesEdit = () => {
     }
   }
 
+  const handleVideoChange = (file: File | null, previewUrl: string | null) => {
+    setVideoFile(file)
+    if (previewUrl) {
+      setFormData((prev) => ({ ...prev, videoPreview: previewUrl }))
+    }
+  }
+
   const handleCancel = () => {
     const confirmed = window.confirm(t.seriesEdit.confirmCancel)
     if (confirmed) {
@@ -107,12 +119,17 @@ const SeriesEdit = () => {
 
     try {
       let coverUrl = formData.cover
+      let videoId = formData.videoId
 
       if (imageFile) {
         coverUrl = await handleCoverUpload()
       }
 
-      await saveSeriesToDb(coverUrl)
+      if (videoFile) {
+        videoId = await handleVideoUpload()
+      }
+
+      await saveSeriesToDb(coverUrl, videoId)
       setSuccess(t.seriesEdit.saveSuccess)
       setTimeout(() => navigate(-1), 1500)
     } catch (err) {
@@ -147,11 +164,12 @@ const SeriesEdit = () => {
   const uploadNewCover = async (): Promise<string> => {
     if (!imageFile) throw new Error('No image file to upload')
 
-    const formDataUpload = new FormData()
-    formDataUpload.append('file', imageFile)
-    formDataUpload.append('folder', 'GCash')
+    const imageBase64 = await fileToDataUrl(imageFile)
 
-    const result = await apiPostFormData<{ url: string }>('uploadImage', formDataUpload)
+    const result = await apiPost<{ url: string }>('uploadImage', {
+      image: imageBase64,
+      folder: 'GCash',
+    })
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Failed to upload image')
     }
@@ -159,8 +177,70 @@ const SeriesEdit = () => {
     return result.data.url
   }
 
-  const saveSeriesToDb = async (coverUrl: string) => {
-    const seriesData = buildSeriesData(coverUrl)
+  const handleVideoUpload = async (): Promise<string> => {
+    if (!videoFile) return formData.videoId
+
+    if (originalVideoId && videoHasChanged()) {
+      await deleteExistingVideo()
+    }
+
+    return await uploadNewVideo()
+  }
+
+  const videoHasChanged = (): boolean => {
+    return Boolean(videoFile)
+  }
+
+  const deleteExistingVideo = async () => {
+    try {
+      await apiPost('deleteVideo', { videoId: originalVideoId })
+    } catch (err) {
+      console.error('Failed to delete existing video:', err)
+    }
+  }
+
+  const uploadNewVideo = async (): Promise<string> => {
+    if (!videoFile) throw new Error('No video file to upload')
+
+    const videoBase64 = await fileToBase64(videoFile)
+
+    const result = await apiPost<{ videoId: string }>('uploadVideo', {
+      video: videoBase64,
+      title: formData.name || 'Untitled',
+    })
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to upload video')
+    }
+
+    return result.data.videoId
+  }
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const result = reader.result as string
+        const base64 = result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        resolve(reader.result as string)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const saveSeriesToDb = async (coverUrl: string, videoId: string) => {
+    const seriesData = buildSeriesData(coverUrl, videoId)
 
     const result = await apiPost('saveSeries', seriesData as unknown as Record<string, unknown>)
     if (!result.success) {
@@ -168,7 +248,7 @@ const SeriesEdit = () => {
     }
   }
 
-  const buildSeriesData = (coverUrl: string) => {
+  const buildSeriesData = (coverUrl: string, videoId: string) => {
     const selectedGenres = formData.genreIds
       .map((genreId) => genres.find((g) => g.id === genreId))
       .filter((g): g is Genre => g !== undefined)
@@ -178,6 +258,7 @@ const SeriesEdit = () => {
       name: formData.name,
       description: formData.description,
       cover: coverUrl,
+      videoId: videoId,
       genre: selectedGenres,
     }
   }
@@ -227,6 +308,13 @@ const SeriesEdit = () => {
             label={t.seriesEdit.cover}
           />
 
+          <VideoField
+            videoId={formData.videoId}
+            videoPreview={formData.videoPreview}
+            onVideoChange={handleVideoChange}
+            label={t.seriesEdit.video}
+          />
+
           <ActionButtons
             onCancel={handleCancel}
             onSave={handleSave}
@@ -246,6 +334,8 @@ interface SeriesFormData {
   description: string
   genreIds: number[]
   cover: string
+  videoId: string
+  videoPreview?: string
 }
 
 interface NameFieldProps {
@@ -311,9 +401,25 @@ interface CoverFieldProps {
 const CoverField = ({ imageUrl, onImageChange, label }: CoverFieldProps) => (
   <div className="series-edit-field">
     <label className="series-edit-label">{label}</label>
-    <ImageUpload
-      imageUrl={imageUrl}
-      onImageChange={onImageChange}
+    <MediaUpload mode="image" mediaUrl={imageUrl} onMediaChange={onImageChange} />
+  </div>
+)
+
+interface VideoFieldProps {
+  videoId: string
+  videoPreview?: string
+  onVideoChange: (file: File | null, previewUrl: string | null) => void
+  label: string
+}
+
+const VideoField = ({ videoId, videoPreview, onVideoChange, label }: VideoFieldProps) => (
+  <div className="series-edit-field">
+    <label className="series-edit-label">{label}</label>
+    <MediaUpload
+      mode="video"
+      mediaUrl={videoPreview}
+      videoId={videoId}
+      onMediaChange={onVideoChange}
     />
   </div>
 )

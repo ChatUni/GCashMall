@@ -21,7 +21,8 @@ Vertical
 - name (input box)
 - description (text area, 5 rows)
 - genre (shared multi select tags)
-- cover (shared image upload)
+- cover (shared media upload in image mode)
+- video (shared media upload in video mode)
 - Cancel and Save button
 
 #### Interaction
@@ -34,6 +35,10 @@ Vertical
     - delete existing cover on cloud
     - upload new cover to cloud
     - set the cover url to the cover field on the series being edited
+  - if video is changed:
+    - delete existing video on cloud
+    - upload new video to cloud
+    - set the returned video id to the video field on the series being edited
   - save the series to db
   - show success/error message
     - if success, go back to previous page

@@ -9,6 +9,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET,
 })
 
+// Bunny.net Video configuration
+const BUNNY_VIDEO_LIBRARY_ID = '569096'
+const BUNNY_API_KEY = process.env.BUNNY_API_KEY
+
 const getTodos = async (params) => {
   validateGetTodosParams(params)
   
@@ -98,7 +102,7 @@ const getSeries = async (params) => {
       return await getSeriesById(params.id)
     }
     const filter = buildSeriesFilter(params)
-    const series = await get('series', filter, {}, { name: 1 })
+    const series = await get('series', filter, {}, { })
     const normalizedSeries = series.map(normalizeSeries)
     return {
       success: true,
@@ -496,6 +500,117 @@ const validateDeleteImageBody = (body) => {
   }
 }
 
+const uploadVideo = async (body) => {
+  validateUploadVideoBody(body)
+
+  try {
+    const videoId = await createBunnyVideo(body.title || 'Untitled')
+    await uploadVideoToBunny(videoId, body.video)
+
+    return {
+      success: true,
+      data: {
+        videoId,
+        embedUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_VIDEO_LIBRARY_ID}/${videoId}`,
+        thumbnailUrl: `https://vz-4ecde8c7-5c4.b-cdn.net/${videoId}/thumbnail.jpg`,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to upload video: ${error.message}`)
+  }
+}
+
+const createBunnyVideo = async (title) => {
+  const response = await fetch(
+    `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos`,
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        AccessKey: BUNNY_API_KEY,
+      },
+      body: JSON.stringify({ title }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to create video: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return data.guid
+}
+
+const uploadVideoToBunny = async (videoId, videoData) => {
+  const response = await fetch(
+    `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}`,
+    {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/octet-stream',
+        AccessKey: BUNNY_API_KEY,
+      },
+      body: Buffer.from(videoData, 'base64'),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload video content: ${response.statusText}`)
+  }
+}
+
+const deleteVideo = async (body) => {
+  validateDeleteVideoBody(body)
+
+  try {
+    const response = await fetch(
+      `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${body.videoId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          AccessKey: BUNNY_API_KEY,
+        },
+      },
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete video: ${response.statusText}`)
+    }
+
+    return {
+      success: true,
+      data: {
+        deleted: true,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete video: ${error.message}`)
+  }
+}
+
+const validateUploadVideoBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.video || typeof body.video !== 'string') {
+    throw new Error('Video data is required and must be a base64 string')
+  }
+}
+
+const validateDeleteVideoBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.videoId || typeof body.videoId !== 'string') {
+    throw new Error('Video ID is required for deletion')
+  }
+}
+
 const validateGetTodosParams = (params) => {
   // No specific validation needed for getting todos
 }
@@ -551,6 +666,8 @@ export {
   deleteSeries,
   uploadImage,
   deleteImage,
+  uploadVideo,
+  deleteVideo,
   getFeaturedSeries,
   getRecommendations,
   getNewReleases,

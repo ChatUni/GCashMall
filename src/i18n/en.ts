@@ -96,6 +96,7 @@ export const en = {
     description: 'Description',
     genre: 'Genre',
     cover: 'Cover',
+    video: 'Video',
     cancel: 'Cancel',
     save: 'Save',
     loading: 'Loading...',
