@@ -29,13 +29,13 @@ const Home: React.FC = () => {
 
   const handlePlayClick = () => {
     if (featuredSeries) {
-      navigate(`/player/${featuredSeries._id}`)
+      navigate(`/series/${featuredSeries._id}`)
     }
   }
 
   const handlePosterClick = () => {
     if (featuredSeries) {
-      navigate(`/player/${featuredSeries._id}`)
+      navigate(`/series/${featuredSeries._id}`)
     }
   }
 

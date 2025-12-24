@@ -10,7 +10,7 @@ cloudinary.config({
 })
 
 // Bunny.net Video configuration
-const BUNNY_VIDEO_LIBRARY_ID = '569096'
+const BUNNY_VIDEO_LIBRARY_ID = process.env.VITE_BUNNY_LIBRARY_ID
 const BUNNY_API_KEY = process.env.BUNNY_API_KEY
 
 const getTodos = async (params) => {
@@ -102,7 +102,7 @@ const getSeries = async (params) => {
       return await getSeriesById(params.id)
     }
     const filter = buildSeriesFilter(params)
-    const series = await get('series', filter, {}, { })
+    const series = await get('series', filter, {}, { name: 1 })
     const normalizedSeries = series.map(normalizeSeries)
     return {
       success: true,

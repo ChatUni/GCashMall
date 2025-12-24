@@ -98,7 +98,7 @@ const Account: React.FC = () => {
   }
 
   const handleHistoryItemClick = (item: WatchHistoryItem) => {
-    navigate(`/player/${item.seriesId}?episode=${item.episodeId}`)
+    navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
   }
 
   const handleClearHistory = async () => {
@@ -218,7 +218,7 @@ const Account: React.FC = () => {
               <div
                 key={item._id}
                 className="activity-item"
-                onClick={() => navigate(`/player/${item.seriesId}`)}
+                onClick={() => navigate(`/series/${item.seriesId}`)}
               >
                 <img
                   src={item.thumbnail}

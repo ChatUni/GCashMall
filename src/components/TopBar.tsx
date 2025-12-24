@@ -95,7 +95,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
   }
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
-    navigate(`/player/${suggestion.seriesId}`)
+    navigate(`/series/${suggestion.seriesId}`)
     setShowSuggestions(false)
     setSearchQuery('')
   }
@@ -135,7 +135,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
   }
 
   const handleHistoryItemClick = (item: WatchHistoryItem) => {
-    navigate(`/player/${item.seriesId}?episode=${item.episodeId}`)
+    navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
     setShowHistoryPopover(false)
   }
 

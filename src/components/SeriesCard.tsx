@@ -15,7 +15,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ series, onClick }) => {
     if (onClick) {
       onClick()
     } else {
-      navigate(`/player/${series._id}`)
+      navigate(`/series/${series._id}`)
     }
   }
 

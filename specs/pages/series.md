@@ -20,4 +20,4 @@ An HTML video player
 
 #### Interaction
 
-- on load: play video https://player.mediadelivery.net/embed/569096/32784eaf-9a31-437f-80bd-e59f205bc6a4
+- on load: play video https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId field on the series}

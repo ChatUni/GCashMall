@@ -18,3 +18,14 @@
   height: calc(100vh - 120px); /* Full height minus top bar and bottom bar */
   border: none;
 }
+
+.series-loading,
+.series-no-video {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: calc(100vh - 120px);
+  color: #888;
+  font-size: 1.2rem;
+}
