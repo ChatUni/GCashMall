@@ -17,12 +17,14 @@ body {
   margin: 0;
   padding: 0;
   max-width: none;
+  width: 100%;
 }
 
 .App {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 /* Remove default styles that might interfere */
