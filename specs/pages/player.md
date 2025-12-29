@@ -1,194 +1,451 @@
-# Player page
+# Player Page Specification
 
-## Layout
-Vertical
-- Shared top bar
-- Breadcrumb navigation
-- Main player section
-- Shared Recommendation section
-- Shared New Releases section
-- Social Buttons
-- Shared bottom bar
+## Overview
 
-## Components
+The Player page is the video playback interface for GCashTV, featuring a video player with custom controls, episode metadata, an episode list sidebar, and recommendation carousels. It supports favorites, downloads, watch history tracking, and social sharing functionality.
 
-### Breadcrumb Navigation
+## Page Structure
 
-#### Layout
-- Horizontal
-- Positioned below the top bar
-- Left-aligned
+### Layout
+- **Container**: Full viewport height, flexbox column layout
+- **Background**: Dark theme (#0B0B0E)
+- **Max Width**: 1600px (centered)
+- **Padding**: 0 60px 40px
 
-#### Style
-- Font size: small
-- Color: light gray
-- Separator: “>”
-- Current page series title highlighted in white
-- Example: GcashReels > Current page series title
+### Components Used
+- TopBar (header navigation)
+- BottomBar (footer navigation)
 
-#### Interaction
-- Clicking previous breadcrumb navigates （GcashReels）back to that page
-- Current page is not clickable
+## URL Parameters
 
-### Main Player Section
+The page uses React Router params:
+- `/player/:seriesId` - View series starting at episode 1
+- `/player/:seriesId/:episodeId` - View specific episode
 
-#### Layout
-- Centered main content area
-- Vertical layout
-- Player area is the visual focus of the page
+## Data Structures
 
-##### Video Player
-###### Layout
-- Vertical video player (mobile-first aspect)
-- Centered horizontally
-- Fixed max width on desktop
-- Adaptive height based on aspect ratio
+### Episode Interface
+```typescript
+interface Episode {
+  id: number
+  number: number
+  title: string
+  thumbnail: string
+  duration: string
+}
+```
 
-###### Style
-- Background color: black
-- Rounded corners
-- Subtle shadow for depth
+### Series Interface
+```typescript
+interface Series {
+  id: number
+  title: string
+  description: string
+  tags: string[]
+  language: string
+  episodes: Episode[]
+  poster: string
+}
+```
 
-###### Player Controls
-- Play / Pause button
-- Progress bar
-- Current time / total duration
-- Volume toggle
-- Playback speed selector (e.g. 0.25x 0.5x 1.0x 1.25x 1.5x 2.0x 3.0x)
-- Fullscreen toggle
+### RecommendedSeries Interface
+```typescript
+interface RecommendedSeries {
+  id: string
+  title: string
+  poster: string
+  tag: string
+}
+```
 
-###### Interaction
-- Autoplay on page load (optional)
-- On hover: player controls fade in
-- On inactivity: controls fade out
-- On click fullscreen: player enters fullscreen mode
+## Breadcrumb Navigation
 
-##### Episode Title & Metadata
-###### Layout
-- Vertical stack
-- Positioned directly below the video player
+### Container
+- **Padding**: 16px 60px
+- **Font Size**: 14px
+- **Color**: #9CA3AF
 
-###### Content
-- Episode title (e.g. “Seris Title" + "Episode number displayed i.e. 01, 02, 03,...”)
-- Language selector (e.g. English)
-- Tag list
+### Elements
+- **Link (GcashTV)**: Clickable, hover color #3B82F6
+- **Separator**: ">" with margin 0 8px, color #6B7280
+- **Current**: Series title, color #FFFFFF
 
-###### Style
-Episode Title
-- Font size: medium–large
-- Font weight: semibold
-- Color: white
+## Main Content Layout
 
-Language Selector
-- Inline dropdown
-- Font size: small
-- Color: light gray
-- Icon: globe
+### Player Content Container
+- **Display**: Flex row
+- **Gap**: 30px
+- **Margin Bottom**: 50px
 
-Tag List
-- Horizontal
-- Wrappable
-- Each tag rendered as pill / chip
-- Background color: dark gray
-- Text color: light gray
-- Font size: small
-- Rounded corners
-- Even spacing between tags
+### Player Left Section
+- **Flex**: 1
+- **Min Width**: 0
 
-##### Download
-###### Layout
-- Horizontal action row
-- Shares the same visual hierarchy as the Play button
-- Button height matches the Play button
-- Minimum clickable area: 36–40px
+## Video Player
 
-###### Style
-Download Button
-- Button type: icon + text (recommended)
-- Label: Download
+### Container
+- **Position**: Relative
+- **Background**: #000000
+- **Border Radius**: 12px
+- **Overflow**: Hidden
+- **Box Shadow**: 0 8px 32px rgba(0, 0, 0, 0.5)
+- **Aspect Ratio**: 16:9
+- **Width**: 100%
 
-Default state:
-- Text / icon color: white (#FFFFFF)
-- Background color: transparent or dark gray surface (#1A1A1A)
+### Video Element
+- **Size**: 100% width and height
+- **Object Fit**: Cover
+- **Poster**: Series poster image
+- **Click**: Toggle play/pause
 
-Hover state:
-- Text / icon color changes to blue (#3B82F6)
-- subtle scale-up animation (same behavior as Play)
+### Player Controls Overlay
+- **Position**: Absolute bottom
+- **Background**: linear-gradient(transparent, rgba(0, 0, 0, 0.8))
+- **Padding**: 20px
+- **Opacity**: 0 (hidden), 1 when visible
+- **Transition**: opacity 0.3s ease
+- **Auto-hide**: After 3 seconds when playing
 
-Active state:
-- Text / icon remains blue (#3B82F6)
+### Progress Bar
+- **Height**: 4px
+- **Background**: rgba(255, 255, 255, 0.3)
+- **Border Radius**: 2px
+- **Cursor**: Pointer
+- **Margin Bottom**: 12px
+- **Filled Color**: #3B82F6
 
-Icon
-- Download icon (arrow-down)
-- Icon appears before the text
-- Icon color follows text state
+### Controls Row
+- **Display**: Flex, space-between
+- **Left Controls**: Play/Pause, Volume, Time display
+- **Right Controls**: Speed selector, Fullscreen
 
-###### Interaction
-On hover
-- Button highlights (text / icon turns blue)
-- tooltip: Download
+### Control Buttons
+- **Background**: None
+- **Color**: #FFFFFF
+- **Padding**: 8px
+- **Border Radius**: 50%
+- **Hover**: Background rgba(255, 255, 255, 0.1), Color #3B82F6
+- **Icon Size**: 24px (32px for play button)
 
-On click
-- If the user is logged in: Open the shared Download Modal
-- If the user is not logged in: Open the shared Login Modal 
+### Time Display
+- **Color**: #FFFFFF
+- **Font Size**: 13px
+- **Font Family**: Monospace
+- **Format**: "MM:SS / MM:SS"
 
-##### Episode Description
-###### Layout
-- Positioned below metadata
-- Full width of player container
+### Speed Selector
+- **Background**: rgba(0, 0, 0, 0.5)
+- **Border**: 1px solid rgba(255, 255, 255, 0.2)
+- **Options**: 0.25x, 0.5x, 1x, 1.25x, 1.5x, 2x, 3x
 
-###### Style
-- Font size: small–medium
-- Color: light gray
-- Max lines: 3–4
-- Line height optimized for readability
-- Truncated with ellipsis if too long
+## Episode Metadata Section
 
-##### Episode List Panel (Right Sidebar)
-###### Layout
-- Vertical
-- Fixed width on desktop
-- Positioned on the right side of the player
-- Scrollable independently from main page
+### Episode Title
+- **Font Size**: 22px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin**: 0 0 16px 0
+- **Format**: "{Series Title} - Episode {XX}"
 
-###### Content
-- Section title: “Episodes”
-- Episode range selector (e.g. 01–40, 41–77)
-- Episode thumbnails grid
+### Metadata Row
+- **Display**: Flex
+- **Gap**: 20px
+- **Margin Bottom**: 16px
+- **Items**: Language selector, Download button, Favorite button
 
-###### Style
-Panel Container
-- Background color: dark gray / near-black
-- Rounded corners
-- Subtle shadow
+### Language Selector
+- **Display**: Flex with globe icon
+- **Icon Size**: 18px
+- **Color**: #9CA3AF
+- **Options**: English, 中文, Español, Français
 
-Episode Thumbnail
-- Vertical thumbnail
-- Rounded corners
-- Episode number displayed (e.g. EP 01)
+### Download Button
+- **Display**: Flex with icon
+- **Background**: #1A1A1A
+- **Color**: #FFFFFF
+- **Padding**: 10px 20px
+- **Border Radius**: 8px
+- **Hover**: Color #3B82F6, scale(1.02)
+- **Downloaded State**: Green background tint, green text (#22C55E)
 
-Active Episode
-- Highlighted border or glow
-- Higher brightness
+### Favorite Button
+- **Size**: 48px × 48px
+- **Border Radius**: 50%
+- **Background**: #1A1A1A
+- **Color**: #9CA3AF (inactive), #EF4444 (active)
+- **Hover**: Background #2A2A2E, scale(1.05)
+- **Icon**: Heart SVG (filled when active)
 
-###### Interaction
-- On click episode thumbnail: switch to that episode
-- Active episode updates instantly without page reload
+### Tag List
+- **Display**: Flex wrap
+- **Gap**: 10px
 
-### Social Buttons
-#### Layout
-- Vertical floating buttons on the right side
+### Tag Pill
+- **Background**: #2A2A2E
+- **Color**: #9CA3AF
+- **Font Size**: 13px
+- **Padding**: 6px 14px
+- **Border Radius**: 20px
+- **Hover**: Background #3B82F6, Color #FFFFFF
+- **Click**: Navigate to `/genre?category={tag}`
 
-#### Content
-- Share (Facebook, Twitter, Pinterest, WhatsApp)
-- Add to favorites / save
+### Episode Description
+- **Margin Top**: 20px
+- **Color**: #9CA3AF
+- **Font Size**: 14px
+- **Line Height**: 1.7
+- **Text Clamp**: 4 lines max
 
-#### Style
-- Circular buttons
-- Icon-only
-- Background color: dark gray
-- Icon color: white
+## Episode List Panel (Right Sidebar)
 
-#### Interaction
-- On hover: icon turns blue
-- On click: trigger corresponding action
+### Container
+- **Width**: 320px (fixed)
+- **Background**: #121214
+- **Border Radius**: 12px
+- **Padding**: 20px
+- **Box Shadow**: 0 4px 20px rgba(0, 0, 0, 0.3)
+- **Max Height**: 700px
+- **Overflow-Y**: Auto
+
+### Panel Title
+- **Font Size**: 18px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin**: 0 0 16px 0
+
+### Episode Range Selector
+- **Display**: Flex
+- **Gap**: 8px
+- **Margin Bottom**: 16px
+- **Ranges**: "1-40", "41-77"
+
+### Range Button
+- **Background**: #1A1A1E (inactive), #3B82F6 (active)
+- **Color**: #9CA3AF (inactive), #FFFFFF (active)
+- **Padding**: 8px 16px
+- **Border Radius**: 6px
+- **Font Size**: 13px
+
+### Episode Grid
+- **Display**: Grid
+- **Columns**: repeat(4, 1fr)
+- **Gap**: 10px
+
+### Episode Thumbnail
+- **Aspect Ratio**: 2:3
+- **Border Radius**: 8px
+- **Overflow**: Hidden
+- **Cursor**: Pointer
+- **Hover**: scale(1.05), blue glow shadow
+- **Active State**: 2px blue border, blue overlay
+
+### Episode Number Badge
+- **Position**: Absolute bottom-left
+- **Background**: rgba(0, 0, 0, 0.7)
+- **Color**: #FFFFFF
+- **Font Size**: 10px
+- **Padding**: 2px 6px
+- **Border Radius**: 4px
+- **Format**: "EP XX"
+
+## Recommendation Carousels
+
+Two sections identical to Home page:
+1. **You Might Like** - Filtered to exclude current series
+2. **New Releases** - Filtered to exclude current series
+
+### Section Layout
+- **Margin Bottom**: 50px
+
+### Section Header
+- **Display**: Flex, space-between
+- **Title**: 28px, white, font-weight 600
+- **Controls**: Carousel arrows
+
+### Carousel
+- **Display**: Flex
+- **Gap**: 20px
+- **Overflow-X**: Auto (hidden scrollbar)
+- **Scroll**: Smooth, 80% of container width per click
+
+### Series Card
+- **Width**: 180px (fixed)
+- **Poster**: 2:3 aspect ratio, 12px border radius
+- **Hover**: Poster scale 1.05, blue glow, title turns blue
+- **Click**: Navigate to `/player/{seriesId}`
+
+### View More Card
+- **Width**: 120px
+- **Circular button**: 80px × 80px
+- **Padding Top**: 80px
+- **Click**: Navigate to `/genre`
+
+## Confirmation Popups
+
+### Favorite Popup
+- **Overlay**: Fixed, rgba(0, 0, 0, 0.7), z-index 1000
+- **Modal**: 
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Animation: fadeIn 0.2s, slideUp 0.3s
+- **Icon**: 64px circle, red tint background, heart icon
+- **Title**: "Add to Favorites?" - 20px, white
+- **Message**: 14px, gray, line-height 1.6
+- **Buttons**: Yes (blue), No (gray)
+
+### Download Popup
+- **Same structure as Favorite Popup**
+- **Icon**: Blue tint background, download icon
+- **Title**: "Download Episode?"
+- **Message**: Includes episode title
+
+## Context Dependencies
+
+### LanguageContext
+- `t`: Translation object for i18n
+
+### FavoritesContext
+- `addFavorite()`: Add series to favorites
+- `removeFavorite()`: Remove from favorites
+- `isFavorite()`: Check if series is favorited
+
+### WatchHistoryContext
+- `addToHistory()`: Record episode view
+
+### DownloadsContext
+- `addDownload()`: Add episode to downloads
+- `isDownloaded()`: Check if episode is downloaded
+
+## State Management
+
+### Video Player State
+| State | Type | Default | Description |
+|-------|------|---------|-------------|
+| isPlaying | boolean | false | Playback state |
+| currentTime | number | 0 | Current position |
+| duration | number | 0 | Video duration |
+| volume | number | 1 | Volume level |
+| isMuted | boolean | false | Mute state |
+| playbackSpeed | number | 1 | Playback rate |
+| showControls | boolean | true | Controls visibility |
+| isFullscreen | boolean | false | Fullscreen state |
+
+### UI State
+| State | Type | Default | Description |
+|-------|------|---------|-------------|
+| selectedLanguage | string | 'English' | Audio language |
+| episodeRange | string | '1-40' | Episode range filter |
+| showFavoritePopup | boolean | false | Favorite confirmation |
+| showDownloadPopup | boolean | false | Download confirmation |
+
+## Navigation Actions
+
+| Element | Action |
+|---------|--------|
+| Breadcrumb Link | Navigate to `/` |
+| Episode Thumbnail | Navigate to `/player/{seriesId}/{episodeNumber}` |
+| Series Card | Navigate to `/player/{seriesId}` |
+| Tag Pill | Navigate to `/genre?category={tag}` |
+| View More | Navigate to `/genre` |
+
+## Side Effects
+
+### On Series Change
+- Scroll to top of page
+- Reset episode to 1 (if no episodeId)
+
+### On Episode View
+- Record to watch history via context
+
+### Controls Auto-hide
+- Hide after 3 seconds when playing
+- Show on mouse move
+- Hide on mouse leave (if playing)
+
+## Responsive Design
+
+### Breakpoints
+
+#### 1200px
+- **Player Content**: Column direction
+- **Player Left**: Max width 100%
+- **Episode Panel**: Width 100%, max-height 400px
+- **Episode Grid**: 8 columns
+
+#### 768px (Mobile)
+- **Breadcrumb**: Padding 12px 20px, font 13px
+- **Player Main**: Padding 0 20px 30px
+- **Video Container**: Max height 500px
+- **Episode Title**: 18px
+- **Metadata Row**: Flex wrap, gap 12px
+- **Episode Grid**: 5 columns
+- **Series Card**: 160px width
+- **Section Title**: 22px
+
+#### 480px (Small Mobile)
+- **Breadcrumb**: Padding 10px 15px
+- **Player Main**: Padding 0 15px 20px
+- **Episode Grid**: 4 columns
+- **Series Card**: 140px width
+- **Section Title**: 20px
+- **View More Card**: 100px width, 60px circle
+
+## Color Palette
+
+| Element | Color |
+|---------|-------|
+| Page Background | #0B0B0E |
+| Video Background | #000000 |
+| Panel Background | #121214 |
+| Button Background | #1A1A1A |
+| Tag Background | #2A2A2E |
+| Primary Blue | #3B82F6 |
+| Primary Blue Hover | #2563EB |
+| Favorite Red | #EF4444 |
+| Downloaded Green | #22C55E |
+| Text White | #FFFFFF |
+| Text Gray | #9CA3AF |
+| Text Muted | #6B7280 |
+| Progress Bar | rgba(255, 255, 255, 0.3) |
+| Controls Gradient | linear-gradient(transparent, rgba(0, 0, 0, 0.8)) |
+
+## Animations
+
+| Animation | Properties |
+|-----------|------------|
+| fadeIn | opacity 0 → 1, 0.2s |
+| slideUp | translateY(20px) → 0, opacity 0 → 1, 0.3s |
+| Controls | opacity 0.3s ease |
+| Progress | width 0.1s linear |
+| Hover effects | 0.2s ease |
+| Poster scale | 0.3s ease |
+
+## Mock Data
+
+### Series Database
+17 series entries with:
+- Unique IDs (featured-1, 1-16)
+- Titles
+- Descriptions
+- Tags array
+- Poster URLs (Cloudinary)
+
+### Episodes
+77 episodes per series:
+- Generated dynamically
+- Random durations (20-40 minutes)
+- Placeholder thumbnails
+
+### Recommended Series
+8 series for "You Might Like"
+8 series for "New Releases"
+
+## Accessibility
+
+- Video controls are keyboard accessible
+- Carousel arrows have aria-labels
+- Images have alt attributes
+- Interactive elements have proper cursor styles
+- Color contrast meets WCAG guidelines
