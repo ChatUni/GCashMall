@@ -7,6 +7,7 @@ import Series from './pages/Series'
 import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
 import Account from './pages/Account'
+import Genre from './pages/Genre'
 import { LanguageProvider } from './context/LanguageContext'
 import './App.css'
 
@@ -24,7 +25,9 @@ function App() {
             <Route path="/series/:id" element={<Series />} />
             <Route path="/series/:id/edit" element={<SeriesEdit />} />
             <Route path="/player/:id" element={<Player />} />
+            <Route path="/player/:id/:episodeId" element={<Player />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/genre" element={<Genre />} />
             <Route path="/about" element={<div>About Page - Coming Soon</div>} />
             <Route path="/contact" element={<div>Contact Page - Coming Soon</div>} />
           </Routes>

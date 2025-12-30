@@ -404,7 +404,7 @@ const login = async (body) => {
     // For demo purposes, accept any credentials
     // In production, this would validate against the database
     const user = {
-      _id: 'demo-user',
+      _id: 'demo-user-' + Date.now(),
       username: email.split('@')[0],
       email: email,
       isLoggedIn: true
@@ -415,7 +415,33 @@ const login = async (body) => {
       data: user
     }
   } catch (error) {
-    throw new Error(`Login failed: ${error.message}`)
+    return { success: false, error: 'Login failed. Please try again.' }
+  }
+}
+
+const register = async (body) => {
+  try {
+    const { nickname, email, password } = body
+    
+    if (!nickname || !email || !password) {
+      return { success: false, error: 'Nickname, email and password are required' }
+    }
+    
+    // For demo purposes, accept any registration
+    // In production, this would check for existing users and save to database
+    const user = {
+      _id: 'user-' + Date.now(),
+      username: nickname,
+      email: email,
+      isLoggedIn: true
+    }
+    
+    return {
+      success: true,
+      data: user
+    }
+  } catch (error) {
+    return { success: false, error: 'Registration failed. Please try again.' }
   }
 }
 
@@ -677,5 +703,6 @@ export {
   getFavorites,
   getUser,
   login,
+  register,
   clearWatchHistory,
 }

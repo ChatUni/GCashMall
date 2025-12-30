@@ -789,7 +789,7 @@ const Account: React.FC = () => {
     <div className="account-page">
       <TopBar />
       {showLoginModal && (
-        <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+        <LoginModal onClose={handleLoginClose} onSuccess={handleLoginSuccess} />
       )}
       <div className="account-layout">
         <aside className="account-sidebar">

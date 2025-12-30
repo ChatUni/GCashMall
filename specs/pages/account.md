@@ -29,6 +29,258 @@ The Account page is a comprehensive user profile and settings management interfa
 - Logout button in sidebar navigation
 - Clears user session and redirects to home page
 
+## LoginModal Component
+
+### File Structure
+```
+src/components/
+├── LoginModal.tsx    # Component (210 lines)
+└── LoginModal.css    # Styles (202 lines)
+```
+
+### Props Interface
+```typescript
+interface LoginModalProps {
+  isOpen: boolean      // Controls modal visibility
+  onClose: () => void  // Called when modal is closed
+  onSuccess: () => void // Called on successful login/register
+}
+```
+
+### State Management
+```typescript
+const [mode, setMode] = useState<'login' | 'register'>('login')
+const [email, setEmail] = useState('')
+const [password, setPassword] = useState('')
+const [confirmPassword, setConfirmPassword] = useState('')
+const [nickname, setNickname] = useState('')
+const [error, setError] = useState('')
+const [loading, setLoading] = useState(false)
+```
+
+### Modal Overlay
+- **Class**: `.login-modal-overlay`
+- **Position**: Fixed, full screen (top/left/right/bottom: 0)
+- **Background**: rgba(0, 0, 0, 0.85)
+- **Display**: Flex, center aligned
+- **Z-index**: 1000
+- **Padding**: 20px
+- **Click Behavior**: Clicking overlay closes modal (via `handleOverlayClick`)
+
+### Modal Container
+- **Class**: `.login-modal`
+- **Background**: #121214
+- **Border Radius**: 16px
+- **Padding**: 40px
+- **Max Width**: 420px
+- **Width**: 100%
+- **Position**: Relative
+- **Box Shadow**: 0 20px 60px rgba(0, 0, 0, 0.5)
+
+### Close Button
+- **Class**: `.login-modal-close`
+- **Position**: Absolute, top: 16px, right: 16px
+- **Size**: 32px × 32px
+- **Border Radius**: 50%
+- **Background**: #242428
+- **Color**: #9CA3AF
+- **Icon**: ✕
+- **Hover**: Background #3A3A3E, Color #FFFFFF
+- **Transition**: 0.2s ease
+
+### Brand Section
+- **Class**: `.login-modal-brand`
+- **Display**: Flex, center aligned
+- **Gap**: 8px
+- **Margin Bottom**: 18px
+- **Margin Left**: -11px (visual alignment)
+
+#### Logo
+- **Class**: `.login-modal-logo`
+- **Source**: `https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png`
+- **Height**: 66px
+- **Width**: Auto
+
+#### Brand Name
+- **Class**: `.login-modal-brand-name`
+- **Text**: "GcashTV"
+- **Color**: #FFFFFF
+- **Font Size**: 30px
+- **Font Weight**: 600
+
+### Header Section
+- **Class**: `.login-modal-header`
+- **Text Align**: Center
+- **Margin Bottom**: 30px
+
+#### Title
+- **Class**: `.login-modal-title`
+- **Login Mode**: `t.login.welcomeBack` ("Welcome Back")
+- **Register Mode**: `t.login.createAccount` ("Create Account")
+- **Color**: #FFFFFF
+- **Font Size**: 25px
+- **Font Weight**: 600
+- **Margin**: 0 0 8px 0
+
+#### Subtitle
+- **Class**: `.login-modal-subtitle`
+- **Login Mode**: `t.login.signInSubtitle` ("Sign in to access your account")
+- **Register Mode**: `t.login.registerSubtitle` ("Sign up to get started")
+- **Color**: #9CA3AF
+- **Font Size**: 15px
+
+### Form Section
+- **Class**: `.login-form`
+- **Display**: Flex column
+- **Gap**: 20px
+
+#### Form Group
+- **Class**: `.form-group`
+- **Display**: Flex column
+- **Gap**: 8px
+
+#### Form Label
+- **Class**: `.form-label`
+- **Color**: #9CA3AF
+- **Font Size**: 14px
+- **Font Weight**: 500
+
+#### Form Input
+- **Class**: `.form-input`
+- **Background**: #1A1A1E
+- **Color**: #FFFFFF
+- **Border**: 1px solid #242428
+- **Border Radius**: 8px
+- **Padding**: 14px 16px
+- **Font Size**: 15px
+- **Placeholder Color**: #6B7280
+- **Focus State**:
+  - Border Color: #3B82F6
+  - Box Shadow: 0 0 0 2px rgba(59, 130, 246, 0.2)
+  - Outline: None
+
+### Form Fields
+
+#### Login Mode
+| Field | Type | i18n Label | i18n Placeholder |
+|-------|------|------------|------------------|
+| Email | email | `t.login.email` | `t.login.emailPlaceholder` |
+| Password | password | `t.login.password` | `t.login.passwordPlaceholder` |
+
+#### Register Mode (Additional Fields)
+| Field | Type | i18n Label | i18n Placeholder |
+|-------|------|------------|------------------|
+| Nickname | text | `t.account.profile.nickname` | `t.account.profile.nicknamePlaceholder` |
+| Confirm Password | password | `t.login.confirmPassword` | `t.login.confirmPasswordPlaceholder` |
+
+### Error Message
+- **Class**: `.login-error`
+- **Background**: rgba(239, 68, 68, 0.1)
+- **Border**: 1px solid rgba(239, 68, 68, 0.3)
+- **Color**: #EF4444
+- **Padding**: 12px 16px
+- **Border Radius**: 8px
+- **Font Size**: 14px
+- **Text Align**: Center
+
+#### Error Messages
+| Condition | Message |
+|-----------|---------|
+| Invalid credentials | "Invalid email or password" |
+| Empty nickname | "Please enter a nickname" |
+| Password mismatch | "Passwords do not match" |
+| Short password | "Password must be at least 6 characters" |
+| Invalid email | "Please enter a valid email address" |
+| Email exists | "Email already registered" |
+| General error | "An error occurred. Please try again." |
+
+### Submit Button
+- **Class**: `.login-submit-btn`
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Border**: None
+- **Padding**: 14px 24px
+- **Border Radius**: 8px
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Margin Top**: 8px
+- **Hover**: Background #2563EB
+- **Disabled State**: Opacity 0.6, cursor not-allowed
+- **Loading Text**: "..."
+- **Login Text**: `t.login.signIn` ("Sign In")
+- **Register Text**: `t.login.signUp` ("Sign Up")
+
+### Footer Section
+- **Class**: `.login-modal-footer`
+- **Display**: Flex, center aligned
+- **Gap**: 8px
+- **Margin Top**: 24px
+- **Padding Top**: 24px
+- **Border Top**: 1px solid #242428
+
+#### Switch Text
+- **Class**: `.login-switch-text`
+- **Login Mode**: `t.login.noAccount` ("Don't have an account?")
+- **Register Mode**: `t.login.haveAccount` ("Already have an account?")
+- **Color**: #9CA3AF
+- **Font Size**: 14px
+
+#### Switch Button
+- **Class**: `.login-switch-btn`
+- **Background**: None
+- **Border**: None
+- **Color**: #3B82F6
+- **Font Size**: 14px
+- **Font Weight**: 500
+- **Login Mode**: `t.login.register` ("Register")
+- **Register Mode**: `t.login.signInLink` ("Sign In")
+- **Hover**: Color #60A5FA, text-decoration underline
+
+### Validation Rules
+
+#### Login Mode
+- Email: Required
+- Password: Required
+
+#### Register Mode
+- Nickname: Required, non-empty after trim
+- Email: Required, valid format (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
+- Password: Required, minimum 6 characters
+- Confirm Password: Required, must match password
+
+### Context Dependencies
+```typescript
+const { login, register } = useAuth()
+const { t } = useLanguage()
+```
+
+### Responsive Design
+
+#### 480px (Small Mobile)
+- Modal Padding: 24px
+- Title Font Size: 24px
+- Header Margin Bottom: 24px
+
+### i18n Translation Keys (`t.login`)
+| Key | English | Chinese |
+|-----|---------|---------|
+| `welcomeBack` | Welcome Back | 欢迎回来 |
+| `signInSubtitle` | Sign in to access your account | 登录以访问您的账户 |
+| `email` | Email | 邮箱 |
+| `emailPlaceholder` | Enter your email | 请输入邮箱 |
+| `password` | Password | 密码 |
+| `passwordPlaceholder` | Enter your password | 请输入密码 |
+| `signIn` | Sign In | 登录 |
+| `noAccount` | Don't have an account? | 没有账户？ |
+| `register` | Register | 注册 |
+| `createAccount` | Create Account | 创建账户 |
+| `registerSubtitle` | Sign up to get started | 注册以开始使用 |
+| `confirmPassword` | Confirm Password | 确认密码 |
+| `confirmPasswordPlaceholder` | Confirm your password | 请确认密码 |
+| `signUp` | Sign Up | 注册 |
+| `haveAccount` | Already have an account? | 已有账户？ |
+| `signInLink` | Sign In | 登录 |
+
 ## Sidebar
 
 ### Profile Section

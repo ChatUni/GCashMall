@@ -9,14 +9,18 @@ import './TopBar.css'
 
 interface TopBarProps {
   isLoggedIn?: boolean
+  user?: {
+    nickname?: string
+    avatarUrl?: string
+  } | null
 }
 
-const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
+const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false, user = null }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [highlightedSuggestion, setHighlightedSuggestion] = useState(-1)
   const [showHistoryPopover, setShowHistoryPopover] = useState(false)
   const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -35,7 +39,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false)
+        setShowSearchSuggestions(false)
       }
       if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
         setShowHistoryPopover(false)
@@ -71,32 +75,32 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      navigate(`/series?search=${encodeURIComponent(searchQuery.trim())}`)
-      setShowSuggestions(false)
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setShowSearchSuggestions(false)
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
-        handleSuggestionClick(suggestions[highlightedIndex])
+      if (highlightedSuggestion >= 0 && highlightedSuggestion < suggestions.length) {
+        handleSuggestionClick(suggestions[highlightedSuggestion])
       } else {
         handleSearch()
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setHighlightedIndex((prev) => Math.min(prev + 1, suggestions.length - 1))
+      setHighlightedSuggestion((prev) => Math.min(prev + 1, suggestions.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setHighlightedIndex((prev) => Math.max(prev - 1, -1))
+      setHighlightedSuggestion((prev) => Math.max(prev - 1, -1))
     } else if (e.key === 'Escape') {
-      setShowSuggestions(false)
+      setShowSearchSuggestions(false)
     }
   }
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     navigate(`/series/${suggestion.seriesId}`)
-    setShowSuggestions(false)
+    setShowSearchSuggestions(false)
     setSearchQuery('')
   }
 
@@ -139,6 +143,11 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
     setShowHistoryPopover(false)
   }
 
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false)
+    navigate('/account')
+  }
+
   return (
     <>
       <div className="top-bar">
@@ -146,57 +155,59 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
           <div className="top-bar-left">
             <img
               src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-              alt="App Logo"
+              alt="GcashTV"
               className="app-logo"
               onClick={handleLogoClick}
             />
-            <span className="app-name" onClick={handleLogoClick}>GcashReels</span>
+            <span className="brand-name" onClick={handleLogoClick}>GcashTV</span>
             
             <nav className="nav-links">
-              <a
+              <button
                 className={`nav-link ${isActiveRoute('/') ? 'active' : ''}`}
                 onClick={() => handleNavClick('/')}
               >
                 {t.topBar.home}
-              </a>
-              <a
-                className={`nav-link ${isActiveRoute('/series') ? 'active' : ''}`}
-                onClick={() => handleNavClick('/series')}
+              </button>
+              <button
+                className={`nav-link ${isActiveRoute('/genre') ? 'active' : ''}`}
+                onClick={() => handleNavClick('/genre')}
               >
                 {t.topBar.genre}
-              </a>
+              </button>
             </nav>
           </div>
           
           <div className="search-container" ref={searchRef}>
-            <input
-              type="text"
-              className="search-input"
-              placeholder={t.topBar.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowSuggestions(true)
-                setHighlightedIndex(-1)
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={handleKeyDown}
-            />
-            <button className="search-button" onClick={handleSearch}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-            </button>
+            <div className="search-combo">
+              <input
+                type="text"
+                className="search-input"
+                placeholder={t.topBar.searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setShowSearchSuggestions(true)
+                  setHighlightedSuggestion(-1)
+                }}
+                onFocus={() => setShowSearchSuggestions(true)}
+                onKeyDown={handleKeyDown}
+              />
+              <button className="search-button" onClick={handleSearch}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+              </button>
+            </div>
             
-            {showSuggestions && suggestions.length > 0 && (
+            {showSearchSuggestions && suggestions.length > 0 && (
               <div className="search-suggestions">
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion._id}
-                    className={`suggestion-item ${index === highlightedIndex ? 'highlighted' : ''}`}
+                    className={`suggestion-item ${index === highlightedSuggestion ? 'highlighted' : ''}`}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onMouseEnter={() => setHighlightedSuggestion(index)}
                   >
                     <span className="suggestion-title">{suggestion.title}</span>
                     <span className="suggestion-tag">{suggestion.tag}</span>
@@ -208,13 +219,14 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
 
           <div className="top-bar-right">
             <div
-              className="icon-button history-icon"
+              className={`icon-button history-icon ${isActiveRoute('/account?tab=watchHistory') ? 'active' : ''}`}
               ref={historyRef}
               onMouseEnter={handleHistoryIconHover}
               onMouseLeave={() => setShowHistoryPopover(false)}
               onClick={handleHistoryIconClick}
+              title={t.topBar.watchHistory}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12,6 12,12 16,14" />
               </svg>
@@ -223,7 +235,10 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
                 <div className="history-popover">
                   <div className="popover-header">{t.topBar.historyTitle}</div>
                   {watchHistory.length === 0 ? (
-                    <div className="popover-empty">{t.topBar.noHistory}</div>
+                    <div className="popover-empty">
+                      <span className="popover-empty-icon">📺</span>
+                      <span className="popover-empty-text">{t.topBar.noHistory}</span>
+                    </div>
                   ) : (
                     <div className="popover-list">
                       {watchHistory.map((item) => (
@@ -235,13 +250,20 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
                             handleHistoryItemClick(item)
                           }}
                         >
+                          <img
+                            src={item.thumbnail}
+                            alt={item.seriesTitle}
+                            className="popover-item-thumbnail"
+                          />
                           <div className="popover-item-info">
                             <span className="popover-item-title">{item.seriesTitle}</span>
                             <span className="popover-item-episode">EP {item.episodeNumber}</span>
                           </div>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="5,3 19,12 5,21" />
-                          </svg>
+                          <button className="popover-item-resume" title={t.topBar.watchHistory}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -253,11 +275,20 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
             <div
               className={`icon-button account-icon ${isActiveRoute('/account') ? 'active' : ''}`}
               onClick={handleAccountClick}
+              title={isLoggedIn && user?.nickname ? user.nickname : 'Sign In'}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+              {isLoggedIn && user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.nickname || 'User'}
+                  className="user-avatar"
+                />
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              )}
             </div>
 
             <div className="language-switch" onClick={handleLanguageClick}>
@@ -287,10 +318,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
       {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={() => {
-            setShowLoginModal(false)
-            navigate('/account')
-          }}
+          onSuccess={handleLoginSuccess}
         />
       )}
     </>

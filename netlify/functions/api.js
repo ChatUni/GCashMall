@@ -21,6 +21,7 @@ import {
   getFavorites,
   getUser,
   login,
+  register,
   clearWatchHistory,
 } from './utils/handlers.js'
 
@@ -48,6 +49,7 @@ const apiHandlers = {
     uploadVideo: (body) => uploadVideo(body),
     deleteVideo: (body) => deleteVideo(body),
     login: (body) => login(body),
+    register: (body) => register(body),
     clearWatchHistory: (body) => clearWatchHistory(body),
   },
   delete: {
