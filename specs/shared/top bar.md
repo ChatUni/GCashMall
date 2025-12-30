@@ -182,27 +182,36 @@ On click
 - Icon stays blue (#3B82F6) and Blue underline appears
 
 Account Icon (Not Logged In)
-- On click: open Login Modal Popout
+- On click: open Login Modal Popout (overlay, centered)
 - No navigation to Account page until logged in
 
 Account Icon (Logged In)
 - On click: navigate to Account page
 
 ##### Login Popout (Modal) — Triggered by Account Icon (Not Logged In)
+
+###### Layout
+Vertical
+- title: "Login"
+- email input (required)
+- password input (required)
+- "Forget password?" link (align right)
+- "Login" button (primary green)
+- "Or continue with" (center)
+- Google icon (center)
+- "Don't have an account?" followed by the "Sign up." link
+
 ###### Interaction
-Trigger
-- When user is not logged in
-- On click of Account Icon: open Login Modal Popout (overlay, centered)
-- Page does not navigate
 
-- Used shared login modal
-
-Modal Close Behavior
-Close when:
-- Click “×” close icon
-
-When closed:
-- Reset sensitive fields
+- on click “×” icon: close the modal without login, and reset sensitive fields
+- on Google icon hover: scale up by 50%
+- on Login button click:
+  - verify email and password
+    - if fail, show the error below the input box in red
+    - otherwise, do nothing
+- on Forget password click: do nothing
+- on Sign up click: do nothing
+- on Google icon click: redirect to Google sign in page with the account page as the redirect url
 
 ### Language switch
 It shows the icon of the current selected language.

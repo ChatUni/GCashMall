@@ -135,6 +135,10 @@ export const zh = {
     password: '密码',
     submit: '登录',
     close: '关闭',
+    forgetPassword: '忘记密码？',
+    orContinueWith: '或者继续使用',
+    noAccount: '还没有账户？',
+    signUp: '注册。',
   },
   productCategory: {
     loading: '加载分类中...',

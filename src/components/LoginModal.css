@@ -51,16 +51,6 @@
   gap: 16px;
 }
 
-.login-error {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  border-radius: 6px;
-  padding: 12px;
-  color: #ef4444;
-  font-size: 14px;
-  text-align: center;
-}
-
 .login-field {
   display: flex;
   flex-direction: column;
@@ -83,12 +73,46 @@
   transition: border-color 0.2s ease;
 }
 
+.login-input::placeholder {
+  color: #6b7280;
+}
+
 .login-input:focus {
   border-color: #3b82f6;
 }
 
+.login-input-error {
+  border-color: #ef4444;
+}
+
+.login-input-error:focus {
+  border-color: #ef4444;
+}
+
+.login-field-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.login-forget-password {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: right;
+  padding: 0;
+  margin-top: -8px;
+  transition: color 0.2s ease;
+}
+
+.login-forget-password:hover {
+  color: #ffffff;
+}
+
 .login-submit {
-  background-color: #3b82f6;
+  background-color: #22c55e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -101,11 +125,75 @@
 }
 
 .login-submit:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: #16a34a;
   transform: scale(1.02);
 }
 
 .login-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #242428;
+}
+
+.login-divider-text {
+  padding: 0 16px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.login-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.login-google-icon {
+  transition: transform 0.2s ease;
+}
+
+.login-google-btn:hover .login-google-icon {
+  transform: scale(1.5);
+}
+
+.login-signup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.login-signup-link {
+  background: transparent;
+  border: none;
+  color: #3b82f6;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.login-signup-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
 }

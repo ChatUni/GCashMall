@@ -135,6 +135,10 @@ export const en = {
     password: 'Password',
     submit: 'Login',
     close: 'Close',
+    forgetPassword: 'Forget password?',
+    orContinueWith: 'Or continue with',
+    noAccount: "Don't have an account?",
+    signUp: 'Sign up.',
   },
   productCategory: {
     loading: 'Loading categories...',
