@@ -31,6 +31,7 @@ const Player: React.FC = () => {
   const [episodeRange, setEpisodeRange] = useState<[number, number]>([1, 40])
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [isLoggedIn] = useState(false)
+  const [hoveredEpisodeId, setHoveredEpisodeId] = useState<string | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -162,6 +163,16 @@ const Player: React.FC = () => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const getEpisodeThumbnailUrl = (episode: Episode, isHovered: boolean): string => {
+    if (episode.videoId) {
+      const baseUrl = 'https://vz-918d4e7e-1fb.b-cdn.net'
+      return isHovered
+        ? `${baseUrl}/${episode.videoId}/preview.webp`
+        : `${baseUrl}/${episode.videoId}/thumbnail.jpg`
+    }
+    return episode.thumbnail || ''
   }
 
   const getEpisodeRanges = (): [number, number][] => {
@@ -390,8 +401,13 @@ const Player: React.FC = () => {
                     currentEpisode._id === episode._id ? 'active' : ''
                   }`}
                   onClick={() => handleEpisodeClick(episode)}
+                  onMouseEnter={() => setHoveredEpisodeId(episode._id)}
+                  onMouseLeave={() => setHoveredEpisodeId(null)}
                 >
-                  <img src={episode.thumbnail} alt={episode.title} />
+                  <img
+                    src={getEpisodeThumbnailUrl(episode, hoveredEpisodeId === episode._id)}
+                    alt={episode.title}
+                  />
                   <span className="episode-number">
                     EP {episode.episodeNumber.toString().padStart(2, '0')}
                   </span>

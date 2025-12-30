@@ -207,6 +207,11 @@ The page uses React Router params:
 - **Hover**: scale(1.05), blue glow shadow
 - **Active State**: 2px blue border, blue overlay
 
+#### Thumbnail Image
+
+- https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/thumbnail.jpg
+- on hover: https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/preview.webp
+
 ### Episode Number Badge
 - **Position**: Absolute bottom-left
 - **Background**: rgba(0, 0, 0, 0.7)
