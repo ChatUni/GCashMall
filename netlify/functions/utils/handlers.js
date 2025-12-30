@@ -343,7 +343,7 @@ const getEpisodes = async (params) => {
               title: series.name || 'Episode 1',
               description: series.description || '',
               thumbnail: series.cover || '',
-              videoUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_VIDEO_LIBRARY_ID}/${series.videoId}`,
+              videoId: series.videoId,
               duration: 0,
               episodeNumber: 1,
             },

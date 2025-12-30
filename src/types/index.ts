@@ -52,6 +52,7 @@ export interface Episode {
   description: string
   thumbnail: string
   videoUrl: string
+  videoId?: string
   duration: number
   episodeNumber: number
 }

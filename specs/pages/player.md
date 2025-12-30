@@ -102,6 +102,10 @@ The page uses React Router params:
 - **Border**: 1px solid rgba(255, 255, 255, 0.2)
 - **Options**: 0.25x, 0.5x, 1x, 1.25x, 1.5x, 2x, 3x
 
+### Interaction
+
+- on load: play video https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId of the first episode}
+
 ## Episode Metadata Section
 
 ### Episode Title
