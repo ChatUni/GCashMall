@@ -74,7 +74,7 @@ const SeriesList: React.FC = () => {
   }
 
   const handleSeriesClick = (seriesItem: Series) => {
-    navigate(`/series/${seriesItem._id}`)
+    navigate(`/player/${seriesItem._id}`)
   }
 
   const getSelectedGenreName = (): string => {

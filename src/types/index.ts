@@ -62,6 +62,10 @@ export interface User {
   email: string
   avatar?: string
   isLoggedIn: boolean
+  phoneNumber?: string
+  gender?: string
+  birthday?: string
+  balance?: number
 }
 
 export interface WatchHistoryItem {
@@ -73,6 +77,7 @@ export interface WatchHistoryItem {
   thumbnail: string
   lastWatched: Date
   progress: number
+  tag?: string
 }
 
 export interface FavoriteItem {
@@ -81,6 +86,18 @@ export interface FavoriteItem {
   seriesTitle: string
   thumbnail: string
   addedAt: Date
+  tag?: string
+}
+
+export interface DownloadItem {
+  _id: string
+  seriesId: string
+  seriesTitle: string
+  episodeId: string
+  episodeNumber: number
+  thumbnail: string
+  downloadedAt: Date
+  fileSize?: string
 }
 
 export interface FeaturedSeries {

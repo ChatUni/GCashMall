@@ -1,179 +1,300 @@
-# Account page
+# Account Page Specification
 
-## Layout
-- Horizontal (two-column layout)
-- Shared top bar
-- Main content area: Left - Account sidebar (profile + navigation); Right - Account content panel (changes by selected tab)
-- Shared bottom bar
+## Overview
 
-## Style
-- Page background: black / near-black (#0B0B0E)
-- Primary text: white (#FFFFFF)
-- Secondary text: light gray (#9CA3AF)
-- Accent / active / hover: blue (#3B82F6)
-- Surface panels: dark gray (#121214 / #151518)
-- Dividers / subtle borders: very low-contrast gray (e.g. #242428)
-- Rounded corners: 10–14px for panels/cards
-- Shadow: subtle, soft shadow for depth (no hard border look)
+The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, downloads, settings, and wallet functionality.
 
-## Components
+## Page Structure
 
-### Account Sidebar (Left)
-#### Layout
-- Vertical
-- Fixed width on desktop (~260–320px)
-- Full height within viewport
-- Scrollable if content exceeds viewport height
+### Layout
+- **Container**: Full viewport height, flexbox column layout
+- **Background**: Dark theme (#0B0B0E)
+- **Main Content**: Flexbox row with sidebar (280px) and content panel (flexible)
+- **Padding**: 24px vertical, 40px horizontal
+- **Gap**: 32px between sidebar and content
 
-#### Style
-Sidebar container
-- Background color: dark gray surface (#121214 / #151518)
-- Rounded corners
-- Subtle shadow
-- Padding: 16–20px
+### Components Used
+- TopBar (header navigation)
+- BottomBar (footer navigation)
+- LoginModal (authentication modal)
 
-Profile block (top)
-- Avatar (circle, 48–64px)
-- Username / display name (white, semibold)
-- Optional subtitle (email/ID) in light gray
+## Authentication
 
-Navigation list
-- Vertical list of items
-- Each item row height: ~40–44px
-- Icon + label layout (left icon, right label)
+### Login Requirement
+- Page automatically shows LoginModal if user is not logged in
+- On successful login, modal closes and user can access account features
+- If user closes modal without logging in, they are redirected to home page
 
-Nav item states
-- Default: light gray text
-- Hover: text turns blue (#3B82F6)
-- Active: blue text + left accent line (2–3px) + subtle background tint
+### Logout Functionality
+- Logout button in sidebar navigation
+- Clears user session and redirects to home page
 
-Nav items
-- Account Overview (default)
-- Watch History
-- Favorites
-- Downloads
-- Settings
-- Wallet
-- Payment
-- Membership
-- Logout (placed at bottom)
+## Sidebar
 
-#### Interaction
-- On click nav item: updates right content panel
-- Active item remains highlighted
+### Profile Section
+- **Avatar**: 56px circular, background #242428, displays user avatar or 👤 emoji
+- **Name**: White (#FFFFFF), 16px, font-weight 600
+- **Email**: Gray (#9CA3AF), 13px
+- **Border**: Bottom border 1px solid #242428, margin-bottom 16px
 
-### Account Content Panel (Right)
-#### Layout
-- Takes remaining width
-- Max content width recommended (~900–1100px)
-- Top area: page header + optional quick actions
-- Below: content section(s) depending on selected tab
+### Navigation Items
+| Key | Icon | Label |
+|-----|------|-------|
+| overview | 👤 | Overview |
+| watchHistory | 📺 | Watch History |
+| favorites | ❤️ | Favorites |
+| downloads | ⬇️ | Downloads |
+| settings | ⚙️ | Settings |
+| wallet | 💰 | Wallet |
 
-#### Style
-- Content panel background: transparent (page background)
-Each section uses “surface card” blocks:
-- Background color: #121214 / #151518
-- Rounded corners 10–14px
-- Padding 18–24px
-- Subtle shadow
+### Navigation Styling
+- **Item Padding**: 12px 14px
+- **Border Radius**: 8px
+- **Icon Size**: 18px, width 24px
+- **Label**: Gray (#9CA3AF), 14px, font-weight 500
+- **Hover**: Label turns blue (#3B82F6)
+- **Active State**: 
+  - Background: rgba(59, 130, 246, 0.1)
+  - Left border indicator: 3px wide, #3B82F6
+  - Label color: #3B82F6
 
-#### Default Tab: Account Overview
+### Logout Button
+- Positioned at bottom with margin-top: auto
+- Top border: 1px solid #242428
+- Hover: Label turns red (#EF4444)
 
-##### Section: Header
-###### Layout
-- Title row on top-left
-- Optional right-side actions (small buttons)
+## Content Sections
 
-###### Content
-- Page title: “Account”
-- Subtitle: “Manage your profile and preferences”
+### 1. Overview (Profile Management)
 
-###### Style
-- Title: white, 24–30px, semibold
-- Subtitle: light gray, 14–16px
+#### Header
+- **Title**: "Account Overview" - White, 28px, font-weight 600
+- **Subtitle**: "Manage your profile and preferences" - Gray (#9CA3AF), 15px
 
-##### Section: Profile Summary Card
-###### Layout
-- Horizontal (desktop): avatar + info + quick actions
-- Vertical (mobile): stacked
+#### Profile Information Section
+Section card with form fields:
 
-###### Content
-- Avatar
-- Display name
-- Email / user id
-- Account status : “Logged in” / “Guest”
-Quick actions:
-- Edit Profile
-- Change Language 
+| Field | Type | Placeholder |
+|-------|------|-------------|
+| Nickname | text | Enter your nickname |
+| Email | email | Enter your email |
+| Phone Number | tel | Enter your phone number |
+| Gender | select | Not specified / Male / Female / Other |
+| Birthday | date | - |
 
-###### Style
-- Primary text white, secondary gray
-Buttons:
-- Primary button: blue bg (#3B82F6) + white text
-- Secondary button: dark surface + blue border/text on hover
+- **Form Input Styling**:
+  - Background: #1A1A1E
+  - Border: 1px solid #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Focus: Blue border (#3B82F6) with shadow
 
-###### Interaction
-- Edit Profile: opens modal or navigates to profile edit page
-- Avatar click: upload/change avatar
+- **Save Button**: Primary blue button (#3B82F6)
 
-##### Section: Recent Activity (Watch History Preview)
-###### Layout
-- Section header + list
-- Shows the most recent 3–6 watched items
+#### Profile Picture Section
+- **Current Avatar**: 80px circular preview
+- **Actions**: Upload New Avatar button, Remove Avatar button (if avatar exists)
+- **Hint Text**: "Recommended: Square image, at least 200x200px. Max size: 5MB"
+- **File Validation**: Image files only, max 5MB
 
-###### Content (each row)
-- Small poster thumbnail (rounded corners)
-- Series title (white)
-- Last watched episode (gray)
-- “Resume” icon/button on the right
+#### Change Password Section
+| Field | Type | Placeholder |
+|-------|------|-------------|
+| Current Password | password | Enter current password |
+| New Password | password | Enter new password |
+| Confirm New Password | password | Confirm new password |
 
-###### Style
-- Row hover: background slightly brighter + title turns blue
-- “Resume” button: icon-only, turns blue on hover
+- **Validation**: Minimum 6 characters, passwords must match
+- **Change Password Button**: Primary blue button
 
-###### Interaction
-- Clicking row: navigates to last watched episode player page
-- “View all”: navigates to full Watch History page
+### 2. Watch History
 
-##### Section: Saved / Favorites Preview
-Same pattern as Recent Activity.
+#### Header
+- **Title**: "Watch History"
+- **Actions**: 
+  - Clear History button (secondary)
+  - Sync History toggle
 
-#### Tab: Watch History (Full Page)
-##### Layout
-- Section header row + filters/actions row + history list/grid
+#### Content Grid
+- **Layout**: 5 columns, 20px gap
+- **Responsive**: 4 cols at 1400px, 3 cols at 1200px, 2 cols at 768px
 
-##### Style
-Header row
-- Title: “Watch History”
-Right side actions:
-- “Clear History”
-- “Sync history” toggle 
+#### History Card
+- **Poster Container**: 2:3 aspect ratio, 12px border radius
+- **Episode Badge**: Bottom-left, blue background (rgba(59, 130, 246, 0.9)), "EP X"
+- **Remove Button**: Top-right, appears on hover, 28px circular
+- **Title**: 15px, white, 2-line clamp
+- **Tag**: Gray pill badge
 
-Empty State
-- Centered icon + text: “You haven’t watched any series yet.”
-- Subtext in light gray
-- CTA button: “Explore series” (go to Home/Genre)
+#### Empty State
+- **Icon**: 📺 (64px, 50% opacity)
+- **Title**: "No watch history yet"
+- **Subtitle**: "Start watching to build your history"
+- **Action**: "Explore Series" button
 
-Non-empty State
-- Grid or list (your choice): Desktop - 3–5 columns grid, Mobile - 2 columns
-- Each item uses shared Card component plus “Resume” action
+### 3. Favorites
 
-#### Tab: Settings
-##### Section: Preferences
-###### Layout
-- Language
-- Playback defaults (speed, autoplay)
-- Notifications 
-- Each setting is a row: label (left) + control (right)
+#### Header
+- **Title**: "Favorites"
 
-###### Style
-- Controls use dark surface inputs
-- Focus ring: blue (#3B82F6)
+#### Content Grid
+- Same layout as Watch History (5 columns)
 
-#### Authentication Behavior (Not Logged In)
-When user clicks Account icon (top bar) and is not logged in.
-Open the shared Login modal popout (overlay) instead of navigating to account page.
+#### Favorite Card
+- **Poster Container**: 2:3 aspect ratio, 12px border radius
+- **Remove Button**: Top-right, appears on hover
+- **Hover Effect**: Blue glow shadow, scale 1.05 on poster
+- **Title**: 15px, white, turns blue on hover
+- **Tag**: Gray pill badge (#2A2A2E background)
 
-##### Interaction
-- Click the close icon "x": close modal
-- Successful login: close modal → update top bar to “logged-in state” and navigate to Account page
+#### Empty State
+- **Icon**: ❤️
+- **Title**: "No favorites yet"
+- **Subtitle**: "Add series to your favorites to see them here"
+- **Action**: "Explore Series" button
+
+### 4. Downloads
+
+#### Header
+- **Title**: "Downloads"
+- **Actions**: Clear All button (secondary)
+
+#### Content Grid
+- Same layout as Favorites (5 columns)
+
+#### Download Card
+- **Poster Container**: 2:3 aspect ratio, 12px border radius
+- **Episode Badge**: Bottom-left, blue background, "EP X"
+- **Remove Button**: Top-right, appears on hover
+- **Info Section**:
+  - Title: 15px, white
+  - Episode: Gray (#9CA3AF), 13px
+  - File Size: Gray (#6B7280), 12px (optional)
+
+#### Empty State
+- **Icon**: ⬇️
+- **Title**: "No downloads yet"
+- **Subtitle**: "Download episodes to watch offline"
+- **Action**: "Explore Series" button
+
+### 5. Settings
+
+#### Header
+- **Title**: "Settings"
+
+#### Preferences Section
+| Setting | Control Type | Options |
+|---------|--------------|---------|
+| Language | Select | English, 中文 |
+| Playback Speed | Select | 0.5x, 1x, 1.5x, 2x |
+| Autoplay | Toggle | On/Off |
+| Notifications | Toggle | On/Off |
+
+- **Row Styling**: Flex between, padding 16px 0, border-bottom #242428
+- **Toggle**: 44px × 24px, custom styled checkbox
+
+### 6. Wallet
+
+#### Header
+- **Title**: "Wallet"
+- **Subtitle**: "Manage your GCash balance"
+
+#### Balance Card
+- **Background**: Gradient (#1E3A5F to #0D1B2A)
+- **Border**: 1px solid #3B82F6
+- **Content**:
+  - Wallet Icon: 💰 (48px)
+  - Label: "Current Balance" - Gray, 14px
+  - Amount: White, 36px, font-weight 700, with GCash logo (32px)
+
+#### Top Up Section
+- **Description**: "Select an amount to add to your wallet"
+- **Grid**: 3 columns, 16px gap
+- **Amount Options**: 5, 10, 20, 50, 100, 200
+
+#### Top Up Button
+- **Styling**: 
+  - Background: #1A1A1E
+  - Border: 2px solid #242428
+  - Padding: 24px 16px
+  - Border Radius: 12px
+- **Hover**: Blue border, blue tint background, translateY(-2px)
+- **Content**: GCash logo (24px) + amount value (28px, white)
+
+#### Top Up Confirmation Popup
+- **Overlay**: Fixed, black 80% opacity
+- **Modal**: 
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+- **Content**:
+  - GCash Logo: 80px
+  - Title: "Confirm Top Up" - 24px, white
+  - Message: "Add to your wallet" - 14px, gray
+  - Amount: 48px, blue (#3B82F6), with logo
+- **Buttons**:
+  - Confirm: Green (#22C55E)
+  - Cancel: Gray (#2A2A2E)
+
+#### Transaction History
+- Empty state: "No transactions yet"
+
+## URL Parameters
+
+The page supports tab navigation via URL query parameter:
+- `?tab=overview`
+- `?tab=watchHistory`
+- `?tab=favorites`
+- `?tab=downloads`
+- `?tab=settings`
+- `?tab=wallet`
+
+## Responsive Design
+
+### Breakpoints
+
+#### 1400px
+- Grids: 4 columns
+
+#### 1200px
+- Grids: 3 columns
+
+#### 1024px (Tablet)
+- Main layout: Column direction
+- Sidebar: Full width, horizontal layout
+- Navigation: Horizontal wrap
+- Active indicator: Hidden
+- Profile actions: Full width buttons
+
+#### 768px (Mobile)
+- Padding: 16px
+- Title: 24px
+- Grids: 2 columns
+- Header actions: Column layout
+- Top-up grid: 2 columns
+- Balance amount: 28px
+- Membership plans: Single column
+
+#### 480px (Small Mobile)
+- Navigation labels: Hidden (icons only)
+- Grids: 2 columns, 12px gap
+- Top-up values: 22px
+- Balance amount: 24px
+- Popup amount: 36px
+
+## Section Card
+
+- Background: #121214
+- Border Radius: 12px
+- Padding: 20px
+- Box Shadow: 0 4px 20px rgba(0, 0, 0, 0.3)
+
+## Animations & Transitions
+
+- Navigation hover: 0.2s ease
+- Card hover: translateY(-4px), 0.2s ease
+- Poster scale: 1.05, 0.3s ease
+- Button hover: 0.2s ease
+- Toggle switch: 0.2s ease
+- Remove button opacity: 0.2s ease (appears on card hover)

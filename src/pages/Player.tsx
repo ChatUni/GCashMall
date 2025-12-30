@@ -314,12 +314,20 @@ const Player: React.FC = () => {
 
             <div className="episode-tags">
               {series.tags?.map((tag, index) => (
-                <span key={index} className="episode-tag">
+                <span
+                  key={index}
+                  className="episode-tag"
+                  onClick={() => navigate(`/series?genre=${encodeURIComponent(tag)}`)}
+                >
                   {tag}
                 </span>
               ))}
               {series.genre?.map((genre) => (
-                <span key={genre.id} className="episode-tag">
+                <span
+                  key={genre.id}
+                  className="episode-tag"
+                  onClick={() => navigate(`/series?genre=${encodeURIComponent(genre.name)}`)}
+                >
                   {genre.name}
                 </span>
               ))}

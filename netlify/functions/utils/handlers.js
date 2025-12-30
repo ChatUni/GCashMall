@@ -328,6 +328,30 @@ const getEpisodes = async (params) => {
       { episodeNumber: 1 }
     )
     
+    // If no episodes found, return the series videoId as a single episode
+    if (!episodes || episodes.length === 0) {
+      const seriesResult = await getSeriesById(seriesId)
+      if (seriesResult.success && seriesResult.data && seriesResult.data.videoId) {
+        const series = seriesResult.data
+        return {
+          success: true,
+          data: [
+            {
+              _id: `${seriesId}-ep1`,
+              id: 1,
+              seriesId: seriesId,
+              title: series.name || 'Episode 1',
+              description: series.description || '',
+              thumbnail: series.cover || '',
+              videoUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_VIDEO_LIBRARY_ID}/${series.videoId}`,
+              duration: 0,
+              episodeNumber: 1,
+            },
+          ],
+        }
+      }
+    }
+    
     return {
       success: true,
       data: episodes
