@@ -24,6 +24,7 @@ export const zh = {
     viewAll: '查看全部',
     savedFavorites: '收藏夹',
     nav: {
+      overview: '概览',
       accountOverview: '账户概览',
       watchHistory: '观看历史',
       favorites: '收藏夹',

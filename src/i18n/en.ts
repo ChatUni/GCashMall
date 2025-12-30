@@ -24,6 +24,7 @@ export const en = {
     viewAll: 'View all',
     savedFavorites: 'Saved / Favorites',
     nav: {
+      overview: 'Overview',
       accountOverview: 'Account Overview',
       watchHistory: 'Watch History',
       favorites: 'Favorites',

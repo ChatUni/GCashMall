@@ -2,49 +2,95 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
-import SeriesCard from '../components/SeriesCard'
+import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
 import { apiGet, apiPost } from '../utils/api'
 import type { WatchHistoryItem, FavoriteItem, User, Series } from '../types'
 import './Account.css'
 
 type AccountTab =
-  | 'accountOverview'
+  | 'overview'
   | 'watchHistory'
   | 'favorites'
   | 'downloads'
   | 'settings'
   | 'wallet'
-  | 'payment'
-  | 'membership'
 
 const navItems: { key: AccountTab; icon: string }[] = [
-  { key: 'accountOverview', icon: '👤' },
-  { key: 'watchHistory', icon: '🕐' },
+  { key: 'overview', icon: '👤' },
+  { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },
   { key: 'downloads', icon: '⬇️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
-  { key: 'payment', icon: '💳' },
-  { key: 'membership', icon: '⭐' },
 ]
+
+interface DownloadItem {
+  _id: string
+  seriesId: string
+  seriesTitle: string
+  episodeId: string
+  episodeNumber: number
+  thumbnail: string
+  fileSize?: string
+}
+
+interface ProfileForm {
+  nickname: string
+  email: string
+  phone: string
+  gender: string
+  birthday: string
+}
+
+interface PasswordForm {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
 
 const Account: React.FC = () => {
   const { t, language, setLanguage } = useLanguage()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const [activeTab, setActiveTab] = useState<AccountTab>('accountOverview')
+  const [activeTab, setActiveTab] = useState<AccountTab>('overview')
   const [user, setUser] = useState<User | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
-  const [recentSeries, setRecentSeries] = useState<Series[]>([])
+  const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Profile form state
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    nickname: '',
+    email: '',
+    phone: '',
+    gender: '',
+    birthday: '',
+  })
+
+  // Password form state
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
   // Settings state
-  const [playbackSpeed, setPlaybackSpeed] = useState('1.0')
+  const [playbackSpeed, setPlaybackSpeed] = useState('1')
   const [autoplay, setAutoplay] = useState(true)
   const [notifications, setNotifications] = useState(true)
+  const [syncHistory, setSyncHistory] = useState(true)
+
+  // Wallet state
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null)
+  const [showTopUpPopup, setShowTopUpPopup] = useState(false)
+
+  const topUpAmounts = [5, 10, 20, 50, 100, 200]
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -54,32 +100,64 @@ const Account: React.FC = () => {
   }, [searchParams])
 
   useEffect(() => {
+    // Check if user is logged in
+    const checkAuth = () => {
+      // For demo, assume logged in - in real app check auth context
+      const storedUser = localStorage.getItem('gcashtv-user')
+      if (!storedUser) {
+        setIsLoggedIn(false)
+        setShowLoginModal(true)
+      } else {
+        setIsLoggedIn(true)
+      }
+    }
+    checkAuth()
     fetchUserData()
+    loadWalletBalance()
   }, [])
+
+  const loadWalletBalance = () => {
+    const stored = localStorage.getItem('gcashtv-wallet-balance')
+    if (stored) {
+      setWalletBalance(parseFloat(stored))
+    }
+  }
+
+  const saveWalletBalance = (balance: number) => {
+    localStorage.setItem('gcashtv-wallet-balance', balance.toString())
+    setWalletBalance(balance)
+  }
 
   const fetchUserData = async () => {
     try {
       const [userResponse, historyResponse, favoritesResponse] = await Promise.all([
         apiGet<User>('user'),
-        apiGet<WatchHistoryItem[]>('watchHistory', { limit: 6 }),
-        apiGet<FavoriteItem[]>('favorites', { limit: 6 }),
+        apiGet<WatchHistoryItem[]>('watchHistory', { limit: 20 }),
+        apiGet<FavoriteItem[]>('favorites', { limit: 20 }),
       ])
 
-      if (userResponse.success && userResponse.data) setUser(userResponse.data)
+      if (userResponse.success && userResponse.data) {
+        setUser(userResponse.data)
+        setProfileForm({
+          nickname: userResponse.data.username || '',
+          email: userResponse.data.email || '',
+          phone: '',
+          gender: '',
+          birthday: '',
+        })
+      }
       if (historyResponse.success && historyResponse.data) {
         setWatchHistory(historyResponse.data)
-        // Convert history items to partial series for display
-        const seriesData: Series[] = historyResponse.data.map((item: WatchHistoryItem) => ({
-          _id: item.seriesId,
-          id: 0,
-          name: item.seriesTitle,
-          cover: item.thumbnail,
-          description: '',
-          genre: [],
-        }))
-        setRecentSeries(seriesData)
       }
-      if (favoritesResponse.success && favoritesResponse.data) setFavorites(favoritesResponse.data)
+      if (favoritesResponse.success && favoritesResponse.data) {
+        setFavorites(favoritesResponse.data)
+      }
+      
+      // Load downloads from localStorage
+      const storedDownloads = localStorage.getItem('gcashtv-downloads')
+      if (storedDownloads) {
+        setDownloads(JSON.parse(storedDownloads))
+      }
     } catch (error) {
       console.error('Error fetching user data:', error)
     } finally {
@@ -93,21 +171,143 @@ const Account: React.FC = () => {
   }
 
   const handleLogout = () => {
-    // Handle logout
+    localStorage.removeItem('gcashtv-user')
+    setIsLoggedIn(false)
     navigate('/')
+  }
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false)
+    setIsLoggedIn(true)
+    fetchUserData()
+  }
+
+  const handleLoginClose = () => {
+    setShowLoginModal(false)
+    if (!isLoggedIn) {
+      navigate('/')
+    }
   }
 
   const handleHistoryItemClick = (item: WatchHistoryItem) => {
     navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
   }
 
+  const handleRemoveFromHistory = async (e: React.MouseEvent, seriesId: string) => {
+    e.stopPropagation()
+    try {
+      await apiPost('removeFromHistory', { seriesId })
+      setWatchHistory(prev => prev.filter(item => item.seriesId !== seriesId))
+    } catch (error) {
+      console.error('Error removing from history:', error)
+    }
+  }
+
   const handleClearHistory = async () => {
     try {
       await apiPost('clearWatchHistory', {})
       setWatchHistory([])
-      setRecentSeries([])
     } catch (error) {
       console.error('Error clearing history:', error)
+    }
+  }
+
+  const handleRemoveFavorite = async (e: React.MouseEvent, seriesId: string) => {
+    e.stopPropagation()
+    try {
+      await apiPost('removeFavorite', { seriesId })
+      setFavorites(prev => prev.filter(item => item.seriesId !== seriesId))
+    } catch (error) {
+      console.error('Error removing favorite:', error)
+    }
+  }
+
+  const handleRemoveDownload = (e: React.MouseEvent, seriesId: string, episodeNumber: number) => {
+    e.stopPropagation()
+    const updated = downloads.filter(
+      item => !(item.seriesId === seriesId && item.episodeNumber === episodeNumber)
+    )
+    setDownloads(updated)
+    localStorage.setItem('gcashtv-downloads', JSON.stringify(updated))
+  }
+
+  const handleClearAllDownloads = () => {
+    setDownloads([])
+    localStorage.removeItem('gcashtv-downloads')
+  }
+
+  const handleProfileSave = async () => {
+    try {
+      await apiPost('updateProfile', { ...profileForm })
+      // Update local user state
+      if (user) {
+        setUser({ ...user, username: profileForm.nickname, email: profileForm.email })
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+    }
+  }
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB')
+        return
+      }
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file')
+        return
+      }
+      // Handle upload - in real app, upload to server
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (user && event.target?.result) {
+          setUser({ ...user, avatar: event.target.result as string })
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveAvatar = () => {
+    if (user) {
+      setUser({ ...user, avatar: undefined })
+    }
+  }
+
+  const handlePasswordChange = async () => {
+    if (passwordForm.newPassword.length < 6) {
+      alert('Password must be at least 6 characters')
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('Passwords do not match')
+      return
+    }
+    try {
+      await apiPost('changePassword', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      })
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      alert('Password changed successfully')
+    } catch (error) {
+      console.error('Error changing password:', error)
+    }
+  }
+
+  const handleTopUpClick = (amount: number) => {
+    setSelectedTopUp(amount)
+    setShowTopUpPopup(true)
+  }
+
+  const handleConfirmTopUp = () => {
+    if (selectedTopUp) {
+      const newBalance = walletBalance + selectedTopUp
+      saveWalletBalance(newBalance)
+      setShowTopUpPopup(false)
+      setSelectedTopUp(null)
     }
   }
 
@@ -130,140 +330,297 @@ const Account: React.FC = () => {
     </nav>
   )
 
-  const renderAccountOverview = () => (
+  const renderOverview = () => (
     <div className="account-overview">
       <div className="section-header">
-        <h1 className="page-title">{t.account.pageTitle}</h1>
-        <p className="page-subtitle">{t.account.subtitle}</p>
+        <h1 className="page-title">Account Overview</h1>
+        <p className="page-subtitle">Manage your profile and preferences</p>
       </div>
 
-      <div className="profile-summary-card">
-        <div className="profile-avatar">
-          {user?.avatar ? (
-            <img src={user.avatar} alt={user.username} />
-          ) : (
-            <div className="avatar-placeholder">
-              {user?.username?.charAt(0).toUpperCase() || '?'}
-            </div>
-          )}
-        </div>
-        <div className="profile-info">
-          <h2 className="profile-name">{user?.username || 'Guest'}</h2>
-          <p className="profile-email">{user?.email || ''}</p>
-          <span className={`profile-status ${user?.isLoggedIn ? 'logged-in' : 'guest'}`}>
-            {user?.isLoggedIn ? t.account.loggedIn : t.account.guest}
-          </span>
-        </div>
-        <div className="profile-actions">
-          <button className="btn-primary">{t.account.editProfile}</button>
-          <button className="btn-secondary">{t.account.changeLanguage}</button>
+      {/* Profile Information Section */}
+      <div className="section-card">
+        <h3 className="section-card-title">Profile Information</h3>
+        <div className="profile-form">
+          <div className="form-group">
+            <label className="form-label">Nickname</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Enter your nickname"
+              value={profileForm.nickname}
+              onChange={(e) => setProfileForm({ ...profileForm, nickname: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              className="form-input"
+              placeholder="Enter your email"
+              value={profileForm.email}
+              onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="tel"
+              className="form-input"
+              placeholder="Enter your phone number"
+              value={profileForm.phone}
+              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Gender</label>
+            <select
+              className="form-input"
+              value={profileForm.gender}
+              onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+            >
+              <option value="">Not specified</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Birthday</label>
+            <input
+              type="date"
+              className="form-input"
+              value={profileForm.birthday}
+              onChange={(e) => setProfileForm({ ...profileForm, birthday: e.target.value })}
+            />
+          </div>
+          <button className="btn-primary" onClick={handleProfileSave}>
+            Save Changes
+          </button>
         </div>
       </div>
 
-      <section className="recent-activity-section">
-        <div className="section-header-row">
-          <h3 className="section-title">{t.account.recentActivity}</h3>
-          <button
-            className="view-all-link"
-            onClick={() => handleTabClick('watchHistory')}
-          >
-            {t.account.viewAll}
-          </button>
-        </div>
-        {watchHistory.length === 0 ? (
-          <p className="empty-text">{t.account.watchHistory.emptyTitle}</p>
-        ) : (
-          <div className="activity-list">
-            {watchHistory.slice(0, 3).map((item) => (
-              <div
-                key={item._id}
-                className="activity-item"
-                onClick={() => handleHistoryItemClick(item)}
-              >
-                <img
-                  src={item.thumbnail}
-                  alt={item.seriesTitle}
-                  className="activity-thumbnail"
-                />
-                <div className="activity-info">
-                  <span className="activity-title">{item.seriesTitle}</span>
-                  <span className="activity-episode">EP {item.episodeNumber}</span>
-                </div>
-                <button className="resume-button" title={t.account.resume}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5,3 19,12 5,21" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+      {/* Profile Picture Section */}
+      <div className="section-card">
+        <h3 className="section-card-title">Profile Picture</h3>
+        <div className="avatar-section">
+          <div className="current-avatar">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="Avatar" />
+            ) : (
+              <div className="avatar-placeholder-large">👤</div>
+            )}
           </div>
-        )}
-      </section>
+          <div className="avatar-actions">
+            <label className="btn-primary avatar-upload-btn">
+              Upload New Avatar
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                style={{ display: 'none' }}
+              />
+            </label>
+            {user?.avatar && (
+              <button className="btn-danger" onClick={handleRemoveAvatar}>
+                Remove Avatar
+              </button>
+            )}
+          </div>
+          <p className="avatar-hint">
+            Recommended: Square image, at least 200x200px. Max size: 5MB
+          </p>
+        </div>
+      </div>
 
-      <section className="favorites-preview-section">
-        <div className="section-header-row">
-          <h3 className="section-title">{t.account.savedFavorites}</h3>
-          <button
-            className="view-all-link"
-            onClick={() => handleTabClick('favorites')}
-          >
-            {t.account.viewAll}
+      {/* Change Password Section */}
+      <div className="section-card">
+        <h3 className="section-card-title">Change Password</h3>
+        <div className="password-form">
+          <div className="form-group">
+            <label className="form-label">Current Password</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Enter current password"
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">New Password</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Enter new password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm New Password</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+            />
+          </div>
+          <button className="btn-primary" onClick={handlePasswordChange}>
+            Change Password
           </button>
         </div>
-        {favorites.length === 0 ? (
-          <p className="empty-text">No favorites yet</p>
-        ) : (
-          <div className="activity-list">
-            {favorites.slice(0, 3).map((item) => (
-              <div
-                key={item._id}
-                className="activity-item"
-                onClick={() => navigate(`/series/${item.seriesId}`)}
-              >
-                <img
-                  src={item.thumbnail}
-                  alt={item.seriesTitle}
-                  className="activity-thumbnail"
-                />
-                <div className="activity-info">
-                  <span className="activity-title">{item.seriesTitle}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      </div>
     </div>
   )
 
   const renderWatchHistory = () => (
     <div className="watch-history-page">
       <div className="section-header-row">
-        <h1 className="page-title">{t.account.watchHistory.title}</h1>
+        <h1 className="page-title">Watch History</h1>
         <div className="header-actions">
           <button className="btn-secondary" onClick={handleClearHistory}>
-            {t.account.watchHistory.clearHistory}
+            Clear History
           </button>
           <label className="toggle-label">
-            <span>{t.account.watchHistory.syncHistory}</span>
-            <input type="checkbox" defaultChecked />
+            <span>Sync History</span>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={syncHistory}
+                onChange={(e) => setSyncHistory(e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
           </label>
         </div>
       </div>
 
       {watchHistory.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🕐</div>
-          <h3 className="empty-title">{t.account.watchHistory.emptyTitle}</h3>
-          <p className="empty-subtext">{t.account.watchHistory.emptySubtext}</p>
+          <div className="empty-icon">📺</div>
+          <h3 className="empty-title">No watch history yet</h3>
+          <p className="empty-subtext">Start watching to build your history</p>
           <button className="btn-primary" onClick={() => navigate('/')}>
-            {t.account.watchHistory.exploreButton}
+            Explore Series
           </button>
         </div>
       ) : (
-        <div className="history-grid">
-          {recentSeries.map((series) => (
-            <SeriesCard key={series._id} series={series as Series} />
+        <div className="content-grid">
+          {watchHistory.map((item) => (
+            <div
+              key={item._id}
+              className="history-card"
+              onClick={() => handleHistoryItemClick(item)}
+            >
+              <div className="card-poster">
+                <img src={item.thumbnail} alt={item.seriesTitle} />
+                <div className="episode-badge">EP {item.episodeNumber}</div>
+                <button
+                  className="remove-btn"
+                  onClick={(e) => handleRemoveFromHistory(e, item.seriesId)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="card-info">
+                <h4 className="card-title">{item.seriesTitle}</h4>
+                <span className="card-tag">Drama</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const renderFavorites = () => (
+    <div className="favorites-page">
+      <div className="section-header-row">
+        <h1 className="page-title">Favorites</h1>
+      </div>
+
+      {favorites.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">❤️</div>
+          <h3 className="empty-title">No favorites yet</h3>
+          <p className="empty-subtext">Add series to your favorites to see them here</p>
+          <button className="btn-primary" onClick={() => navigate('/')}>
+            Explore Series
+          </button>
+        </div>
+      ) : (
+        <div className="content-grid">
+          {favorites.map((item) => (
+            <div
+              key={item._id}
+              className="favorite-card"
+              onClick={() => navigate(`/series/${item.seriesId}`)}
+            >
+              <div className="card-poster">
+                <img src={item.thumbnail} alt={item.seriesTitle} />
+                <button
+                  className="remove-btn"
+                  onClick={(e) => handleRemoveFavorite(e, item.seriesId)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="card-info">
+                <h4 className="card-title">{item.seriesTitle}</h4>
+                <span className="card-tag">Drama</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const renderDownloads = () => (
+    <div className="downloads-page">
+      <div className="section-header-row">
+        <h1 className="page-title">Downloads</h1>
+        <div className="header-actions">
+          <button className="btn-secondary" onClick={handleClearAllDownloads}>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      {downloads.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">⬇️</div>
+          <h3 className="empty-title">No downloads yet</h3>
+          <p className="empty-subtext">Download episodes to watch offline</p>
+          <button className="btn-primary" onClick={() => navigate('/')}>
+            Explore Series
+          </button>
+        </div>
+      ) : (
+        <div className="content-grid">
+          {downloads.map((item) => (
+            <div
+              key={item._id}
+              className="download-card"
+              onClick={() => navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)}
+            >
+              <div className="card-poster">
+                <img src={item.thumbnail} alt={item.seriesTitle} />
+                <div className="episode-badge">EP {item.episodeNumber}</div>
+                <button
+                  className="remove-btn"
+                  onClick={(e) => handleRemoveDownload(e, item.seriesId, item.episodeNumber)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="card-info">
+                <h4 className="card-title">{item.seriesTitle}</h4>
+                <span className="card-episode">Episode {item.episodeNumber}</span>
+                {item.fileSize && <span className="card-filesize">{item.fileSize}</span>}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -272,78 +629,149 @@ const Account: React.FC = () => {
 
   const renderSettings = () => (
     <div className="settings-page">
-      <h1 className="page-title">{t.account.settings.preferences}</h1>
+      <h1 className="page-title">Settings</h1>
 
-      <div className="settings-section">
-        <div className="setting-row">
-          <label className="setting-label">{t.account.settings.language}</label>
-          <select
-            className="setting-control"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
-          >
-            <option value="en">English</option>
-            <option value="zh">中文</option>
-          </select>
-        </div>
+      <div className="section-card">
+        <h3 className="section-card-title">Preferences</h3>
+        <div className="settings-section">
+          <div className="setting-row">
+            <label className="setting-label">Language</label>
+            <select
+              className="setting-control"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
+            >
+              <option value="en">English</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{t.account.settings.playbackSpeed}</label>
-          <select
-            className="setting-control"
-            value={playbackSpeed}
-            onChange={(e) => setPlaybackSpeed(e.target.value)}
-          >
-            <option value="0.5">0.5x</option>
-            <option value="1.0">1.0x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2.0">2.0x</option>
-          </select>
-        </div>
+          <div className="setting-row">
+            <label className="setting-label">Playback Speed</label>
+            <select
+              className="setting-control"
+              value={playbackSpeed}
+              onChange={(e) => setPlaybackSpeed(e.target.value)}
+            >
+              <option value="0.5">0.5x</option>
+              <option value="1">1x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+          </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{t.account.settings.autoplay}</label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={autoplay}
-              onChange={(e) => setAutoplay(e.target.checked)}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
+          <div className="setting-row">
+            <label className="setting-label">Autoplay</label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={autoplay}
+                onChange={(e) => setAutoplay(e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{t.account.settings.notifications}</label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={notifications}
-              onChange={(e) => setNotifications(e.target.checked)}
-            />
-            <span className="toggle-slider"></span>
-          </label>
+          <div className="setting-row">
+            <label className="setting-label">Notifications</label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={notifications}
+                onChange={(e) => setNotifications(e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
   )
 
+  const renderWallet = () => (
+    <div className="wallet-page">
+      <div className="section-header">
+        <h1 className="page-title">Wallet</h1>
+        <p className="page-subtitle">Manage your GCash balance</p>
+      </div>
+
+      {/* Balance Card */}
+      <div className="balance-card">
+        <div className="balance-icon">💰</div>
+        <div className="balance-info">
+          <span className="balance-label">Current Balance</span>
+          <div className="balance-amount">
+            <img src="/gcash-logo.png" alt="GCash" className="gcash-logo" />
+            <span className="amount-value">{walletBalance.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Up Section */}
+      <div className="section-card">
+        <h3 className="section-card-title">Top Up</h3>
+        <p className="topup-description">Select an amount to add to your wallet</p>
+        <div className="topup-grid">
+          {topUpAmounts.map((amount) => (
+            <button
+              key={amount}
+              className="topup-btn"
+              onClick={() => handleTopUpClick(amount)}
+            >
+              <img src="/gcash-logo.png" alt="GCash" className="topup-logo" />
+              <span className="topup-amount">{amount}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="section-card">
+        <h3 className="section-card-title">Transaction History</h3>
+        <p className="empty-text">No transactions yet</p>
+      </div>
+
+      {/* Top Up Confirmation Popup */}
+      {showTopUpPopup && (
+        <div className="popup-overlay" onClick={() => setShowTopUpPopup(false)}>
+          <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="/gcash-logo.png" alt="GCash" className="popup-logo" />
+            <h2 className="popup-title">Confirm Top Up</h2>
+            <p className="popup-message">Add to your wallet</p>
+            <div className="popup-amount">
+              <img src="/gcash-logo.png" alt="GCash" className="popup-amount-logo" />
+              <span className="popup-amount-value">{selectedTopUp}</span>
+            </div>
+            <div className="popup-buttons">
+              <button className="btn-confirm" onClick={handleConfirmTopUp}>
+                Confirm
+              </button>
+              <button className="btn-cancel" onClick={() => setShowTopUpPopup(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'accountOverview':
-        return renderAccountOverview()
+      case 'overview':
+        return renderOverview()
       case 'watchHistory':
         return renderWatchHistory()
+      case 'favorites':
+        return renderFavorites()
+      case 'downloads':
+        return renderDownloads()
       case 'settings':
         return renderSettings()
+      case 'wallet':
+        return renderWallet()
       default:
-        return (
-          <div className="coming-soon">
-            <h2>Coming Soon</h2>
-            <p>This feature is under development.</p>
-          </div>
-        )
+        return renderOverview()
     }
   }
 
@@ -360,6 +788,9 @@ const Account: React.FC = () => {
   return (
     <div className="account-page">
       <TopBar />
+      {showLoginModal && (
+        <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+      )}
       <div className="account-layout">
         <aside className="account-sidebar">
           <div className="sidebar-profile">
@@ -367,9 +798,7 @@ const Account: React.FC = () => {
               {user?.avatar ? (
                 <img src={user.avatar} alt={user.username} />
               ) : (
-                <div className="avatar-placeholder">
-                  {user?.username?.charAt(0).toUpperCase() || '?'}
-                </div>
+                <div className="avatar-placeholder">👤</div>
               )}
             </div>
             <div className="sidebar-user-info">
