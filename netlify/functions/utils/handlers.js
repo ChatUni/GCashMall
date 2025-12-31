@@ -607,6 +607,122 @@ const generateToken = (payload) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 }
 
+// Update user profile
+const updateProfile = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateUpdateProfileBody(body)
+
+  try {
+    const { email, nickname, phone, sex, dob } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if email is being changed and if it already exists
+    if (email && email.toLowerCase() !== currentUser.email) {
+      const existingUsers = await get(
+        'users',
+        { email: email.toLowerCase(), _id: { $ne: new ObjectId(userId) } },
+        {},
+        {},
+        1,
+      )
+      if (existingUsers && existingUsers.length > 0) {
+        return { success: false, error: 'Email already exists' }
+      }
+    }
+
+    // Build update object
+    const updateData = {
+      ...currentUser,
+      updatedAt: new Date(),
+    }
+
+    if (email) updateData.email = email.toLowerCase()
+    if (nickname !== undefined) updateData.nickname = nickname
+    if (phone !== undefined) updateData.phone = phone
+    if (sex !== undefined) updateData.sex = sex
+    if (dob !== undefined) updateData.dob = dob
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+    }
+
+    return {
+      success: true,
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to update profile: ${error.message}`)
+  }
+}
+
+const validateAuth = async (authHeader) => {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Authentication required')
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET)
+    return decoded.id
+  } catch (error) {
+    throw new Error('Invalid or expired token')
+  }
+}
+
+const validateUpdateProfileBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  // Validate email if provided
+  if (body.email && !isValidEmail(body.email)) {
+    throw new Error('Invalid email address')
+  }
+
+  // Validate phone if provided
+  if (body.phone && !isValidPhone(body.phone)) {
+    throw new Error('Invalid phone number')
+  }
+
+  // Validate sex if provided
+  if (body.sex && !['male', 'female', 'other'].includes(body.sex)) {
+    throw new Error('Invalid sex value')
+  }
+
+  // Validate dob if provided
+  if (body.dob && !isValidDate(body.dob)) {
+    throw new Error('Invalid date of birth')
+  }
+}
+
+const isValidPhone = (phone) => {
+  // Basic phone validation - allows digits, spaces, dashes, parentheses, and plus sign
+  const phoneRegex = /^[\d\s\-\(\)\+]+$/
+  return phone.length >= 10 && phoneRegex.test(phone)
+}
+
+const isValidDate = (dateStr) => {
+  const date = new Date(dateStr)
+  return !isNaN(date.getTime()) && date < new Date()
+}
+
 const clearWatchHistory = async (body) => {
   try {
     await remove('watchHistory', {})
@@ -867,5 +983,6 @@ export {
   checkEmail,
   emailRegister,
   login,
+  updateProfile,
   clearWatchHistory,
 }

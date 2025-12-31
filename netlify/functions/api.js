@@ -23,6 +23,7 @@ import {
   checkEmail,
   emailRegister,
   login,
+  updateProfile,
   clearWatchHistory,
 } from './utils/handlers.js'
 
@@ -52,6 +53,7 @@ const apiHandlers = {
     deleteVideo: (body) => deleteVideo(body),
     emailRegister: (body) => emailRegister(body),
     login: (body) => login(body),
+    updateProfile: (body, authHeader) => updateProfile(body, authHeader),
     clearWatchHistory: (body) => clearWatchHistory(body),
   },
   delete: {
@@ -70,26 +72,27 @@ export const handler = async (event, context) => {
     const method = event.httpMethod.toLowerCase()
     const queryParams = event.queryStringParameters || {}
     const { type } = queryParams
-    
+    const authHeader = event.headers?.authorization || event.headers?.Authorization
+
     validateRequest(method, type)
-    
+
     const handler = getHandler(method, type)
     let result
-    
+
     if (method === 'get') {
       result = await handler(queryParams)
     } else {
       const body = parseBody(event.body)
-      result = await handler(body)
+      // Pass auth header for handlers that need it
+      result = await handler(body, authHeader)
     }
-    
+
     return createResponse(200, result)
-    
   } catch (error) {
     console.error('API Error:', error)
     return createResponse(500, {
       success: false,
-      error: error.message
+      error: error.message,
     })
   }
 }

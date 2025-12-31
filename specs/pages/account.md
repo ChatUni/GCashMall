@@ -91,6 +91,16 @@ Section card with form fields:
 
 - **Save Button**: Primary blue button (#3B82F6)
 
+##### Interaction
+
+- Save button disabled when no changes in this section, otherwise enabled
+- on save button click
+  - validate email, phone number, birthday, show the error in red below each input
+  - call the update profile API
+  - show the success/fail message in a Toast Notification box (top right, fly-in and disapear after 3 seconds)
+  - on success, disable the save button
+  - on leaving the section/page without saving changes: show confirm dialog. if user cancel changes, clear the changes
+
 #### Profile Picture Section
 - **Current Avatar**: 80px circular preview
 - **Actions**: Upload New Avatar button, Remove Avatar button (if avatar exists)

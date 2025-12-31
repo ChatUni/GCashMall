@@ -65,6 +65,8 @@ export interface User {
   phone?: string | null
   gender?: string | null
   birthday?: string | null
+  sex?: string | null
+  dob?: string | null
   balance?: number
 }
 

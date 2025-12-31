@@ -51,6 +51,12 @@ export const en = {
       confirmPassword: 'Confirm New Password',
       confirmPasswordPlaceholder: 'Confirm new password',
       changePasswordBtn: 'Change Password',
+      invalidEmail: 'Invalid email format',
+      invalidPhone: 'Invalid phone number',
+      invalidBirthday: 'Invalid date of birth',
+      saveSuccess: 'Profile updated successfully',
+      saveFailed: 'Failed to update profile',
+      unsavedChanges: 'You have unsaved changes. Do you want to discard them?',
     },
     watchHistory: {
       title: 'Watch History',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
@@ -7,9 +7,11 @@ import { useLanguage } from '../context/LanguageContext'
 import {
   apiGet,
   apiPost,
+  apiPostWithAuth,
   isLoggedIn as checkIsLoggedIn,
   getStoredUser,
   clearAuthData,
+  saveAuthData,
 } from '../utils/api'
 import type { WatchHistoryItem, FavoriteItem, User, DownloadItem } from '../types'
 import './Account.css'
@@ -54,6 +56,26 @@ const Account: React.FC = () => {
   const [gender, setGender] = useState('not_specified')
   const [birthday, setBirthday] = useState('')
 
+  // Original profile values (to track changes)
+  const originalProfileRef = useRef({
+    nickname: '',
+    email: '',
+    phoneNumber: '',
+    gender: 'not_specified',
+    birthday: '',
+  })
+
+  // Profile validation errors
+  const [emailError, setEmailError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+  const [birthdayError, setBirthdayError] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState<'success' | 'error'>('success')
+  const [showToast, setShowToast] = useState(false)
+
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -86,6 +108,22 @@ const Account: React.FC = () => {
     }
   }, [isLoggedIn])
 
+  const setProfileData = (userData: User) => {
+    const profileValues = {
+      nickname: userData.nickname || '',
+      email: userData.email || '',
+      phoneNumber: userData.phone || '',
+      gender: userData.sex || 'not_specified',
+      birthday: userData.dob || '',
+    }
+    setNickname(profileValues.nickname)
+    setEmail(profileValues.email)
+    setPhoneNumber(profileValues.phoneNumber)
+    setGender(profileValues.gender)
+    setBirthday(profileValues.birthday)
+    originalProfileRef.current = { ...profileValues }
+  }
+
   const checkLoginStatus = async () => {
     // First check local storage for logged in user
     if (checkIsLoggedIn()) {
@@ -93,11 +131,7 @@ const Account: React.FC = () => {
       if (storedUser) {
         setUser(storedUser)
         setIsLoggedIn(true)
-        setNickname(storedUser.nickname || '')
-        setEmail(storedUser.email || '')
-        setPhoneNumber(storedUser.phone || '')
-        setGender(storedUser.gender || 'not_specified')
-        setBirthday(storedUser.birthday || '')
+        setProfileData(storedUser)
         setBalance(storedUser.balance || 0)
         setLoading(false)
         return
@@ -110,11 +144,7 @@ const Account: React.FC = () => {
       if (response.success && response.data) {
         setUser(response.data)
         setIsLoggedIn(true)
-        setNickname(response.data.nickname || '')
-        setEmail(response.data.email || '')
-        setPhoneNumber(response.data.phone || '')
-        setGender(response.data.gender || 'not_specified')
-        setBirthday(response.data.birthday || '')
+        setProfileData(response.data)
         setBalance(response.data.balance || 0)
       } else {
         setShowLoginModal(true)
@@ -173,18 +203,153 @@ const Account: React.FC = () => {
     await checkLoginStatus()
   }
 
+  // Check if profile has changes
+  const hasProfileChanges = useCallback(() => {
+    const original = originalProfileRef.current
+    return (
+      nickname !== original.nickname ||
+      email !== original.email ||
+      phoneNumber !== original.phoneNumber ||
+      gender !== original.gender ||
+      birthday !== original.birthday
+    )
+  }, [nickname, email, phoneNumber, gender, birthday])
+
+  // Show toast notification
+  const showToastNotification = (message: string, type: 'success' | 'error') => {
+    setToastMessage(message)
+    setToastType(type)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }
+
+  // Validate email format
+  const validateEmail = (emailValue: string): boolean => {
+    if (!emailValue) {
+      setEmailError('')
+      return true
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(emailValue)) {
+      setEmailError(t.account.overview.invalidEmail || 'Invalid email format')
+      return false
+    }
+    setEmailError('')
+    return true
+  }
+
+  // Validate phone number
+  const validatePhone = (phoneValue: string): boolean => {
+    if (!phoneValue) {
+      setPhoneError('')
+      return true
+    }
+    const phoneRegex = /^[\d\s\-\(\)\+]+$/
+    if (phoneValue.length < 10 || !phoneRegex.test(phoneValue)) {
+      setPhoneError(t.account.overview.invalidPhone || 'Invalid phone number')
+      return false
+    }
+    setPhoneError('')
+    return true
+  }
+
+  // Validate birthday
+  const validateBirthday = (birthdayValue: string): boolean => {
+    if (!birthdayValue) {
+      setBirthdayError('')
+      return true
+    }
+    const date = new Date(birthdayValue)
+    if (isNaN(date.getTime()) || date >= new Date()) {
+      setBirthdayError(t.account.overview.invalidBirthday || 'Invalid date of birth')
+      return false
+    }
+    setBirthdayError('')
+    return true
+  }
+
+  // Clear profile changes
+  const clearProfileChanges = () => {
+    const original = originalProfileRef.current
+    setNickname(original.nickname)
+    setEmail(original.email)
+    setPhoneNumber(original.phoneNumber)
+    setGender(original.gender)
+    setBirthday(original.birthday)
+    setEmailError('')
+    setPhoneError('')
+    setBirthdayError('')
+  }
+
   const handleSaveProfile = async () => {
+    // Validate all fields
+    const isEmailValid = validateEmail(email)
+    const isPhoneValid = validatePhone(phoneNumber)
+    const isBirthdayValid = validateBirthday(birthday)
+
+    if (!isEmailValid || !isPhoneValid || !isBirthdayValid) {
+      return
+    }
+
+    setProfileSaving(true)
+
     try {
-      await apiPost('updateProfile', {
+      const response = await apiPostWithAuth<User>('updateProfile', {
         nickname,
         email,
-        phoneNumber,
-        gender,
-        birthday,
+        phone: phoneNumber,
+        sex: gender === 'not_specified' ? null : gender,
+        dob: birthday || null,
       })
+
+      if (response.success && response.data) {
+        // Update local storage with new user data
+        const token = localStorage.getItem('gcashmall_token')
+        if (token) {
+          saveAuthData(token, response.data)
+        }
+
+        // Update original profile ref
+        originalProfileRef.current = {
+          nickname,
+          email,
+          phoneNumber,
+          gender,
+          birthday,
+        }
+
+        // Update user state
+        setUser(response.data)
+
+        showToastNotification(
+          t.account.overview.saveSuccess || 'Profile updated successfully',
+          'success',
+        )
+      } else {
+        showToastNotification(response.error || 'Failed to update profile', 'error')
+      }
     } catch (error) {
       console.error('Error saving profile:', error)
+      showToastNotification('Failed to update profile', 'error')
+    } finally {
+      setProfileSaving(false)
     }
+  }
+
+  // Confirm dialog for unsaved changes
+  const handleTabClickWithConfirm = (tab: AccountTab) => {
+    if (activeTab === 'overview' && hasProfileChanges()) {
+      const confirmed = window.confirm(
+        t.account.overview.unsavedChanges ||
+          'You have unsaved changes. Do you want to discard them?',
+      )
+      if (confirmed) {
+        clearProfileChanges()
+      } else {
+        return
+      }
+    }
+    handleTabClick(tab)
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,7 +485,7 @@ const Account: React.FC = () => {
           <button
             key={item.key}
             className={`nav-item ${activeTab === item.key ? 'active' : ''}`}
-            onClick={() => handleTabClick(item.key)}
+            onClick={() => handleTabClickWithConfirm(item.key)}
           >
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{t.account.nav[item.key]}</span>
@@ -359,18 +524,28 @@ const Account: React.FC = () => {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (emailError) setEmailError('')
+              }}
               placeholder={t.account.overview.emailPlaceholder}
+              className={emailError ? 'input-error' : ''}
             />
+            {emailError && <span className="field-error">{emailError}</span>}
           </div>
           <div className="form-field">
             <label>{t.account.overview.phoneNumber}</label>
             <input
               type="tel"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={(e) => {
+                setPhoneNumber(e.target.value)
+                if (phoneError) setPhoneError('')
+              }}
               placeholder={t.account.overview.phonePlaceholder}
+              className={phoneError ? 'input-error' : ''}
             />
+            {phoneError && <span className="field-error">{phoneError}</span>}
           </div>
           <div className="form-field">
             <label>{t.account.overview.gender}</label>
@@ -386,12 +561,21 @@ const Account: React.FC = () => {
             <input
               type="date"
               value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
+              onChange={(e) => {
+                setBirthday(e.target.value)
+                if (birthdayError) setBirthdayError('')
+              }}
+              className={birthdayError ? 'input-error' : ''}
             />
+            {birthdayError && <span className="field-error">{birthdayError}</span>}
           </div>
         </div>
-        <button className="btn-primary" onClick={handleSaveProfile}>
-          {t.account.overview.save}
+        <button
+          className="btn-primary"
+          onClick={handleSaveProfile}
+          disabled={!hasProfileChanges() || profileSaving}
+        >
+          {profileSaving ? '...' : t.account.overview.save}
         </button>
       </div>
 
@@ -774,6 +958,12 @@ const Account: React.FC = () => {
 
       {showLoginModal && (
         <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+      )}
+
+      {showToast && (
+        <div className={`toast-notification toast-${toastType}`}>
+          {toastMessage}
+        </div>
       )}
     </div>
   )

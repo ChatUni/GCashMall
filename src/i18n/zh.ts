@@ -51,6 +51,12 @@ export const zh = {
       confirmPassword: '确认新密码',
       confirmPasswordPlaceholder: '确认新密码',
       changePasswordBtn: '修改密码',
+      invalidEmail: '邮箱格式无效',
+      invalidPhone: '手机号码无效',
+      invalidBirthday: '出生日期无效',
+      saveSuccess: '个人资料更新成功',
+      saveFailed: '更新个人资料失败',
+      unsavedChanges: '您有未保存的更改。是否要放弃？',
     },
     watchHistory: {
       title: '观看历史',

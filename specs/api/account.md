@@ -55,3 +55,31 @@ return the new account
 ### Output
 
 return the token or error message
+
+## Update Profile
+
+### Input
+
+- email
+- nickname
+- phone
+- sex
+- dob
+
+### Prerequisite
+
+- already logged in
+- valid email address
+- email doesn't exist in db except current account
+- valid phone
+- valid sex
+- valid dob
+
+### Action
+
+- find the account based on the login
+- update all fields
+
+### Output
+
+return the updated user

@@ -72,6 +72,39 @@ export const apiPost = async <T>(
   }
 }
 
+export const apiPostWithAuth = async <T>(
+  type: string,
+  body: Record<string, unknown>,
+): Promise<{ success: boolean; data?: T; error?: string }> => {
+  try {
+    const baseUrl = getApiBaseUrl()
+    const url = `${baseUrl}/.netlify/functions/api?type=${type}`
+    const token = localStorage.getItem('gcashmall_token')
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error(`API POST (auth) error for type "${type}":`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
 export const apiDelete = async <T>(
   type: string,
   body: Record<string, unknown>,
