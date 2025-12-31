@@ -261,7 +261,7 @@ const getFeaturedSeries = async (params) => {
 const getRecommendations = async (params) => {
   try {
     // Get a random selection of series as recommendations
-    const series = await get('series', {}, {}, { createdAt: -1 }, 6)
+    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
     const normalizedSeries = series.map(normalizeSeries)
     return {
       success: true,
@@ -275,7 +275,7 @@ const getRecommendations = async (params) => {
 const getNewReleases = async (params) => {
   try {
     // Get the most recently added series
-    const series = await get('series', {}, {}, { createdAt: -1 }, 6)
+    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
     const normalizedSeries = series.map(normalizeSeries)
     return {
       success: true,
