@@ -28,7 +28,6 @@ export const en = {
       accountOverview: 'Account Overview',
       watchHistory: 'Watch History',
       favorites: 'Favorites',
-      downloads: 'Downloads',
       settings: 'Settings',
       wallet: 'Wallet',
       payment: 'Payment',
@@ -119,10 +118,9 @@ export const en = {
   },
   player: {
     episodes: 'Episodes',
-    download: 'Download',
     share: 'Share',
     addToFavorites: 'Add to favorites',
-    breadcrumbHome: 'GcashReels',
+    breadcrumbHome: 'GcashTV',
   },
   login: {
     title: 'Login',

@@ -28,7 +28,6 @@ export const zh = {
       accountOverview: '账户概览',
       watchHistory: '观看历史',
       favorites: '收藏夹',
-      downloads: '下载',
       settings: '设置',
       wallet: '钱包',
       payment: '支付',
@@ -119,10 +118,9 @@ export const zh = {
   },
   player: {
     episodes: '剧集',
-    download: '下载',
     share: '分享',
     addToFavorites: '添加到收藏',
-    breadcrumbHome: 'GcashReels',
+    breadcrumbHome: 'GcashTV',
   },
   login: {
     title: '登录',

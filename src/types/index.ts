@@ -71,8 +71,10 @@ export interface WatchHistoryItem {
   episodeId: string
   episodeNumber: number
   thumbnail: string
-  lastWatched: Date
-  progress: number
+  lastWatched?: Date
+  watchedAt?: string
+  progress?: number
+  tag?: string
 }
 
 export interface FavoriteItem {
@@ -80,7 +82,8 @@ export interface FavoriteItem {
   seriesId: string
   seriesTitle: string
   thumbnail: string
-  addedAt: Date
+  addedAt?: Date
+  tag?: string
 }
 
 export interface FeaturedSeries {

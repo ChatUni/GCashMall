@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Player page is the video playback interface for GCashTV, featuring a video player with custom controls, episode metadata, an episode list sidebar, and recommendation carousels. It supports favorites, downloads, watch history tracking, and social sharing functionality.
+The Player page is the video playback interface for GCashTV, featuring a video player with custom controls, episode metadata, an episode list sidebar, and recommendation carousels. It supports favorites, watch history tracking, and social sharing functionality.
 
 ## Page Structure
 
@@ -66,7 +66,7 @@ interface RecommendedSeries {
 - **Color**: #9CA3AF
 
 ### Elements
-- **Link (GcashTV)**: Clickable, hover color #3B82F6
+- **Link (GcashTV)**: Clickable, navigates to home page `/`, hover color #3B82F6
 - **Separator**: ">" with margin 0 8px, color #6B7280
 - **Current**: Series title, color #FFFFFF
 
@@ -162,22 +162,13 @@ When video container enters fullscreen mode:
 - **Display**: Flex
 - **Gap**: 20px
 - **Margin Bottom**: 16px
-- **Items**: Language selector, Download button, Favorite button
+- **Items**: Language selector, Favorite button
 
 ### Language Selector
 - **Display**: Flex with globe icon
 - **Icon Size**: 18px
 - **Color**: #9CA3AF
 - **Options**: English, 中文, Español, Français
-
-### Download Button
-- **Display**: Flex with icon
-- **Background**: #1A1A1A
-- **Color**: #FFFFFF
-- **Padding**: 10px 20px
-- **Border Radius**: 8px
-- **Hover**: Color #3B82F6, scale(1.02)
-- **Downloaded State**: Green background tint, green text (#22C55E)
 
 ### Favorite Button
 - **Size**: 48px × 48px
@@ -275,7 +266,7 @@ Two sections:
 
 ### Favorite Popup
 - **Overlay**: Fixed, rgba(0, 0, 0, 0.7), z-index 1000
-- **Modal**: 
+- **Modal**:
   - Background: #1A1A1E
   - Border Radius: 16px
   - Padding: 32px
@@ -285,12 +276,6 @@ Two sections:
 - **Title**: "Add to Favorites?" - 20px, white
 - **Message**: 14px, gray, line-height 1.6
 - **Buttons**: Yes (blue), No (gray)
-
-### Download Popup
-- **Same structure as Favorite Popup**
-- **Icon**: Blue tint background, download icon
-- **Title**: "Download Episode?"
-- **Message**: Includes episode title
 
 ## Context Dependencies
 
@@ -304,10 +289,6 @@ Two sections:
 
 ### WatchHistoryContext
 - `addToHistory()`: Record episode view
-
-### DownloadsContext
-- `addDownload()`: Add episode to downloads
-- `isDownloaded()`: Check if episode is downloaded
 
 ## State Management
 
@@ -329,7 +310,6 @@ Two sections:
 | selectedLanguage | string | 'English' | Audio language |
 | episodeRange | string | '1-40' | Episode range filter |
 | showFavoritePopup | boolean | false | Favorite confirmation |
-| showDownloadPopup | boolean | false | Download confirmation |
 
 ## Navigation Actions
 
@@ -395,7 +375,6 @@ Two sections:
 | Primary Blue | #3B82F6 |
 | Primary Blue Hover | #2563EB |
 | Favorite Red | #EF4444 |
-| Downloaded Green | #22C55E |
 | Text White | #FFFFFF |
 | Text Gray | #9CA3AF |
 | Text Muted | #6B7280 |

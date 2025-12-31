@@ -66,10 +66,18 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false, user = null }) => {
     }
   }
 
-  const fetchWatchHistory = async () => {
-    const data = await apiGet<WatchHistoryItem[]>('watchHistory', { limit: 5 })
-    if (data.success && data.data) {
-      setWatchHistory(data.data)
+  const fetchWatchHistory = () => {
+    const storedHistory = localStorage.getItem('gcashtv-watch-history')
+    if (storedHistory) {
+      try {
+        const historyData = JSON.parse(storedHistory)
+        // Only show first 5 items in popover
+        setWatchHistory(historyData.slice(0, 5))
+      } catch {
+        setWatchHistory([])
+      }
+    } else {
+      setWatchHistory([])
     }
   }
 
@@ -147,7 +155,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false, user = null }) => {
   }
 
   const handleHistoryItemClick = (item: WatchHistoryItem) => {
-    navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
+    navigate(`/player/${item.seriesId}/${item.episodeNumber}`)
     setShowHistoryPopover(false)
   }
 

@@ -138,11 +138,40 @@ const Player: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('English')
   const [episodeRange, setEpisodeRange] = useState('1-40')
   const [showFavoritePopup, setShowFavoritePopup] = useState(false)
-  const [showDownloadPopup, setShowDownloadPopup] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
-  const [isDownloaded, setIsDownloaded] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [isLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  // Check login status from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('gcashtv-user')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        setIsLoggedIn(!!user && !!user._id)
+      } catch {
+        setIsLoggedIn(false)
+      }
+    } else {
+      setIsLoggedIn(false)
+    }
+  }, [])
+
+  // Check if current series is in favorites
+  useEffect(() => {
+    if (seriesId) {
+      const storedFavorites = localStorage.getItem('gcashtv-favorites')
+      if (storedFavorites) {
+        try {
+          const favorites = JSON.parse(storedFavorites)
+          const isInFavorites = favorites.some((fav: { seriesId: string }) => fav.seriesId === seriesId)
+          setIsFavorite(isInFavorites)
+        } catch {
+          setIsFavorite(false)
+        }
+      }
+    }
+  }, [seriesId])
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const playerContainerRef = useRef<HTMLDivElement>(null)
@@ -171,6 +200,52 @@ const Player: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [seriesId])
+
+  // Save to watch history when viewing an episode
+  useEffect(() => {
+    if (series && seriesId && currentEpisode) {
+      const storedHistory = localStorage.getItem('gcashtv-watch-history')
+      let history: Array<{
+        _id: string
+        seriesId: string
+        seriesTitle: string
+        episodeId: string
+        episodeNumber: number
+        thumbnail: string
+        watchedAt: string
+        tag: string
+      }> = []
+      
+      if (storedHistory) {
+        try {
+          history = JSON.parse(storedHistory)
+        } catch {
+          history = []
+        }
+      }
+      
+      // Remove existing entry for this series (we'll add updated one)
+      history = history.filter(item => item.seriesId !== seriesId)
+      
+      // Add new entry at the beginning
+      const newHistoryItem = {
+        _id: `history-${seriesId}-${currentEpisode.number}-${Date.now()}`,
+        seriesId: seriesId,
+        seriesTitle: series.title,
+        episodeId: currentEpisode.id.toString(),
+        episodeNumber: currentEpisode.number,
+        thumbnail: series.poster,
+        watchedAt: new Date().toISOString(),
+        tag: series.tags[0] || 'Drama',
+      }
+      history.unshift(newHistoryItem)
+      
+      // Keep only last 20 items
+      history = history.slice(0, 20)
+      
+      localStorage.setItem('gcashtv-watch-history', JSON.stringify(history))
+    }
+  }, [series, seriesId, currentEpisode])
 
   // Video player handlers
   const handlePlayPause = () => {
@@ -286,14 +361,6 @@ const Player: React.FC = () => {
   }
 
   // Action handlers
-  const handleDownloadClick = () => {
-    if (isLoggedIn) {
-      setShowDownloadPopup(true)
-    } else {
-      setShowLoginModal(true)
-    }
-  }
-
   const handleFavoriteClick = () => {
     if (isLoggedIn) {
       setShowFavoritePopup(true)
@@ -302,12 +369,42 @@ const Player: React.FC = () => {
     }
   }
 
-  const confirmDownload = () => {
-    setIsDownloaded(true)
-    setShowDownloadPopup(false)
-  }
-
   const confirmFavorite = () => {
+    if (!series || !seriesId) return
+    
+    const storedFavorites = localStorage.getItem('gcashtv-favorites')
+    let favorites: Array<{
+      _id: string
+      seriesId: string
+      seriesTitle: string
+      thumbnail: string
+      addedAt: string
+    }> = []
+    
+    if (storedFavorites) {
+      try {
+        favorites = JSON.parse(storedFavorites)
+      } catch {
+        favorites = []
+      }
+    }
+    
+    if (isFavorite) {
+      // Remove from favorites
+      favorites = favorites.filter(fav => fav.seriesId !== seriesId)
+    } else {
+      // Add to favorites
+      const newFavorite = {
+        _id: `fav-${seriesId}-${Date.now()}`,
+        seriesId: seriesId,
+        seriesTitle: series.title,
+        thumbnail: series.poster,
+        addedAt: new Date().toISOString(),
+      }
+      favorites.push(newFavorite)
+    }
+    
+    localStorage.setItem('gcashtv-favorites', JSON.stringify(favorites))
     setIsFavorite(!isFavorite)
     setShowFavoritePopup(false)
   }
@@ -477,21 +574,8 @@ const Player: React.FC = () => {
                     ))}
                   </select>
                 </div>
-
-                {/* Download Button */}
-                <button
-                  className={`download-btn ${isDownloaded ? 'downloaded' : ''}`}
-                  onClick={handleDownloadClick}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  {t.player.download}
-                </button>
-
-                {/* Favorite Button */}
+  
+                  {/* Favorite Button */}
                 <button
                   className={`favorite-btn ${isFavorite ? 'active' : ''}`}
                   onClick={handleFavoriteClick}
@@ -682,38 +766,14 @@ const Player: React.FC = () => {
         </div>
       )}
 
-      {/* Download Confirmation Popup */}
-      {showDownloadPopup && (
-        <div className="popup-overlay" onClick={() => setShowDownloadPopup(false)}>
-          <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-icon download">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </div>
-            <h3 className="popup-title">{t.player.download} Episode?</h3>
-            <p className="popup-message">
-              Download "{series.title} - Episode {currentEpisode.number.toString().padStart(2, '0')}" for offline viewing?
-            </p>
-            <div className="popup-buttons">
-              <button className="popup-btn confirm" onClick={confirmDownload}>
-                Yes
-              </button>
-              <button className="popup-btn cancel" onClick={() => setShowDownloadPopup(false)}>
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Login Modal */}
       {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
-          onSuccess={() => setShowLoginModal(false)}
+          onSuccess={() => {
+            setShowLoginModal(false)
+            setIsLoggedIn(true)
+          }}
         />
       )}
     </div>

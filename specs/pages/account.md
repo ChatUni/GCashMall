@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, downloads, settings, and wallet functionality.
+The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, settings, and wallet functionality.
 
 ## Page Structure
 
@@ -323,7 +323,6 @@ const { t } = useLanguage()
 | overview | 👤 | Overview |
 | watchHistory | 📺 | Watch History |
 | favorites | ❤️ | Favorites |
-| downloads | ⬇️ | Downloads |
 | settings | ⚙️ | Settings |
 | wallet | 💰 | Wallet |
 
@@ -433,31 +432,7 @@ Section card with form fields:
 - **Subtitle**: "Add series to your favorites to see them here"
 - **Action**: "Explore Series" button
 
-### 4. Downloads
-
-#### Header
-- **Title**: "Downloads"
-- **Actions**: Clear All button (secondary)
-
-#### Content Grid
-- Same layout as Favorites (5 columns)
-
-#### Download Card
-- **Poster Container**: 2:3 aspect ratio, 12px border radius
-- **Episode Badge**: Bottom-left, blue background, "EP X"
-- **Remove Button**: Top-right, appears on hover
-- **Info Section**:
-  - Title: 15px, white
-  - Episode: Gray (#9CA3AF), 13px
-  - File Size: Gray (#6B7280), 12px (optional)
-
-#### Empty State
-- **Icon**: ⬇️
-- **Title**: "No downloads yet"
-- **Subtitle**: "Download episodes to watch offline"
-- **Action**: "Explore Series" button
-
-### 5. Settings
+### 4. Settings
 
 #### Header
 - **Title**: "Settings"
@@ -473,7 +448,7 @@ Section card with form fields:
 - **Row Styling**: Flex between, padding 16px 0, border-bottom #242428
 - **Toggle**: 44px × 24px, custom styled checkbox
 
-### 6. Wallet
+### 5. Wallet
 
 #### Header
 - **Title**: "Wallet"
@@ -527,7 +502,6 @@ The page supports tab navigation via URL query parameter:
 - `?tab=overview`
 - `?tab=watchHistory`
 - `?tab=favorites`
-- `?tab=downloads`
 - `?tab=settings`
 - `?tab=wallet`
 
@@ -547,11 +521,6 @@ The page supports tab navigation via URL query parameter:
 - `watchHistory`: Array of watched episodes
 - `removeFromHistory(seriesId)`: Remove from history
 - `clearHistory()`: Clear all history
-
-### DownloadsContext
-- `downloads`: Array of downloaded episodes
-- `removeDownload(seriesId, episodeNumber)`: Remove download
-- `clearAllDownloads()`: Clear all downloads
 
 ### LanguageContext
 - `t`: Translation object for i18n support
@@ -650,6 +619,60 @@ The page supports tab navigation via URL query parameter:
   - Read on page load to populate sidebar and profile form
   - Priority: `nickname` is used before `username` for display name
 - **Wallet balance**: localStorage (`gcashtv-wallet-balance`)
-- **Downloads**: localStorage (`gcashtv-downloads`)
-- **Favorites**: API (`/api/favorites`)
-- **Watch History**: API (`/api/watchHistory`)
+- **Favorites**: localStorage (`gcashtv-favorites`)
+  - Structure: `{ _id, seriesId, seriesTitle, thumbnail, tag, addedAt }`
+- **Watch History**: localStorage (`gcashtv-watch-history`)
+  - Structure: `{ _id, seriesId, seriesTitle, episodeId, episodeNumber, thumbnail, tag, watchedAt }`
+  - Saved automatically when viewing an episode on Player page
+  - Maximum 20 items stored (oldest removed when limit exceeded)
+  - Duplicate series entries are replaced with most recent episode watched
+
+## Watch History Behavior
+
+### Saving History (Player Page)
+When a user views an episode, the following data is saved to localStorage:
+```typescript
+const historyItem = {
+  _id: `history-${seriesId}-${episodeNumber}-${timestamp}`,
+  seriesId: string,
+  seriesTitle: string,
+  episodeId: string,
+  episodeNumber: number,
+  thumbnail: string,  // Series poster
+  watchedAt: string,  // ISO timestamp
+  tag: string,        // First tag from series
+}
+```
+
+### Loading History (Account Page)
+- History is loaded from `gcashtv-watch-history` localStorage key
+- Displayed in reverse chronological order (most recent first)
+- Each card shows: poster, episode badge (EP X), title, and tag
+
+### History Actions
+- **Click item**: Navigate to `/player/{seriesId}/{episodeNumber}` to resume watching
+- **Remove item**: Remove single item from localStorage
+- **Clear history**: Remove all items from localStorage
+
+## Favorites Behavior
+
+### Saving Favorites (Player Page)
+When a user clicks the favorite button, the following data is saved:
+```typescript
+const favoriteItem = {
+  _id: `fav-${seriesId}-${timestamp}`,
+  seriesId: string,
+  seriesTitle: string,
+  thumbnail: string,  // Series poster
+  tag: string,        // First tag from series
+  addedAt: string,    // ISO timestamp
+}
+```
+
+### Loading Favorites (Account Page)
+- Favorites are loaded from `gcashtv-favorites` localStorage key
+- Each card shows: poster, title, and tag
+
+### Favorites Actions
+- **Click item**: Navigate to `/player/{seriesId}` to watch
+- **Remove item**: Remove from localStorage and update state

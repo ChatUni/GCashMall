@@ -12,7 +12,6 @@ type AccountTab =
   | 'overview'
   | 'watchHistory'
   | 'favorites'
-  | 'downloads'
   | 'settings'
   | 'wallet'
 
@@ -20,20 +19,9 @@ const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'overview', icon: '👤' },
   { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },
-  { key: 'downloads', icon: '⬇️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
 ]
-
-interface DownloadItem {
-  _id: string
-  seriesId: string
-  seriesTitle: string
-  episodeId: string
-  episodeNumber: number
-  thumbnail: string
-  fileSize?: string
-}
 
 interface ProfileForm {
   nickname: string
@@ -60,7 +48,6 @@ const Account: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
-  const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [loading, setLoading] = useState(true)
 
   // Profile form state
@@ -151,25 +138,26 @@ const Account: React.FC = () => {
 
   const fetchUserData = async () => {
     try {
-      const [historyResponse, favoritesResponse] = await Promise.all([
-        apiGet<WatchHistoryItem[]>('watchHistory', { limit: 20 }),
-        apiGet<FavoriteItem[]>('favorites', { limit: 20 }),
-      ])
-
-      // User data is loaded from localStorage in checkAuth - don't fetch from API
-      // This prevents overwriting the registration nickname with API data
-      
-      if (historyResponse.success && historyResponse.data) {
-        setWatchHistory(historyResponse.data)
-      }
-      if (favoritesResponse.success && favoritesResponse.data) {
-        setFavorites(favoritesResponse.data)
+      // Load watch history from localStorage
+      const storedHistory = localStorage.getItem('gcashtv-watch-history')
+      if (storedHistory) {
+        try {
+          const historyData = JSON.parse(storedHistory)
+          setWatchHistory(historyData)
+        } catch {
+          setWatchHistory([])
+        }
       }
       
-      // Load downloads from localStorage
-      const storedDownloads = localStorage.getItem('gcashtv-downloads')
-      if (storedDownloads) {
-        setDownloads(JSON.parse(storedDownloads))
+      // Load favorites from localStorage
+      const storedFavorites = localStorage.getItem('gcashtv-favorites')
+      if (storedFavorites) {
+        try {
+          const favoritesData = JSON.parse(storedFavorites)
+          setFavorites(favoritesData)
+        } catch {
+          setFavorites([])
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -228,50 +216,27 @@ const Account: React.FC = () => {
   }
 
   const handleHistoryItemClick = (item: WatchHistoryItem) => {
-    navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
+    // Navigate to player with series and episode
+    navigate(`/player/${item.seriesId}/${item.episodeNumber}`)
   }
 
-  const handleRemoveFromHistory = async (e: React.MouseEvent, seriesId: string) => {
+  const handleRemoveFromHistory = (e: React.MouseEvent, seriesId: string) => {
     e.stopPropagation()
-    try {
-      await apiPost('removeFromHistory', { seriesId })
-      setWatchHistory(prev => prev.filter(item => item.seriesId !== seriesId))
-    } catch (error) {
-      console.error('Error removing from history:', error)
-    }
+    const updatedHistory = watchHistory.filter(item => item.seriesId !== seriesId)
+    setWatchHistory(updatedHistory)
+    localStorage.setItem('gcashtv-watch-history', JSON.stringify(updatedHistory))
   }
 
-  const handleClearHistory = async () => {
-    try {
-      await apiPost('clearWatchHistory', {})
-      setWatchHistory([])
-    } catch (error) {
-      console.error('Error clearing history:', error)
-    }
+  const handleClearHistory = () => {
+    setWatchHistory([])
+    localStorage.removeItem('gcashtv-watch-history')
   }
 
-  const handleRemoveFavorite = async (e: React.MouseEvent, seriesId: string) => {
+  const handleRemoveFavorite = (e: React.MouseEvent, seriesId: string) => {
     e.stopPropagation()
-    try {
-      await apiPost('removeFavorite', { seriesId })
-      setFavorites(prev => prev.filter(item => item.seriesId !== seriesId))
-    } catch (error) {
-      console.error('Error removing favorite:', error)
-    }
-  }
-
-  const handleRemoveDownload = (e: React.MouseEvent, seriesId: string, episodeNumber: number) => {
-    e.stopPropagation()
-    const updated = downloads.filter(
-      item => !(item.seriesId === seriesId && item.episodeNumber === episodeNumber)
-    )
-    setDownloads(updated)
-    localStorage.setItem('gcashtv-downloads', JSON.stringify(updated))
-  }
-
-  const handleClearAllDownloads = () => {
-    setDownloads([])
-    localStorage.removeItem('gcashtv-downloads')
+    const updatedFavorites = favorites.filter(item => item.seriesId !== seriesId)
+    setFavorites(updatedFavorites)
+    localStorage.setItem('gcashtv-favorites', JSON.stringify(updatedFavorites))
   }
 
   const handleProfileSave = async () => {
@@ -563,7 +528,7 @@ const Account: React.FC = () => {
               </div>
               <div className="card-info">
                 <h4 className="card-title">{item.seriesTitle}</h4>
-                <span className="card-tag">Drama</span>
+                <span className="card-tag">{item.tag || 'Drama'}</span>
               </div>
             </div>
           ))}
@@ -593,7 +558,7 @@ const Account: React.FC = () => {
             <div
               key={item._id}
               className="favorite-card"
-              onClick={() => navigate(`/series/${item.seriesId}`)}
+              onClick={() => navigate(`/player/${item.seriesId}`)}
             >
               <div className="card-poster">
                 <img src={item.thumbnail} alt={item.seriesTitle} />
@@ -606,57 +571,7 @@ const Account: React.FC = () => {
               </div>
               <div className="card-info">
                 <h4 className="card-title">{item.seriesTitle}</h4>
-                <span className="card-tag">Drama</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-
-  const renderDownloads = () => (
-    <div className="downloads-page">
-      <div className="section-header-row">
-        <h1 className="page-title">Downloads</h1>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={handleClearAllDownloads}>
-            Clear All
-          </button>
-        </div>
-      </div>
-
-      {downloads.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">⬇️</div>
-          <h3 className="empty-title">No downloads yet</h3>
-          <p className="empty-subtext">Download episodes to watch offline</p>
-          <button className="btn-primary" onClick={() => navigate('/')}>
-            Explore Series
-          </button>
-        </div>
-      ) : (
-        <div className="content-grid">
-          {downloads.map((item) => (
-            <div
-              key={item._id}
-              className="download-card"
-              onClick={() => navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)}
-            >
-              <div className="card-poster">
-                <img src={item.thumbnail} alt={item.seriesTitle} />
-                <div className="episode-badge">EP {item.episodeNumber}</div>
-                <button
-                  className="remove-btn"
-                  onClick={(e) => handleRemoveDownload(e, item.seriesId, item.episodeNumber)}
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="card-info">
-                <h4 className="card-title">{item.seriesTitle}</h4>
-                <span className="card-episode">Episode {item.episodeNumber}</span>
-                {item.fileSize && <span className="card-filesize">{item.fileSize}</span>}
+                <span className="card-tag">{item.tag || 'Drama'}</span>
               </div>
             </div>
           ))}
@@ -804,8 +719,6 @@ const Account: React.FC = () => {
         return renderWatchHistory()
       case 'favorites':
         return renderFavorites()
-      case 'downloads':
-        return renderDownloads()
       case 'settings':
         return renderSettings()
       case 'wallet':

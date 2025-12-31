@@ -298,8 +298,14 @@ The TopBar includes the LoginModal component:
 - `isLoggedIn`: Boolean authentication state
 - `user`: Current user object (nickname, avatarUrl)
 
-### WatchHistoryContext
-- `watchHistory`: Array of watched episodes
+## Data Sources
+
+### Watch History
+- **Storage**: localStorage (`gcashtv-watch-history`)
+- **Loading**: Fetched on hover of history icon
+- **Display**: Shows up to 5 most recent items in popover
+- **Structure**: `{ _id, seriesId, seriesTitle, episodeId, episodeNumber, thumbnail, tag, watchedAt }`
+- **Click Action**: Navigate to `/player/{seriesId}/{episodeNumber}` to resume watching
 
 ## State Management
 
