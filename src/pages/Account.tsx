@@ -100,15 +100,36 @@ const Account: React.FC = () => {
   }, [searchParams])
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in and load user data from localStorage
     const checkAuth = () => {
-      // For demo, assume logged in - in real app check auth context
       const storedUser = localStorage.getItem('gcashtv-user')
       if (!storedUser) {
         setIsLoggedIn(false)
         setShowLoginModal(true)
       } else {
         setIsLoggedIn(true)
+        // Load user data from localStorage
+        try {
+          const userData = JSON.parse(storedUser)
+          // Use nickname first, then username, to ensure registration nickname is used
+          const displayName = userData.nickname || userData.username || ''
+          setUser({
+            _id: userData._id || '',
+            username: displayName,
+            email: userData.email || '',
+            avatar: userData.avatar,
+            isLoggedIn: true,
+          })
+          setProfileForm({
+            nickname: displayName,
+            email: userData.email || '',
+            phone: userData.phone || '',
+            gender: userData.gender || '',
+            birthday: userData.birthday || '',
+          })
+        } catch (e) {
+          console.error('Error parsing user data:', e)
+        }
       }
     }
     checkAuth()
@@ -130,22 +151,14 @@ const Account: React.FC = () => {
 
   const fetchUserData = async () => {
     try {
-      const [userResponse, historyResponse, favoritesResponse] = await Promise.all([
-        apiGet<User>('user'),
+      const [historyResponse, favoritesResponse] = await Promise.all([
         apiGet<WatchHistoryItem[]>('watchHistory', { limit: 20 }),
         apiGet<FavoriteItem[]>('favorites', { limit: 20 }),
       ])
 
-      if (userResponse.success && userResponse.data) {
-        setUser(userResponse.data)
-        setProfileForm({
-          nickname: userResponse.data.username || '',
-          email: userResponse.data.email || '',
-          phone: '',
-          gender: '',
-          birthday: '',
-        })
-      }
+      // User data is loaded from localStorage in checkAuth - don't fetch from API
+      // This prevents overwriting the registration nickname with API data
+      
       if (historyResponse.success && historyResponse.data) {
         setWatchHistory(historyResponse.data)
       }
@@ -179,6 +192,31 @@ const Account: React.FC = () => {
   const handleLoginSuccess = () => {
     setShowLoginModal(false)
     setIsLoggedIn(true)
+    // Reload user data from localStorage after successful login
+    const storedUser = localStorage.getItem('gcashtv-user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        // Use nickname first, then username, to ensure registration nickname is used
+        const displayName = userData.nickname || userData.username || ''
+        setUser({
+          _id: userData._id || '',
+          username: displayName,
+          email: userData.email || '',
+          avatar: userData.avatar,
+          isLoggedIn: true,
+        })
+        setProfileForm({
+          nickname: displayName,
+          email: userData.email || '',
+          phone: userData.phone || '',
+          gender: userData.gender || '',
+          birthday: userData.birthday || '',
+        })
+      } catch (e) {
+        console.error('Error parsing user data:', e)
+      }
+    }
     fetchUserData()
   }
 
@@ -688,6 +726,8 @@ const Account: React.FC = () => {
     </div>
   )
 
+  const GCASH_LOGO = 'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png'
+
   const renderWallet = () => (
     <div className="wallet-page">
       <div className="section-header">
@@ -701,7 +741,7 @@ const Account: React.FC = () => {
         <div className="balance-info">
           <span className="balance-label">Current Balance</span>
           <div className="balance-amount">
-            <img src="/gcash-logo.png" alt="GCash" className="gcash-logo" />
+            <img src={GCASH_LOGO} alt="GCash" className="gcash-logo" />
             <span className="amount-value">{walletBalance.toFixed(2)}</span>
           </div>
         </div>
@@ -718,7 +758,7 @@ const Account: React.FC = () => {
               className="topup-btn"
               onClick={() => handleTopUpClick(amount)}
             >
-              <img src="/gcash-logo.png" alt="GCash" className="topup-logo" />
+              <img src={GCASH_LOGO} alt="GCash" className="topup-logo" />
               <span className="topup-amount">{amount}</span>
             </button>
           ))}
@@ -735,11 +775,11 @@ const Account: React.FC = () => {
       {showTopUpPopup && (
         <div className="popup-overlay" onClick={() => setShowTopUpPopup(false)}>
           <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="/gcash-logo.png" alt="GCash" className="popup-logo" />
+            <img src={GCASH_LOGO} alt="GCash" className="popup-logo" />
             <h2 className="popup-title">Confirm Top Up</h2>
             <p className="popup-message">Add to your wallet</p>
             <div className="popup-amount">
-              <img src="/gcash-logo.png" alt="GCash" className="popup-amount-logo" />
+              <img src={GCASH_LOGO} alt="GCash" className="popup-amount-logo" />
               <span className="popup-amount-value">{selectedTopUp}</span>
             </div>
             <div className="popup-buttons">

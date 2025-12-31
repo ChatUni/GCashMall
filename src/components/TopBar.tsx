@@ -127,11 +127,19 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false, user = null }) => {
   }
 
   const handleHistoryIconClick = () => {
-    navigate('/account?tab=watchHistory')
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('gcashtv-user')
+    if (!storedUser && !isLoggedIn) {
+      setShowLoginModal(true)
+    } else {
+      navigate('/account?tab=watchHistory')
+    }
   }
 
   const handleAccountClick = () => {
-    if (isLoggedIn) {
+    // Check if user is logged in via localStorage or prop
+    const storedUser = localStorage.getItem('gcashtv-user')
+    if (storedUser || isLoggedIn) {
       navigate('/account')
     } else {
       setShowLoginModal(true)

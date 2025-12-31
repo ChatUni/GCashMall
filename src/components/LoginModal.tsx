@@ -60,7 +60,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen = true, onClose, onSucce
       if (mode === 'login') {
         const data = await apiPost<User>('login', { email, password })
         if (data.success) {
-          localStorage.setItem('gcashtv-user', JSON.stringify(data.data))
+          // Ensure email is stored properly for the Account page
+          const userData = {
+            ...data.data,
+            email: data.data?.email || email, // Fallback to form email if not returned
+          }
+          localStorage.setItem('gcashtv-user', JSON.stringify(userData))
           onSuccess()
         } else {
           setError(data.error || 'Invalid email or password')
@@ -68,7 +73,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen = true, onClose, onSucce
       } else {
         const data = await apiPost<User>('register', { nickname, email, password })
         if (data.success) {
-          localStorage.setItem('gcashtv-user', JSON.stringify(data.data))
+          // Ensure nickname and email are stored properly for the Account page
+          const userData = {
+            ...data.data,
+            nickname: nickname, // Store the nickname from the form
+            username: data.data?.username || nickname, // Fallback to nickname if username not returned
+            email: data.data?.email || email, // Fallback to form email if not returned
+          }
+          localStorage.setItem('gcashtv-user', JSON.stringify(userData))
           onSuccess()
         } else {
           setError(data.error || 'Email already registered')

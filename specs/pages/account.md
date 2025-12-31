@@ -21,13 +21,20 @@ The Account page is a comprehensive user profile and settings management interfa
 ## Authentication
 
 ### Login Requirement
-- Page automatically shows LoginModal if user is not logged in
-- On successful login, modal closes and user can access account features
+- Page checks localStorage for `gcashtv-user` key to determine login status
+- If not logged in, automatically shows LoginModal
+- On successful login, modal closes and user data is loaded from localStorage
 - If user closes modal without logging in, they are redirected to home page
+
+### User Data Loading
+- User data is loaded exclusively from localStorage (`gcashtv-user`)
+- Profile form is populated with `nickname` (prioritized) or `username` from stored data
+- No API call is made to fetch user data (prevents overwriting localStorage data)
 
 ### Logout Functionality
 - Logout button in sidebar navigation
-- Clears user session and redirects to home page
+- Removes `gcashtv-user` from localStorage
+- Redirects to home page
 
 ## LoginModal Component
 
@@ -248,9 +255,30 @@ const [loading, setLoading] = useState(false)
 - Password: Required, minimum 6 characters
 - Confirm Password: Required, must match password
 
+### Data Storage on Success
+
+#### Login Mode
+```typescript
+const userData = {
+  ...data.data,
+  email: data.data?.email || email, // Fallback to form email
+}
+localStorage.setItem('gcashtv-user', JSON.stringify(userData))
+```
+
+#### Register Mode
+```typescript
+const userData = {
+  ...data.data,
+  nickname: nickname, // Store nickname from form
+  username: data.data?.username || nickname, // Fallback to nickname
+  email: data.data?.email || email, // Fallback to form email
+}
+localStorage.setItem('gcashtv-user', JSON.stringify(userData))
+```
+
 ### Context Dependencies
 ```typescript
-const { login, register } = useAuth()
 const { t } = useLanguage()
 ```
 
@@ -458,6 +486,7 @@ Section card with form fields:
   - Wallet Icon: 💰 (48px)
   - Label: "Current Balance" - Gray, 14px
   - Amount: White, 36px, font-weight 700, with GCash logo (32px)
+  - **Logo Source**: `https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png`
 
 #### Top Up Section
 - **Description**: "Select an amount to add to your wallet"
@@ -616,8 +645,11 @@ The page supports tab navigation via URL query parameter:
 
 ## Data Persistence
 
-- Wallet balance: localStorage (`gcashtv-wallet-balance`)
-- User profile: AuthContext (localStorage via context)
-- Favorites: FavoritesContext (localStorage)
-- Watch History: WatchHistoryContext (localStorage)
-- Downloads: DownloadsContext (localStorage)
+- **User profile**: localStorage (`gcashtv-user`)
+  - Stored on login/register with `nickname`, `username`, `email`, `_id`, `isLoggedIn`
+  - Read on page load to populate sidebar and profile form
+  - Priority: `nickname` is used before `username` for display name
+- **Wallet balance**: localStorage (`gcashtv-wallet-balance`)
+- **Downloads**: localStorage (`gcashtv-downloads`)
+- **Favorites**: API (`/api/favorites`)
+- **Watch History**: API (`/api/watchHistory`)

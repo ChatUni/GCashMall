@@ -171,7 +171,9 @@ The Top Bar is a sticky header navigation component for GCashTV that provides br
 
 ### Behavior
 - **Hover**: Shows history popover
-- **Click**: Navigate to `/account?tab=watchHistory`
+- **Click**:
+  - If logged in (localStorage has `gcashtv-user`): Navigate to `/account?tab=watchHistory`
+  - If not logged in: Open LoginModal
 
 ### History Popover
 - **Position**: Absolute, top calc(100% + 8px), right 0
@@ -233,6 +235,7 @@ The Top Bar is a sticky header navigation component for GCashTV that provides br
 - **Hover/Active**: Border color #3B82F6
 
 ### Behavior
+- **Login Check**: Uses localStorage (`gcashtv-user`) OR `isLoggedIn` prop
 - **Logged In**: Navigate to `/account`
 - **Logged Out**: Open LoginModal
 - **Title**: User nickname or "Sign In"
