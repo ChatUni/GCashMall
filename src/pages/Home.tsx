@@ -105,11 +105,11 @@ const Home: React.FC = () => {
   const renderViewMoreCard = () => (
     <div className="view-more-card" onClick={handleViewMoreClick}>
       <div className="view-more-content">
-        <svg className="view-more-arrow" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className="view-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="9,18 15,12 9,6" />
         </svg>
-        <span className="view-more-text">{t.home.viewMore || 'View More'}</span>
       </div>
+      <span className="view-more-text">{t.home.viewMore || 'View More'}</span>
     </div>
   )
 

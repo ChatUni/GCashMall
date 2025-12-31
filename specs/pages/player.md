@@ -76,10 +76,12 @@ interface RecommendedSeries {
 - **Display**: Flex row
 - **Gap**: 30px
 - **Margin Bottom**: 50px
+- **Align Items**: flex-start
 
 ### Player Left Section
 - **Flex**: 1
 - **Min Width**: 0
+- **Max Width**: calc(100% - 350px)
 
 ## Video Player
 
@@ -97,6 +99,15 @@ interface RecommendedSeries {
 - **Object Fit**: Cover
 - **Poster**: Series poster image
 - **Click**: Toggle play/pause
+
+### Fullscreen Styles
+When video container enters fullscreen mode:
+- **Border Radius**: 0
+- **Aspect Ratio**: unset
+- **Width**: 100vw
+- **Height**: 100vh
+- **Video Object Fit**: contain (to fit video within screen)
+- **Vendor Prefixes**: `:fullscreen`, `:-webkit-full-screen`, `:-moz-full-screen`, `:-ms-fullscreen`
 
 ### Player Controls Overlay
 - **Position**: Absolute bottom
@@ -200,12 +211,16 @@ interface RecommendedSeries {
 
 ### Container
 - **Width**: 320px (fixed)
+- **Flex Shrink**: 0
 - **Background**: #121214
 - **Border Radius**: 12px
 - **Padding**: 20px
 - **Box Shadow**: 0 4px 20px rgba(0, 0, 0, 0.3)
 - **Max Height**: 700px
 - **Overflow-Y**: Auto
+- **Align Self**: flex-start
+- **Position**: Sticky
+- **Top**: 80px
 
 ### Panel Title
 - **Font Size**: 18px
@@ -250,35 +265,11 @@ interface RecommendedSeries {
 
 ## Recommendation Carousels
 
-Two sections identical to Home page:
+Use shared series list component. See [shared/series.md](../shared/series.md) for detailed specifications.
+
+Two sections:
 1. **You Might Like** - Filtered to exclude current series
 2. **New Releases** - Filtered to exclude current series
-
-### Section Layout
-- **Margin Bottom**: 50px
-
-### Section Header
-- **Display**: Flex, space-between
-- **Title**: 28px, white, font-weight 600
-- **Controls**: Carousel arrows
-
-### Carousel
-- **Display**: Flex
-- **Gap**: 20px
-- **Overflow-X**: Auto (hidden scrollbar)
-- **Scroll**: Smooth, 80% of container width per click
-
-### Series Card
-- **Width**: 180px (fixed)
-- **Poster**: 2:3 aspect ratio, 12px border radius
-- **Hover**: Poster scale 1.05, blue glow, title turns blue
-- **Click**: Navigate to `/player/{seriesId}`
-
-### View More Card
-- **Width**: 120px
-- **Circular button**: 80px × 80px
-- **Padding Top**: 80px
-- **Click**: Navigate to `/genre`
 
 ## Confirmation Popups
 
@@ -371,7 +362,7 @@ Two sections identical to Home page:
 #### 1200px
 - **Player Content**: Column direction
 - **Player Left**: Max width 100%
-- **Episode Panel**: Width 100%, max-height 400px
+- **Episode Panel**: Width 100%, max-height 400px, position relative, top 0 (removes sticky)
 - **Episode Grid**: 8 columns
 
 #### 768px (Mobile)

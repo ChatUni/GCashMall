@@ -554,45 +554,47 @@ const Player: React.FC = () => {
         </div>
 
         {/* Recommendation Carousels */}
-        <section className="recommendation-section">
+        <section className="series-section">
           <div className="section-header">
             <h2 className="section-title">{t.home.youMightLike}</h2>
             <div className="carousel-controls">
               <button
-                className="carousel-arrow left"
+                className="carousel-arrow carousel-arrow-left"
                 onClick={() => scrollCarousel(recommendationsRef, 'left')}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15,18 9,12 15,6" />
-                </svg>
-              </button>
+                aria-label="Scroll left"
+              />
               <button
-                className="carousel-arrow right"
+                className="carousel-arrow carousel-arrow-right"
                 onClick={() => scrollCarousel(recommendationsRef, 'right')}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9,18 15,12 9,6" />
-                </svg>
-              </button>
+                aria-label="Scroll right"
+              />
             </div>
           </div>
-          <div className="carousel" ref={recommendationsRef}>
+          <div className="series-carousel" ref={recommendationsRef}>
             {filteredRecommendations.map((item) => (
               <div
                 key={item.id}
                 className="series-card"
                 onClick={() => handleSeriesClick(item.id)}
               >
-                <div className="series-poster">
-                  <img src={item.poster} alt={item.title} />
+                <div className="series-poster-container">
+                  <img src={item.poster} alt={item.title} className="series-poster-image" />
                 </div>
                 <h3 className="series-title">{item.title}</h3>
-                <span className="series-tag">{item.tag}</span>
+                <span
+                  className="series-tag"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleTagClick(item.tag)
+                  }}
+                >
+                  {item.tag}
+                </span>
               </div>
             ))}
             <div className="view-more-card" onClick={() => navigate('/genre')}>
-              <div className="view-more-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="view-more-content">
+                <svg className="view-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="9,18 15,12 9,6" />
                 </svg>
               </div>
@@ -601,45 +603,47 @@ const Player: React.FC = () => {
           </div>
         </section>
 
-        <section className="recommendation-section">
+        <section className="series-section">
           <div className="section-header">
             <h2 className="section-title">{t.home.newReleases}</h2>
             <div className="carousel-controls">
               <button
-                className="carousel-arrow left"
+                className="carousel-arrow carousel-arrow-left"
                 onClick={() => scrollCarousel(newReleasesRef, 'left')}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15,18 9,12 15,6" />
-                </svg>
-              </button>
+                aria-label="Scroll left"
+              />
               <button
-                className="carousel-arrow right"
+                className="carousel-arrow carousel-arrow-right"
                 onClick={() => scrollCarousel(newReleasesRef, 'right')}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9,18 15,12 9,6" />
-                </svg>
-              </button>
+                aria-label="Scroll right"
+              />
             </div>
           </div>
-          <div className="carousel" ref={newReleasesRef}>
+          <div className="series-carousel" ref={newReleasesRef}>
             {filteredNewReleases.map((item) => (
               <div
                 key={item.id}
                 className="series-card"
                 onClick={() => handleSeriesClick(item.id)}
               >
-                <div className="series-poster">
-                  <img src={item.poster} alt={item.title} />
+                <div className="series-poster-container">
+                  <img src={item.poster} alt={item.title} className="series-poster-image" />
                 </div>
                 <h3 className="series-title">{item.title}</h3>
-                <span className="series-tag">{item.tag}</span>
+                <span
+                  className="series-tag"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleTagClick(item.tag)
+                  }}
+                >
+                  {item.tag}
+                </span>
               </div>
             ))}
             <div className="view-more-card" onClick={() => navigate('/genre')}>
-              <div className="view-more-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="view-more-content">
+                <svg className="view-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="9,18 15,12 9,6" />
                 </svg>
               </div>

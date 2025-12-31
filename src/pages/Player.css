@@ -42,9 +42,12 @@
 
 /* Main Container */
 .player-main-container {
+  flex: 1;
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 60px 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Player Content */
@@ -52,12 +55,14 @@
   display: flex;
   gap: 30px;
   margin-bottom: 50px;
+  align-items: flex-start;
 }
 
 /* Player Left Section */
 .player-left {
   flex: 1;
   min-width: 0;
+  max-width: calc(100% - 350px);
 }
 
 /* Video Container */
@@ -75,6 +80,66 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Fullscreen styles */
+.video-container:fullscreen {
+  border-radius: 0;
+  aspect-ratio: unset;
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-container:fullscreen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video-container:fullscreen .player-controls-overlay {
+  border-radius: 0;
+}
+
+/* Webkit fullscreen (Safari) */
+.video-container:-webkit-full-screen {
+  border-radius: 0;
+  aspect-ratio: unset;
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-container:-webkit-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Mozilla fullscreen (Firefox) */
+.video-container:-moz-full-screen {
+  border-radius: 0;
+  aspect-ratio: unset;
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-container:-moz-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* MS fullscreen (Edge/IE) */
+.video-container:-ms-fullscreen {
+  border-radius: 0;
+  aspect-ratio: unset;
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-container:-ms-fullscreen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 /* Player Controls Overlay */
@@ -339,6 +404,9 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   max-height: 700px;
   overflow-y: auto;
+  align-self: flex-start;
+  position: sticky;
+  top: 80px;
 }
 
 .panel-title {
@@ -424,8 +492,8 @@
   border-radius: 4px;
 }
 
-/* Recommendation Section */
-.recommendation-section {
+/* Series Sections */
+.series-section {
   margin-bottom: 50px;
 }
 
@@ -446,53 +514,78 @@
 /* Carousel Controls */
 .carousel-controls {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .carousel-arrow {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #1A1A1E;
-  border: none;
-  color: #FFFFFF;
+  background-color: #1A1A1E;
+  border: 1px solid #2A2A2E;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  position: relative;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .carousel-arrow:hover {
-  background: #3B82F6;
+  background-color: #2A2A2E;
+  border-color: #3B82F6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
 }
 
-/* Carousel */
-.carousel {
+.carousel-arrow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid #FFFFFF;
+  border-right: 2px solid #FFFFFF;
+  transition: border-color 0.2s ease;
+}
+
+.carousel-arrow:hover::before {
+  border-color: #3B82F6;
+}
+
+.carousel-arrow-left::before {
+  transform: translate(-30%, -50%) rotate(-135deg);
+}
+
+.carousel-arrow-right::before {
+  transform: translate(-70%, -50%) rotate(45deg);
+}
+
+/* Series Carousel */
+.series-carousel {
   display: flex;
   gap: 20px;
   overflow-x: auto;
   scroll-behavior: smooth;
+  padding-bottom: 10px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.carousel::-webkit-scrollbar {
+.series-carousel::-webkit-scrollbar {
   display: none;
 }
 
 /* Series Card */
 .series-card {
-  width: 180px;
   flex-shrink: 0;
+  width: 200px;
   cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
-.series-card:hover .series-poster img {
-  transform: scale(1.05);
+.series-card:hover {
+  transform: scale(1.02);
 }
 
-.series-card:hover .series-poster {
+.series-card:hover .series-poster-container {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
@@ -500,19 +593,25 @@
   color: #3B82F6;
 }
 
-.series-poster {
-  aspect-ratio: 2 / 3;
-  border-radius: 12px;
+.series-poster-container {
+  aspect-ratio: 2/3;
+  border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
+  position: relative;
   background: #1A1A1E;
+  transition: box-shadow 0.2s ease;
 }
 
-.series-poster img {
+.series-poster-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+}
+
+.series-card:hover .series-poster-image {
+  transform: scale(1.05);
 }
 
 .series-title {
@@ -528,41 +627,82 @@
 }
 
 .series-tag {
-  font-size: 12px;
+  display: inline-block;
+  width: fit-content;
+  background-color: #2A2A2E;
   color: #9CA3AF;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.series-tag:hover {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.series-card:has(.series-tag:hover) .series-title {
+  color: #FFFFFF;
 }
 
 /* View More Card */
 .view-more-card {
-  width: 120px;
   flex-shrink: 0;
+  width: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 80px;
+  padding-top: 50px;
   cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
-.view-more-circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #1A1A1E;
+.view-more-card:hover {
+  transform: scale(1.05);
+}
+
+.view-more-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  transition: background-color 0.2s ease;
+  gap: 0;
+  padding: 16px;
+  background-color: #1A1A1E;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.view-more-card:hover .view-more-circle {
-  background: #3B82F6;
+.view-more-card:hover .view-more-content {
+  background-color: #2A2A2E;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.view-more-arrow {
+  width: 40px;
+  height: 40px;
+  color: #9CA3AF;
+  transition: color 0.2s ease;
+}
+
+.view-more-card:hover .view-more-arrow {
+  color: #3B82F6;
 }
 
 .view-more-text {
-  font-size: 14px;
+  font-size: 12px;
   color: #9CA3AF;
   text-align: center;
+  margin-top: 10px;
+  transition: color 0.2s ease;
+}
+
+.view-more-card:hover .view-more-text {
+  color: #3B82F6;
 }
 
 /* Popup Overlay */
@@ -692,10 +832,19 @@
   .episode-panel {
     width: 100%;
     max-height: 400px;
+    position: relative;
+    top: 0;
   }
 
   .episode-grid {
     grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+/* 1024px (Tablet) */
+@media (max-width: 1024px) {
+  .series-card {
+    width: 180px;
   }
 }
 
@@ -732,7 +881,12 @@
   }
 
   .section-title {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .carousel-arrow {
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -754,6 +908,10 @@
     width: 140px;
   }
 
+  .series-title {
+    font-size: 13px;
+  }
+
   .section-title {
     font-size: 20px;
   }
@@ -762,8 +920,13 @@
     width: 100px;
   }
 
-  .view-more-circle {
-    width: 60px;
-    height: 60px;
+  .view-more-content {
+    width: 70px;
+    height: 70px;
+  }
+
+  .view-more-arrow {
+    width: 32px;
+    height: 32px;
   }
 }
