@@ -58,15 +58,33 @@ export interface Episode {
 }
 
 export interface User {
-  _id: string
-  username: string
+  _id: string | null
   email: string
-  avatar?: string
-  isLoggedIn: boolean
-  phoneNumber?: string
-  gender?: string
-  birthday?: string
+  nickname: string
+  avatar?: string | null
+  phone?: string | null
+  gender?: string | null
+  birthday?: string | null
   balance?: number
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+}
+
+export interface CheckEmailResponse {
+  exists: boolean
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
 }
 
 export interface WatchHistoryItem {

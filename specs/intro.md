@@ -2,7 +2,7 @@
 
 This is an online store app, with multi-language support.
 
-Follow the pages specs under the pages sub folder and generate the corresponding code:
+Follow the pages/API specs under the specs folder and generate the corresponding code:
 
 - react components
 - data models

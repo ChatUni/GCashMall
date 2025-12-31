@@ -298,3 +298,55 @@ The page supports tab navigation via URL query parameter:
 - Button hover: 0.2s ease
 - Toggle switch: 0.2s ease
 - Remove button opacity: 0.2s ease (appears on card hover)
+
+## Login Popout (Modal) — Triggered by Account Icon (Not Logged In)
+
+### Layout
+Vertical
+- title: "Login"
+- email input (required)
+- password input (required)
+- "Forget password?" link (align right)
+- "Login" button (primary blue)
+- "Or continue with" (center)
+- Google icon (center)
+- "Don't have an account?" followed by the "Sign up" link
+
+### Interaction
+
+- on click “×” icon: close the modal without login, and reset sensitive fields
+- on Google icon hover: scale up by 50%
+- on Login button click:
+  - verify email (valid email address)
+  - verify password (not empty)
+  - if fail, show the error below the input box in red
+  - otherwise, call the login API
+  - on success, log the user in, and show the account page
+- on Forget password click: do nothing
+- on Sign up click: switch to Sign up Popout
+- on Google icon click: redirect to Google sign in page with the account page as the redirect url
+
+## Sign up Popout (Modal)
+
+### Layout
+Vertical
+- title: "Sign Up"
+- email input (required)
+- password input (required)
+- "Create an Account" button (primary green)
+- "Or continue with" (center)
+- Google icon (center)
+- "Already have an account?" followed by the "Log in" link
+
+### Interaction
+
+- on click “×” icon: close the modal without sign up, and reset sensitive fields
+- on Google icon hover: scale up by 50%
+- on Create Account button click:
+  - verify email (valid email address, not exists in db by calling the check email API)
+  - verify password (min 6 chars, 1 upper, 1 lower, 1 number, 1 special char)
+  - if fail, show the error below the input box in red
+  - otherwise, call the email register API
+  - on success, log the user in, and show the account page
+- on Log in link click: switch to Login Popout
+- on Google icon click: redirect to Google sign in page with the account page as the redirect url

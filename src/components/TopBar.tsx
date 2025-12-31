@@ -2,16 +2,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { languageIcons, supportedLanguages, type Language } from '../i18n'
-import { apiGet } from '../utils/api'
-import type { SearchSuggestion, WatchHistoryItem } from '../types'
+import { apiGet, isLoggedIn as checkIsLoggedIn, getStoredUser } from '../utils/api'
+import type { SearchSuggestion, WatchHistoryItem, User } from '../types'
 import LoginModal from './LoginModal'
 import './TopBar.css'
 
-interface TopBarProps {
-  isLoggedIn?: boolean
-}
-
-const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
+const TopBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -20,6 +16,8 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
   const [showHistoryPopover, setShowHistoryPopover] = useState(false)
   const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   
   const searchRef = useRef<HTMLDivElement>(null)
   const historyRef = useRef<HTMLDivElement>(null)
@@ -31,6 +29,18 @@ const TopBar: React.FC<TopBarProps> = ({ isLoggedIn = false }) => {
   const isActiveRoute = (path: string): boolean => {
     return location.pathname === path
   }
+
+  // Check login status on mount and when location changes
+  useEffect(() => {
+    const loggedIn = checkIsLoggedIn()
+    setIsLoggedIn(loggedIn)
+    if (loggedIn) {
+      const user = getStoredUser()
+      setCurrentUser(user)
+    } else {
+      setCurrentUser(null)
+    }
+  }, [location])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

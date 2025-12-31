@@ -1,3 +1,10 @@
+import type {
+  AuthResponse,
+  CheckEmailResponse,
+  LoginRequest,
+  RegisterRequest,
+} from '../types'
+
 export const getApiBaseUrl = (): string => {
   if (import.meta.env.DEV) {
     return 'http://localhost:8888'
@@ -112,4 +119,56 @@ export const apiPostFormData = async <T>(
       error: error instanceof Error ? error.message : 'Unknown error',
     }
   }
+}
+
+// Account API functions
+
+export const checkEmail = async (
+  email: string,
+): Promise<{ success: boolean; data?: CheckEmailResponse; error?: string }> => {
+  return apiGet<CheckEmailResponse>('checkEmail', { email })
+}
+
+export const emailRegister = async (
+  request: RegisterRequest,
+): Promise<{ success: boolean; data?: AuthResponse; error?: string }> => {
+  return apiPost<AuthResponse>('emailRegister', request as unknown as Record<string, unknown>)
+}
+
+export const login = async (
+  request: LoginRequest,
+): Promise<{ success: boolean; data?: AuthResponse; error?: string }> => {
+  return apiPost<AuthResponse>('login', request as unknown as Record<string, unknown>)
+}
+
+// Token storage utilities
+const TOKEN_KEY = 'gcashmall_token'
+const USER_KEY = 'gcashmall_user'
+
+export const saveAuthData = (token: string, user: AuthResponse['user']): void => {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
+export const getStoredToken = (): string | null => {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export const getStoredUser = (): AuthResponse['user'] | null => {
+  const userJson = localStorage.getItem(USER_KEY)
+  if (!userJson) return null
+  try {
+    return JSON.parse(userJson)
+  } catch {
+    return null
+  }
+}
+
+export const clearAuthData = (): void => {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
+export const isLoggedIn = (): boolean => {
+  return !!getStoredToken()
 }

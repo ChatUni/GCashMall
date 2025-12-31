@@ -1,5 +1,11 @@
 import React, { useState } from 'react'
 import { useLanguage } from '../context/LanguageContext'
+import {
+  login,
+  emailRegister,
+  checkEmail,
+  saveAuthData,
+} from '../utils/api'
 import './LoginModal.css'
 
 interface LoginModalProps {
@@ -7,64 +13,161 @@ interface LoginModalProps {
   onLoginSuccess: () => void
 }
 
+type ModalMode = 'login' | 'signup'
+
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   const { t } = useLanguage()
+  const [mode, setMode] = useState<ModalMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const validateEmail = (email: string): boolean => {
-    if (!email) {
-      setEmailError('Email is required')
+  const validateEmail = (emailValue: string): boolean => {
+    if (!emailValue) {
+      setEmailError(t.login.emailRequired || 'Email is required')
       return false
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setEmailError('Invalid email format')
+    if (!emailRegex.test(emailValue)) {
+      setEmailError(t.login.invalidEmail || 'Invalid email format')
       return false
     }
     setEmailError('')
     return true
   }
 
-  const validatePassword = (password: string): boolean => {
-    if (!password) {
-      setPasswordError('Password is required')
-      return false
-    }
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters')
+  const validateLoginPassword = (passwordValue: string): boolean => {
+    if (!passwordValue) {
+      setPasswordError(t.login.passwordRequired || 'Password is required')
       return false
     }
     setPasswordError('')
     return true
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const validateSignupPassword = (passwordValue: string): boolean => {
+    if (!passwordValue) {
+      setPasswordError(t.login.passwordRequired || 'Password is required')
+      return false
+    }
+    if (passwordValue.length < 6) {
+      setPasswordError(
+        t.login.passwordMinLength ||
+          'Password must be at least 6 characters',
+      )
+      return false
+    }
+    if (!/[A-Z]/.test(passwordValue)) {
+      setPasswordError(
+        t.login.passwordUppercase ||
+          'Password must contain at least 1 uppercase letter',
+      )
+      return false
+    }
+    if (!/[a-z]/.test(passwordValue)) {
+      setPasswordError(
+        t.login.passwordLowercase ||
+          'Password must contain at least 1 lowercase letter',
+      )
+      return false
+    }
+    if (!/[0-9]/.test(passwordValue)) {
+      setPasswordError(
+        t.login.passwordNumber || 'Password must contain at least 1 number',
+      )
+      return false
+    }
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordValue)) {
+      setPasswordError(
+        t.login.passwordSpecial ||
+          'Password must contain at least 1 special character',
+      )
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
 
+  const handleLogin = async () => {
     const isEmailValid = validateEmail(email)
-    const isPasswordValid = validatePassword(password)
+    const isPasswordValid = validateLoginPassword(password)
 
     if (!isEmailValid || !isPasswordValid) {
+      return
+    }
+
+    setLoading(true)
+
+    const response = await login({ email, password })
+
+    if (response.success && response.data) {
+      saveAuthData(response.data.token, response.data.user)
+      onLoginSuccess()
+    } else {
+      setPasswordError(response.error || 'Invalid email or password')
+    }
+
+    setLoading(false)
+  }
+
+  const handleSignup = async () => {
+    const isEmailValid = validateEmail(email)
+    const isPasswordValid = validateSignupPassword(password)
+
+    if (!isEmailValid || !isPasswordValid) {
+      return
+    }
+
+    setLoading(true)
+
+    // Check if email exists
+    const checkResponse = await checkEmail(email)
+    if (checkResponse.success && checkResponse.data?.exists) {
+      setEmailError(t.login.emailExists || 'Email already exists')
       setLoading(false)
       return
     }
 
-    // If validation passes, do nothing as per spec
+    // Register the user
+    const response = await emailRegister({ email, password })
+
+    if (response.success && response.data) {
+      saveAuthData(response.data.token, response.data.user)
+      onLoginSuccess()
+    } else {
+      setPasswordError(response.error || 'Registration failed')
+    }
+
     setLoading(false)
-    onLoginSuccess()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (mode === 'login') {
+      await handleLogin()
+    } else {
+      await handleSignup()
+    }
   }
 
   const handleClose = () => {
+    resetForm()
+    onClose()
+  }
+
+  const resetForm = () => {
     setEmail('')
     setPassword('')
     setEmailError('')
     setPasswordError('')
-    onClose()
+  }
+
+  const switchMode = (newMode: ModalMode) => {
+    resetForm()
+    setMode(newMode)
   }
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -83,22 +186,27 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     // Do nothing as per spec
   }
 
-  const handleSignUp = () => {
-    // Do nothing as per spec
-  }
-
   return (
     <div className="login-modal-overlay" onClick={handleOverlayClick}>
       <div className="login-modal">
         <button className="login-modal-close" onClick={handleClose}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        
-        <h2 className="login-modal-title">{t.login.title}</h2>
-        
+
+        <h2 className="login-modal-title">
+          {mode === 'login' ? t.login.title : t.login.signUpTitle || 'Sign Up'}
+        </h2>
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-field">
             <input
@@ -112,9 +220,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
               }}
               required
             />
-            {emailError && <span className="login-field-error">{emailError}</span>}
+            {emailError && (
+              <span className="login-field-error">{emailError}</span>
+            )}
           </div>
-          
+
           <div className="login-field">
             <input
               type="password"
@@ -127,28 +237,45 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
               }}
               required
             />
-            {passwordError && <span className="login-field-error">{passwordError}</span>}
+            {passwordError && (
+              <span className="login-field-error">{passwordError}</span>
+            )}
           </div>
-          
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="login-forget-password"
+              onClick={handleForgetPassword}
+            >
+              {t.login.forgetPassword}
+            </button>
+          )}
+
           <button
-            type="button"
-            className="login-forget-password"
-            onClick={handleForgetPassword}
+            type="submit"
+            className={`login-submit ${mode === 'signup' ? 'login-submit-signup' : ''}`}
+            disabled={loading}
           >
-            {t.login.forgetPassword}
-          </button>
-          
-          <button type="submit" className="login-submit" disabled={loading}>
-            {loading ? '...' : t.login.submit}
+            {loading
+              ? '...'
+              : mode === 'login'
+                ? t.login.submit
+                : t.login.createAccount || 'Create an Account'}
           </button>
         </form>
-        
+
         <div className="login-divider">
           <span className="login-divider-text">{t.login.orContinueWith}</span>
         </div>
-        
+
         <button className="login-google-btn" onClick={handleGoogleSignIn}>
-          <svg className="login-google-icon" viewBox="0 0 24 24" width="24" height="24">
+          <svg
+            className="login-google-icon"
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+          >
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -167,12 +294,33 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             />
           </svg>
         </button>
-        
+
         <div className="login-signup">
-          <span>{t.login.noAccount}</span>
-          <button type="button" className="login-signup-link" onClick={handleSignUp}>
-            {t.login.signUp}
-          </button>
+          {mode === 'login' ? (
+            <>
+              <span>{t.login.noAccount}</span>
+              <button
+                type="button"
+                className="login-signup-link"
+                onClick={() => switchMode('signup')}
+              >
+                {t.login.signUp}
+              </button>
+            </>
+          ) : (
+            <>
+              <span>
+                {t.login.hasAccount || 'Already have an account?'}
+              </span>
+              <button
+                type="button"
+                className="login-signup-link"
+                onClick={() => switchMode('login')}
+              >
+                {t.login.logIn || 'Log in'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -4,7 +4,13 @@ import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
-import { apiGet, apiPost } from '../utils/api'
+import {
+  apiGet,
+  apiPost,
+  isLoggedIn as checkIsLoggedIn,
+  getStoredUser,
+  clearAuthData,
+} from '../utils/api'
 import type { WatchHistoryItem, FavoriteItem, User, DownloadItem } from '../types'
 import './Account.css'
 
@@ -81,14 +87,32 @@ const Account: React.FC = () => {
   }, [isLoggedIn])
 
   const checkLoginStatus = async () => {
+    // First check local storage for logged in user
+    if (checkIsLoggedIn()) {
+      const storedUser = getStoredUser()
+      if (storedUser) {
+        setUser(storedUser)
+        setIsLoggedIn(true)
+        setNickname(storedUser.nickname || '')
+        setEmail(storedUser.email || '')
+        setPhoneNumber(storedUser.phone || '')
+        setGender(storedUser.gender || 'not_specified')
+        setBirthday(storedUser.birthday || '')
+        setBalance(storedUser.balance || 0)
+        setLoading(false)
+        return
+      }
+    }
+
+    // Fall back to API call
     try {
       const response = await apiGet<User>('user')
       if (response.success && response.data) {
         setUser(response.data)
         setIsLoggedIn(true)
-        setNickname(response.data.username || '')
+        setNickname(response.data.nickname || '')
         setEmail(response.data.email || '')
-        setPhoneNumber(response.data.phoneNumber || '')
+        setPhoneNumber(response.data.phone || '')
         setGender(response.data.gender || 'not_specified')
         setBirthday(response.data.birthday || '')
         setBalance(response.data.balance || 0)
@@ -130,6 +154,7 @@ const Account: React.FC = () => {
   }
 
   const handleLogout = () => {
+    clearAuthData()
     setIsLoggedIn(false)
     setUser(null)
     navigate('/')
@@ -279,13 +304,13 @@ const Account: React.FC = () => {
       <div className="sidebar-profile">
         <div className="sidebar-avatar">
           {user?.avatar ? (
-            <img src={user.avatar} alt={user.username} />
+            <img src={user.avatar} alt={user.nickname} />
           ) : (
             <span className="avatar-emoji">👤</span>
           )}
         </div>
         <div className="sidebar-user-info">
-          <span className="sidebar-username">{user?.username || 'Guest'}</span>
+          <span className="sidebar-username">{user?.nickname || 'Guest'}</span>
           <span className="sidebar-email">{user?.email || ''}</span>
         </div>
       </div>

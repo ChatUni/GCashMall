@@ -112,7 +112,7 @@
 }
 
 .login-submit {
-  background-color: #22c55e;
+  background-color: #3b82f6;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -125,8 +125,16 @@
 }
 
 .login-submit:hover:not(:disabled) {
-  background-color: #16a34a;
+  background-color: #2563eb;
   transform: scale(1.02);
+}
+
+.login-submit-signup {
+  background-color: #22c55e;
+}
+
+.login-submit-signup:hover:not(:disabled) {
+  background-color: #16a34a;
 }
 
 .login-submit:disabled {

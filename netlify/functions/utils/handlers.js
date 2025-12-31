@@ -1,6 +1,8 @@
 import { get, save, remove } from './db.js'
 import { ObjectId } from 'mongodb'
 import { v2 as cloudinary } from 'cloudinary'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 // Configure Cloudinary
 cloudinary.config({
@@ -12,6 +14,7 @@ cloudinary.config({
 // Bunny.net Video configuration
 const BUNNY_VIDEO_LIBRARY_ID = process.env.VITE_BUNNY_LIBRARY_ID
 const BUNNY_API_KEY = process.env.BUNNY_API_KEY
+const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getTodos = async (params) => {
   validateGetTodosParams(params)
@@ -417,30 +420,191 @@ const getUser = async (params) => {
   }
 }
 
-const login = async (body) => {
+// Check if email exists in database
+const checkEmail = async (params) => {
+  validateCheckEmailParams(params)
+
   try {
-    const { email, password } = body
-    
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' }
-    }
-    
-    // For demo purposes, accept any credentials
-    // In production, this would validate against the database
-    const user = {
-      _id: 'demo-user',
-      username: email.split('@')[0],
-      email: email,
-      isLoggedIn: true
-    }
-    
+    const { email } = params
+    const existingUsers = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
+    const exists = existingUsers && existingUsers.length > 0
+
     return {
       success: true,
-      data: user
+      data: { exists },
+    }
+  } catch (error) {
+    throw new Error(`Failed to check email: ${error.message}`)
+  }
+}
+
+const validateCheckEmailParams = (params) => {
+  if (!params || !params.email) {
+    throw new Error('Email is required')
+  }
+
+  if (!isValidEmail(params.email)) {
+    throw new Error('Invalid email address')
+  }
+}
+
+// Email registration
+const emailRegister = async (body) => {
+  validateEmailRegisterBody(body)
+
+  try {
+    const { email, password } = body
+
+    // Check if email already exists
+    const existingUsers = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
+    if (existingUsers && existingUsers.length > 0) {
+      return { success: false, error: 'Email already exists' }
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create new user with default nickname
+    const newUser = {
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      nickname: 'Guest',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    const result = await save('users', newUser)
+
+    // Generate JWT token
+    const token = generateToken({ email: newUser.email, id: result.insertedId })
+
+    // Return user without password
+    const userResponse = {
+      _id: result.insertedId,
+      email: newUser.email,
+      nickname: newUser.nickname,
+    }
+
+    return {
+      success: true,
+      data: {
+        user: userResponse,
+        token,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Registration failed: ${error.message}`)
+  }
+}
+
+const validateEmailRegisterBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.email) {
+    throw new Error('Email is required')
+  }
+
+  if (!isValidEmail(body.email)) {
+    throw new Error('Invalid email address')
+  }
+
+  if (!body.password) {
+    throw new Error('Password is required')
+  }
+
+  if (!isValidPassword(body.password)) {
+    throw new Error(
+      'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
+    )
+  }
+}
+
+// Login with email and password
+const login = async (body) => {
+  validateLoginBody(body)
+
+  try {
+    const { email, password } = body
+
+    // Find user by email
+    const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    const user = users[0]
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    // Generate JWT token
+    const token = generateToken({ email: user.email, id: user._id })
+
+    // Return user without password
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      nickname: user.nickname || 'Guest',
+      avatar: user.avatar || null,
+      phone: user.phone || null,
+      gender: user.gender || null,
+      birthday: user.birthday || null,
+    }
+
+    return {
+      success: true,
+      data: {
+        user: userResponse,
+        token,
+      },
     }
   } catch (error) {
     throw new Error(`Login failed: ${error.message}`)
   }
+}
+
+const validateLoginBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.email) {
+    throw new Error('Email is required')
+  }
+
+  if (!isValidEmail(body.email)) {
+    throw new Error('Invalid email address')
+  }
+
+  if (!body.password) {
+    throw new Error('Password is required')
+  }
+}
+
+// Helper functions for validation
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+const isValidPassword = (password) => {
+  // At least 6 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+  const minLength = password.length >= 6
+  const hasUppercase = /[A-Z]/.test(password)
+  const hasLowercase = /[a-z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+
+  return minLength && hasUppercase && hasLowercase && hasNumber && hasSpecial
+}
+
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 }
 
 const clearWatchHistory = async (body) => {
@@ -700,6 +864,8 @@ export {
   getWatchHistory,
   getFavorites,
   getUser,
+  checkEmail,
+  emailRegister,
   login,
   clearWatchHistory,
 }

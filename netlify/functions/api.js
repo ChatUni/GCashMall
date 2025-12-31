@@ -20,6 +20,8 @@ import {
   getWatchHistory,
   getFavorites,
   getUser,
+  checkEmail,
+  emailRegister,
   login,
   clearWatchHistory,
 } from './utils/handlers.js'
@@ -39,6 +41,7 @@ const apiHandlers = {
     watchHistory: (params) => getWatchHistory(params),
     favorites: (params) => getFavorites(params),
     user: (params) => getUser(params),
+    checkEmail: (params) => checkEmail(params),
   },
   post: {
     todo: (body) => saveTodo(body),
@@ -47,6 +50,7 @@ const apiHandlers = {
     deleteImage: (body) => deleteImage(body),
     uploadVideo: (body) => uploadVideo(body),
     deleteVideo: (body) => deleteVideo(body),
+    emailRegister: (body) => emailRegister(body),
     login: (body) => login(body),
     clearWatchHistory: (body) => clearWatchHistory(body),
   },
