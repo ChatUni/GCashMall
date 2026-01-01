@@ -178,7 +178,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const handleGoogleSignIn = () => {
     const redirectUrl = `${window.location.origin}/account`
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=code&scope=email%20profile`
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=code&scope=email%20profile`
     window.location.href = googleAuthUrl
   }
 

@@ -2,6 +2,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 136px;
+  overflow-y: auto;
 }
 
 .multi-select-tag {

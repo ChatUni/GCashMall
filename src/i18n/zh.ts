@@ -122,6 +122,13 @@ export const zh = {
     confirmSave: '确定要保存吗？',
     saveSuccess: '系列保存成功。',
     saveError: '保存系列失败。',
+    episodes: '剧集列表',
+    addEpisode: '添加剧集',
+    deleteEpisode: '删除剧集',
+    episodeTitle: '标题',
+    uploadProgress: '上传进度',
+    deletingVideos: '正在删除视频...',
+    uploadingVideos: '正在上传视频...',
   },
   home: {
     play: '播放',

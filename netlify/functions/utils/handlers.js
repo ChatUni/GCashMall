@@ -809,18 +809,19 @@ const uploadVideo = async (body) => {
 
   try {
     const videoId = await createBunnyVideo(body.title || 'Untitled')
-    await uploadVideoToBunny(videoId, body.video)
 
     return {
       success: true,
       data: {
         videoId,
+        uploadUrl: `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}`,
         embedUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_VIDEO_LIBRARY_ID}/${videoId}`,
         thumbnailUrl: `https://vz-4ecde8c7-5c4.b-cdn.net/${videoId}/thumbnail.jpg`,
+        accessKey: BUNNY_API_KEY,
       },
     }
   } catch (error) {
-    throw new Error(`Failed to upload video: ${error.message}`)
+    throw new Error(`Failed to create video: ${error.message}`)
   }
 }
 
@@ -844,25 +845,6 @@ const createBunnyVideo = async (title) => {
 
   const data = await response.json()
   return data.guid
-}
-
-const uploadVideoToBunny = async (videoId, videoData) => {
-  const response = await fetch(
-    `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}`,
-    {
-      method: 'PUT',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/octet-stream',
-        AccessKey: BUNNY_API_KEY,
-      },
-      body: Buffer.from(videoData, 'base64'),
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload video content: ${response.statusText}`)
-  }
 }
 
 const deleteVideo = async (body) => {
@@ -900,8 +882,8 @@ const validateUploadVideoBody = (body) => {
     throw new Error('Request body is required')
   }
 
-  if (!body.video || typeof body.video !== 'string') {
-    throw new Error('Video data is required and must be a base64 string')
+  if (!body.title || typeof body.title !== 'string') {
+    throw new Error('Video title is required')
   }
 }
 

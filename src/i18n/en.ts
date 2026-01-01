@@ -122,6 +122,13 @@ export const en = {
     confirmSave: 'Are you sure you want to save?',
     saveSuccess: 'Series saved successfully.',
     saveError: 'Failed to save series.',
+    episodes: 'Episodes',
+    addEpisode: 'Add Episode',
+    deleteEpisode: 'Delete Episode',
+    episodeTitle: 'Title',
+    uploadProgress: 'Upload Progress',
+    deletingVideos: 'Deleting videos...',
+    uploadingVideos: 'Uploading videos...',
   },
   home: {
     play: 'Play',

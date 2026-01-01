@@ -10,6 +10,7 @@ A list of individually selectable tags
 - when not selected: black border, black text, white bg
 - when selected: blue bg, white text
 - rounded corner: 2px
+- max 4 rows, vertical scrollable
 
 ### Interaction
 
