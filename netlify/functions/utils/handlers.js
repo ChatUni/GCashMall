@@ -453,7 +453,7 @@ const emailRegister = async (body) => {
   validateEmailRegisterBody(body)
 
   try {
-    const { email, password } = body
+    const { email, password, nickname, photoUrl } = body
 
     // Check if email already exists
     const existingUsers = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
@@ -464,11 +464,12 @@ const emailRegister = async (body) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create new user with default nickname
+    // Create new user with default nickname "Guest" if not provided
     const newUser = {
       email: email.toLowerCase(),
       password: hashedPassword,
-      nickname: 'Guest',
+      nickname: nickname || 'Guest',
+      avatar: photoUrl || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -483,6 +484,7 @@ const emailRegister = async (body) => {
       _id: result.insertedId,
       email: newUser.email,
       nickname: newUser.nickname,
+      avatar: newUser.avatar,
     }
 
     return {
@@ -518,6 +520,120 @@ const validateEmailRegisterBody = (body) => {
     throw new Error(
       'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
     )
+  }
+}
+
+// Google OAuth - exchange code for user info
+const googleAuth = async (body) => {
+  if (!body || !body.code || !body.redirectUri) {
+    throw new Error('Authorization code and redirect URI are required')
+  }
+
+  try {
+    const { code, redirectUri } = body
+    const clientId = process.env.VITE_GOOGLE_CLIENT_ID
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+
+    console.log('[googleAuth] Starting token exchange...')
+    console.log('[googleAuth] Client ID present:', !!clientId)
+    console.log('[googleAuth] Client Secret present:', !!clientSecret)
+    console.log('[googleAuth] Redirect URI:', redirectUri)
+    console.log('[googleAuth] Code length:', code?.length)
+
+    if (!clientId) {
+      return { success: false, error: 'VITE_GOOGLE_CLIENT_ID is not configured' }
+    }
+    if (!clientSecret) {
+      return { success: false, error: 'GOOGLE_CLIENT_SECRET is not configured' }
+    }
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    const tokenData = await tokenResponse.json()
+    console.log('[googleAuth] Token response status:', tokenResponse.status)
+    console.log('[googleAuth] Token data:', JSON.stringify(tokenData, null, 2))
+
+    if (!tokenData.access_token) {
+      // Return detailed error from Google
+      const errorMessage = tokenData.error_description || tokenData.error || 'Failed to get access token'
+      console.error('[googleAuth] Token exchange failed:', errorMessage)
+      return { success: false, error: errorMessage }
+    }
+
+    // Get user info from Google
+    console.log('[googleAuth] Getting user info from Google...')
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    })
+
+    const userInfo = await userInfoResponse.json()
+    console.log('[googleAuth] User info:', JSON.stringify(userInfo, null, 2))
+
+    return {
+      success: true,
+      data: {
+        name: userInfo.name || userInfo.given_name || 'Guest',
+        email: userInfo.email,
+        picture: userInfo.picture,
+      },
+    }
+  } catch (error) {
+    console.error('[googleAuth] Exception:', error)
+    throw new Error(`Google OAuth failed: ${error.message}`)
+  }
+}
+
+// Google login - for existing users who registered via Google
+const googleLogin = async (body) => {
+  if (!body || !body.email) {
+    throw new Error('Email is required')
+  }
+
+  try {
+    const { email } = body
+
+    // Find user by email
+    const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const user = users[0]
+
+    // Generate JWT token
+    const token = generateToken({ email: user.email, id: user._id })
+
+    // Return user without password
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      nickname: user.nickname || 'Guest',
+      avatar: user.avatar || null,
+      phone: user.phone || null,
+      gender: user.gender || null,
+      birthday: user.birthday || null,
+    }
+
+    return {
+      success: true,
+      data: {
+        user: userResponse,
+        token,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Google login failed: ${error.message}`)
   }
 }
 
@@ -721,6 +837,135 @@ const isValidPhone = (phone) => {
 const isValidDate = (dateStr) => {
   const date = new Date(dateStr)
   return !isNaN(date.getTime()) && date < new Date()
+}
+
+// Update profile picture
+const updateProfilePicture = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateUpdateProfilePictureBody(body)
+
+  try {
+    const { photoUrl } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Update avatar
+    const updateData = {
+      ...currentUser,
+      avatar: photoUrl,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+    }
+
+    return {
+      success: true,
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to update profile picture: ${error.message}`)
+  }
+}
+
+const validateUpdateProfilePictureBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.photoUrl || typeof body.photoUrl !== 'string') {
+    throw new Error('Photo URL is required')
+  }
+}
+
+// Update password
+const updatePassword = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateUpdatePasswordBody(body)
+
+  try {
+    const { oldPassword, newPassword } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, currentUser.password)
+    if (!isOldPasswordValid) {
+      return { success: false, error: 'Current password is incorrect' }
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+
+    // Update password
+    const updateData = {
+      ...currentUser,
+      password: hashedNewPassword,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+    }
+
+    return {
+      success: true,
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to update password: ${error.message}`)
+  }
+}
+
+const validateUpdatePasswordBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.oldPassword) {
+    throw new Error('Current password is required')
+  }
+
+  if (!body.newPassword) {
+    throw new Error('New password is required')
+  }
+
+  if (!isValidPassword(body.newPassword)) {
+    throw new Error(
+      'New password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
+    )
+  }
 }
 
 const clearWatchHistory = async (body) => {
@@ -965,6 +1210,10 @@ export {
   checkEmail,
   emailRegister,
   login,
+  googleAuth,
+  googleLogin,
   updateProfile,
+  updateProfilePicture,
+  updatePassword,
   clearWatchHistory,
 }

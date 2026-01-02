@@ -12,6 +12,9 @@ import {
   getStoredUser,
   clearAuthData,
   saveAuthData,
+  checkEmail,
+  emailRegister,
+  login,
 } from '../utils/api'
 import type { WatchHistoryItem, FavoriteItem, User, DownloadItem } from '../types'
 import './Account.css'
@@ -80,6 +83,14 @@ const Account: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [currentPasswordError, setCurrentPasswordError] = useState('')
+  const [newPasswordError, setNewPasswordError] = useState('')
+  const [confirmPasswordError, setConfirmPasswordError] = useState('')
+  const [passwordChanging, setPasswordChanging] = useState(false)
+
+  // Avatar upload state
+  const [avatarError, setAvatarError] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   // Settings state
   const [playbackSpeed, setPlaybackSpeed] = useState('1x')
@@ -98,8 +109,133 @@ const Account: React.FC = () => {
     }
   }, [searchParams])
 
+  // Generate a random password that meets validation requirements
+  const generateRandomPassword = (): string => {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+    const numbers = '0123456789'
+    const special = '!@#$%^&*'
+    
+    // Ensure at least one of each required character type
+    let password = ''
+    password += uppercase[Math.floor(Math.random() * uppercase.length)]
+    password += lowercase[Math.floor(Math.random() * lowercase.length)]
+    password += numbers[Math.floor(Math.random() * numbers.length)]
+    password += special[Math.floor(Math.random() * special.length)]
+    
+    // Add more random characters to reach 12 chars
+    const allChars = uppercase + lowercase + numbers + special
+    for (let i = 0; i < 8; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)]
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('')
+  }
+
   useEffect(() => {
-    checkLoginStatus()
+    // Handle Google OAuth callback
+    const handleGoogleCallback = async () => {
+      const code = searchParams.get('code')
+      console.log('[Google OAuth] Code from URL:', code ? 'present' : 'not present')
+      
+      if (code) {
+        setLoading(true)
+        // Clear any existing auth data before processing new Google login
+        clearAuthData()
+        setUser(null)
+        setIsLoggedIn(false)
+        
+        try {
+          console.log('[Google OAuth] Exchanging code for user info...')
+          console.log('[Google OAuth] Redirect URI:', `${window.location.origin}/account`)
+          
+          // Exchange code for tokens via backend
+          const response = await apiPost<{
+            name: string
+            email: string
+            picture: string
+          }>('googleAuth', { code, redirectUri: `${window.location.origin}/account` })
+
+          console.log('[Google OAuth] googleAuth API response:', response)
+
+          if (response.success && response.data) {
+            const { name, email, picture } = response.data
+            console.log('[Google OAuth] User profile from Google:', { name, email, picture })
+
+            // Check if email exists
+            console.log('[Google OAuth] Checking if email exists:', email)
+            const checkResponse = await checkEmail(email)
+            console.log('[Google OAuth] checkEmail response:', checkResponse)
+            
+            if (checkResponse.success && checkResponse.data?.exists) {
+              console.log('[Google OAuth] User exists, calling googleLogin...')
+              // User exists, login using Google login endpoint (no password required)
+              const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', {
+                email,
+              })
+              console.log('[Google OAuth] googleLogin response:', loginResponse)
+              
+              if (loginResponse.success && loginResponse.data) {
+                saveAuthData(loginResponse.data.token, loginResponse.data.user)
+                setUser(loginResponse.data.user)
+                setIsLoggedIn(true)
+                setProfileData(loginResponse.data.user)
+                setBalance(loginResponse.data.user.balance || 0)
+                console.log('[Google OAuth] Login successful!')
+              } else {
+                console.error('[Google OAuth] Login failed:', loginResponse.error)
+                setShowLoginModal(true)
+              }
+            } else {
+              console.log('[Google OAuth] User does not exist, registering new user...')
+              // User doesn't exist, register with a valid random password
+              const generatedPassword = generateRandomPassword()
+              console.log('[Google OAuth] Generated password (for debugging):', generatedPassword)
+              
+              const registerPayload = {
+                email,
+                password: generatedPassword,
+                nickname: name,
+                photoUrl: picture,
+              }
+              console.log('[Google OAuth] Register payload:', { ...registerPayload, password: '***hidden***' })
+              
+              const registerResponse = await emailRegister(registerPayload)
+              console.log('[Google OAuth] emailRegister response:', registerResponse)
+              
+              if (registerResponse.success && registerResponse.data) {
+                saveAuthData(registerResponse.data.token, registerResponse.data.user)
+                setUser(registerResponse.data.user)
+                setIsLoggedIn(true)
+                setProfileData(registerResponse.data.user)
+                setBalance(registerResponse.data.user.balance || 0)
+                console.log('[Google OAuth] Registration successful!')
+              } else {
+                console.error('[Google OAuth] Registration failed:', registerResponse.error)
+                setShowLoginModal(true)
+              }
+            }
+          } else {
+            console.error('[Google OAuth] googleAuth API failed:', response.error)
+            setShowLoginModal(true)
+          }
+        } catch (error) {
+          console.error('[Google OAuth] Exception:', error)
+          setShowLoginModal(true)
+        } finally {
+          // Clear the code from URL
+          setSearchParams({})
+          setLoading(false)
+        }
+        return
+      }
+
+      // Normal login check
+      checkLoginStatus()
+    }
+
+    handleGoogleCallback()
   }, [])
 
   useEffect(() => {
@@ -352,54 +488,188 @@ const Account: React.FC = () => {
     handleTabClick(tab)
   }
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Reset error
+    setAvatarError('')
+
+    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB')
+      setAvatarError(t.account.overview.avatarSizeError || 'File size must be less than 5MB')
       return
     }
+
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Only image files are allowed')
+      setAvatarError(t.account.overview.avatarTypeError || 'Only image files are allowed')
       return
     }
-    // Handle upload
+
+    setAvatarUploading(true)
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64Image = reader.result as string
+
+        // Upload to cloud
+        const uploadResponse = await apiPost<{ url: string; public_id: string }>(
+          'uploadImage',
+          { image: base64Image, folder: 'avatars' },
+        )
+
+        if (uploadResponse.success && uploadResponse.data) {
+          // Call updateProfilePicture API
+          const updateResponse = await apiPostWithAuth<User>('updateProfilePicture', {
+            photoUrl: uploadResponse.data.url,
+          })
+
+          if (updateResponse.success && updateResponse.data) {
+            // Update local storage
+            const token = localStorage.getItem('gcashmall_token')
+            if (token) {
+              saveAuthData(token, updateResponse.data)
+            }
+
+            // Update user state
+            setUser(updateResponse.data)
+
+            showToastNotification(
+              t.account.overview.avatarUpdateSuccess || 'Avatar updated successfully',
+              'success',
+            )
+          } else {
+            showToastNotification(
+              updateResponse.error || 'Failed to update avatar',
+              'error',
+            )
+          }
+        } else {
+          showToastNotification(
+            uploadResponse.error || 'Failed to upload image',
+            'error',
+          )
+        }
+
+        setAvatarUploading(false)
+      }
+
+      reader.onerror = () => {
+        setAvatarError(t.account.overview.avatarReadError || 'Failed to read file')
+        setAvatarUploading(false)
+      }
+
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      showToastNotification('Failed to upload avatar', 'error')
+      setAvatarUploading(false)
+    }
   }
 
   const handleRemoveAvatar = async () => {
     try {
       await apiPost('removeAvatar', {})
-      setUser((prev) => prev ? { ...prev, avatar: undefined } : null)
+      setUser((prev) => (prev ? { ...prev, avatar: undefined } : null))
     } catch (error) {
       console.error('Error removing avatar:', error)
     }
   }
 
-  const handleChangePassword = async () => {
-    if (!validatePassword()) return
-    try {
-      await apiPost('changePassword', {
-        currentPassword,
-        newPassword,
-      })
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (error) {
-      console.error('Error changing password:', error)
-    }
+  // Validate password according to spec
+  const validatePasswordFormat = (password: string): boolean => {
+    const minLength = password.length >= 6
+    const hasUppercase = /[A-Z]/.test(password)
+    const hasLowercase = /[a-z]/.test(password)
+    const hasNumber = /[0-9]/.test(password)
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    return minLength && hasUppercase && hasLowercase && hasNumber && hasSpecial
   }
 
-  const validatePassword = () => {
-    if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters')
-      return false
+  const validatePasswordFields = (): boolean => {
+    let isValid = true
+
+    // Clear previous errors
+    setCurrentPasswordError('')
+    setNewPasswordError('')
+    setConfirmPasswordError('')
+
+    // Validate current password not empty
+    if (!currentPassword) {
+      setCurrentPasswordError(
+        t.account.overview.currentPasswordRequired || 'Current password is required',
+      )
+      isValid = false
     }
-    if (newPassword !== confirmPassword) {
-      alert('Passwords do not match')
-      return false
+
+    // Validate new password not empty
+    if (!newPassword) {
+      setNewPasswordError(t.account.overview.newPasswordRequired || 'New password is required')
+      isValid = false
+    } else if (!validatePasswordFormat(newPassword)) {
+      setNewPasswordError(
+        t.account.overview.newPasswordInvalid ||
+          'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
+      )
+      isValid = false
     }
-    return true
+
+    // Validate confirm password not empty
+    if (!confirmPassword) {
+      setConfirmPasswordError(
+        t.account.overview.confirmPasswordRequired || 'Please confirm your new password',
+      )
+      isValid = false
+    } else if (newPassword !== confirmPassword) {
+      setConfirmPasswordError(
+        t.account.overview.passwordMismatch || 'Passwords do not match',
+      )
+      isValid = false
+    }
+
+    return isValid
+  }
+
+  const handleChangePassword = async () => {
+    if (!validatePasswordFields()) return
+
+    setPasswordChanging(true)
+
+    try {
+      const response = await apiPostWithAuth<User>('updatePassword', {
+        oldPassword: currentPassword,
+        newPassword,
+      })
+
+      if (response.success) {
+        // Clear form
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+
+        showToastNotification(
+          t.account.overview.passwordChangeSuccess || 'Password changed successfully',
+          'success',
+        )
+      } else {
+        // Show error - might be wrong current password
+        if (response.error?.includes('incorrect')) {
+          setCurrentPasswordError(
+            t.account.overview.currentPasswordIncorrect || 'Current password is incorrect',
+          )
+        } else {
+          showToastNotification(response.error || 'Failed to change password', 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Error changing password:', error)
+      showToastNotification('Failed to change password', 'error')
+    } finally {
+      setPasswordChanging(false)
+    }
   }
 
   const handleClearHistory = async () => {
@@ -514,6 +784,8 @@ const Account: React.FC = () => {
             <label>{t.account.overview.nickname}</label>
             <input
               type="text"
+              name="nickname"
+              autoComplete="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder={t.account.overview.nicknamePlaceholder}
@@ -523,6 +795,8 @@ const Account: React.FC = () => {
             <label>{t.account.overview.email}</label>
             <input
               type="email"
+              name="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -537,6 +811,8 @@ const Account: React.FC = () => {
             <label>{t.account.overview.phoneNumber}</label>
             <input
               type="tel"
+              name="phone"
+              autoComplete="tel"
               value={phoneNumber}
               onChange={(e) => {
                 setPhoneNumber(e.target.value)
@@ -549,7 +825,7 @@ const Account: React.FC = () => {
           </div>
           <div className="form-field">
             <label>{t.account.overview.gender}</label>
-            <select value={gender} onChange={(e) => setGender(e.target.value)}>
+            <select name="gender" autoComplete="sex" value={gender} onChange={(e) => setGender(e.target.value)}>
               <option value="not_specified">{t.account.overview.genderNotSpecified}</option>
               <option value="male">{t.account.overview.genderMale}</option>
               <option value="female">{t.account.overview.genderFemale}</option>
@@ -560,6 +836,8 @@ const Account: React.FC = () => {
             <label>{t.account.overview.birthday}</label>
             <input
               type="date"
+              name="birthday"
+              autoComplete="bday"
               value={birthday}
               onChange={(e) => {
                 setBirthday(e.target.value)
@@ -590,13 +868,14 @@ const Account: React.FC = () => {
             )}
           </div>
           <div className="avatar-actions">
-            <label className="btn-primary upload-btn">
-              {t.account.overview.uploadAvatar}
+            <label className={`btn-primary upload-btn ${avatarUploading ? 'disabled' : ''}`}>
+              {avatarUploading ? '...' : t.account.overview.uploadAvatar}
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarUpload}
                 hidden
+                disabled={avatarUploading}
               />
             </label>
             {user?.avatar && (
@@ -605,6 +884,7 @@ const Account: React.FC = () => {
               </button>
             )}
           </div>
+          {avatarError && <span className="field-error">{avatarError}</span>}
           <p className="avatar-hint">{t.account.overview.avatarHint}</p>
         </div>
       </div>
@@ -617,31 +897,50 @@ const Account: React.FC = () => {
             <input
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value)
+                if (currentPasswordError) setCurrentPasswordError('')
+              }}
               placeholder={t.account.overview.currentPasswordPlaceholder}
+              className={currentPasswordError ? 'input-error' : ''}
             />
+            {currentPasswordError && <span className="field-error">{currentPasswordError}</span>}
           </div>
           <div className="form-field">
             <label>{t.account.overview.newPassword}</label>
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value)
+                if (newPasswordError) setNewPasswordError('')
+              }}
               placeholder={t.account.overview.newPasswordPlaceholder}
+              className={newPasswordError ? 'input-error' : ''}
             />
+            {newPasswordError && <span className="field-error">{newPasswordError}</span>}
           </div>
           <div className="form-field">
             <label>{t.account.overview.confirmPassword}</label>
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value)
+                if (confirmPasswordError) setConfirmPasswordError('')
+              }}
               placeholder={t.account.overview.confirmPasswordPlaceholder}
+              className={confirmPasswordError ? 'input-error' : ''}
             />
+            {confirmPasswordError && <span className="field-error">{confirmPasswordError}</span>}
           </div>
         </div>
-        <button className="btn-primary" onClick={handleChangePassword}>
-          {t.account.overview.changePasswordBtn}
+        <button
+          className="btn-primary"
+          onClick={handleChangePassword}
+          disabled={passwordChanging}
+        >
+          {passwordChanging ? '...' : t.account.overview.changePasswordBtn}
         </button>
       </div>
     </div>

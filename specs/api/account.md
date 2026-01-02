@@ -20,6 +20,8 @@ return true/false
 
 - email *
 - password *
+- nickname = "Guest"
+- photo url
 
 ### Prerequisite
 
@@ -28,7 +30,7 @@ return true/false
 
 ### Action
 
-- create an account with default Nickname - "Guest"
+- create an account
 
 ### Output
 
@@ -79,6 +81,47 @@ return the token or error message
 
 - find the account based on the login
 - update all fields
+
+### Output
+
+return the updated user
+
+## Update Profile Picture
+
+### Input
+
+- photo url *
+
+### Prerequisite
+
+- already logged in
+
+### Action
+
+- find the account based on the login
+- update the photo url
+
+### Output
+
+return the updated user
+
+## Update Password
+
+### Input
+
+- old password *
+- new password *
+
+### Prerequisite
+
+- already logged in
+- old password matches the one in db
+- valid new password
+
+### Action
+
+- find the account based on the login
+- update the password
 
 ### Output
 

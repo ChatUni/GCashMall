@@ -23,7 +23,11 @@ import {
   checkEmail,
   emailRegister,
   login,
+  googleAuth,
+  googleLogin,
   updateProfile,
+  updateProfilePicture,
+  updatePassword,
   clearWatchHistory,
 } from './utils/handlers.js'
 
@@ -53,7 +57,11 @@ const apiHandlers = {
     deleteVideo: (body) => deleteVideo(body),
     emailRegister: (body) => emailRegister(body),
     login: (body) => login(body),
+    googleAuth: (body) => googleAuth(body),
+    googleLogin: (body) => googleLogin(body),
     updateProfile: (body, authHeader) => updateProfile(body, authHeader),
+    updateProfilePicture: (body, authHeader) => updateProfilePicture(body, authHeader),
+    updatePassword: (body, authHeader) => updatePassword(body, authHeader),
     clearWatchHistory: (body) => clearWatchHistory(body),
   },
   delete: {
