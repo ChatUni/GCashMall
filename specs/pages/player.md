@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Player page is the video playback interface for GCashTV, featuring a video player with custom controls, episode metadata, an episode list sidebar, and recommendation carousels. It supports favorites, downloads, watch history tracking, and social sharing functionality.
+The Player page is the video playback interface for GCashTV, featuring a video player with custom controls, episode metadata, an episode list sidebar, and recommendation carousels. It supports favorites, watch history tracking, and social sharing functionality.
 
 ## Page Structure
 
@@ -119,22 +119,13 @@ The page uses React Router params:
 - **Display**: Flex
 - **Gap**: 20px
 - **Margin Bottom**: 16px
-- **Items**: Language selector, Download button, Favorite button
+- **Items**: Language selector, Favorite button
 
 ### Language Selector
 - **Display**: Flex with globe icon
 - **Icon Size**: 18px
 - **Color**: #9CA3AF
 - **Options**: English, 中文, Español, Français
-
-### Download Button
-- **Display**: Flex with icon
-- **Background**: #1A1A1A
-- **Color**: #FFFFFF
-- **Padding**: 10px 20px
-- **Border Radius**: 8px
-- **Hover**: Color #3B82F6, scale(1.02)
-- **Downloaded State**: Green background tint, green text (#22C55E)
 
 ### Favorite Button
 - **Size**: 48px × 48px
@@ -267,12 +258,6 @@ Two sections identical to Home page:
 - **Title**: "Add to Favorites?" - 20px, white
 - **Message**: 14px, gray, line-height 1.6
 - **Buttons**: Yes (blue), No (gray)
-
-### Download Popup
-- **Same structure as Favorite Popup**
-- **Icon**: Blue tint background, download icon
-- **Title**: "Download Episode?"
-- **Message**: Includes episode title
 
 ## Navigation Actions
 

@@ -112,17 +112,6 @@ export interface FavoriteItem {
   tag?: string
 }
 
-export interface DownloadItem {
-  _id: string
-  seriesId: string
-  seriesTitle: string
-  episodeId: string
-  episodeNumber: number
-  thumbnail: string
-  downloadedAt: Date
-  fileSize?: string
-}
-
 export interface FeaturedSeries {
   _id: string
   series: Series

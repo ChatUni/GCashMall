@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, downloads, settings, and wallet functionality.
+The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, settings, and wallet functionality.
 
 ## Page Structure
 
@@ -43,7 +43,6 @@ The Account page is a comprehensive user profile and settings management interfa
 | overview | 👤 | Overview |
 | watchHistory | 📺 | Watch History |
 | favorites | ❤️ | Favorites |
-| downloads | ⬇️ | Downloads |
 | settings | ⚙️ | Settings |
 | wallet | 💰 | Wallet |
 
@@ -183,31 +182,7 @@ Section card with form fields:
 - **Subtitle**: "Add series to your favorites to see them here"
 - **Action**: "Explore Series" button
 
-### 4. Downloads
-
-#### Header
-- **Title**: "Downloads"
-- **Actions**: Clear All button (secondary)
-
-#### Content Grid
-- Same layout as Favorites (5 columns)
-
-#### Download Card
-- **Poster Container**: 2:3 aspect ratio, 12px border radius
-- **Episode Badge**: Bottom-left, blue background, "EP X"
-- **Remove Button**: Top-right, appears on hover
-- **Info Section**:
-  - Title: 15px, white
-  - Episode: Gray (#9CA3AF), 13px
-  - File Size: Gray (#6B7280), 12px (optional)
-
-#### Empty State
-- **Icon**: ⬇️
-- **Title**: "No downloads yet"
-- **Subtitle**: "Download episodes to watch offline"
-- **Action**: "Explore Series" button
-
-### 5. Settings
+### 4. Settings
 
 #### Header
 - **Title**: "Settings"
@@ -223,7 +198,7 @@ Section card with form fields:
 - **Row Styling**: Flex between, padding 16px 0, border-bottom #242428
 - **Toggle**: 44px × 24px, custom styled checkbox
 
-### 6. Wallet
+### 5. Wallet
 
 #### Header
 - **Title**: "Wallet"
@@ -276,7 +251,6 @@ The page supports tab navigation via URL query parameter:
 - `?tab=overview`
 - `?tab=watchHistory`
 - `?tab=favorites`
-- `?tab=downloads`
 - `?tab=settings`
 - `?tab=wallet`
 

@@ -16,14 +16,13 @@ import {
   emailRegister,
   login,
 } from '../utils/api'
-import type { WatchHistoryItem, FavoriteItem, User, DownloadItem } from '../types'
+import type { WatchHistoryItem, FavoriteItem, User } from '../types'
 import './Account.css'
 
 type AccountTab =
   | 'overview'
   | 'watchHistory'
   | 'favorites'
-  | 'downloads'
   | 'settings'
   | 'wallet'
 
@@ -31,7 +30,6 @@ const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'overview', icon: '👤' },
   { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },
-  { key: 'downloads', icon: '⬇️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
 ]
@@ -49,7 +47,6 @@ const Account: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
-  const [downloads, setDownloads] = useState<DownloadItem[]>([])
   const [loading, setLoading] = useState(true)
 
   // Profile form state
@@ -294,10 +291,9 @@ const Account: React.FC = () => {
 
   const fetchUserData = async () => {
     try {
-      const [historyResponse, favoritesResponse, downloadsResponse] = await Promise.all([
+      const [historyResponse, favoritesResponse] = await Promise.all([
         apiGet<WatchHistoryItem[]>('watchHistory'),
         apiGet<FavoriteItem[]>('favorites'),
-        apiGet<DownloadItem[]>('downloads'),
       ])
 
       if (historyResponse.success && historyResponse.data) {
@@ -305,9 +301,6 @@ const Account: React.FC = () => {
       }
       if (favoritesResponse.success && favoritesResponse.data) {
         setFavorites(favoritesResponse.data)
-      }
-      if (downloadsResponse.success && downloadsResponse.data) {
-        setDownloads(downloadsResponse.data)
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -699,24 +692,6 @@ const Account: React.FC = () => {
     }
   }
 
-  const handleClearDownloads = async () => {
-    try {
-      await apiPost('clearDownloads', {})
-      setDownloads([])
-    } catch (error) {
-      console.error('Error clearing downloads:', error)
-    }
-  }
-
-  const handleRemoveDownload = async (itemId: string) => {
-    try {
-      await apiPost('removeDownload', { itemId })
-      setDownloads((prev) => prev.filter((item) => item._id !== itemId))
-    } catch (error) {
-      console.error('Error removing download:', error)
-    }
-  }
-
   const handleTopUpClick = (amount: number) => {
     setSelectedTopUpAmount(amount)
     setShowTopUpPopup(true)
@@ -1047,52 +1022,6 @@ const Account: React.FC = () => {
     </div>
   )
 
-  const renderDownloads = () => (
-    <div className="content-section downloads-section">
-      <div className="section-header-row">
-        <h1 className="page-title">{t.account.downloads.title}</h1>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={handleClearDownloads}>
-            {t.account.downloads.clearAll}
-          </button>
-        </div>
-      </div>
-
-      {downloads.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">⬇️</div>
-          <h3 className="empty-title">{t.account.downloads.emptyTitle}</h3>
-          <p className="empty-subtext">{t.account.downloads.emptySubtext}</p>
-          <button className="btn-primary" onClick={() => navigate('/series')}>
-            {t.account.downloads.exploreButton}
-          </button>
-        </div>
-      ) : (
-        <div className="content-grid">
-          {downloads.map((item) => (
-            <div key={item._id} className="download-card">
-              <div className="poster-container">
-                <img src={item.thumbnail} alt={item.seriesTitle} />
-                <span className="episode-badge">EP {item.episodeNumber}</span>
-                <button
-                  className="remove-btn"
-                  onClick={() => handleRemoveDownload(item._id)}
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="download-info">
-                <h4 className="card-title">{item.seriesTitle}</h4>
-                <span className="episode-label">Episode {item.episodeNumber}</span>
-                {item.fileSize && <span className="file-size">{item.fileSize}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-
   const renderSettings = () => (
     <div className="content-section settings-section">
       <h1 className="page-title">{t.account.settings.title}</h1>
@@ -1225,8 +1154,6 @@ const Account: React.FC = () => {
         return renderWatchHistory()
       case 'favorites':
         return renderFavorites()
-      case 'downloads':
-        return renderDownloads()
       case 'settings':
         return renderSettings()
       case 'wallet':

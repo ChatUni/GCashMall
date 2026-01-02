@@ -17,7 +17,6 @@ export const zh = {
       overview: '概览',
       watchHistory: '观看历史',
       favorites: '收藏夹',
-      downloads: '下载',
       settings: '设置',
       wallet: '钱包',
       logout: '退出登录',
@@ -83,13 +82,6 @@ export const zh = {
       emptySubtext: '将剧集添加到收藏夹以便在此查看',
       exploreButton: '探索剧集',
     },
-    downloads: {
-      title: '下载',
-      clearAll: '全部清除',
-      emptyTitle: '暂无下载',
-      emptySubtext: '下载剧集以便离线观看',
-      exploreButton: '探索剧集',
-    },
     settings: {
       title: '设置',
       preferences: '偏好设置',
@@ -148,7 +140,6 @@ export const zh = {
   },
   player: {
     episodes: '剧集',
-    download: '下载',
     share: '分享',
     addToFavorites: '添加到收藏',
     breadcrumbHome: 'GcashReels',

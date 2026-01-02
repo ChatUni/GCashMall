@@ -17,7 +17,6 @@ export const en = {
       overview: 'Overview',
       watchHistory: 'Watch History',
       favorites: 'Favorites',
-      downloads: 'Downloads',
       settings: 'Settings',
       wallet: 'Wallet',
       logout: 'Logout',
@@ -84,13 +83,6 @@ export const en = {
       emptySubtext: 'Add series to your favorites to see them here',
       exploreButton: 'Explore Series',
     },
-    downloads: {
-      title: 'Downloads',
-      clearAll: 'Clear All',
-      emptyTitle: 'No downloads yet',
-      emptySubtext: 'Download episodes to watch offline',
-      exploreButton: 'Explore Series',
-    },
     settings: {
       title: 'Settings',
       preferences: 'Preferences',
@@ -149,7 +141,6 @@ export const en = {
   },
   player: {
     episodes: 'Episodes',
-    download: 'Download',
     share: 'Share',
     addToFavorites: 'Add to favorites',
     breadcrumbHome: 'GcashReels',
