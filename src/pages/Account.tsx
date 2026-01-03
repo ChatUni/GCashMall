@@ -12,7 +12,6 @@ import {
   saveProfile,
   changePassword,
   uploadAvatar,
-  removeAvatar,
   clearWatchHistory,
   removeWatchHistoryItem,
   removeFavorite,
@@ -167,7 +166,6 @@ const Account: React.FC = () => {
               onSaveProfile={onSaveProfile}
               onChangePassword={onChangePassword}
               onAvatarUpload={onAvatarUpload}
-              onRemoveAvatar={removeAvatar}
               t={t}
             />
           )}
@@ -286,7 +284,6 @@ interface OverviewSectionProps {
   onSaveProfile: () => void
   onChangePassword: () => void
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onRemoveAvatar: () => void
   t: Record<string, Record<string, unknown>>
 }
 
@@ -304,7 +301,6 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
   onSaveProfile,
   onChangePassword,
   onAvatarUpload,
-  onRemoveAvatar,
   t,
 }) => {
   const overview = t.account.overview as Record<string, string>
@@ -412,11 +408,6 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
                 disabled={avatarUploading}
               />
             </label>
-            {user?.avatar && (
-              <button className="btn-secondary" onClick={onRemoveAvatar}>
-                {overview.removeAvatar}
-              </button>
-            )}
           </div>
           {avatarError && <span className="field-error">{avatarError}</span>}
           <p className="avatar-hint">{overview.avatarHint}</p>
