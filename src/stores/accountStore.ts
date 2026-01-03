@@ -200,7 +200,7 @@ export const accountStoreActions = {
       ...prev,
       profileErrors: { ...prev.profileErrors, [field]: value },
     })),
-  setProfileSaving: (profileSaving: boolean) => 
+  setProfileSaving: (profileSaving: boolean) =>
     accountStore.setState((prev) => ({ ...prev, profileSaving })),
   setOriginalProfile: (originalProfile: ProfileFormState) => 
     accountStore.setState((prev) => ({ ...prev, originalProfile })),
