@@ -1,30 +1,29 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import SeriesCard from './SeriesCard'
 import { useLanguage } from '../context/LanguageContext'
-import { apiGet } from '../utils/api'
-import type { Series } from '../types'
+import { useRecommendationsStore } from '../stores'
+import { fetchRecommendations } from '../services/dataService'
 import './RecommendationSection.css'
 
 interface RecommendationSectionProps {
   title?: string
 }
 
+// Initialize data fetch outside component (not in useEffect)
+let dataFetched = false
+const initializeData = () => {
+  if (!dataFetched) {
+    dataFetched = true
+    fetchRecommendations()
+  }
+}
+
 const RecommendationSection: React.FC<RecommendationSectionProps> = ({ title }) => {
   const { t } = useLanguage()
-  const [series, setSeries] = useState<Series[]>([])
-  const [loading, setLoading] = useState(true)
+  const { series, loading } = useRecommendationsStore()
 
-  useEffect(() => {
-    fetchRecommendations()
-  }, [])
-
-  const fetchRecommendations = async () => {
-    const data = await apiGet<Series[]>('recommendations')
-    if (data.success && data.data) {
-      setSeries(data.data)
-    }
-    setLoading(false)
-  }
+  // Initialize data on first render (avoiding useEffect for API calls)
+  initializeData()
 
   if (loading) {
     return <div className="recommendation-section loading">Loading...</div>

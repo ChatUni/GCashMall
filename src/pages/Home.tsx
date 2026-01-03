@@ -1,89 +1,60 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import { useLanguage } from '../context/LanguageContext'
-import { apiGet } from '../utils/api'
-import type { Series } from '../types'
+import { useFeaturedStore } from '../stores'
+import { fetchFeaturedSeries } from '../services/dataService'
 import './Home.css'
 
+// Initialize data fetch outside component (not in useEffect)
+let dataFetched = false
+const initializeData = () => {
+  if (!dataFetched) {
+    dataFetched = true
+    fetchFeaturedSeries()
+  }
+}
+
+// Click handlers defined outside component (avoiding embedded functions)
+const createPlayClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
+  if (seriesId) {
+    navigate(`/series/${seriesId}`)
+  }
+}
+
+const createPosterClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
+  if (seriesId) {
+    navigate(`/series/${seriesId}`)
+  }
+}
+
 const Home: React.FC = () => {
-  const [featuredSeries, setFeaturedSeries] = useState<Series | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { series: featuredSeries, loading } = useFeaturedStore()
   const navigate = useNavigate()
   const { t } = useLanguage()
 
-  useEffect(() => {
-    fetchFeaturedSeries()
-  }, [])
+  // Initialize data on first render
+  initializeData()
 
-  const fetchFeaturedSeries = async () => {
-    const data = await apiGet<Series>('featured')
-    if (data.success && data.data) {
-      setFeaturedSeries(data.data)
-    }
-    setLoading(false)
-  }
-
-  const handlePlayClick = () => {
-    if (featuredSeries) {
-      navigate(`/series/${featuredSeries._id}`)
-    }
-  }
-
-  const handlePosterClick = () => {
-    if (featuredSeries) {
-      navigate(`/series/${featuredSeries._id}`)
-    }
-  }
+  const handlePlayClick = createPlayClickHandler(navigate, featuredSeries?._id)
+  const handlePosterClick = createPosterClickHandler(navigate, featuredSeries?._id)
 
   return (
     <div className="home-page">
       <TopBar />
-      
+
       {loading ? (
         <div className="hero-loading">Loading...</div>
       ) : featuredSeries ? (
-        <section className="hero-section">
-          <div className="hero-content">
-            <div className="hero-poster" onClick={handlePosterClick}>
-              <img
-                src={featuredSeries.cover}
-                alt={featuredSeries.name}
-                className="hero-poster-image"
-              />
-              <div className="hero-poster-overlay">
-                <svg className="play-icon" width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="hero-info">
-              <h1 className="hero-title">{featuredSeries.name}</h1>
-              
-              <div className="hero-tags">
-                {featuredSeries.tags?.map((tag, index) => (
-                  <span key={index} className="hero-tag">{tag}</span>
-                ))}
-                {featuredSeries.genre?.map((genre) => (
-                  <span key={genre.id} className="hero-tag">{genre.name}</span>
-                ))}
-              </div>
-              
-              <p className="hero-description">{featuredSeries.description}</p>
-              
-              <button className="hero-play-button" onClick={handlePlayClick}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
-                {t.home.play}
-              </button>
-            </div>
-          </div>
-        </section>
+        <HeroSection
+          series={featuredSeries}
+          onPlayClick={handlePlayClick}
+          onPosterClick={handlePosterClick}
+          playText={t.home.play}
+        />
       ) : null}
 
       <RecommendationSection />
@@ -93,5 +64,66 @@ const Home: React.FC = () => {
     </div>
   )
 }
+
+// Pure sub-component for hero section
+interface HeroSectionProps {
+  series: {
+    _id: string
+    name: string
+    cover: string
+    description: string
+    tags?: string[]
+    genre?: { id: number; name: string }[]
+  }
+  onPlayClick: () => void
+  onPosterClick: () => void
+  playText: string
+}
+
+const HeroSection: React.FC<HeroSectionProps> = ({
+  series,
+  onPlayClick,
+  onPosterClick,
+  playText,
+}) => (
+  <section className="hero-section">
+    <div className="hero-content">
+      <div className="hero-poster" onClick={onPosterClick}>
+        <img
+          src={series.cover}
+          alt={series.name}
+          className="hero-poster-image"
+        />
+        <div className="hero-poster-overlay">
+          <svg className="play-icon" width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="hero-info">
+        <h1 className="hero-title">{series.name}</h1>
+
+        <div className="hero-tags">
+          {series.tags?.map((tag, index) => (
+            <span key={index} className="hero-tag">{tag}</span>
+          ))}
+          {series.genre?.map((genre) => (
+            <span key={genre.id} className="hero-tag">{genre.name}</span>
+          ))}
+        </div>
+
+        <p className="hero-description">{series.description}</p>
+
+        <button className="hero-play-button" onClick={onPlayClick}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+          {playText}
+        </button>
+      </div>
+    </div>
+  </section>
+)
 
 export default Home

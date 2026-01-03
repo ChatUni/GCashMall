@@ -726,6 +726,7 @@ const generateToken = (payload) => {
 // Update user profile
 const updateProfile = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
+  console.log('[updateProfile] userId extracted from token:', userId)
   validateUpdateProfileBody(body)
 
   try {
