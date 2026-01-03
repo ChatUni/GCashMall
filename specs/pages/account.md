@@ -111,7 +111,11 @@ Section card with form fields:
   - show the system file picker (for images)
   - validate image selected (max 5MB)
   - validation fail: show error in red under the button
-  - validation success: upload the image to the cloud, get the returned url, then call the update profile picture API with the url
+  - validation success:
+    - delete the current image on the cloud (if any)
+    - upload the image to the cloud (under /GCash/users/{_id} folder)
+    - get the returned url
+    - call the update profile picture API with the url
   - show the success/fail result in toast notification
   - on success, show the new avatar in the preview
 

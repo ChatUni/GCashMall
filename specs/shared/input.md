@@ -36,5 +36,5 @@ The component to upload a single media file
 
 - on preview box click: when no media selected, show the system file picker dialog, otherwise show the large version of the image or the video player in a popup overlay (dim the background), click anywhere/press any key to dismiss the popup overlay
 - on upload (upload will be triggered by the page/form that uses the media upload component):
-  - for image: Upload the image to cloudinary under GCash folder
+  - for image: Upload the image to cloudinary under GCash folder (for deletion, extract public_id from url)
   - for video: Upload the video to bunny.net under video library 569096

@@ -265,13 +265,25 @@ export const uploadAvatar = async (file: File, t: Record<string, string>): Promi
   accountStoreActions.setAvatarUploading(true)
 
   try {
+    const state = accountStoreActions.getState()
+    const userId = state.user?._id
+
+    if (!userId) {
+      return { success: false, error: 'User not logged in' }
+    }
+
+    // Delete current image on the cloud (if any)
+    if (state.user?.avatar) {
+      await deleteCloudImage(state.user.avatar)
+    }
+
     // Convert file to base64
     const base64Image = await fileToDataUrl(file)
 
-    // Upload to cloud
+    // Upload to cloud (under /GCash/users/{_id} folder)
     const uploadResponse = await apiPost<{ url: string; public_id: string }>(
       'uploadImage',
-      { image: base64Image, folder: 'avatars' }
+      { image: base64Image, folder: `GCash/users/${userId}` }
     )
 
     if (!uploadResponse.success || !uploadResponse.data) {
@@ -298,6 +310,16 @@ export const uploadAvatar = async (file: File, t: Record<string, string>): Promi
     return { success: false, error: 'Failed to upload avatar' }
   } finally {
     accountStoreActions.setAvatarUploading(false)
+  }
+}
+
+// Delete cloud image by URL
+const deleteCloudImage = async (imageUrl: string): Promise<void> => {
+  try {
+    await apiPost('deleteImage', { imageUrl })
+  } catch (error) {
+    console.error('Error deleting cloud image:', error)
+    // Continue even if delete fails - we still want to upload the new image
   }
 }
 

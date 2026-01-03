@@ -1016,7 +1016,14 @@ const deleteImage = async (body) => {
   validateDeleteImageBody(body)
 
   try {
-    const result = await cloudinary.uploader.destroy(body.public_id)
+    // Get public_id either directly or extract from URL
+    const publicId = body.public_id || extractPublicIdFromUrl(body.imageUrl)
+    
+    if (!publicId) {
+      throw new Error('Could not determine public_id for deletion')
+    }
+
+    const result = await cloudinary.uploader.destroy(publicId)
 
     return {
       success: true,
@@ -1027,6 +1034,23 @@ const deleteImage = async (body) => {
     }
   } catch (error) {
     throw new Error(`Failed to delete image: ${error.message}`)
+  }
+}
+
+// Extract public_id from Cloudinary URL
+// URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/public_id.ext
+const extractPublicIdFromUrl = (url) => {
+  if (!url) return null
+  
+  try {
+    // Match the path after /upload/ and before the file extension
+    const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/)
+    if (match && match[1]) {
+      return match[1]
+    }
+    return null
+  } catch {
+    return null
   }
 }
 
@@ -1045,8 +1069,12 @@ const validateDeleteImageBody = (body) => {
     throw new Error('Request body is required')
   }
 
-  if (!body.public_id || typeof body.public_id !== 'string') {
-    throw new Error('Image public_id is required for deletion')
+  // Either public_id or imageUrl is required
+  const hasPublicId = body.public_id && typeof body.public_id === 'string'
+  const hasImageUrl = body.imageUrl && typeof body.imageUrl === 'string'
+
+  if (!hasPublicId && !hasImageUrl) {
+    throw new Error('Either public_id or imageUrl is required for deletion')
   }
 }
 
