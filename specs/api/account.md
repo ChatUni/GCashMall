@@ -22,6 +22,8 @@ return true/false
 - password *
 - nickname = "Guest"
 - photo url
+- OAuth id
+- OAuth type
 
 ### Prerequisite
 
@@ -42,6 +44,8 @@ return the new account
 
 - email *
 - password *
+- OAuth id
+- OAuth type
 
 ### Prerequisite
 
@@ -51,7 +55,9 @@ return the new account
 ### Action
 
 - find the account with that email
-- if password matchs, generate token
+- if password matchs
+  - generate token
+  - add OAuth type/id to the account if not exist, save to db
 - otherwise, error
 
 ### Output
@@ -126,3 +132,38 @@ return the updated user
 ### Output
 
 return the updated user
+
+## Set Password
+
+### Input
+
+- new password *
+
+### Prerequisite
+
+- already logged in through OAuth
+- there is no password on the account
+- valid new password
+
+### Action
+
+- find the account based on the login
+- set the password
+
+### Output
+
+return the updated user
+
+## Reset Password
+
+### Input
+
+- email *
+
+### Action
+
+- if account with email exists, send a standard password reset email 
+
+### Output
+
+return empty

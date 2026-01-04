@@ -28,6 +28,9 @@ import {
   updateProfile,
   updateProfilePicture,
   updatePassword,
+  setPassword,
+  resetPassword,
+  confirmResetPassword,
   clearWatchHistory,
 } from './utils/handlers.js'
 
@@ -62,6 +65,9 @@ const apiHandlers = {
     updateProfile: (body, authHeader) => updateProfile(body, authHeader),
     updateProfilePicture: (body, authHeader) => updateProfilePicture(body, authHeader),
     updatePassword: (body, authHeader) => updatePassword(body, authHeader),
+    setPassword: (body, authHeader) => setPassword(body, authHeader),
+    resetPassword: (body) => resetPassword(body),
+    confirmResetPassword: (body) => confirmResetPassword(body),
     clearWatchHistory: (body) => clearWatchHistory(body),
   },
   delete: {

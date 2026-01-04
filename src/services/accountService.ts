@@ -4,7 +4,7 @@
 import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword, generateRandomPassword } from '../utils/validation'
-import type { User, WatchHistoryItem, FavoriteItem } from '../types'
+import type { User, WatchHistoryItem, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
@@ -18,24 +18,33 @@ export const initializeAccountData = async (searchParams: URLSearchParams, setSe
   await checkLoginStatus()
 }
 
-// Handle Google OAuth callback
-const handleGoogleCallback = async (code: string, setSearchParams: (params: Record<string, string>) => void) => {
+// Handle OAuth callback (Google, Facebook, Twitter, LinkedIn)
+const handleOAuthCallback = async (
+  code: string,
+  oauthType: OAuthType,
+  setSearchParams: (params: Record<string, string>) => void
+) => {
   accountStoreActions.setLoading(true)
   clearAuthData()
   accountStoreActions.setUser(null)
   
   try {
-    const response = await apiPost<{ name: string; email: string; picture: string }>(
-      'googleAuth',
+    const response = await apiPost<{ id: string; name: string; email: string; picture: string }>(
+      `${oauthType}Auth`,
       { code, redirectUri: `${window.location.origin}/account` }
     )
 
     if (response.success && response.data) {
-      const { name, email, picture } = response.data
+      const { id: oauthId, name, email, picture } = response.data
       const checkResponse = await checkEmail(email)
       
       if (checkResponse.success && checkResponse.data?.exists) {
-        const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', { email })
+        // User exists - login with OAuth info
+        const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', {
+          email,
+          oauthId,
+          oauthType,
+        })
         if (loginResponse.success && loginResponse.data) {
           saveAuthData(loginResponse.data.token, loginResponse.data.user)
           accountStoreActions.initializeUserData(loginResponse.data.user)
@@ -43,12 +52,15 @@ const handleGoogleCallback = async (code: string, setSearchParams: (params: Reco
           accountStoreActions.setShowLoginModal(true)
         }
       } else {
+        // New user - register with OAuth info
         const generatedPassword = generateRandomPassword()
         const registerResponse = await emailRegister({
           email,
           password: generatedPassword,
           nickname: name,
           photoUrl: picture,
+          oauthId,
+          oauthType,
         })
         
         if (registerResponse.success && registerResponse.data) {
@@ -67,6 +79,11 @@ const handleGoogleCallback = async (code: string, setSearchParams: (params: Reco
     setSearchParams({})
     accountStoreActions.setLoading(false)
   }
+}
+
+// Handle Google OAuth callback (legacy - wraps handleOAuthCallback)
+const handleGoogleCallback = async (code: string, setSearchParams: (params: Record<string, string>) => void) => {
+  return handleOAuthCallback(code, 'google', setSearchParams)
 }
 
 // Check login status
@@ -184,8 +201,8 @@ export const saveProfile = async (form: ProfileFormState, t: Record<string, stri
   }
 }
 
-// Validate password form
-export const validatePasswordForm = (form: PasswordFormState, t: Record<string, string>): boolean => {
+// Validate password form (for users with existing password)
+export const validatePasswordForm = (form: PasswordFormState, t: Record<string, string>, hasExistingPassword: boolean = true): boolean => {
   let isValid = true
 
   accountStoreActions.setPasswordErrors({
@@ -194,7 +211,8 @@ export const validatePasswordForm = (form: PasswordFormState, t: Record<string, 
     confirmPasswordError: '',
   })
 
-  if (!form.currentPassword) {
+  // Only validate current password if user has an existing password
+  if (hasExistingPassword && !form.currentPassword) {
     accountStoreActions.updatePasswordError('currentPasswordError', t.currentPasswordRequired || 'Current password is required')
     isValid = false
   }
@@ -214,9 +232,9 @@ export const validatePasswordForm = (form: PasswordFormState, t: Record<string, 
   return isValid
 }
 
-// Change password
+// Change password (for users with existing password)
 export const changePassword = async (form: PasswordFormState, t: Record<string, string>): Promise<{ success: boolean; error?: string }> => {
-  if (!validatePasswordForm(form, t)) {
+  if (!validatePasswordForm(form, t, true)) {
     return { success: false }
   }
 
@@ -230,6 +248,11 @@ export const changePassword = async (form: PasswordFormState, t: Record<string, 
 
     if (response.success) {
       accountStoreActions.clearPasswordForm()
+      // Update user's hasPassword status
+      const state = accountStoreActions.getState()
+      if (state.user) {
+        accountStoreActions.setUser({ ...state.user, hasPassword: true })
+      }
       return { success: true }
     }
 
@@ -243,6 +266,59 @@ export const changePassword = async (form: PasswordFormState, t: Record<string, 
     return { success: false, error: 'Failed to change password' }
   } finally {
     accountStoreActions.setPasswordChanging(false)
+  }
+}
+
+// Set password (for OAuth users without password)
+export const setPassword = async (form: PasswordFormState, t: Record<string, string>): Promise<{ success: boolean; error?: string }> => {
+  if (!validatePasswordForm(form, t, false)) {
+    return { success: false }
+  }
+
+  accountStoreActions.setPasswordChanging(true)
+
+  try {
+    const response = await apiPostWithAuth<User>('setPassword', {
+      newPassword: form.newPassword,
+    })
+
+    if (response.success) {
+      accountStoreActions.clearPasswordForm()
+      // Update user's hasPassword status
+      const state = accountStoreActions.getState()
+      if (state.user) {
+        accountStoreActions.setUser({ ...state.user, hasPassword: true })
+      }
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to set password' }
+  } catch (error) {
+    console.error('Error setting password:', error)
+    return { success: false, error: 'Failed to set password' }
+  } finally {
+    accountStoreActions.setPasswordChanging(false)
+  }
+}
+
+// Reset password (send reset email)
+export const resetPassword = async (email: string, t: Record<string, string>): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const emailValidation = validateEmail(email)
+  if (!emailValidation.valid) {
+    return { success: false, error: t.invalidEmail || emailValidation.error || '' }
+  }
+
+  try {
+    const response = await apiPost<ResetPasswordResponse>('resetPassword', { email })
+
+    if (response.success && response.data) {
+      return { success: true, message: response.data.message }
+    }
+
+    return { success: false, error: response.error || 'Failed to send reset email' }
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    return { success: false, error: 'Failed to send reset email' }
   }
 }
 

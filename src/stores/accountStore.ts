@@ -272,6 +272,7 @@ export const accountStoreActions = {
       ...prev,
       user,
       isLoggedIn: true,
+      loading: false,
       profileForm: profileData,
       originalProfile: profileData,
       balance: user.balance || 0,

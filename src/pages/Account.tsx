@@ -11,6 +11,7 @@ import {
   handleLogout,
   saveProfile,
   changePassword,
+  setPassword,
   uploadAvatar,
   clearWatchHistory,
   removeWatchHistoryItem,
@@ -19,6 +20,7 @@ import {
   hasProfileChanges,
 } from '../services/accountService'
 import { toastStoreActions, useToastStore } from '../stores'
+import type { User } from '../types'
 import './Account.css'
 
 // Track initialization
@@ -81,11 +83,15 @@ const Account: React.FC = () => {
     }
   }
 
-  const handleLoginSuccess = async () => {
+  const handleLoginSuccess = async (user: User) => {
+    // Initialize user data (sets loading: false, isLoggedIn: true)
+    accountStoreActions.initializeUserData(user)
+    // Fetch additional user data
+    userDataFetched = false
+    await fetchAccountUserData()
+    userDataFetched = true
+    // Hide the modal after loading is complete
     accountStoreActions.setShowLoginModal(false)
-    accountInitialized = false // Reset to re-fetch data
-    userDataFetched = false // Reset to re-fetch user data
-    initializeAccountData(searchParams, (params) => setSearchParams(params))
   }
 
   const onSaveProfile = async () => {
@@ -101,6 +107,15 @@ const Account: React.FC = () => {
     const result = await changePassword(state.passwordForm, t.account.overview)
     if (result.success) {
       toastStoreActions.show(t.account.overview.passwordChangeSuccess || 'Password changed successfully', 'success')
+    } else if (result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+  }
+
+  const onSetPassword = async () => {
+    const result = await setPassword(state.passwordForm, t.account.overview)
+    if (result.success) {
+      toastStoreActions.show((t.login as Record<string, string>).setPasswordSuccess || 'Password set successfully', 'success')
     } else if (result.error) {
       toastStoreActions.show(result.error, 'error')
     }
@@ -154,6 +169,7 @@ const Account: React.FC = () => {
           {state.activeTab === 'overview' && (
             <OverviewSection
               user={state.user}
+              hasPassword={state.user?.hasPassword ?? true}
               profileForm={state.profileForm}
               profileErrors={state.profileErrors}
               profileSaving={state.profileSaving}
@@ -165,6 +181,7 @@ const Account: React.FC = () => {
               avatarUploading={state.avatarUploading}
               onSaveProfile={onSaveProfile}
               onChangePassword={onChangePassword}
+              onSetPassword={onSetPassword}
               onAvatarUpload={onAvatarUpload}
               t={t}
             />
@@ -272,6 +289,7 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ user, activeTab, onTabC
 
 interface OverviewSectionProps {
   user: { avatar?: string | null } | null
+  hasPassword: boolean
   profileForm: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
   profileErrors: { emailError: string; phoneError: string; birthdayError: string }
   profileSaving: boolean
@@ -283,12 +301,14 @@ interface OverviewSectionProps {
   avatarUploading: boolean
   onSaveProfile: () => void
   onChangePassword: () => void
+  onSetPassword: () => void
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   t: Record<string, Record<string, unknown>>
 }
 
 const OverviewSection: React.FC<OverviewSectionProps> = ({
   user,
+  hasPassword,
   profileForm,
   profileErrors,
   profileSaving,
@@ -300,10 +320,12 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
   avatarUploading,
   onSaveProfile,
   onChangePassword,
+  onSetPassword,
   onAvatarUpload,
   t,
 }) => {
   const overview = t.account.overview as Record<string, string>
+  const login = t.login as Record<string, string>
   const profileHasChanges = hasProfileChanges(profileForm, originalProfile)
 
   return (
@@ -415,18 +437,20 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
       </div>
 
       <div className="section-card">
-        <h3 className="card-title">{overview.changePassword}</h3>
+        <h3 className="card-title">{hasPassword ? overview.changePassword : login.setPassword || 'Set Password'}</h3>
         <div className="form-grid password-form">
-          <PasswordField
-            label={overview.currentPassword}
-            value={passwordForm.currentPassword}
-            onChange={(v) => {
-              accountStoreActions.updatePasswordField('currentPassword', v)
-              if (passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
-            }}
-            placeholder={overview.currentPasswordPlaceholder}
-            error={passwordErrors.currentPasswordError}
-          />
+          {hasPassword && (
+            <PasswordField
+              label={overview.currentPassword}
+              value={passwordForm.currentPassword}
+              onChange={(v) => {
+                accountStoreActions.updatePasswordField('currentPassword', v)
+                if (passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
+              }}
+              placeholder={overview.currentPasswordPlaceholder}
+              error={passwordErrors.currentPasswordError}
+            />
+          )}
           <PasswordField
             label={overview.newPassword}
             value={passwordForm.newPassword}
@@ -450,10 +474,10 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
         </div>
         <button
           className="btn-primary"
-          onClick={onChangePassword}
+          onClick={hasPassword ? onChangePassword : onSetPassword}
           disabled={passwordChanging}
         >
-          {passwordChanging ? '...' : overview.changePasswordBtn}
+          {passwordChanging ? '...' : (hasPassword ? overview.changePasswordBtn : (login.setPassword || 'Set Password'))}
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { languageIcons, supportedLanguages, type Language } from '../i18n'
 import { apiGet, isLoggedIn as checkIsLoggedIn, getStoredUser } from '../utils/api'
+import { accountStoreActions } from '../stores/accountStore'
 import type { SearchSuggestion, WatchHistoryItem, User } from '../types'
 import LoginModal from './LoginModal'
 import './TopBar.css'
@@ -297,7 +298,9 @@ const TopBar: React.FC = () => {
       {showLoginModal && (
         <LoginModal
           onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={() => {
+          onLoginSuccess={(user) => {
+            // Initialize account store with user data before navigating
+            accountStoreActions.initializeUserData(user)
             setShowLoginModal(false)
             navigate('/account')
           }}

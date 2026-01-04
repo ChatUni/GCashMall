@@ -127,17 +127,19 @@ Section card with form fields:
 | Confirm New Password | password | Confirm new password |
 
 - **Change Password Button**: Primary blue button
+
 ##### Interaction
 
-- on Change Password click:
+- if there is no current password (logged in through OAuth), then Current Password input should be hidden and Change Password Button should be Set Password Button
+- on Change/Set Password click:
   - validation:
-    - current password not empty
+    - current password not empty (if there is a current password)
     - new password not empty
     - confirm new password not empty
     - new password and confirm new password match
     - valid new password
   - validation fail: show error in red under the input boxes
-  - validation success: call the update password API
+  - validation success: call the update/set password API
   - show the success/fail result in toast notification
 
 ### 2. Watch History
@@ -317,28 +319,28 @@ Vertical
 - "Forget password?" link (align right)
 - "Login" button (primary blue)
 - "Or continue with" (center)
-- Google icon (center)
+- OAuth icons (center, Google, Facebook, Twitter, LinkedIn)
 - "Don't have an account?" followed by the "Sign up" link
 
 ### Interaction
 
 - on click “×” icon: close the modal without login, and reset sensitive fields
-- on Google icon hover: scale up by 50%
-- on Google icon click:
-  - redirect to google signin
+- on each OAuth icon hover: scale up by 50%
+- on each OAuth icon click:
+  - redirect to that OAuth provider's signin
   - on fail, stay in the popout modal
   - on success
-    - get the name, email and photo from the profile
+    - get the OAuth id, name, email and photo from the profile
     - call the check email API to see if the user exists
-    - if exists, call the login API, log the user in, and show the account page
-    - if not exists, call the email register API with name, email and photo url, then log the user in, and show the account page
+    - if exists, call the login API with the OAuth id and type, log the user in, and show the account page
+    - if not exists, call the email register API with OAuth id, type, name, email and photo url, then log the user in, and show the account page
 - on Login button click:
   - verify email (valid email address)
   - verify password (not empty)
   - if fail, show the error below the input box in red
   - otherwise, call the login API
   - on success, log the user in, and show the account page
-- on Forget password click: do nothing
+- on Forget password click: switch to reset password popout
 - on Sign up click: switch to Sign up Popout
 
 ## Sign up Popout (Modal)
@@ -350,13 +352,13 @@ Vertical
 - password input (required)
 - "Create an Account" button (primary green)
 - "Or continue with" (center)
-- Google icon (center)
+- OAuth icons
 - "Already have an account?" followed by the "Log in" link
 
 ### Interaction
 
 - on click “×” icon: close the modal without sign up, and reset sensitive fields
-- on Google icon hover and click: same as Login in popout
+- on each OAuth icon hover and click: same as Login in popout
 - on Create Account button click:
   - verify email (valid email address, not exists in db by calling the check email API)
   - verify password (min 6 chars, 1 upper, 1 lower, 1 number, 1 special char)
@@ -364,3 +366,20 @@ Vertical
   - otherwise, call the email register API
   - on success, log the user in, and show the account page
 - on Log in link click: switch to Login Popout
+
+## Reset Password Popout (Modal)
+
+### Layout
+Vertical
+- title: "Reset Password"
+- email input (required)
+- "Reset Password" button (amber)
+
+### Interaction
+
+- on click “×” icon: close the modal
+- on Reset Password button click:
+  - verify email (valid email address)
+  - if fail, show the error below the input box in red
+  - otherwise, call the reset password API
+  - show the message "An email has been sent to {email} with password reset instruction."

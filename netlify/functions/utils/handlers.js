@@ -3,6 +3,8 @@ import { ObjectId } from 'mongodb'
 import { v2 as cloudinary } from 'cloudinary'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
+import { sendPasswordResetEmail } from './email.js'
 
 // Configure Cloudinary
 cloudinary.config({
@@ -453,7 +455,7 @@ const emailRegister = async (body) => {
   validateEmailRegisterBody(body)
 
   try {
-    const { email, password, nickname, photoUrl } = body
+    const { email, password, nickname, photoUrl, oauthId, oauthType } = body
 
     // Check if email already exists
     const existingUsers = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
@@ -474,6 +476,11 @@ const emailRegister = async (body) => {
       updatedAt: new Date(),
     }
 
+    // Add OAuth info if provided
+    if (oauthId && oauthType) {
+      newUser[`${oauthType}_id`] = oauthId
+    }
+
     const result = await save('users', newUser)
 
     // Generate JWT token
@@ -485,6 +492,7 @@ const emailRegister = async (body) => {
       email: newUser.email,
       nickname: newUser.nickname,
       avatar: newUser.avatar,
+      hasPassword: true,
     }
 
     return {
@@ -601,7 +609,7 @@ const googleLogin = async (body) => {
   }
 
   try {
-    const { email } = body
+    const { email, oauthId, oauthType } = body
 
     // Find user by email
     const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
@@ -614,6 +622,22 @@ const googleLogin = async (body) => {
     // Generate JWT token
     const token = generateToken({ email: user.email, id: user._id })
 
+    // Add OAuth type/id to the account if not exist
+    if (oauthId && oauthType) {
+      const oauthKey = `${oauthType}_id`
+      if (!user[oauthKey]) {
+        const updateData = {
+          ...user,
+          [oauthKey]: oauthId,
+          updatedAt: new Date(),
+        }
+        await save('users', updateData)
+      }
+    }
+
+    // Determine if user has a password set
+    const hasPassword = !!user.password
+
     // Return user without password
     const userResponse = {
       _id: user._id,
@@ -623,6 +647,7 @@ const googleLogin = async (body) => {
       phone: user.phone || null,
       gender: user.gender || null,
       birthday: user.birthday || null,
+      hasPassword,
     }
 
     return {
@@ -642,7 +667,7 @@ const login = async (body) => {
   validateLoginBody(body)
 
   try {
-    const { email, password } = body
+    const { email, password, oauthId, oauthType } = body
 
     // Find user by email
     const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
@@ -661,6 +686,22 @@ const login = async (body) => {
     // Generate JWT token
     const token = generateToken({ email: user.email, id: user._id })
 
+    // Add OAuth type/id to the account if not exist
+    if (oauthId && oauthType) {
+      const oauthKey = `${oauthType}_id`
+      if (!user[oauthKey]) {
+        const updateData = {
+          ...user,
+          [oauthKey]: oauthId,
+          updatedAt: new Date(),
+        }
+        await save('users', updateData)
+      }
+    }
+
+    // Determine if user has a password set
+    const hasPassword = !!user.password
+
     // Return user without password
     const userResponse = {
       _id: user._id,
@@ -670,6 +711,7 @@ const login = async (body) => {
       phone: user.phone || null,
       gender: user.gender || null,
       birthday: user.birthday || null,
+      hasPassword,
     }
 
     return {
@@ -969,6 +1011,220 @@ const validateUpdatePasswordBody = (body) => {
   }
 }
 
+// Set password (for OAuth users without password)
+const setPassword = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateSetPasswordBody(body)
+
+  try {
+    const { newPassword } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if user already has a password
+    if (currentUser.password) {
+      return { success: false, error: 'Password already exists. Use change password instead.' }
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+
+    // Set password
+    const updateData = {
+      ...currentUser,
+      password: hashedNewPassword,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+      hasPassword: true,
+    }
+
+    return {
+      success: true,
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to set password: ${error.message}`)
+  }
+}
+
+const validateSetPasswordBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.newPassword) {
+    throw new Error('New password is required')
+  }
+
+  if (!isValidPassword(body.newPassword)) {
+    throw new Error(
+      'New password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
+    )
+  }
+}
+
+// Reset password (send reset email)
+const resetPassword = async (body) => {
+  validateResetPasswordBody(body)
+
+  try {
+    const { email } = body
+
+    // Check if user exists
+    const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
+    
+    // Always return success to prevent email enumeration
+    // Only send email if user exists
+    if (users && users.length > 0) {
+      const user = users[0]
+      
+      // Generate secure reset token
+      const resetToken = generateResetToken()
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
+      
+      // Store reset token in database
+      const updateData = {
+        ...user,
+        resetToken,
+        resetTokenExpiry,
+        updatedAt: new Date(),
+      }
+      await save('users', updateData)
+      
+      // Build reset URL
+      const baseUrl = process.env.APP_URL || 'http://localhost:5173'
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email.toLowerCase())}`
+      
+      // Send password reset email
+      try {
+        await sendPasswordResetEmail(email.toLowerCase(), resetToken, resetUrl)
+        console.log(`[resetPassword] Reset email sent to: ${email}`)
+      } catch (emailError) {
+        console.error(`[resetPassword] Failed to send email:`, emailError)
+        // Don't throw - still return success to prevent email enumeration
+      }
+    }
+
+    return {
+      success: true,
+      data: { message: 'If an account exists with this email, a reset link has been sent.' },
+    }
+  } catch (error) {
+    throw new Error(`Failed to reset password: ${error.message}`)
+  }
+}
+
+// Generate a secure random reset token
+const generateResetToken = () => {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+// Confirm password reset (verify token and set new password)
+const confirmResetPassword = async (body) => {
+  validateConfirmResetPasswordBody(body)
+
+  try {
+    const { email, token, newPassword } = body
+
+    // Find user by email and valid reset token
+    const users = await get('users', {
+      email: email.toLowerCase(),
+      resetToken: token,
+    }, {}, {}, 1)
+    
+    if (!users || users.length === 0) {
+      return { success: false, error: 'Invalid or expired reset token' }
+    }
+
+    const user = users[0]
+
+    // Check if token has expired
+    if (!user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
+      return { success: false, error: 'Reset token has expired' }
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    // Update user with new password and clear reset token
+    const updateData = {
+      ...user,
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
+      updatedAt: new Date(),
+    }
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: { message: 'Password has been reset successfully' },
+    }
+  } catch (error) {
+    throw new Error(`Failed to confirm password reset: ${error.message}`)
+  }
+}
+
+const validateConfirmResetPasswordBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.email) {
+    throw new Error('Email is required')
+  }
+
+  if (!isValidEmail(body.email)) {
+    throw new Error('Invalid email address')
+  }
+
+  if (!body.token) {
+    throw new Error('Reset token is required')
+  }
+
+  if (!body.newPassword) {
+    throw new Error('New password is required')
+  }
+
+  if (!isValidPassword(body.newPassword)) {
+    throw new Error(
+      'New password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
+    )
+  }
+}
+
+const validateResetPasswordBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.email) {
+    throw new Error('Email is required')
+  }
+
+  if (!isValidEmail(body.email)) {
+    throw new Error('Invalid email address')
+  }
+}
+
 const clearWatchHistory = async (body) => {
   try {
     await remove('watchHistory', {})
@@ -1244,5 +1500,8 @@ export {
   updateProfile,
   updateProfilePicture,
   updatePassword,
+  setPassword,
+  resetPassword,
+  confirmResetPassword,
   clearWatchHistory,
 }

@@ -57,6 +57,8 @@ export interface Episode {
   episodeNumber: number
 }
 
+export type OAuthType = 'google' | 'facebook' | 'twitter' | 'linkedin'
+
 export interface User {
   _id: string | null
   email: string
@@ -68,6 +70,11 @@ export interface User {
   sex?: string | null
   dob?: string | null
   balance?: number
+  hasPassword?: boolean
+  google_id?: string
+  facebook_id?: string
+  twitter_id?: string
+  linkedin_id?: string
 }
 
 export interface AuthResponse {
@@ -82,6 +89,8 @@ export interface CheckEmailResponse {
 export interface LoginRequest {
   email: string
   password: string
+  oauthId?: string
+  oauthType?: OAuthType
 }
 
 export interface RegisterRequest {
@@ -89,6 +98,20 @@ export interface RegisterRequest {
   password: string
   nickname?: string
   photoUrl?: string
+  oauthId?: string
+  oauthType?: OAuthType
+}
+
+export interface SetPasswordRequest {
+  newPassword: string
+}
+
+export interface ResetPasswordRequest {
+  email: string
+}
+
+export interface ResetPasswordResponse {
+  message: string
 }
 
 export interface WatchHistoryItem {

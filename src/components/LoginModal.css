@@ -162,23 +162,52 @@
   color: #6b7280;
 }
 
-.login-google-btn {
+.login-oauth-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  gap: 16px;
+}
+
+.login-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 8px;
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.login-google-icon {
+.login-oauth-btn:hover {
+  transform: scale(1.5);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.login-oauth-btn svg {
   transition: transform 0.2s ease;
 }
 
-.login-google-btn:hover .login-google-icon {
-  transform: scale(1.5);
+.login-reset-success {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.login-reset-success p {
+  color: #9ca3af;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.login-submit-reset {
+  background-color: #f59e0b;
+}
+
+.login-submit-reset:hover:not(:disabled) {
+  background-color: #d97706;
 }
 
 .login-signup {
