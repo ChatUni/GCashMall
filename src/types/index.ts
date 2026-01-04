@@ -95,7 +95,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   email: string
-  password: string
+  password?: string
   nickname?: string
   photoUrl?: string
   oauthId?: string

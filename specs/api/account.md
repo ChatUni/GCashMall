@@ -19,7 +19,7 @@ return true/false
 ### Input
 
 - email *
-- password *
+- password
 - nickname = "Guest"
 - photo url
 - OAuth id
@@ -29,10 +29,11 @@ return true/false
 
 - valid email address
 - email doesn't exist in db
+- if no OAuth type/id, password is required
 
 ### Action
 
-- create an account
+- create an account (if has OAuth type/id, password is empty)
 
 ### Output
 

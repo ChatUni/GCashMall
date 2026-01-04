@@ -3,7 +3,7 @@
 
 import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
-import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword, generateRandomPassword } from '../utils/validation'
+import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, WatchHistoryItem, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
 
 // Initialize account data
@@ -52,11 +52,9 @@ const handleOAuthCallback = async (
           accountStoreActions.setShowLoginModal(true)
         }
       } else {
-        // New user - register with OAuth info
-        const generatedPassword = generateRandomPassword()
+        // New user - register with OAuth info (no password required)
         const registerResponse = await emailRegister({
           email,
-          password: generatedPassword,
           nickname: name,
           photoUrl: picture,
           oauthId,

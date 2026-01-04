@@ -364,7 +364,7 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
             label={overview.phoneNumber}
             type="tel"
             name="phone"
-            autoComplete="off"
+            autoComplete="tel"
             value={profileForm.phoneNumber}
             onChange={(v) => {
               accountStoreActions.updateProfileField('phoneNumber', v)

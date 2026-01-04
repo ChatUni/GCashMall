@@ -463,17 +463,18 @@ const emailRegister = async (body) => {
       return { success: false, error: 'Email already exists' }
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
-
     // Create new user with default nickname "Guest" if not provided
     const newUser = {
       email: email.toLowerCase(),
-      password: hashedPassword,
       nickname: nickname || 'Guest',
       avatar: photoUrl || null,
       createdAt: new Date(),
       updatedAt: new Date(),
+    }
+
+    // Hash and store password only if provided (OAuth users may not have password)
+    if (password) {
+      newUser.password = await bcrypt.hash(password, 10)
     }
 
     // Add OAuth info if provided
@@ -492,7 +493,7 @@ const emailRegister = async (body) => {
       email: newUser.email,
       nickname: newUser.nickname,
       avatar: newUser.avatar,
-      hasPassword: true,
+      hasPassword: !!password,
     }
 
     return {
@@ -520,11 +521,14 @@ const validateEmailRegisterBody = (body) => {
     throw new Error('Invalid email address')
   }
 
-  if (!body.password) {
+  // Password is required if no OAuth type/id
+  const hasOAuth = body.oauthId && body.oauthType
+  if (!hasOAuth && !body.password) {
     throw new Error('Password is required')
   }
 
-  if (!isValidPassword(body.password)) {
+  // Validate password format if provided
+  if (body.password && !isValidPassword(body.password)) {
     throw new Error(
       'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
     )
@@ -591,6 +595,7 @@ const googleAuth = async (body) => {
     return {
       success: true,
       data: {
+        id: userInfo.id,
         name: userInfo.name || userInfo.given_name || 'Guest',
         email: userInfo.email,
         picture: userInfo.picture,
