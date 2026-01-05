@@ -1,98 +1,152 @@
+/* Modal Overlay */
 .login-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
+/* Modal Container */
 .login-modal {
   background-color: #121214;
-  border-radius: 12px;
-  padding: 32px;
+  border-radius: 16px;
+  padding: 40px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* Close Button */
 .login-modal-close {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: transparent;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
+  border-radius: 50%;
   cursor: pointer;
   color: #9ca3af;
-  padding: 4px;
-  transition: color 0.2s ease;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .login-modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+}
+
+/* Brand Section */
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  margin-left: -8px;
+}
+
+.login-brand-logo {
+  height: 66px;
+  width: auto;
+}
+
+.login-brand-name {
+  font-size: 30px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Header Section */
+.login-header {
+  text-align: center;
+  margin-bottom: 24px;
 }
 
 .login-modal-title {
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 24px 0;
-  text-align: center;
+  margin: 0 0 8px 0;
 }
 
+.login-modal-subtitle {
+  font-size: 15px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Form Section */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
+/* Error Message */
 .login-error {
   background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  border-radius: 6px;
-  padding: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
   color: #ef4444;
   font-size: 14px;
   text-align: center;
 }
 
+/* Form Groups */
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
+/* Labels */
 .login-label {
   font-size: 14px;
+  font-weight: 500;
   color: #9ca3af;
 }
 
+/* Inputs */
 .login-input {
   background-color: #1a1a1a;
   border: 1px solid #242428;
-  border-radius: 6px;
-  padding: 12px 16px;
+  border-radius: 8px;
+  padding: 14px 16px;
   font-size: 16px;
   color: #ffffff;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: #6b7280;
 }
 
 .login-input:focus {
   border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+/* Submit Button */
 .login-submit {
   background-color: #3b82f6;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 14px;
+  border-radius: 8px;
+  padding: 16px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -102,10 +156,73 @@
 
 .login-submit:hover:not(:disabled) {
   background-color: #2563eb;
-  transform: scale(1.02);
 }
 
 .login-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Footer Section */
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #242428;
+}
+
+.login-footer-text {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.login-switch-btn {
+  background: transparent;
+  border: none;
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: text-decoration 0.2s ease;
+}
+
+.login-switch-btn:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design - Small Mobile (≤480px) */
+@media (max-width: 480px) {
+  .login-modal {
+    padding: 24px;
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+
+  .login-modal-title {
+    font-size: 22px;
+  }
+
+  .login-brand-logo {
+    height: 50px;
+  }
+
+  .login-brand-name {
+    font-size: 24px;
+  }
+
+  .login-form {
+    gap: 16px;
+  }
+
+  .login-input {
+    padding: 12px 14px;
+  }
+
+  .login-submit {
+    padding: 14px;
+  }
 }

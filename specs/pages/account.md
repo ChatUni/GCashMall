@@ -464,33 +464,78 @@ Each setting is shown in a clean row with clear controls.
 
 ### Balance Card
 
-- Displays current GCash balance
-- Blue gradient background
-- Shows GCash logo and amount clearly
+- Displays current wallet balance
+- Blue gradient background (linear gradient from #3b82f6 to #1d4ed8)
+- Left side shows:
+  - "Balance" label (white, 14px, 80% opacity)
+  - Amount with G logo icon (36px) followed by the number (36px, bold, white)
+- Right side shows: 💰 emoji (48px, full opacity)
+- Rounded corners (16px)
+- Box shadow for depth
 
 ---
 
-### Top Up Section
+### Currency Display
 
-- Users select predefined amounts
-- Clear grid layout
-- Hover effects emphasize selection
+- All currency amounts use the G logo image instead of ₱ symbol
+- G logo is loaded from Cloudinary (same as TopBar logo)
+- Icon sizes vary by context:
+  - Balance amount: 36px
+  - Amount buttons: 20px
+  - Transaction amounts: 16px
+  - Modal confirmation: 18px
+- Icons are vertically aligned with numbers using flexbox
 
 ---
 
-### Top Up Confirmation Popup
+### Action Buttons
 
-- Dark overlay
-- Centered modal
-- Shows selected amount
-- Confirm or cancel actions
+- Two toggle buttons: "Top Up" and "Withdraw"
+- Displayed side by side with equal width
+- Styling:
+  - Inactive: Dark background (#1a1a1a), gray text, gray border
+  - Active: Blue background (#3b82f6), white text, blue border
+  - Hover: Blue border, white text
+- Clicking a button sets the current wallet action mode
+
+---
+
+### Amount Selection Section
+
+- Title changes based on selected action:
+  - Top Up mode: "Select Top Up Amount"
+  - Withdraw mode: "Select Withdraw Amount"
+- Grid layout with 6 predefined amounts: 10, 20, 50, 100, 200, 500
+- 3 columns on desktop, 2 columns on mobile
+- Each button shows G logo + amount
+- Hover effects: blue border, slight scale, blue tinted background
+
+---
+
+### Wallet Action Confirmation Popup
+
+- Dark overlay (85% black)
+- Centered modal with dark background
+- Title changes based on action:
+  - Top Up: "Confirm Top Up"
+  - Withdraw: "Confirm Withdraw"
+- Message shows selected amount with G logo icon
+- Two buttons: Cancel (secondary) and Confirm (primary)
+- Withdraw validation: Cannot withdraw more than current balance
 
 ---
 
 ### Transaction History
 
 - Shows past wallet activity
-- Empty state if no transactions exist
+- Each transaction displays:
+  - Description (e.g., "Top up 100" or "Withdraw 50")
+  - Date
+  - Amount with G logo icon
+- Amount styling:
+  - Top up: Green color (#22c55e) with + prefix
+  - Withdraw: Red color (#ef4444) with - prefix
+- Empty state message if no transactions exist
 
 ---
 
