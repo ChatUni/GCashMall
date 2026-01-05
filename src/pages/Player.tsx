@@ -21,12 +21,12 @@ import {
 import type { Episode } from '../types'
 import './Player.css'
 
-// Track initialized series IDs to avoid re-fetching
-const initializedSeriesIds = new Set<string>()
+// Track the currently loaded series ID to detect changes
+let currentLoadedSeriesId: string | null = null
 
 const initializePlayerData = (seriesId: string) => {
-  if (!initializedSeriesIds.has(seriesId)) {
-    initializedSeriesIds.add(seriesId)
+  if (currentLoadedSeriesId !== seriesId) {
+    currentLoadedSeriesId = seriesId
     playerStoreActions.reset()
     fetchPlayerData(seriesId)
   }
@@ -162,7 +162,7 @@ const Player: React.FC = () => {
     )
   }
 
-  if (!playerState.series || !playerState.currentEpisode) {
+  if (!playerState.series) {
     return (
       <div className="player-page">
         <TopBar />
@@ -266,7 +266,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ seriesName, homeText, onHomeCli
 )
 
 interface VideoPlayerProps {
-  episode: Episode
+  episode: Episode | null
   videoRef: React.RefObject<HTMLVideoElement | null>
   isPlaying: boolean
   showControls: boolean
@@ -309,7 +309,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onMouseLeave,
 }) => (
   <div className="video-player">
-    {episode.videoId ? (
+    {!episode ? (
+      <div className="video-placeholder">No video available</div>
+    ) : episode.videoId ? (
       <iframe
         src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId)}
         loading="lazy"
@@ -450,7 +452,7 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({ onClick }) => (
 
 interface EpisodeMetadataProps {
   series: { name: string; tags?: string[]; genre?: { id: number; name: string }[]; description: string; languages?: string[] }
-  currentEpisode: Episode
+  currentEpisode: Episode | null
   selectedLanguage: string
   onLanguageChange: (language: string) => void
   onTagClick: (tag: string) => void
@@ -465,7 +467,7 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
 }) => (
   <div className="episode-metadata">
     <h1 className="episode-title">
-      {buildEpisodeTitle(series.name, currentEpisode.episodeNumber)}
+      {currentEpisode ? buildEpisodeTitle(series.name, currentEpisode.episodeNumber) : series.name}
     </h1>
 
     <div className="episode-language">
@@ -498,14 +500,14 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
       ))}
     </div>
 
-    <p className="episode-description">{currentEpisode.description || series.description}</p>
+    <p className="episode-description">{currentEpisode?.description || series.description}</p>
   </div>
 )
 
 interface EpisodeSidebarProps {
   episodes: Episode[]
   allEpisodes: Episode[]
-  currentEpisode: Episode
+  currentEpisode: Episode | null
   episodeRange: [number, number]
   hoveredEpisodeId: string | null
   title: string
@@ -550,7 +552,7 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
           <div
             key={episode._id}
             className={`episode-thumbnail ${
-              currentEpisode._id === episode._id ? 'active' : ''
+              currentEpisode?._id === episode._id ? 'active' : ''
             }`}
             onClick={() => onEpisodeClick(episode)}
             onMouseEnter={() => onEpisodeHover(episode._id)}

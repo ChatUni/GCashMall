@@ -54,10 +54,15 @@ export const fetchPlayerData = async (seriesId: string) => {
 
     if (seriesResponse.success && seriesResponse.data) {
       playerStoreActions.setSeries(seriesResponse.data)
-    }
-    if (episodesResponse.success && episodesResponse.data && episodesResponse.data.length > 0) {
-      playerStoreActions.setEpisodes(episodesResponse.data)
-      playerStoreActions.setCurrentEpisode(episodesResponse.data[0])
+      
+      // Use episodes from series object if available, otherwise use separate episodes API response
+      const episodes = seriesResponse.data.episodes ||
+        (episodesResponse.success && episodesResponse.data ? episodesResponse.data : [])
+      
+      if (episodes.length > 0) {
+        playerStoreActions.setEpisodes(episodes)
+        playerStoreActions.setCurrentEpisode(episodes[0])
+      }
     }
   } catch (error) {
     console.error('Error fetching series data:', error)
