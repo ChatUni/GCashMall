@@ -419,3 +419,10 @@ const mockSuggestions: SearchSuggestion[] = [
   { id: '3', title: 'Comedy Show C', tag: 'Comedy' },
   { id: '4', title: 'Thriller D', tag: 'Thriller' },
 ]
+```
+## Accessibility 
+- All interactive elements are keyboard accessible 
+- Search input has proper placeholder text 
+- Icon buttons have title attributes 
+- Keyboard navigation for search suggestions 
+- Focus states with visible indicators
