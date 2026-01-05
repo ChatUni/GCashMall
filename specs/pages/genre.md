@@ -2,15 +2,15 @@
 
 ## Overview
 
-The Genre page is a **content discovery and browsing page** for GCashTV.  
-Its purpose is to help users easily **explore and filter series by genre or category**, so they can quickly find content that matches their interests.
+The Genre page is a content discovery and browsing page for GCashTV.  
+Its purpose is to help users easily explore and filter series by genre or category, so they can quickly find content that matches their interests.
 
 The page is designed to feel familiar and intuitive:
-- A **genre sidebar** on the left allows users to select categories
-- A **responsive content grid** on the right displays the filtered results
+- A genre sidebar on the left allows users to select categories
+- A responsive content grid on the right displays the filtered results
 - The experience works smoothly across desktop, tablet, and mobile devices
 
-This document explains the page in **clear, non-technical language**, while preserving all functional, visual, and behavioral details.
+This document explains the page in clear, non-technical language, while preserving all functional, visual, and behavioral details.
 
 ---
 
@@ -18,49 +18,49 @@ This document explains the page in **clear, non-technical language**, while pres
 
 ### Layout
 
-- **Overall height**: Fills the full browser viewport
-- **Layout direction**: Vertical page structure
-- **Theme**: Dark mode
-  - Background color: `#0B0B0E`
-- **Main content area**:
+- Overall height: Fills the full browser viewport
+- Layout direction: Vertical page structure
+- Theme: Dark mode
+  - Background color: #0B0B0E
+- Main content area:
   - Horizontal layout with:
-    - **Genre sidebar** on the left
-    - **Content grid section** on the right
+    - Genre sidebar on the left
+    - Content grid section on the right
 
 ---
 
 ### Components Used
 
-- **TopBar**: Global header navigation
-- **BottomBar**: Global footer navigation
+- TopBar: Global header navigation
+- BottomBar: Global footer navigation
 
 ---
 
 ## URL Parameters
 
-The Genre page supports **direct linking and deep navigation** using URL parameters.
+The Genre page supports direct linking and deep navigation using URL parameters.
 
 ### Category Parameter
 
-- `?category={genreName}`
+- ?category={genreName}
 - Automatically selects a genre when the page loads
 
-**Example**  
-`/genre?category=Romance`
+Example  
+/genre?category=Romance
 
-This opens the Genre page with **Romance** already selected.
+This opens the Genre page with Romance already selected.
 
 ---
 
 ### URL Behavior
 
 - When the page loads:
-  - It checks the URL for a `category` parameter
+  - It checks the URL for a category parameter
 - If a valid genre is found:
   - That genre becomes the active filter
 - When a user selects a genre:
   - The URL updates to reflect the selected category
-- When **“All”** is selected:
+- When “All” is selected:
   - The category parameter is removed from the URL
 
 This allows:
@@ -116,16 +116,16 @@ The following genres are available for filtering:
 
 ### Sidebar Container
 
-- **Width**: 240px (fixed)
-- **Minimum width**: 240px
-- **Background**: Same dark background as the page
-- **Padding**: 30px top and bottom
-- **Scrolling**: Vertical scroll enabled if content exceeds height
-- **Sticky behavior**:
+- Width: 240px (fixed)
+- Minimum width: 240px
+- Background: Same dark background as the page
+- Padding: 30px top and bottom
+- Scrolling: Vertical scroll enabled if content exceeds height
+- Sticky behavior:
   - Remains visible while scrolling
   - Positioned below the TopBar
-- **Height**: Full screen minus TopBar height
-- **Divider**: Thin border on the right
+- Height: Full screen minus TopBar height
+- Divider: Thin border on the right
 
 ---
 
@@ -273,7 +273,7 @@ When hovering over a card:
 
 ### Default State
 
-- When **“All”** is selected:
+- When “All” is selected:
   - All available series are shown
 
 ### Genre Selected
@@ -379,7 +379,7 @@ All animations are short and unobtrusive.
 
 ## Mock Data
 
-The page includes **16 sample series items** for testing and demonstration.
+The page includes 16 sample series items for testing and demonstration.
 
 Each item includes:
 - A unique ID

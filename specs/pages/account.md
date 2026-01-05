@@ -2,12 +2,12 @@
 
 ## Overview
 
-The Account page is a **central hub where users manage everything related to their GCashTV account**.  
+The Account page is a central hub where users manage everything related to their GCashTV account.  
 It allows users to view and edit their personal profile, manage watch history and favorites, adjust settings, and handle wallet balance — all in one place.
 
-The page uses a **left-side navigation menu** to switch between different sections, making it easy for users to understand where they are and what they can do.
+The page uses a left-side navigation menu to switch between different sections, making it easy for users to understand where they are and what they can do.
 
-This specification is written so that **anyone (designers, product managers, QA, business stakeholders, and engineers)** can clearly understand how the page works, what users see, and how data behaves.
+This specification is written so that anyone (designers, product managers, QA, business stakeholders, and engineers) can clearly understand how the page works, what users see, and how data behaves.
 
 ---
 
@@ -15,25 +15,25 @@ This specification is written so that **anyone (designers, product managers, QA,
 
 ### Layout
 
-- **Overall layout**: Full screen height
-- **Direction**: Vertical stacking (top to bottom)
-- **Theme**: Dark mode
-  - Background color: `#0B0B0E`
-- **Main area**:
+- Overall layout: Full screen height
+- Direction: Vertical stacking (top to bottom)
+- Theme: Dark mode
+  - Background color: #0B0B0E
+- Main area:
   - Split into two parts:
-    - **Sidebar** (fixed width: 280px)
-    - **Main content area** (flexible width)
-- **Padding**:
+    - Sidebar (fixed width: 280px)
+    - Main content area (flexible width)
+- Padding:
   - Vertical: 24px
   - Horizontal: 40px
-- **Spacing**:
+- Spacing:
   - 32px gap between sidebar and content area
 
 ### Components Used
 
-- **TopBar**: Global header navigation
-- **BottomBar**: Global footer navigation
-- **LoginModal**: Popup modal for login and registration
+- TopBar: Global header navigation
+- BottomBar: Global footer navigation
+- LoginModal: Popup modal for login and registration
 
 ---
 
@@ -41,27 +41,27 @@ This specification is written so that **anyone (designers, product managers, QA,
 
 ### Login Requirement
 
-- When the Account page loads, the system checks the browser’s local storage for a saved user object called `gcashtv-user`
-- If the user is **not logged in**:
+- When the Account page loads, the system checks the browser’s local storage for a saved user object called gcashtv-user
+- If the user is not logged in:
   - The login popup automatically appears
-- If the user **logs in successfully**:
+- If the user logs in successfully:
   - The popup closes
   - User data is loaded into the Account page
-- If the user **closes the popup without logging in**:
+- If the user closes the popup without logging in:
   - The user is redirected back to the home page
 
 ### User Data Loading
 
-- All user information comes **only from local storage**
+- All user information comes only from local storage
 - No server request is made to fetch user profile data
 - This prevents accidental overwriting of existing local data
 - Display name logic:
-  - If a **nickname** exists, it is shown first
-  - Otherwise, the **username** is shown
+  - If a nickname exists, it is shown first
+  - Otherwise, the username is shown
 
 ### Logout Functionality
 
-- A **Logout button** is located at the bottom of the sidebar
+- A Logout button is located at the bottom of the sidebar
 - When clicked:
   - User data is removed from local storage
   - The user is redirected to the home page
@@ -80,7 +80,7 @@ This specification is written so that **anyone (designers, product managers, QA,
 
 ### Modal Behavior and States
 
-The modal supports **two modes**:
+The modal supports two modes:
 - Login
 - Register
 
@@ -141,7 +141,7 @@ It internally tracks:
 
 #### Brand Name
 
-- Text: **GcashTV**
+- Text: GcashTV
 - White color
 - Font size: 30px
 - Medium-bold weight (600)
@@ -356,7 +356,7 @@ All labels and placeholders use translation keys to support multiple languages.
 
 ### Header
 
-- Title: **Account Overview**
+- Title: Account Overview
 - Subtitle: “Manage your profile and preferences”
 
 ---
@@ -372,7 +372,7 @@ Users can edit:
 
 Inputs follow the same dark theme styling as login fields.
 
-A **Save button** confirms changes.
+A Save button confirms changes.
 
 ---
 
@@ -498,11 +498,11 @@ Each setting is shown in a clean row with clear controls.
 
 The Account page supports direct navigation using URL tabs:
 
-- `?tab=overview`
-- `?tab=watchHistory`
-- `?tab=favorites`
-- `?tab=settings`
-- `?tab=wallet`
+- ?tab=overview
+- ?tab=watchHistory
+- ?tab=favorites
+- ?tab=settings
+- ?tab=wallet
 
 ---
 
