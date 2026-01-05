@@ -1,211 +1,421 @@
-# Top bar component
+# Top Bar Component Specification
 
-## Layout
-Horizontal
-- app logo
-- GcashReels
-- nav links (“Home”)
-- nav links (”Genre“)
-- search bar
-- watch history icon
-- account icon (Account): Login Popout (Modal) — Triggered by Account Icon (Not Logged In)
-- language switch
+## Overview
 
-## Style
-- Bg color: black / near-black  (#0B0B0E)
-- height: 60px
-- full window width
-- Text color: white (#FFFFFF) (nav + icons)
-- Hover: text/icon changes to blue (#3B82F6)
-- Active nav: Text color: blue (#3B82F6), Underline appears: Thin underline, Same blue color as text
+The Top Bar is a sticky header at the top of GCashTV. It provides branding, navigation links, search functionality, access to watch history, account management, and language switching. It works together with authentication and watch history contexts.
 
-## Components
+This specification explains the Top Bar for everyone, including designers, product managers, QA, and engineers.
+
+---
+
+## Component Structure
+
+### Layout
+- Position: Sticky, top: 0
+- Z-Index: 1000
+- Height: 60px
+- Background: #0B0B0E
+- Padding: 0 60px
+- Width: 100%
+- Box Sizing: border-box
+
+### Content Container
+- Display: Flex, space-between, center aligned
+- Width: 100%
+- Gap: 30px
+
+---
+
+## Left Side Group
+
+### Container
+- Display: Flex, center aligned
+- Gap: 30px
+- Flex: 1
 
 ### App Logo
-url: https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
+- Height: 44px
+- Cursor: Pointer
+- Transition: opacity 0.2s ease
+- Hover: opacity 0.8
+- Flex Shrink: 0
+- Source: Cloudinary hosted image
+- Click Action: Navigate to `/`
 
-### “Home” （Nav item）
-#### Style
-- Font size: 14–16px
-- Default state: white text, no underline
+### Brand Name
+- Text: "GcashTV"
+- Color: #FFFFFF
+- Font Size: 18px
+- Font Weight: 600
+- Margin Right: 20px
+- Flex Shrink: 0
+- Line Height: 1
 
-#### Interaction
-- On hover: "Home" turns blue
-- On active: Blue text "Home" and Blue underline appears
-- On click: go to Home page
+### Navigation Links
+- Display: Flex, center aligned
+- Gap: 8px
 
-### “Genre”
-#### Style
-- Font size: 14–16px
-- Default state: white text, no underline
+#### Nav Link Button
+- Background: None
+- Border: None
+- Color: #FFFFFF
+- Font Size: 15px
+- Font Weight: 500
+- Padding: 8px 16px
+- Cursor: Pointer
+- Hover: Color #3B82F6
+- Active State: Color #3B82F6 with underline indicator
 
-#### Interaction
-- On active: Blue text "Genre" and Blue underline appears
-- On click: go to series list page
+#### Active Indicator (::after)
+- Position: Absolute bottom
+- Width: calc(100% - 32px)
+- Height: 2px
+- Background: #3B82F6
+- Border Radius: 1px
+- Centered: translateX(-50%)
 
-### Search bar
-#### Layout
-Horizontal, input box, search button
+### Navigation Items
+| Label | Path | Translation Key |
+|-------|------|-----------------|
+| Home | `/` | t.topBar.home |
+| Genre | `/genre` | t.topBar.genre |
 
-#### Style
-Container
-- Background: dark gray, slightly lighter than top bar (#1A1A1A)
-- Shape: pill / soft rounded rectangle
-- Height: ~40px
-- Subtle edge highlight: very thin, low-contrast outline to separate from dark background
-- Input field and search button share the same outer rounded corners (single combo component)
+---
 
-Input field
-- User input text color: white (#FFFFFF)
-- Caret / cursor color: white (#FFFFFF)
-- Background: transparent (inherits container background)
-- Placeholder text: "Enter the title of the series"
-- Placeholder color: light gray (#9CA3AF)
+## Search Bar
 
-search button
-- Text: white (#FFFFFF)
-- show a magnifying glass icon, no text
+### Container
+- Flex: 1
+- Max Width: 600px
+- Position: Relative
 
-input box and search button are connected as a combo, rounded corner on the combo
+### Search Combo
+- Display: Flex
+- Background: #1A1A1A
+- Border Radius: 20px
+- Height: 40px
+- Border: 1px solid rgba(255, 255, 255, 0.1)
+- Focus Within: Border #3B82F6, box-shadow 0 0 0 2px rgba(59, 130, 246, 0.2)
 
-#### Interaction
-On focus
-- Cursor appears in white
-- Placeholder text disappears once the user starts typing
-- Focus outline appears around the entire combo
+### Search Input
+- Flex: 1
+- Background: Transparent
+- Border: None
+- Padding: 0 16px
+- Font Size: 14px
+- Color: #FFFFFF
+- Placeholder Color: #9CA3AF
 
-On typing
-- User input text is rendered in white
-- Matching series titles automatically pop out below the search bar (Search Suggestions Popout)
+### Search Button
+- Width: 56px
+- Height: 40px
+- Background: Transparent
+- Border Radius: 0 20px 20px 0
+- Color: #FFFFFF
+- Hover: Color #3B82F6
+- Icon Size: 32px
 
-On Enter key press or clicking the magnifying-glass icon
-- Navigate to search results page with the search query
+### Search Functionality
+- Trigger: Enter key or button click
+- Navigation: `/search?q={query}`
+- Minimum Query Length: 1 character for suggestions
 
-#### Search Suggestions Popout
-Displayed only when the search input is focused and the user is typing.
+---
 
-##### Trigger
-- Popout opens when query length ≥ 1 (or ≥ 2, optional)
-- Popout updates in real time as the user types
-- Popout closes when: user clicks outside OR user presses Esc OR query becomes empty OR user selects a suggestion
+## Search Suggestions Popout
 
-##### Layout
-- Anchored to the search bar
-- Appears directly below the search bar
-- Width matches the search bar width
-- Overlay layer (above page content)
+### Container
+- Position: Absolute, top calc(100% + 8px)
+- Background: #151518
+- Border Radius: 12px
+- Box Shadow: 0 8px 24px rgba(0, 0, 0, 0.4)
+- Z-Index: 1001
 
-##### Style
-- Background: near-black / dark gray (slightly different from top bar for contrast)
-- Subtle shadow for depth
-- Suggestion items are displayed as a vertical list
-- Each row has consistent height and padding
-- On Hover state on a row: row background slightly brighter and text can turn blue (#3B82F6)
+### Suggestion Item
+- Display: Flex, space-between, center aligned
+- Padding: 12px 16px
+- Cursor: Pointer
+- Hover/Highlighted: Background #1a1a1e, title color #3B82F6
 
-##### Content
-Each row shows:
-- series title (text)
-- one small tag on the right
+### Suggestion Title
+- Color: #FFFFFF
+- Font Size: 14px
 
-##### Interaction
-- On hover: highlight the row
-- On click: navigate to the selected player page
-- On Keyboard: Up/Down - move highlight between rows，On Enter - if a suggestion is highlighted: navigate to that player page；otherwise: run normal search (navigate to search results page with query)
+### Suggestion Tag
+- Color: #9CA3AF
+- Font Size: 12px
+- Background: #242428
+- Padding: 4px 8px
+- Border Radius: 4px
 
-### Watch History Icon
-#### Layout
-- Icon-only button
-- Positioned on the right side, after the search bar and before account/language
-- Clickable area: 36–40px square (comfortable hit target)
+### Keyboard Navigation
+| Key | Action |
+|-----|--------|
+| ArrowDown | Highlight next suggestion |
+| ArrowUp | Highlight previous suggestion |
+| Enter | Select highlighted or search |
+| Escape | Close suggestions |
 
-#### Style
-- Icon color: white (#FFFFFF)
-- Default: no underline 
+---
 
-#### Interaction
-On Hover
-- Icon color becomes blue (#3B82F6)
-- Show a History Popover (quick preview)
-- Popover appears next to or below the icon
-- Displays a short list of recently watched series
-- Each item is clickable and navigates to the corresponding player page
+## Right Side Group
 
-Popover closes when
-- User moves the mouse away from both the icon and the popover
-- User clicks outside the popover
+### Container
+- Display: Flex, center aligned
+- Gap: 20px
+- Flex Shrink: 0
 
-On click
-- Navigate to the History page
-- Icon stays blue (#3B82F6) and Blue underline appears (Active State)
+### Icon Button (Base)
+- Size: 40px × 40px
+- Display: Flex, centered
+- Cursor: Pointer
+- Position: Relative
+- Icon Size: 22px
+- Icon Color: #FFFFFF
+- Hover: Icon color #3B82F6
+- Active: Icon color #3B82F6 with underline indicator
 
-##### History Popover
-###### Layout
-- Anchored to the history icon
-- Opens below the icon (top-right area)
-- Overlay layer above page content
-- Width: ~280–360px (desktop), responsive on smaller screens
+---
 
-###### Style
-- Background color: dark gray (e.g. #121214 / #151518)
-- text color: white
-- Rounded corners: 10–14px
-- Subtle shadow for depth
-- Header row: “Watch History”
-- Content list: vertical list (scrollable if long)
+## Watch History Icon
 
-Empty state:
-- Icon + text: “You haven’t watched any series yet.”
-- Light gray text (#9CA3AF)
+### Icon
+- SVG: Clock icon (circle with hands)
+- Stroke Width: 2
 
-###### Content (each row)
-- series title + last watched episode
-- Right side: small resume icon indicator 
+### Behavior
+- Hover: Shows history popover
+- Click:
+  - If logged in: Navigate to `/account?tab=watchHistory`
+  - If not logged in: Open LoginModal
 
-###### Interaction
-- On hover: row background slightly brighter, title can turn blue (#3B82F6)
-- On click: navigate to last watched episode player page
+### History Popover
+- Position: Absolute, top calc(100% + 8px), right 0
+- Width: 320px
+- Background: #121214
+- Border Radius: 12px
+- Box Shadow: 0 8px 24px rgba(0, 0, 0, 0.4)
+- Z-Index: 1001
 
-### Account Icon
-#### Layout
-- Icon-only button
-- Positioned next to History icon
-- Clickable area: 36–40px square
+### Popover Header
+- Padding: 14px 16px
+- Color: #FFFFFF
+- Font Size: 15px
+- Font Weight: 600
+- Border Bottom: 1px solid #242428
 
-#### Style
-- Icon color: white (#FFFFFF)
+### Popover Empty State
+- Display: Flex column, centered
+- Padding: 32px 16px
+- Icon: 📺 (32px, 50% opacity)
+- Text: Gray (#9CA3AF), 14px
 
-#### Interaction
-- On Hover: Icon color becomes blue (#3B82F6)
-- On Active/open state: Icon stays blue
-On click
-- Navigate to the Account page
-- Icon stays blue (#3B82F6) and Blue underline appears
+### Popover List
+- Max Height: 300px
+- Overflow-Y: Auto
+- Items: Up to 5 recent history items
 
-Account Icon (Not Logged In)
-- On click: open Login Modal Popout
-- No navigation to Account page until logged in
+### Popover Item
+- Display: Flex, center aligned
+- Gap: 12px
+- Padding: 12px 16px
+- Cursor: Pointer
+- Hover: Background #1a1a1e, title color #3B82F6
 
-Account Icon (Logged In)
-- On click: navigate to Account page
+### Popover Item Thumbnail
+- Size: 48px × 64px
+- Border Radius: 6px
+- Object Fit: Cover
 
-##### Login Popout (Modal) — Triggered by Account Icon (Not Logged In)
-###### Interaction
-Trigger
-- When user is not logged in
-- On click of Account Icon: open Login Modal Popout (overlay, centered)
-- Page does not navigate
+### Popover Item Info
+- Title: #FFFFFF, 14px
+- Episode: #9CA3AF, 12px
 
-- Used shared login modal
+### Popover Item Resume
+- Icon: ▶
+- Color: #9CA3AF, hover #3B82F6
 
-Modal Close Behavior
-Close when:
-- Click “×” close icon
+---
 
-When closed:
-- Reset sensitive fields
+## Account Icon
 
-### Language switch
-It shows the icon of the current selected language.
+### Icon States
+- Logged Out: User SVG icon (person silhouette)
+- Logged In: User avatar image (28px circular)
 
-#### Interaction
-- on click: shows a dropdown with all supported languages (icon and name). When a language icon or name  is clicked, switch to that language, re-render the page with the selected language.
+### Avatar Styling
+- Size: 28px × 28px
+- Border Radius: 50%
+- Object Fit: Cover
+- Border: 2px solid transparent
+- Hover/Active: Border color #3B82F6
+
+### Behavior
+- Login Check: Uses localStorage (`gcashtv-user`) OR `isLoggedIn` prop
+- Logged In: Navigate to `/account`
+- Logged Out: Open LoginModal
+- Title: User nickname or "Sign In"
+
+---
+
+## Language Switch
+
+### Container
+- Position: Relative
+- Cursor: Pointer
+- Padding: 8px
+- Flex Shrink: 0
+
+### Language Icon
+- Font Size: 22px
+- Content: Flag emoji based on current language
+
+### Language Dropdown
+- Position: Absolute, top calc(100% + 8px), right 0
+- Background: #151518
+- Border Radius: 10px
+- Box Shadow: 0 8px 24px rgba(0, 0, 0, 0.4)
+- Min Width: 150px
+- Z-Index: 1001
+
+### Language Option
+- Display: Flex, center aligned
+- Padding: 12px 16px
+- Cursor: Pointer
+- Hover: Background #1a1a1e, name color #3B82F6
+
+### Language Option Icon
+- Font Size: 18px
+- Margin Right: 10px
+
+### Language Option Name
+- Font Size: 14px
+- Color: #FFFFFF
+
+### Supported Languages
+| Language | Icon | Name Key |
+|----------|------|----------|
+| en | 🇺🇸 | t.languages.en |
+| zh | 🇨🇳 | t.languages.zh |
+
+---
+
+## Login Modal Integration
+
+- Trigger: Account icon click when not logged in
+- On Success: Close modal, navigate to `/account`
+- On Close: Just close modal
+
+---
+
+## Context Dependencies
+
+### LanguageContext
+- `language`: Current language code
+- `setLanguage()`: Change language
+- `t`: Translation object
+
+### AuthContext
+- `isLoggedIn`: Boolean authentication state
+- `user`: Current user object (nickname, avatarUrl)
+
+---
+
+## Data Sources
+
+### Watch History
+- Storage: localStorage (`gcashtv-watch-history`)
+- Loading: Fetched on hover of history icon
+- Display: Shows up to 5 most recent items in popover
+- Structure: `{ _id, seriesId, seriesTitle, episodeId, episodeNumber, thumbnail, tag, watchedAt }`
+- Click Action: Navigate to `/player/{seriesId}/{episodeNumber}` to resume watching
+
+---
+
+## State Management
+
+| State | Type | Default | Description |
+|-------|------|---------|-------------|
+| searchQuery | string | '' | Current search input |
+| showLanguageDropdown | boolean | false | Language dropdown visibility |
+| showSearchSuggestions | boolean | false | Search suggestions visibility |
+| showHistoryPopover | boolean | false | History popover visibility |
+| highlightedSuggestion | number | -1 | Keyboard navigation index |
+| showLoginModal | boolean | false | Login modal visibility |
+
+---
+
+## Click Outside Handling
+
+- Search suggestions close when clicking outside search container
+- History popover closes when clicking outside icon and popover
+
+---
+
+## Responsive Design
+
+### Breakpoints
+
+#### 1024px (Tablet)
+- Brand Name: Hidden
+- Search Container: Max width 300px
+
+#### 768px (Mobile)
+- Top Bar Padding: 0 12px
+- Content Gap: 12px
+- Nav Links: Hidden
+- Search Container: Flex 1, no max width
+- App Logo: Height 30px
+- Icon Button: 36px × 36px
+- Icon Size: 20px
+- History Popover: Width 280px, right -40px
+
+#### 480px (Small Mobile)
+- Language Switch: Hidden
+- History Popover: Width 260px, right -80px
+
+---
+
+## Color Palette
+
+| Element | Color |
+|---------|-------|
+| Background | #0B0B0E |
+| Search Background | #1A1A1A |
+| Dropdown Background | #151518 |
+| Popover Background | #121214 |
+| Border | rgba(255, 255, 255, 0.1) |
+| Divider | #242428 |
+| Primary Blue | #3B82F6 |
+| Text White | #FFFFFF |
+| Text Gray | #9CA3AF |
+| Hover Background | #1a1a1e |
+
+---
+
+## Animations & Transitions
+
+| Element | Property | Duration | Easing |
+|---------|----------|----------|--------|
+| Logo | opacity | 0.2s | ease |
+| Nav Link | color | 0.2s | ease |
+| Search Combo | border-color, box-shadow | 0.2s | ease |
+| Search Button | color | 0.2s | ease |
+| Suggestion Item | background-color | 0.2s | ease |
+| Icon Button | color | 0.2s | ease |
+| Avatar | border-color | 0.2s | ease |
+| Popover Item | background-color | 0.2s | ease |
+| Language Option | background-color | 0.2s | ease |
+
+---
+
+## Mock Data
+
+### Search Suggestions
+```typescript
+const mockSuggestions: SearchSuggestion[] = [
+  { id: '1', title: 'Drama Series A', tag: 'Drama' },
+  { id: '2', title: 'Action Movie B', tag: 'Action' },
+  { id: '3', title: 'Comedy Show C', tag: 'Comedy' },
+  { id: '4', title: 'Thriller D', tag: 'Thriller' },
+]
