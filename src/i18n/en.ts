@@ -49,6 +49,22 @@ export const en = {
       autoplay: 'Autoplay',
       notifications: 'Notifications',
     },
+    wallet: {
+      title: 'Wallet',
+      balance: 'Balance',
+      topUp: 'Top Up',
+      withdraw: 'Withdraw',
+      topUpTitle: 'Select Top Up Amount',
+      withdrawTitle: 'Select Withdraw Amount',
+      transactionHistory: 'Transaction History',
+      noTransactions: 'No transactions yet',
+      confirmTopUp: 'Confirm Top Up',
+      confirmWithdraw: 'Confirm Withdraw',
+      confirmMessage: 'Are you sure you want to top up',
+      confirmWithdrawMessage: 'Are you sure you want to withdraw',
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+    },
     features: {
       yourAccount: {
         name: 'Your Account',

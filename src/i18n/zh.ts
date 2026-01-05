@@ -49,6 +49,22 @@ export const zh = {
       autoplay: '自动播放',
       notifications: '通知',
     },
+    wallet: {
+      title: '钱包',
+      balance: '余额',
+      topUp: '充值',
+      withdraw: '提现',
+      topUpTitle: '选择充值金额',
+      withdrawTitle: '选择提现金额',
+      transactionHistory: '交易记录',
+      noTransactions: '暂无交易记录',
+      confirmTopUp: '确认充值',
+      confirmWithdraw: '确认提现',
+      confirmMessage: '确定要充值',
+      confirmWithdrawMessage: '确定要提现',
+      confirm: '确认',
+      cancel: '取消',
+    },
     features: {
       yourAccount: {
         name: '您的账户',

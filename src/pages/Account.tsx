@@ -74,10 +74,12 @@ const Account: React.FC = () => {
 
   // Wallet state
   const [walletBalance, setWalletBalance] = useState(0)
-  const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null)
-  const [showTopUpPopup, setShowTopUpPopup] = useState(false)
+  const [walletAction, setWalletAction] = useState<'topup' | 'withdraw'>('topup')
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
+  const [showWalletPopup, setShowWalletPopup] = useState(false)
+  const [transactions, setTransactions] = useState<{ type: 'topup' | 'withdraw'; amount: number; date: string }[]>([])
 
-  const topUpAmounts = [5, 10, 20, 50, 100, 200]
+  const walletAmounts = [10, 20, 50, 100, 200, 500]
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -300,17 +302,35 @@ const Account: React.FC = () => {
     }
   }
 
-  const handleTopUpClick = (amount: number) => {
-    setSelectedTopUp(amount)
-    setShowTopUpPopup(true)
+  const handleAmountClick = (amount: number) => {
+    setSelectedAmount(amount)
+    setShowWalletPopup(true)
   }
 
-  const handleConfirmTopUp = () => {
-    if (selectedTopUp) {
-      const newBalance = walletBalance + selectedTopUp
+  const handleConfirmWalletAction = () => {
+    if (selectedAmount) {
+      let newBalance: number
+      const newTransaction = {
+        type: walletAction,
+        amount: selectedAmount,
+        date: new Date().toLocaleDateString(),
+      }
+      
+      if (walletAction === 'topup') {
+        newBalance = walletBalance + selectedAmount
+      } else {
+        // Withdraw
+        if (selectedAmount > walletBalance) {
+          alert('Insufficient balance')
+          return
+        }
+        newBalance = walletBalance - selectedAmount
+      }
+      
       saveWalletBalance(newBalance)
-      setShowTopUpPopup(false)
-      setSelectedTopUp(null)
+      setTransactions([newTransaction, ...transactions])
+      setShowWalletPopup(false)
+      setSelectedAmount(null)
     }
   }
 
@@ -646,7 +666,7 @@ const Account: React.FC = () => {
   const renderWallet = () => (
     <div className="wallet-page">
       <div className="section-header">
-        <h1 className="page-title">Wallet</h1>
+        <h1 className="page-title">{t.account.wallet.title}</h1>
         <p className="page-subtitle">Manage your GCash balance</p>
       </div>
 
@@ -654,7 +674,7 @@ const Account: React.FC = () => {
       <div className="balance-card">
         <div className="balance-icon">💰</div>
         <div className="balance-info">
-          <span className="balance-label">Current Balance</span>
+          <span className="balance-label">{t.account.wallet.balance}</span>
           <div className="balance-amount">
             <img src={GCASH_LOGO} alt="GCash" className="gcash-logo" />
             <span className="amount-value">{walletBalance.toFixed(2)}</span>
@@ -662,16 +682,38 @@ const Account: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Up Section */}
+      {/* Action Toggle Buttons */}
+      <div className="wallet-actions">
+        <button
+          className={`wallet-action-btn ${walletAction === 'topup' ? 'active' : ''}`}
+          onClick={() => setWalletAction('topup')}
+        >
+          {t.account.wallet.topUp}
+        </button>
+        <button
+          className={`wallet-action-btn ${walletAction === 'withdraw' ? 'active' : ''}`}
+          onClick={() => setWalletAction('withdraw')}
+        >
+          {t.account.wallet.withdraw}
+        </button>
+      </div>
+
+      {/* Amount Selection Section */}
       <div className="section-card">
-        <h3 className="section-card-title">Top Up</h3>
-        <p className="topup-description">Select an amount to add to your wallet</p>
+        <h3 className="section-card-title">
+          {walletAction === 'topup' ? t.account.wallet.topUpTitle : t.account.wallet.withdrawTitle}
+        </h3>
+        <p className="topup-description">
+          {walletAction === 'topup'
+            ? 'Select an amount to add to your wallet'
+            : 'Select an amount to withdraw from your wallet'}
+        </p>
         <div className="topup-grid">
-          {topUpAmounts.map((amount) => (
+          {walletAmounts.map((amount) => (
             <button
               key={amount}
               className="topup-btn"
-              onClick={() => handleTopUpClick(amount)}
+              onClick={() => handleAmountClick(amount)}
             >
               <img src={GCASH_LOGO} alt="GCash" className="topup-logo" />
               <span className="topup-amount">{amount}</span>
@@ -682,27 +724,53 @@ const Account: React.FC = () => {
 
       {/* Transaction History */}
       <div className="section-card">
-        <h3 className="section-card-title">Transaction History</h3>
-        <p className="empty-text">No transactions yet</p>
+        <h3 className="section-card-title">{t.account.wallet.transactionHistory}</h3>
+        {transactions.length === 0 ? (
+          <p className="empty-text">{t.account.wallet.noTransactions}</p>
+        ) : (
+          <div className="transaction-list">
+            {transactions.map((tx, index) => (
+              <div key={index} className={`transaction-item ${tx.type}`}>
+                <div className="transaction-info">
+                  <span className="transaction-type">
+                    {tx.type === 'topup' ? 'Top up' : 'Withdraw'} {tx.amount}
+                  </span>
+                  <span className="transaction-date">{tx.date}</span>
+                </div>
+                <span className={`transaction-amount ${tx.type}`}>
+                  {tx.type === 'topup' ? '+' : '-'}
+                  <img src={GCASH_LOGO} alt="GCash" className="transaction-logo" />
+                  {tx.amount}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Top Up Confirmation Popup */}
-      {showTopUpPopup && (
-        <div className="popup-overlay" onClick={() => setShowTopUpPopup(false)}>
+      {/* Wallet Action Confirmation Popup */}
+      {showWalletPopup && (
+        <div className="popup-overlay" onClick={() => setShowWalletPopup(false)}>
           <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src={GCASH_LOGO} alt="GCash" className="popup-logo" />
-            <h2 className="popup-title">Confirm Top Up</h2>
-            <p className="popup-message">Add to your wallet</p>
+            <h2 className="popup-title">
+              {walletAction === 'topup' ? t.account.wallet.confirmTopUp : t.account.wallet.confirmWithdraw}
+            </h2>
+            <p className="popup-message">
+              {walletAction === 'topup'
+                ? t.account.wallet.confirmMessage
+                : t.account.wallet.confirmWithdrawMessage}
+            </p>
             <div className="popup-amount">
               <img src={GCASH_LOGO} alt="GCash" className="popup-amount-logo" />
-              <span className="popup-amount-value">{selectedTopUp}</span>
+              <span className="popup-amount-value">{selectedAmount}</span>
             </div>
             <div className="popup-buttons">
-              <button className="btn-confirm" onClick={handleConfirmTopUp}>
-                Confirm
+              <button className="btn-confirm" onClick={handleConfirmWalletAction}>
+                {t.account.wallet.confirm}
               </button>
-              <button className="btn-cancel" onClick={() => setShowTopUpPopup(false)}>
-                Cancel
+              <button className="btn-cancel" onClick={() => setShowWalletPopup(false)}>
+                {t.account.wallet.cancel}
               </button>
             </div>
           </div>

@@ -451,7 +451,7 @@ Section card with form fields:
 ### 5. Wallet
 
 #### Header
-- **Title**: "Wallet"
+- **Title**: "Wallet" (`t.account.wallet.title`)
 - **Subtitle**: "Manage your GCash balance"
 
 #### Balance Card
@@ -459,17 +459,43 @@ Section card with form fields:
 - **Border**: 1px solid #3B82F6
 - **Content**:
   - Wallet Icon: 💰 (48px)
-  - Label: "Current Balance" - Gray, 14px
+  - Label: "Balance" (`t.account.wallet.balance`) - Gray, 14px
   - Amount: White, 36px, font-weight 700, with GCash logo (32px)
   - **Logo Source**: `https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png`
 
-#### Top Up Section
-- **Description**: "Select an amount to add to your wallet"
-- **Grid**: 3 columns, 16px gap
-- **Amount Options**: 5, 10, 20, 50, 100, 200
+#### Wallet Action Buttons
+Two toggle buttons to switch between Top Up and Withdraw modes:
 
-#### Top Up Button
-- **Styling**: 
+- **Container**: Flex row, 12px gap, margin-bottom 24px
+- **Button Styling**:
+  - Flex: 1 (equal width)
+  - Padding: 14px 24px
+  - Border: 2px solid #242428
+  - Border Radius: 10px
+  - Background: #1A1A1E
+  - Color: #9CA3AF
+  - Font Size: 16px
+  - Font Weight: 600
+- **Hover State**: Blue border (#3B82F6), white text
+- **Active State**: Blue background (#3B82F6), blue border, white text
+
+| Button | Label | i18n Key |
+|--------|-------|----------|
+| Top Up | Top Up | `t.account.wallet.topUp` |
+| Withdraw | Withdraw | `t.account.wallet.withdraw` |
+
+#### Amount Selection Section
+- **Title**: Dynamic based on selected action
+  - Top Up mode: "Select Top Up Amount" (`t.account.wallet.topUpTitle`)
+  - Withdraw mode: "Select Withdraw Amount" (`t.account.wallet.withdrawTitle`)
+- **Description**:
+  - Top Up: "Select an amount to add to your wallet"
+  - Withdraw: "Select an amount to withdraw from your wallet"
+- **Grid**: 3 columns, 16px gap (2 columns on mobile)
+- **Amount Options**: 10, 20, 50, 100, 200, 500
+
+#### Amount Button
+- **Styling**:
   - Background: #1A1A1E
   - Border: 2px solid #242428
   - Padding: 24px 16px
@@ -477,24 +503,60 @@ Section card with form fields:
 - **Hover**: Blue border, blue tint background, translateY(-2px)
 - **Content**: GCash logo (24px) + amount value (28px, white)
 
-#### Top Up Confirmation Popup
+#### Wallet Action Confirmation Popup
 - **Overlay**: Fixed, black 80% opacity
-- **Modal**: 
+- **Modal**:
   - Background: #1A1A1E
   - Border Radius: 16px
   - Padding: 32px
   - Max Width: 400px
 - **Content**:
   - GCash Logo: 80px
-  - Title: "Confirm Top Up" - 24px, white
-  - Message: "Add to your wallet" - 14px, gray
+  - Title: Dynamic based on action
+    - Top Up: "Confirm Top Up" (`t.account.wallet.confirmTopUp`)
+    - Withdraw: "Confirm Withdraw" (`t.account.wallet.confirmWithdraw`)
+  - Message: Dynamic based on action
+    - Top Up: "Are you sure you want to top up" (`t.account.wallet.confirmMessage`)
+    - Withdraw: "Are you sure you want to withdraw" (`t.account.wallet.confirmWithdrawMessage`)
   - Amount: 48px, blue (#3B82F6), with logo
 - **Buttons**:
-  - Confirm: Green (#22C55E)
-  - Cancel: Gray (#2A2A2E)
+  - Confirm: Green (#22C55E), text: `t.account.wallet.confirm`
+  - Cancel: Gray (#2A2A2E), text: `t.account.wallet.cancel`
+- **Withdraw Validation**: Cannot withdraw more than current balance (shows alert)
 
 #### Transaction History
-- Empty state: "No transactions yet"
+- **Title**: "Transaction History" (`t.account.wallet.transactionHistory`)
+- **Empty State**: "No transactions yet" (`t.account.wallet.noTransactions`)
+- **Transaction List**: Displays all completed transactions
+
+##### Transaction Item
+- **Container**: Flex row, space-between, padding 16px, background #1A1A1E, border-radius 10px
+- **Left Side (Info)**:
+  - Type: "Top up {amount}" or "Withdraw {amount}" - 14px, white, font-weight 500
+  - Date: 12px, gray (#6B7280)
+- **Right Side (Amount)**:
+  - Display: Flex row with GCash logo (16px) and amount
+  - Font Size: 18px, font-weight 600
+  - Top Up Color: Green (#22C55E) with "+" prefix
+  - Withdraw Color: Red (#EF4444) with "-" prefix
+
+#### Wallet i18n Keys
+| Key | English | Chinese |
+|-----|---------|---------|
+| `wallet.title` | Wallet | 钱包 |
+| `wallet.balance` | Balance | 余额 |
+| `wallet.topUp` | Top Up | 充值 |
+| `wallet.withdraw` | Withdraw | 提现 |
+| `wallet.topUpTitle` | Select Top Up Amount | 选择充值金额 |
+| `wallet.withdrawTitle` | Select Withdraw Amount | 选择提现金额 |
+| `wallet.transactionHistory` | Transaction History | 交易记录 |
+| `wallet.noTransactions` | No transactions yet | 暂无交易记录 |
+| `wallet.confirmTopUp` | Confirm Top Up | 确认充值 |
+| `wallet.confirmWithdraw` | Confirm Withdraw | 确认提现 |
+| `wallet.confirmMessage` | Are you sure you want to top up | 确定要充值 |
+| `wallet.confirmWithdrawMessage` | Are you sure you want to withdraw | 确定要提现 |
+| `wallet.confirm` | Confirm | 确认 |
+| `wallet.cancel` | Cancel | 取消 |
 
 ## URL Parameters
 
