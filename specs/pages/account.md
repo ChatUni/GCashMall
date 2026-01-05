@@ -1,179 +1,564 @@
-# Account page
+# Account Page Specification
 
-## Layout
-- Horizontal (two-column layout)
-- Shared top bar
-- Main content area: Left - Account sidebar (profile + navigation); Right - Account content panel (changes by selected tab)
-- Shared bottom bar
+## Overview
 
-## Style
-- Page background: black / near-black (#0B0B0E)
-- Primary text: white (#FFFFFF)
-- Secondary text: light gray (#9CA3AF)
-- Accent / active / hover: blue (#3B82F6)
-- Surface panels: dark gray (#121214 / #151518)
-- Dividers / subtle borders: very low-contrast gray (e.g. #242428)
-- Rounded corners: 10–14px for panels/cards
-- Shadow: subtle, soft shadow for depth (no hard border look)
+The Account page is a **central hub where users manage everything related to their GCashTV account**.  
+It allows users to view and edit their personal profile, manage watch history and favorites, adjust settings, and handle wallet balance — all in one place.
 
-## Components
+The page uses a **left-side navigation menu** to switch between different sections, making it easy for users to understand where they are and what they can do.
 
-### Account Sidebar (Left)
-#### Layout
-- Vertical
-- Fixed width on desktop (~260–320px)
-- Full height within viewport
-- Scrollable if content exceeds viewport height
+This specification is written so that **anyone (designers, product managers, QA, business stakeholders, and engineers)** can clearly understand how the page works, what users see, and how data behaves.
 
-#### Style
-Sidebar container
-- Background color: dark gray surface (#121214 / #151518)
+---
+
+## Page Structure
+
+### Layout
+
+- **Overall layout**: Full screen height
+- **Direction**: Vertical stacking (top to bottom)
+- **Theme**: Dark mode
+  - Background color: `#0B0B0E`
+- **Main area**:
+  - Split into two parts:
+    - **Sidebar** (fixed width: 280px)
+    - **Main content area** (flexible width)
+- **Padding**:
+  - Vertical: 24px
+  - Horizontal: 40px
+- **Spacing**:
+  - 32px gap between sidebar and content area
+
+### Components Used
+
+- **TopBar**: Global header navigation
+- **BottomBar**: Global footer navigation
+- **LoginModal**: Popup modal for login and registration
+
+---
+
+## Authentication
+
+### Login Requirement
+
+- When the Account page loads, the system checks the browser’s local storage for a saved user object called `gcashtv-user`
+- If the user is **not logged in**:
+  - The login popup automatically appears
+- If the user **logs in successfully**:
+  - The popup closes
+  - User data is loaded into the Account page
+- If the user **closes the popup without logging in**:
+  - The user is redirected back to the home page
+
+### User Data Loading
+
+- All user information comes **only from local storage**
+- No server request is made to fetch user profile data
+- This prevents accidental overwriting of existing local data
+- Display name logic:
+  - If a **nickname** exists, it is shown first
+  - Otherwise, the **username** is shown
+
+### Logout Functionality
+
+- A **Logout button** is located at the bottom of the sidebar
+- When clicked:
+  - User data is removed from local storage
+  - The user is redirected to the home page
+
+---
+
+## LoginModal Component
+
+### File Structure
+
+- Login modal logic and layout are separated into:
+  - A main component file
+  - A dedicated stylesheet file
+
+---
+
+### Modal Behavior and States
+
+The modal supports **two modes**:
+- Login
+- Register
+
+It internally tracks:
+- Current mode (login or register)
+- Email input
+- Password input
+- Confirm password input (register only)
+- Nickname input (register only)
+- Error messages
+- Loading state (while submitting)
+
+---
+
+### Modal Overlay
+
+- Covers the entire screen
+- Dark translucent background (85% black)
+- Centers the modal visually
+- Clicking outside the modal closes it
+- Stays above all other content
+
+---
+
+### Modal Container
+
+- Dark card-style popup
+- Rounded corners (16px)
+- Padding: 40px
+- Maximum width: 420px
+- Responsive to screen size
+- Soft drop shadow for depth
+
+---
+
+### Close Button
+
+- Circular button in the top-right corner
+- Uses a ✕ icon
+- Subtle hover animation:
+  - Background becomes lighter
+  - Icon turns white
+- Smooth transition (0.2s)
+
+---
+
+### Brand Section
+
+- Displays the GCashTV logo and name
+- Centered horizontally
+- Slight left offset for visual alignment
+
+#### Logo
+
+- Image loaded from Cloudinary
+- Height: 66px
+- Automatically scales width
+
+#### Brand Name
+
+- Text: **GcashTV**
+- White color
+- Font size: 30px
+- Medium-bold weight (600)
+
+---
+
+### Header Section
+
+- Centered text
+- Changes based on mode
+
+#### Title
+
+- Login: “Welcome Back”
+- Register: “Create Account”
+- Font size: 25px
+- Font weight: 600
+- White color
+
+#### Subtitle
+
+- Login: “Sign in to access your account”
+- Register: “Sign up to get started”
+- Gray color
+- Font size: 15px
+
+---
+
+### Form Section
+
+- Vertical layout
+- 20px spacing between fields
+
+#### Form Groups
+
+Each input includes:
+- A label
+- An input field
+- Clear spacing for readability
+
+#### Labels
+
+- Gray text
+- Font size: 14px
+- Medium weight
+
+#### Inputs
+
+- Dark background
+- White text
 - Rounded corners
-- Subtle shadow
-- Padding: 16–20px
+- Comfortable padding
+- Clear focus state:
+  - Blue border
+  - Soft blue glow
+  - No browser outline
 
-Profile block (top)
-- Avatar (circle, 48–64px)
-- Username / display name (white, semibold)
-- Optional subtitle (email/ID) in light gray
+---
 
-Navigation list
-- Vertical list of items
-- Each item row height: ~40–44px
-- Icon + label layout (left icon, right label)
+### Form Fields
 
-Nav item states
-- Default: light gray text
-- Hover: text turns blue (#3B82F6)
-- Active: blue text + left accent line (2–3px) + subtle background tint
+#### Login Mode
 
-Nav items
-- Account Overview (default)
-- Watch History
-- Favorites
-- Downloads
-- Settings
-- Wallet
-- Payment
-- Membership
-- Logout (placed at bottom)
+- Email
+- Password
 
-#### Interaction
-- On click nav item: updates right content panel
-- Active item remains highlighted
+#### Register Mode (Additional Fields)
 
-### Account Content Panel (Right)
-#### Layout
-- Takes remaining width
-- Max content width recommended (~900–1100px)
-- Top area: page header + optional quick actions
-- Below: content section(s) depending on selected tab
+- Nickname
+- Confirm Password
 
-#### Style
-- Content panel background: transparent (page background)
-Each section uses “surface card” blocks:
-- Background color: #121214 / #151518
-- Rounded corners 10–14px
-- Padding 18–24px
-- Subtle shadow
+All labels and placeholders use translation keys to support multiple languages.
 
-#### Default Tab: Account Overview
+---
 
-##### Section: Header
-###### Layout
-- Title row on top-left
-- Optional right-side actions (small buttons)
+### Error Message Display
 
-###### Content
-- Page title: “Account”
+- Shown when validation or login fails
+- Red tinted background and border
+- Center-aligned text
+- Clear, user-friendly messages such as:
+  - Invalid email or password
+  - Passwords do not match
+  - Email already registered
+  - Password too short
+
+---
+
+### Submit Button
+
+- Primary blue button
+- White text
+- Rounded corners
+- Large, easy-to-tap size
+- Hover: darker blue
+- Disabled:
+  - Reduced opacity
+  - Not clickable
+- Loading state shows “...”
+- Text changes based on mode:
+  - Login: “Sign In”
+  - Register: “Sign Up”
+
+---
+
+### Footer Section
+
+- Appears below the form
+- Separated by a thin border
+- Allows switching between Login and Register
+
+#### Switch Text
+
+- Gray informational text
+
+#### Switch Button
+
+- Blue clickable text
+- Underlines on hover
+- Toggles between login and registration modes
+
+---
+
+### Validation Rules
+
+#### Login
+
+- Email: required
+- Password: required
+
+#### Register
+
+- Nickname: required and cannot be empty
+- Email: required and must be valid
+- Password: minimum 6 characters
+- Confirm password: must match password
+
+---
+
+### Data Storage on Success
+
+- After successful login or registration:
+  - User data is saved in local storage
+  - Stored fields include:
+    - Nickname
+    - Username
+    - Email
+    - User ID
+- Nickname always takes priority for display
+
+---
+
+### Responsive Design (Login Modal)
+
+#### Small Mobile (≤480px)
+
+- Reduced padding
+- Slightly smaller title text
+- Tighter spacing for better fit
+
+---
+
+## Sidebar
+
+### Profile Section
+
+- Circular avatar (56px)
+- Shows user image or default 👤 icon
+- Displays:
+  - User name (white, bold)
+  - Email (gray, smaller text)
+- Bottom border separates it from navigation
+
+---
+
+### Navigation Items
+
+| Section | Icon | Label |
+|------|------|------|
+| Overview | 👤 | Overview |
+| Watch History | 📺 | Watch History |
+| Favorites | ❤️ | Favorites |
+| Settings | ⚙️ | Settings |
+| Wallet | 💰 | Wallet |
+
+---
+
+### Navigation Styling
+
+- Rounded clickable items
+- Icon and text aligned horizontally
+- Hover:
+  - Text turns blue
+- Active state:
+  - Light blue background
+  - Blue left indicator bar
+  - Blue text
+
+---
+
+### Logout Button
+
+- Fixed at bottom of sidebar
+- Separated by a top border
+- Hover turns text red
+
+---
+
+## Content Sections
+
+## 1. Overview (Profile Management)
+
+### Header
+
+- Title: **Account Overview**
 - Subtitle: “Manage your profile and preferences”
 
-###### Style
-- Title: white, 24–30px, semibold
-- Subtitle: light gray, 14–16px
+---
 
-##### Section: Profile Summary Card
-###### Layout
-- Horizontal (desktop): avatar + info + quick actions
-- Vertical (mobile): stacked
+### Profile Information Section
 
-###### Content
-- Avatar
-- Display name
-- Email / user id
-- Account status : “Logged in” / “Guest”
-Quick actions:
-- Edit Profile
-- Change Language 
+Users can edit:
+- Nickname
+- Email
+- Phone number
+- Gender
+- Birthday
 
-###### Style
-- Primary text white, secondary gray
-Buttons:
-- Primary button: blue bg (#3B82F6) + white text
-- Secondary button: dark surface + blue border/text on hover
+Inputs follow the same dark theme styling as login fields.
 
-###### Interaction
-- Edit Profile: opens modal or navigates to profile edit page
-- Avatar click: upload/change avatar
+A **Save button** confirms changes.
 
-##### Section: Recent Activity (Watch History Preview)
-###### Layout
-- Section header + list
-- Shows the most recent 3–6 watched items
+---
 
-###### Content (each row)
-- Small poster thumbnail (rounded corners)
-- Series title (white)
-- Last watched episode (gray)
-- “Resume” icon/button on the right
+### Profile Picture Section
 
-###### Style
-- Row hover: background slightly brighter + title turns blue
-- “Resume” button: icon-only, turns blue on hover
+- Shows current avatar preview
+- Allows:
+  - Uploading a new image
+  - Removing the current image
+- Guidelines:
+  - Square image
+  - Minimum 200×200px
+  - Maximum size: 5MB
+  - Image files only
 
-###### Interaction
-- Clicking row: navigates to last watched episode player page
-- “View all”: navigates to full Watch History page
+---
 
-##### Section: Saved / Favorites Preview
-Same pattern as Recent Activity.
+### Change Password Section
 
-#### Tab: Watch History (Full Page)
-##### Layout
-- Section header row + filters/actions row + history list/grid
+Users must enter:
+- Current password
+- New password
+- Confirm new password
 
-##### Style
-Header row
+Rules:
+- Minimum 6 characters
+- Passwords must match
+
+---
+
+## 2. Watch History
+
+### Header
+
 - Title: “Watch History”
-Right side actions:
-- “Clear History”
-- “Sync history” toggle 
+- Actions:
+  - Clear history
+  - Sync toggle
 
-Empty State
-- Centered icon + text: “You haven’t watched any series yet.”
-- Subtext in light gray
-- CTA button: “Explore series” (go to Home/Genre)
+---
 
-Non-empty State
-- Grid or list (your choice): Desktop - 3–5 columns grid, Mobile - 2 columns
-- Each item uses shared Card component plus “Resume” action
+### Content Grid
 
-#### Tab: Settings
-##### Section: Preferences
-###### Layout
+- Default: 5 columns
+- Responsive layout adapts to screen width
+
+---
+
+### History Card
+
+Each item shows:
+- Series poster
+- Episode badge (e.g. EP 3)
+- Remove button (appears on hover)
+- Series title
+- Tag label
+
+---
+
+### Empty State
+
+- Icon: 📺
+- Message encouraging users to start watching
+- “Explore Series” button
+
+---
+
+## 3. Favorites
+
+- Same grid layout as Watch History
+- Cards highlight on hover
+- Removing favorites is easy and immediate
+
+---
+
+## 4. Settings
+
+Users can control:
 - Language
-- Playback defaults (speed, autoplay)
-- Notifications 
-- Each setting is a row: label (left) + control (right)
+- Playback speed
+- Autoplay
+- Notifications
 
-###### Style
-- Controls use dark surface inputs
-- Focus ring: blue (#3B82F6)
+Each setting is shown in a clean row with clear controls.
 
-#### Authentication Behavior (Not Logged In)
-When user clicks Account icon (top bar) and is not logged in.
-Open the shared Login modal popout (overlay) instead of navigating to account page.
+---
 
-##### Interaction
-- Click the close icon "x": close modal
-- Successful login: close modal → update top bar to “logged-in state” and navigate to Account page
+## 5. Wallet
+
+### Balance Card
+
+- Displays current GCash balance
+- Blue gradient background
+- Shows GCash logo and amount clearly
+
+---
+
+### Top Up Section
+
+- Users select predefined amounts
+- Clear grid layout
+- Hover effects emphasize selection
+
+---
+
+### Top Up Confirmation Popup
+
+- Dark overlay
+- Centered modal
+- Shows selected amount
+- Confirm or cancel actions
+
+---
+
+### Transaction History
+
+- Shows past wallet activity
+- Empty state if no transactions exist
+
+---
+
+## URL Parameters
+
+The Account page supports direct navigation using URL tabs:
+
+- `?tab=overview`
+- `?tab=watchHistory`
+- `?tab=favorites`
+- `?tab=settings`
+- `?tab=wallet`
+
+---
+
+## Responsive Design Summary
+
+Supports:
+- Desktop
+- Tablet
+- Mobile
+- Small mobile
+
+Layout, font sizes, grids, and spacing adapt smoothly at:
+- 1400px
+- 1200px
+- 1024px
+- 768px
+- 480px
+
+---
+
+## Color Palette
+
+All colors are predefined and consistent across the page, including:
+- Backgrounds
+- Borders
+- Text
+- Primary actions
+- Success and error states
+
+---
+
+## Animations & Transitions
+
+- Subtle hover animations
+- Smooth button feedback
+- Gentle card lift effects
+- Fast but unobtrusive transitions
+
+---
+
+## Data Persistence
+
+All key data is saved locally to ensure fast loading and offline resilience:
+- User profile
+- Wallet balance
+- Favorites
+- Watch history
+
+Limits and replacement rules ensure data stays clean and relevant.
+
+---
+
+## User Experience Goals
+
+- Clear and friendly for non-technical users
+- Visually consistent and modern
+- Predictable behavior
+- Fast feedback
+- No confusion about login state or saved data
