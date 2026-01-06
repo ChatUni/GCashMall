@@ -60,6 +60,8 @@ export type OAuthType = 'google' | 'facebook' | 'twitter' | 'linkedin'
 
 export interface WatchListItem {
   seriesId: string
+  seriesName: string
+  seriesCover: string
   episodeNumber: number
   addedAt: Date
   updatedAt: Date

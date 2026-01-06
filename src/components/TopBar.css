@@ -189,7 +189,7 @@
 
 .history-popover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   right: 0;
   width: 320px;
   background-color: #121214;
@@ -221,8 +221,8 @@
 
 .popover-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -236,10 +236,20 @@
   color: #3b82f6;
 }
 
+.popover-item-cover {
+  width: 48px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
 .popover-item-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .popover-item-title {
@@ -253,8 +263,9 @@
   color: #9ca3af;
 }
 
-.popover-item svg {
+.popover-item-resume {
   color: #9ca3af;
+  flex-shrink: 0;
 }
 
 .language-switch {

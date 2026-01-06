@@ -246,11 +246,16 @@ const TopBar: React.FC = () => {
                             handleHistoryItemClick(item)
                           }}
                         >
+                          <img
+                            src={item.seriesCover}
+                            alt={item.seriesName}
+                            className="popover-item-cover"
+                          />
                           <div className="popover-item-info">
-                            <span className="popover-item-title">Series {item.seriesId}</span>
+                            <span className="popover-item-title">{item.seriesName}</span>
                             <span className="popover-item-episode">EP {item.episodeNumber}</span>
                           </div>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <svg className="popover-item-resume" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <polygon points="5,3 19,12 5,21" />
                           </svg>
                         </div>

@@ -141,7 +141,7 @@ On click
 ##### History Popover
 ###### Layout
 - Anchored to the history icon
-- Opens below the icon (top-right area)
+- Opens below the icon (top-right area, no gap)
 - Overlay layer above page content
 - Width: ~280–360px (desktop), responsive on smaller screens
 
@@ -158,7 +158,9 @@ Empty state:
 - Light gray text (#9CA3AF)
 
 ###### Content (each row)
-- series title + last watched episode
+Horizontal
+- series cover
+- vertical: series name, last watched episode (blue background)
 - Right side: small resume icon indicator 
 
 ###### Interaction

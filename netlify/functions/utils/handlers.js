@@ -1270,6 +1270,11 @@ const addToWatchList = async (body, authHeader) => {
       return { success: false, error: 'User not found' }
     }
 
+    // Get series info to store name and cover
+    const seriesResult = await getSeriesById(seriesId)
+    const seriesName = seriesResult.success && seriesResult.data ? seriesResult.data.name : 'Unknown Series'
+    const seriesCover = seriesResult.success && seriesResult.data ? seriesResult.data.cover : ''
+
     const currentUser = users[0]
     const watchList = currentUser.watchList || []
 
@@ -1281,11 +1286,15 @@ const addToWatchList = async (body, authHeader) => {
     if (existingIndex >= 0) {
       // Update existing entry with new episode and current time
       watchList[existingIndex].episodeNumber = episodeNumber
+      watchList[existingIndex].seriesName = seriesName
+      watchList[existingIndex].seriesCover = seriesCover
       watchList[existingIndex].updatedAt = new Date()
     } else {
       // Add new entry to watch list
       watchList.push({
         seriesId,
+        seriesName,
+        seriesCover,
         episodeNumber,
         addedAt: new Date(),
         updatedAt: new Date(),
