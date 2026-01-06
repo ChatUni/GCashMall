@@ -39,7 +39,7 @@ export const fetchSeries = async (seriesId: string) => {
       seriesEditStoreActions.setFormData({
         name: series.name,
         description: series.description,
-        genreIds: series.genre ? series.genre.map((g: Genre) => g.id) : [],
+        genreIds: series.genre ? series.genre.map((g: Genre) => g._id) : [],
         cover: series.cover,
         episodes: episodes,
       })
@@ -254,16 +254,16 @@ const saveSeriesData = async (
   genres: Genre[],
 ) => {
   const state = seriesEditStoreActions.getState()
-  const selectedGenres = state.formData.genreIds
-    .map((genreId) => genres.find((g) => g.id === genreId))
-    .filter((g): g is Genre => g !== undefined)
+  // After migration, genre is stored as array of _ids only
+  const selectedGenreIds = state.formData.genreIds
+    .filter((genreId) => genres.some((g) => g._id === genreId))
 
   const seriesData = {
-    id: id || undefined,
+    _id: id || undefined,
     name: state.formData.name,
     description: state.formData.description,
     cover: coverUrl,
-    genre: selectedGenres,
+    genre: selectedGenreIds,
     episodes: episodes.map((ep) => ({
       episodeNumber: ep.episodeNumber,
       title: ep.title,

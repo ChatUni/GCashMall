@@ -1,4 +1,4 @@
-import { get, save, remove } from './db.js'
+import { get, save, remove, update } from './db.js'
 import { ObjectId } from 'mongodb'
 import { v2 as cloudinary } from 'cloudinary'
 import bcrypt from 'bcryptjs'
@@ -108,10 +108,10 @@ const getSeries = async (params) => {
     }
     const filter = buildSeriesFilter(params)
     const series = await get('series', filter, {}, { name: 1 })
-    const normalizedSeries = series.map(normalizeSeries)
+    const populatedSeries = await populateSeriesGenres(series)
     return {
       success: true,
-      data: normalizedSeries,
+      data: populatedSeries,
     }
   } catch (error) {
     throw new Error(`Failed to get series: ${error.message}`)
@@ -122,39 +122,69 @@ const getSeriesById = async (id) => {
   // Try to find by _id first (MongoDB ObjectId string)
   let series = await get('series', { _id: new ObjectId(id) }, {}, {}, 1)
   
-  // If not found, try by numeric id
-  if (!series || series.length === 0) {
-    series = await get('series', { id: +id }, {}, {}, 1)
-  }
-  
   if (!series || series.length === 0) {
     return {
       success: false,
       error: 'Series not found',
     }
   }
+  
+  const populatedSeries = await populateSeriesGenres(series)
   return {
     success: true,
-    data: normalizeSeries(series[0]),
+    data: populatedSeries[0],
   }
 }
 
-const normalizeSeries = (series) => {
-  if (!series) return null
-  return {
-    ...series,
-    genre: Array.isArray(series.genre)
-      ? series.genre.map((g) => ({ ...g, id: Number(g.id) }))
-      : [],
+// Populate genre objects from _id array
+const populateSeriesGenres = async (seriesList) => {
+  if (!seriesList || seriesList.length === 0) return []
+  
+  // Get all genres once
+  const allGenres = await get('genre', {}, {}, {})
+  const genreMap = new Map()
+  for (const genre of allGenres) {
+    genreMap.set(String(genre._id), genre)
   }
+  
+  return seriesList.map((series) => {
+    if (!series) return null
+    
+    // Populate genre array
+    let populatedGenre = []
+    if (Array.isArray(series.genre)) {
+      populatedGenre = series.genre
+        .map((genreId) => {
+          // Handle both old format (object with id/name) and new format (just _id)
+          if (typeof genreId === 'object' && genreId.name) {
+            return { _id: genreId._id || genreId.id, name: genreId.name }
+          }
+          const genre = genreMap.get(String(genreId))
+          return genre ? { _id: genre._id, name: genre.name } : null
+        })
+        .filter(Boolean)
+    }
+    
+    return {
+      ...series,
+      genre: populatedGenre,
+    }
+  })
 }
 
 const buildSeriesFilter = (params) => {
   const filter = {}
 
   if (params.genreId) {
-    filter.genre = {
-      $elemMatch: { id: Number(params.genreId) },
+    // Support both old format (object with id) and new format (just _id)
+    try {
+      const genreObjectId = new ObjectId(params.genreId)
+      filter.genre = genreObjectId
+    } catch {
+      // If not a valid ObjectId, try matching old format
+      filter.genre = {
+        $elemMatch: { id: Number(params.genreId) },
+      }
     }
   }
 
@@ -171,13 +201,14 @@ const buildSeriesFilter = (params) => {
 const getGenres = async (params) => {
   try {
     const genres = await get('genre', {}, {}, { name: 1 })
-    const normalizedGenres = genres.map((genre) => ({
-      ...genre,
-      id: Number(genre.id),
+    // Return genres with only _id and name (no legacy id field)
+    const cleanGenres = genres.map((genre) => ({
+      _id: genre._id,
+      name: genre.name,
     }))
     return {
       success: true,
-      data: normalizedGenres,
+      data: cleanGenres,
     }
   } catch (error) {
     throw new Error(`Failed to get genres: ${error.message}`)
@@ -251,9 +282,10 @@ const getFeaturedSeries = async (params) => {
       }
     }
     
+    const populatedSeries = await populateSeriesGenres(featured)
     return {
       success: true,
-      data: normalizeSeries(featured[0])
+      data: populatedSeries[0]
     }
   } catch (error) {
     throw new Error(`Failed to get featured series: ${error.message}`)
@@ -264,10 +296,10 @@ const getRecommendations = async (params) => {
   try {
     // Get a random selection of series as recommendations
     const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const normalizedSeries = series.map(normalizeSeries)
+    const populatedSeries = await populateSeriesGenres(series)
     return {
       success: true,
-      data: normalizedSeries
+      data: populatedSeries
     }
   } catch (error) {
     throw new Error(`Failed to get recommendations: ${error.message}`)
@@ -278,10 +310,10 @@ const getNewReleases = async (params) => {
   try {
     // Get the most recently added series
     const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const normalizedSeries = series.map(normalizeSeries)
+    const populatedSeries = await populateSeriesGenres(series)
     return {
       success: true,
-      data: normalizedSeries
+      data: populatedSeries
     }
   } catch (error) {
     throw new Error(`Failed to get new releases: ${error.message}`)
@@ -303,7 +335,10 @@ const getSearchSuggestions = async (params) => {
       5
     )
     
-    const suggestions = series.map((s) => ({
+    // Populate genres for search suggestions
+    const populatedSeries = await populateSeriesGenres(series)
+    
+    const suggestions = populatedSeries.map((s) => ({
       _id: s._id,
       seriesId: s._id,
       title: s.name,
@@ -1509,4 +1544,123 @@ export {
   resetPassword,
   confirmResetPassword,
   clearWatchHistory,
+  migrateGenres,
+}
+
+// Database migration: update genre structure
+const migrateGenres = async (body) => {
+  try {
+    const results = {
+      genresUpdated: 0,
+      genresRemoved: 0,
+      seriesUpdated: 0,
+      fieldsRemoved: [],
+    }
+
+    // Step 1: Get all genres and all series
+    const allGenres = await get('genre', {}, {}, {})
+    const allSeries = await get('series', {}, {}, {})
+
+    // Step 2: Build a set of genre ids that are actually used by series
+    const usedGenreIds = new Set()
+    for (const series of allSeries) {
+      if (Array.isArray(series.genre)) {
+        for (const g of series.genre) {
+          // Genre can be an object with id/name or just an id
+          const genreId = typeof g === 'object' ? (g.id || g._id) : g
+          if (genreId) {
+            usedGenreIds.add(String(genreId))
+          }
+        }
+      }
+    }
+
+    // Step 3: Remove unused genres
+    const unusedGenres = allGenres.filter((g) => {
+      const gId = String(g.id || g._id)
+      return !usedGenreIds.has(gId)
+    })
+
+    for (const unusedGenre of unusedGenres) {
+      await remove('genre', { _id: unusedGenre._id })
+      results.genresRemoved++
+    }
+
+    // Step 4: Build a map from old id to _id for genres
+    const genreIdToObjectId = new Map()
+    for (const genre of allGenres) {
+      if (genre.id !== undefined) {
+        genreIdToObjectId.set(String(genre.id), genre._id)
+      }
+      // Also map _id string to _id ObjectId
+      genreIdToObjectId.set(String(genre._id), genre._id)
+    }
+
+    // Step 5: Update each series
+    for (const series of allSeries) {
+      let needsUpdate = false
+      const setFields = {}
+      const unsetFields = {}
+
+      // Convert genre array to _id array
+      if (Array.isArray(series.genre)) {
+        const newGenreIds = []
+        for (const g of series.genre) {
+          const oldId = typeof g === 'object' ? String(g.id || g._id) : String(g)
+          const objectId = genreIdToObjectId.get(oldId)
+          if (objectId) {
+            newGenreIds.push(objectId)
+          }
+        }
+        setFields.genre = newGenreIds
+        needsUpdate = true
+      }
+
+      // Remove deprecated fields using $unset
+      const fieldsToRemove = ['id', 'types', 'heat', 'localType']
+      for (const field of fieldsToRemove) {
+        if (field in series) {
+          unsetFields[field] = ''
+          needsUpdate = true
+          if (!results.fieldsRemoved.includes(field)) {
+            results.fieldsRemoved.push(field)
+          }
+        }
+      }
+
+      if (needsUpdate) {
+        const updateOps = {}
+        if (Object.keys(setFields).length > 0) {
+          updateOps.$set = setFields
+        }
+        if (Object.keys(unsetFields).length > 0) {
+          updateOps.$unset = unsetFields
+        }
+        await update('series', { _id: series._id }, updateOps)
+        results.seriesUpdated++
+      }
+    }
+
+    // Step 6: Update genres to remove the old 'id' and 'idStr' fields using $unset
+    for (const genre of allGenres) {
+      const fieldsToUnset = {}
+      if ('id' in genre) {
+        fieldsToUnset.id = ''
+      }
+      if ('idStr' in genre) {
+        fieldsToUnset.idStr = ''
+      }
+      if (Object.keys(fieldsToUnset).length > 0) {
+        await update('genre', { _id: genre._id }, { $unset: fieldsToUnset })
+        results.genresUpdated++
+      }
+    }
+
+    return {
+      success: true,
+      data: results,
+    }
+  } catch (error) {
+    throw new Error(`Migration failed: ${error.message}`)
+  }
 }

@@ -14,7 +14,7 @@ const SeriesList: React.FC = () => {
   const [searchParams] = useSearchParams()
   const [series, setSeries] = useState<Series[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
-  const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null)
+  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,7 +46,7 @@ const SeriesList: React.FC = () => {
     }
   }
 
-  const fetchSeriesByGenre = async (genreId: number | null) => {
+  const fetchSeriesByGenre = async (genreId: string | null) => {
     try {
       const params: Record<string, string | number> | undefined = genreId ? { genreId } : undefined
       const response = await apiGet<Series[]>('series', params)
@@ -69,7 +69,7 @@ const SeriesList: React.FC = () => {
     }
   }
 
-  const handleGenreClick = (genreId: number | null) => {
+  const handleGenreClick = (genreId: string | null) => {
     setSelectedGenreId(genreId)
   }
 
@@ -81,7 +81,7 @@ const SeriesList: React.FC = () => {
     if (selectedGenreId === null) {
       return t.series.allGenres
     }
-    const genre = genres.find((g) => g.id === selectedGenreId)
+    const genre = genres.find((g) => g._id === selectedGenreId)
     return genre?.name || t.series.allGenres
   }
 
@@ -111,9 +111,9 @@ const SeriesList: React.FC = () => {
             </li>
             {sortedGenres.map((genre) => (
               <li
-                key={genre.id}
-                className={`genre-item ${selectedGenreId === genre.id ? 'active' : ''}`}
-                onClick={() => handleGenreClick(genre.id)}
+                key={genre._id}
+                className={`genre-item ${selectedGenreId === genre._id ? 'active' : ''}`}
+                onClick={() => handleGenreClick(genre._id)}
               >
                 {genre.name}
               </li>

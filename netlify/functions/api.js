@@ -32,6 +32,7 @@ import {
   resetPassword,
   confirmResetPassword,
   clearWatchHistory,
+  migrateGenres,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -69,6 +70,7 @@ const apiHandlers = {
     resetPassword: (body) => resetPassword(body),
     confirmResetPassword: (body) => confirmResetPassword(body),
     clearWatchHistory: (body) => clearWatchHistory(body),
+    migrateGenres: (body) => migrateGenres(body),
   },
   delete: {
     todo: (body) => deleteTodo(body),

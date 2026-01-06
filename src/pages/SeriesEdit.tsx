@@ -172,9 +172,9 @@ const DescriptionField: React.FC<DescriptionFieldProps> = ({ value, onChange, la
 )
 
 interface GenreFieldProps {
-  genres: { id: number; name: string }[]
-  selectedIds: number[]
-  onChange: (selectedIds: number[]) => void
+  genres: { _id: string; name: string }[]
+  selectedIds: string[]
+  onChange: (selectedIds: string[]) => void
   label: string
 }
 

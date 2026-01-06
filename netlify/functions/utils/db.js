@@ -88,10 +88,22 @@ const remove = async (docName, filter) => {
   return await collection.deleteMany(filter)
 }
 
+// Update with support for $set and $unset operations
+const update = async (docName, filter, updates) => {
+  validateInput(docName, 'docName')
+  validateInput(filter, 'filter')
+  validateInput(updates, 'updates')
+  
+  const db = await connectDB()
+  const collection = db.collection(docName)
+  
+  return await collection.updateOne(filter, updates)
+}
+
 const validateInput = (value, paramName) => {
   if (!value) {
     throw new Error(`${paramName} is required`)
   }
 }
 
-export { connectDB, get, save, remove }
+export { connectDB, get, save, remove, update }

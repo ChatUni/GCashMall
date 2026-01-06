@@ -1,14 +1,14 @@
 import './MultiSelectTags.css'
 
 interface Tag {
-  id: number
+  _id: string
   name: string
 }
 
 interface MultiSelectTagsProps {
   tags: Tag[]
-  selectedIds: number[]
-  onChange: (selectedIds: number[]) => void
+  selectedIds: string[]
+  onChange: (selectedIds: string[]) => void
 }
 
 const MultiSelectTags = ({
@@ -18,7 +18,7 @@ const MultiSelectTags = ({
 }: MultiSelectTagsProps) => {
   validateProps({ tags, selectedIds, onChange })
 
-  const handleTagClick = (tagId: number) => {
+  const handleTagClick = (tagId: string) => {
     const newSelectedIds = toggleTagSelection(selectedIds, tagId)
     onChange(newSelectedIds)
   }
@@ -27,10 +27,10 @@ const MultiSelectTags = ({
     <div className="multi-select-tags">
       {tags.map((tag) => (
         <TagItem
-          key={tag.id}
+          key={tag._id}
           tag={tag}
-          isSelected={selectedIds.includes(tag.id)}
-          onClick={() => handleTagClick(tag.id)}
+          isSelected={selectedIds.includes(tag._id)}
+          onClick={() => handleTagClick(tag._id)}
         />
       ))}
     </div>
@@ -59,9 +59,9 @@ const buildTagClassName = (isSelected: boolean): string => {
 }
 
 const toggleTagSelection = (
-  selectedIds: number[],
-  tagId: number,
-): number[] => {
+  selectedIds: string[],
+  tagId: string,
+): string[] => {
   if (selectedIds.includes(tagId)) {
     return selectedIds.filter((id) => id !== tagId)
   }

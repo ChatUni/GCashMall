@@ -73,7 +73,7 @@ interface HeroSectionProps {
     cover: string
     description: string
     tags?: string[]
-    genre?: { id: number; name: string }[]
+    genre?: { _id: string; name: string }[]
   }
   onPlayClick: () => void
   onPosterClick: () => void
@@ -109,7 +109,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             <span key={index} className="hero-tag">{tag}</span>
           ))}
           {series.genre?.map((genre) => (
-            <span key={genre.id} className="hero-tag">{genre.name}</span>
+            <span key={genre._id} className="hero-tag">{genre.name}</span>
           ))}
         </div>
 

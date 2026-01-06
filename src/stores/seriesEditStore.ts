@@ -39,7 +39,7 @@ export interface EpisodeFormData {
 export interface SeriesFormData {
   name: string
   description: string
-  genreIds: number[]
+  genreIds: string[]
   cover: string
   episodes: EpisodeFormData[]
 }
@@ -122,7 +122,7 @@ export const seriesEditStoreActions = {
     })),
 
   // Genres
-  setGenreIds: (genreIds: number[]) =>
+  setGenreIds: (genreIds: string[]) =>
     seriesEditStore.setState((prev) => ({
       ...prev,
       formData: { ...prev.formData, genreIds },

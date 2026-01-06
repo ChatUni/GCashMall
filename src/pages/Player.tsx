@@ -451,7 +451,7 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({ onClick }) => (
 )
 
 interface EpisodeMetadataProps {
-  series: { name: string; tags?: string[]; genre?: { id: number; name: string }[]; description: string; languages?: string[] }
+  series: { name: string; tags?: string[]; genre?: { _id: string; name: string }[]; description: string; languages?: string[] }
   currentEpisode: Episode | null
   selectedLanguage: string
   onLanguageChange: (language: string) => void
@@ -494,7 +494,7 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
         </span>
       ))}
       {series.genre?.map((genre) => (
-        <span key={genre.id} className="episode-tag" onClick={() => onTagClick(genre.name)}>
+        <span key={genre._id} className="episode-tag" onClick={() => onTagClick(genre.name)}>
           {genre.name}
         </span>
       ))}

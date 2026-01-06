@@ -28,7 +28,6 @@ export interface AccountFeature {
 
 export interface Series {
   _id: string
-  id: number
   name: string
   description: string
   cover: string
@@ -40,7 +39,7 @@ export interface Series {
 }
 
 export interface Genre {
-  id: number
+  _id: string
   name: string
 }
 
