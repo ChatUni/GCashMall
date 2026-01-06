@@ -179,11 +179,14 @@ Section card with form fields:
 - Same layout as Watch History (5 columns)
 
 #### Favorite Card
-- **Poster Container**: 2:3 aspect ratio, 12px border radius
-- **Remove Button**: Top-right, appears on hover
-- **Hover Effect**: Blue glow shadow, scale 1.05 on poster
-- **Title**: 15px, white, turns blue on hover
-- **Tag**: Gray pill badge (#2A2A2E background)
+- Use the shared series card
+- **Remove Button**: Top-right, appears on hover, 28px circular
+
+#### Interactions
+
+- on load: get the favorite list from the user's favorites field
+- on remove button click: confirm then call remove from favorite list API with the selected series
+- on clear button click: confirm then call clear favorite list API
 
 #### Empty State
 - **Icon**: ❤️

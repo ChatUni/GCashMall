@@ -78,6 +78,7 @@ export const en = {
     },
     favorites: {
       title: 'Favorites',
+      clearFavorites: 'Clear Favorites',
       emptyTitle: 'No favorites yet',
       emptySubtext: 'Add series to your favorites to see them here',
       exploreButton: 'Explore Series',

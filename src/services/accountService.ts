@@ -5,7 +5,7 @@ import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthDa
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
+import type { User, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
@@ -460,14 +460,76 @@ export const removeFromWatchList = async (seriesId: string): Promise<{ success: 
 }
 
 
-// Remove favorite
-export const removeFavorite = async (itemId: string) => {
-  try {
-    await apiPost('removeFavorite', { itemId })
-    accountStoreActions.removeFavoriteItem(itemId)
-  } catch (error) {
-    console.error('Error removing favorite:', error)
+// Remove from favorites
+export const removeFromFavorites = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
+  const confirmed = window.confirm('Are you sure you want to remove this from your favorites?')
+  if (!confirmed) {
+    return { success: false }
   }
+
+  try {
+    const response = await apiPostWithAuth<User>('removeFromFavorites', { seriesId })
+    if (response.success && response.data) {
+      // Update stored user with updated favorites
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      // Update both stores so favorites are in sync everywhere
+      accountStoreActions.setUser(response.data)
+      userStoreActions.setUser(response.data)
+      // Also update the favorites list in the store from the user data
+      if (response.data.favorites) {
+        accountStoreActions.setFavorites(response.data.favorites.map((f: FavoriteUserItem) => ({
+          _id: f.seriesId,
+          seriesId: f.seriesId,
+          seriesTitle: f.seriesName,
+          thumbnail: f.seriesCover,
+          addedAt: f.addedAt,
+          tag: f.seriesTags && f.seriesTags.length > 0 ? f.seriesTags[0] : undefined,
+        })))
+      }
+      return { success: true }
+    }
+    return { success: false, error: response.error || 'Failed to remove from favorites' }
+  } catch (error) {
+    console.error('Error removing from favorites:', error)
+    return { success: false, error: 'Failed to remove from favorites' }
+  }
+}
+
+// Clear all favorites
+export const clearFavorites = async (): Promise<{ success: boolean; error?: string }> => {
+  const confirmed = window.confirm('Are you sure you want to clear all favorites?')
+  if (!confirmed) {
+    return { success: false }
+  }
+
+  try {
+    const response = await apiPostWithAuth<User>('clearFavorites', {})
+    if (response.success && response.data) {
+      // Update stored user with cleared favorites
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      // Update both stores so favorites are in sync everywhere
+      accountStoreActions.setUser(response.data)
+      userStoreActions.setUser(response.data)
+      // Clear the favorites list in the store
+      accountStoreActions.setFavorites([])
+      return { success: true }
+    }
+    return { success: false, error: response.error || 'Failed to clear favorites' }
+  } catch (error) {
+    console.error('Error clearing favorites:', error)
+    return { success: false, error: 'Failed to clear favorites' }
+  }
+}
+
+// Legacy remove favorite (keep for backwards compatibility)
+export const removeFavorite = async (itemId: string) => {
+  return removeFromFavorites(itemId)
 }
 
 // Top up

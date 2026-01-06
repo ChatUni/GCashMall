@@ -33,6 +33,9 @@ import {
   addToWatchList,
   clearWatchHistory,
   removeFromWatchList,
+  addToFavorites,
+  removeFromFavorites,
+  clearFavorites,
   migrateGenres,
 } from './utils/handlers.js'
 
@@ -72,6 +75,9 @@ const apiHandlers = {
     addToWatchList: (body, authHeader) => addToWatchList(body, authHeader),
     clearWatchHistory: (body, authHeader) => clearWatchHistory(body, authHeader),
     removeFromWatchList: (body, authHeader) => removeFromWatchList(body, authHeader),
+    addToFavorites: (body, authHeader) => addToFavorites(body, authHeader),
+    removeFromFavorites: (body, authHeader) => removeFromFavorites(body, authHeader),
+    clearFavorites: (body, authHeader) => clearFavorites(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
   },
   delete: {

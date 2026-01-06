@@ -77,6 +77,7 @@ export const zh = {
     },
     favorites: {
       title: '收藏夹',
+      clearFavorites: '清除收藏',
       emptyTitle: '暂无收藏',
       emptySubtext: '将剧集添加到收藏夹以便在此查看',
       exploreButton: '探索剧集',

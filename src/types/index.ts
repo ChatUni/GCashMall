@@ -67,6 +67,14 @@ export interface WatchListItem {
   updatedAt: Date
 }
 
+export interface FavoriteUserItem {
+  seriesId: string
+  seriesName: string
+  seriesCover: string
+  seriesTags?: string[]
+  addedAt: Date
+}
+
 export interface User {
   _id: string | null
   email: string
@@ -80,6 +88,7 @@ export interface User {
   balance?: number
   hasPassword?: boolean
   watchList?: WatchListItem[]
+  favorites?: FavoriteUserItem[]
   google_id?: string
   facebook_id?: string
   twitter_id?: string

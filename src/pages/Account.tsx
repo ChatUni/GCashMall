@@ -16,7 +16,8 @@ import {
   uploadAvatar,
   clearWatchHistory,
   removeFromWatchList,
-  removeFavorite,
+  removeFromFavorites,
+  clearFavorites,
   topUp,
   hasProfileChanges,
 } from '../services/accountService'
@@ -198,8 +199,9 @@ const Account: React.FC = () => {
           )}
           {state.activeTab === 'favorites' && (
             <FavoritesSection
-              items={state.favorites}
-              onRemoveItem={removeFavorite}
+              items={state.user?.favorites || []}
+              onClearFavorites={clearFavorites}
+              onRemoveItem={removeFromFavorites}
               onNavigate={navigate}
               t={t}
             />
@@ -670,27 +672,41 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
 }
 
 interface FavoritesSectionProps {
-  items: { _id: string; seriesId: string; seriesTitle: string; thumbnail: string; tag?: string }[]
-  onRemoveItem: (id: string) => void
+  items: { seriesId: string; seriesName: string; seriesCover: string; seriesTags?: string[]; addedAt: Date }[]
+  onClearFavorites: () => Promise<{ success: boolean; error?: string }>
+  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
 
 const FavoritesSection: React.FC<FavoritesSectionProps> = ({
   items,
+  onClearFavorites,
   onRemoveItem,
   onNavigate,
   t,
 }) => {
   const favorites = t.account.favorites as Record<string, string>
 
+  // Sort items by addedAt descending (most recent first)
+  const sortedItems = [...items].sort(
+    (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
+  )
+
   return (
     <div className="content-section favorites-section">
       <div className="section-header-row">
         <h1 className="page-title">{favorites.title}</h1>
+        {sortedItems.length > 0 && (
+          <div className="header-actions">
+            <button className="btn-secondary" onClick={onClearFavorites}>
+              {favorites.clearFavorites || 'Clear Favorites'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {items.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <EmptyState
           icon="❤️"
           title={favorites.emptyTitle}
@@ -700,30 +716,66 @@ const FavoritesSection: React.FC<FavoritesSectionProps> = ({
         />
       ) : (
         <div className="content-grid">
-          {items.map((item) => (
-            <div
-              key={item._id}
-              className="favorite-card"
+          {sortedItems.map((item) => (
+            <FavoriteCard
+              key={item.seriesId}
+              seriesId={item.seriesId}
+              seriesName={item.seriesName}
+              seriesCover={item.seriesCover}
+              seriesTags={item.seriesTags}
               onClick={() => onNavigate(`/player/${item.seriesId}`)}
-            >
-              <div className="poster-container">
-                <img src={item.thumbnail} alt={item.seriesTitle} />
-                <button
-                  className="remove-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveItem(item._id)
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-              <h4 className="card-title">{item.seriesTitle}</h4>
-              {item.tag && <span className="tag-pill">{item.tag}</span>}
-            </div>
+              onRemove={(e) => {
+                e.stopPropagation()
+                onRemoveItem(item.seriesId)
+              }}
+            />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+interface FavoriteCardProps {
+  seriesId: string
+  seriesName: string
+  seriesCover: string
+  seriesTags?: string[]
+  onClick: () => void
+  onRemove: (e: React.MouseEvent) => void
+}
+
+const FavoriteCard: React.FC<FavoriteCardProps> = ({
+  seriesId,
+  seriesName,
+  seriesCover,
+  seriesTags,
+  onClick,
+  onRemove,
+}) => {
+  return (
+    <div className="favorite-card series-card" onClick={onClick}>
+      <div className="series-card-poster">
+        {seriesCover ? (
+          <img src={seriesCover} alt={seriesName || 'Series'} className="series-card-image" />
+        ) : (
+          <div className="series-card-placeholder" />
+        )}
+        <div className="series-card-overlay">
+          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+        </div>
+        <button className="remove-btn" onClick={onRemove}>
+          ✕
+        </button>
+      </div>
+      <div className="series-card-info">
+        <h3 className="series-card-title">{seriesName || `Series ${seriesId}`}</h3>
+        {seriesTags && seriesTags.length > 0 && (
+          <span className="series-card-tag">{seriesTags[0]}</span>
+        )}
+      </div>
     </div>
   )
 }

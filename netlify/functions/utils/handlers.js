@@ -1450,6 +1450,175 @@ const validateRemoveFromWatchListBody = (body) => {
   }
 }
 
+// Add to favorites list
+const addToFavorites = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateAddToFavoritesBody(body)
+
+  try {
+    const { seriesId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    // Get series info to store name and cover
+    const seriesResult = await getSeriesById(seriesId)
+    if (!seriesResult.success || !seriesResult.data) {
+      return { success: false, error: 'Series not found' }
+    }
+
+    const series = seriesResult.data
+    const currentUser = users[0]
+    const favorites = currentUser.favorites || []
+
+    // Check if series is already in favorites
+    const existingIndex = favorites.findIndex(
+      (item) => String(item.seriesId) === String(seriesId),
+    )
+
+    if (existingIndex >= 0) {
+      // Already in favorites, just return success
+      return {
+        success: true,
+        data: buildUserResponse(currentUser),
+      }
+    }
+
+    // Add new entry to favorites
+    favorites.push({
+      seriesId,
+      seriesName: series.name,
+      seriesCover: series.cover,
+      seriesTags: series.tags || (series.genre && series.genre.length > 0 ? [series.genre[0].name] : []),
+      addedAt: new Date(),
+    })
+
+    // Update user with new favorites
+    const updateData = {
+      ...currentUser,
+      favorites,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to add to favorites: ${error.message}`)
+  }
+}
+
+const validateAddToFavoritesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+}
+
+// Remove from favorites list
+const removeFromFavorites = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateRemoveFromFavoritesBody(body)
+
+  try {
+    const { seriesId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const favorites = currentUser.favorites || []
+
+    // Remove the series from favorites
+    const updatedFavorites = favorites.filter(
+      (item) => String(item.seriesId) !== String(seriesId),
+    )
+
+    // Update user with new favorites
+    const updateData = {
+      ...currentUser,
+      favorites: updatedFavorites,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to remove from favorites: ${error.message}`)
+  }
+}
+
+const validateRemoveFromFavoritesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+}
+
+// Clear all favorites
+const clearFavorites = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Clear the favorites array
+    const updateData = {
+      ...currentUser,
+      favorites: [],
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to clear favorites: ${error.message}`)
+  }
+}
+
+// Helper to build user response without sensitive fields
+const buildUserResponse = (user) => ({
+  _id: user._id,
+  email: user.email,
+  nickname: user.nickname || 'Guest',
+  avatar: user.avatar || null,
+  phone: user.phone || null,
+  sex: user.sex || null,
+  dob: user.dob || null,
+  hasPassword: !!user.password,
+  watchList: user.watchList || [],
+  favorites: user.favorites || [],
+})
+
 const uploadImage = async (body) => {
   validateUploadImageBody(body)
 
@@ -1718,6 +1887,9 @@ export {
   addToWatchList,
   clearWatchHistory,
   removeFromWatchList,
+  addToFavorites,
+  removeFromFavorites,
+  clearFavorites,
   migrateGenres,
 }
 
