@@ -3,6 +3,7 @@
 
 import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
+import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
 
@@ -405,7 +406,12 @@ export const removeAvatar = async () => {
 }
 
 // Clear watch history (clears user's watchList)
-export const clearWatchHistory = async () => {
+export const clearWatchHistory = async (): Promise<{ success: boolean; error?: string }> => {
+  const confirmed = window.confirm('Are you sure you want to clear all watch history?')
+  if (!confirmed) {
+    return { success: false }
+  }
+
   try {
     const response = await apiPostWithAuth<User>('clearWatchHistory', {})
     if (response.success && response.data) {
@@ -414,10 +420,42 @@ export const clearWatchHistory = async () => {
       if (token) {
         saveAuthData(token, response.data)
       }
+      // Update both stores so watch history is in sync everywhere (Account page and TopBar)
       accountStoreActions.setUser(response.data)
+      userStoreActions.setUser(response.data)
+      return { success: true }
     }
+    return { success: false, error: response.error || 'Failed to clear watch history' }
   } catch (error) {
     console.error('Error clearing history:', error)
+    return { success: false, error: 'Failed to clear watch history' }
+  }
+}
+
+// Remove item from watch list
+export const removeFromWatchList = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
+  const confirmed = window.confirm('Are you sure you want to remove this from your watch history?')
+  if (!confirmed) {
+    return { success: false }
+  }
+
+  try {
+    const response = await apiPostWithAuth<User>('removeFromWatchList', { seriesId })
+    if (response.success && response.data) {
+      // Update stored user with updated watchList
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      // Update both stores so watch history is in sync everywhere (Account page and TopBar)
+      accountStoreActions.setUser(response.data)
+      userStoreActions.setUser(response.data)
+      return { success: true }
+    }
+    return { success: false, error: response.error || 'Failed to remove from watch list' }
+  } catch (error) {
+    console.error('Error removing from watch list:', error)
+    return { success: false, error: 'Failed to remove from watch list' }
   }
 }
 

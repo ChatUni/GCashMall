@@ -32,6 +32,7 @@ import {
   confirmResetPassword,
   addToWatchList,
   clearWatchHistory,
+  removeFromWatchList,
   migrateGenres,
 } from './utils/handlers.js'
 
@@ -70,6 +71,7 @@ const apiHandlers = {
     confirmResetPassword: (body) => confirmResetPassword(body),
     addToWatchList: (body, authHeader) => addToWatchList(body, authHeader),
     clearWatchHistory: (body, authHeader) => clearWatchHistory(body, authHeader),
+    removeFromWatchList: (body, authHeader) => removeFromWatchList(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
   },
   delete: {

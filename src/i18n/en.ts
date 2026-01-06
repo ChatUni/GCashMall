@@ -72,7 +72,6 @@ export const en = {
     watchHistory: {
       title: 'Watch History',
       clearHistory: 'Clear History',
-      syncHistory: 'Sync History',
       emptyTitle: 'No watch history yet',
       emptySubtext: 'Start watching to build your history',
       exploreButton: 'Explore Series',

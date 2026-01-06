@@ -383,6 +383,26 @@
   transform: translateY(-4px);
 }
 
+/* History card uses series card styling */
+.history-card.series-card {
+  width: 100%;
+}
+
+.history-card .series-card-poster {
+  position: relative;
+}
+
+.history-card .series-card-placeholder {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background-color: #242428;
+  border-radius: 12px;
+}
+
+.history-card .remove-btn {
+  z-index: 10;
+}
+
 .poster-container {
   position: relative;
   aspect-ratio: 2/3;
@@ -425,17 +445,24 @@
   right: 8px;
   width: 28px;
   height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.7);
   border: none;
+  padding: 0;
   color: #ffffff;
   font-size: 14px;
+  line-height: 1;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease, background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .history-card:hover .remove-btn,

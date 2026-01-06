@@ -10,6 +10,7 @@ import {
   userStoreActions,
   toastStoreActions,
 } from '../stores'
+import { accountStoreActions } from '../stores/accountStore'
 import type { Series, Episode, WatchHistoryItem, FavoriteItem, Genre, User } from '../types'
 import { getStoredUser, isLoggedIn, clearAuthData, saveAuthData } from '../utils/api'
 
@@ -134,23 +135,21 @@ export const fetchGenres = async () => {
   return result.success && result.data ? result.data : []
 }
 
-// Watch history operations
-export const clearWatchHistory = async () => {
-  await apiPost('clearWatchHistory', {})
-}
-
-export const removeWatchHistoryItem = async (itemId: string) => {
-  await apiPost('removeWatchHistoryItem', { itemId })
-}
-
-// Add to watch list
+// Add to watch list (used by Player page)
 export const addToWatchList = async (seriesId: string, episodeNumber: number) => {
   const result = await apiPostWithAuth<User>('addToWatchList', {
     seriesId,
     episodeNumber,
   })
   if (result.success && result.data) {
+    // Save to local storage
+    const token = localStorage.getItem('gcashmall_token')
+    if (token) {
+      saveAuthData(token, result.data)
+    }
+    // Update both userStore and accountStore so watch history is in sync everywhere
     userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
   }
   return result
 }

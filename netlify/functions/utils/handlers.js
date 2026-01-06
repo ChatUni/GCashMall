@@ -1379,6 +1379,68 @@ const clearWatchHistory = async (body, authHeader) => {
   }
 }
 
+// Remove item from watch list
+const removeFromWatchList = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateRemoveFromWatchListBody(body)
+
+  try {
+    const { seriesId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const watchList = currentUser.watchList || []
+
+    // Remove the series from watch list
+    const updatedWatchList = watchList.filter(
+      (item) => String(item.seriesId) !== String(seriesId),
+    )
+
+    // Update user with new watch list
+    const updateData = {
+      ...currentUser,
+      watchList: updatedWatchList,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+      watchList: updatedWatchList,
+    }
+
+    return {
+      success: true,
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to remove from watch list: ${error.message}`)
+  }
+}
+
+const validateRemoveFromWatchListBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+}
+
 const uploadImage = async (body) => {
   validateUploadImageBody(body)
 
@@ -1646,6 +1708,7 @@ export {
   confirmResetPassword,
   addToWatchList,
   clearWatchHistory,
+  removeFromWatchList,
   migrateGenres,
 }
 

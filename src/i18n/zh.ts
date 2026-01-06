@@ -71,7 +71,6 @@ export const zh = {
     watchHistory: {
       title: '观看历史',
       clearHistory: '清除历史',
-      syncHistory: '同步历史',
       emptyTitle: '暂无观看历史',
       emptySubtext: '开始观看以建立您的历史记录',
       exploreButton: '探索剧集',

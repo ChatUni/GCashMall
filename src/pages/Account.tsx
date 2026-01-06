@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
+import SeriesCard from '../components/SeriesCard'
 import { useLanguage } from '../context/LanguageContext'
 import { useAccountStore, accountStoreActions, navItems, topUpAmounts, type AccountTab } from '../stores/accountStore'
 import {
@@ -14,6 +15,7 @@ import {
   setPassword,
   uploadAvatar,
   clearWatchHistory,
+  removeFromWatchList,
   removeFavorite,
   topUp,
   hasProfileChanges,
@@ -189,6 +191,7 @@ const Account: React.FC = () => {
             <WatchHistorySection
               items={state.user?.watchList || []}
               onClearHistory={clearWatchHistory}
+              onRemoveItem={removeFromWatchList}
               onNavigate={navigate}
               t={t}
             />
@@ -548,7 +551,8 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
 
 interface WatchHistorySectionProps {
   items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]
-  onClearHistory: () => void
+  onClearHistory: () => Promise<{ success: boolean; error?: string }>
+  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
@@ -556,6 +560,7 @@ interface WatchHistorySectionProps {
 const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
   items,
   onClearHistory,
+  onRemoveItem,
   onNavigate,
   t,
 }) => {
@@ -574,13 +579,6 @@ const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
           <button className="btn-secondary" onClick={onClearHistory}>
             {watchHistory.clearHistory}
           </button>
-          <label className="toggle-label">
-            <span>{watchHistory.syncHistory}</span>
-            <label className="toggle">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
-          </label>
         </div>
       </div>
 
@@ -595,19 +593,78 @@ const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
       ) : (
         <div className="content-grid">
           {sortedItems.map((item) => (
-            <div
+            <HistoryCard
               key={item.seriesId}
-              className="history-card"
+              seriesId={item.seriesId}
+              episodeNumber={item.episodeNumber}
               onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
-            >
-              <div className="poster-container">
-                <span className="episode-badge">EP {item.episodeNumber}</span>
-              </div>
-              <h4 className="card-title">Series {item.seriesId}</h4>
-            </div>
+              onRemove={(e) => {
+                e.stopPropagation()
+                onRemoveItem(item.seriesId)
+              }}
+            />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+interface HistoryCardProps {
+  seriesId: string
+  episodeNumber: number
+  onClick: () => void
+  onRemove: (e: React.MouseEvent) => void
+}
+
+const HistoryCard: React.FC<HistoryCardProps> = ({
+  seriesId,
+  episodeNumber,
+  onClick,
+  onRemove,
+}) => {
+  // Fetch series data for display
+  const [series, setSeries] = React.useState<{ name: string; cover: string; tags?: string[] } | null>(null)
+
+  React.useEffect(() => {
+    const fetchSeries = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${seriesId}`)
+        const data = await response.json()
+        if (data.success && data.data) {
+          setSeries(data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch series:', error)
+      }
+    }
+    fetchSeries()
+  }, [seriesId])
+
+  return (
+    <div className="history-card series-card" onClick={onClick}>
+      <div className="series-card-poster">
+        {series?.cover ? (
+          <img src={series.cover} alt={series.name || 'Series'} className="series-card-image" />
+        ) : (
+          <div className="series-card-placeholder" />
+        )}
+        <div className="series-card-overlay">
+          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+        </div>
+        <span className="episode-badge">EP {episodeNumber}</span>
+        <button className="remove-btn" onClick={onRemove}>
+          ✕
+        </button>
+      </div>
+      <div className="series-card-info">
+        <h3 className="series-card-title">{series?.name || `Series ${seriesId}`}</h3>
+        {series?.tags && series.tags.length > 0 && (
+          <span className="series-card-tag">{series.tags[0]}</span>
+        )}
+      </div>
     </div>
   )
 }

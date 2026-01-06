@@ -148,18 +148,15 @@ Section card with form fields:
 - **Title**: "Watch History"
 - **Actions**: 
   - Clear History button (secondary)
-  - Sync History toggle
 
 #### Content Grid
 - **Layout**: 5 columns, 20px gap
 - **Responsive**: 4 cols at 1400px, 3 cols at 1200px, 2 cols at 768px
 
 #### History Card
-- **Poster Container**: 2:3 aspect ratio, 12px border radius
+- Use the shared series card
 - **Episode Badge**: Bottom-left, blue background (rgba(59, 130, 246, 0.9)), "EP X"
 - **Remove Button**: Top-right, appears on hover, 28px circular
-- **Title**: 15px, white, 2-line clamp
-- **Tag**: Gray pill badge
 
 #### Empty State
 - **Icon**: 📺 (64px, 50% opacity)
@@ -170,6 +167,8 @@ Section card with form fields:
 #### Interactions
 
 - on load: get the watch list from the user's watchList field
+- on remove button click: confirm then call remove from watch list API with the selected series
+- on clear button click: confirm then call clear watch list API
 
 ### 3. Favorites
 
