@@ -330,11 +330,17 @@
 }
 
 .episode-thumbnail.active {
-  box-shadow: 0 0 0 2px #3b82f6;
+  box-shadow: 0 0 0 3px #f59e0b;
 }
 
 .episode-thumbnail.active img {
-  filter: brightness(1.2);
+  filter: brightness(1.1);
+}
+
+.episode-thumbnail.active .episode-number {
+  background-color: #f59e0b;
+  color: #000000;
+  font-weight: 600;
 }
 
 .episode-number {

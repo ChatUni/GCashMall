@@ -39,8 +39,8 @@ export const filterEpisodesByRange = (
   )
 }
 
-export const findEpisodeById = (episodes: Episode[], episodeId: string): Episode | undefined => {
-  return episodes.find((ep) => ep._id === episodeId)
+export const findEpisodeByNumber = (episodes: Episode[], episodeNumber: number): Episode | undefined => {
+  return episodes.find((ep) => ep.episodeNumber === episodeNumber)
 }
 
 export const buildEpisodeTitle = (seriesName: string, episodeNumber: number): string => {

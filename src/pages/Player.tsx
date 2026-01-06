@@ -13,7 +13,7 @@ import {
   getEpisodeThumbnailUrl,
   getEpisodeRanges,
   filterEpisodesByRange,
-  findEpisodeById,
+  findEpisodeByNumber,
   buildEpisodeTitle,
   getIframeUrl,
   playbackSpeeds,
@@ -119,13 +119,13 @@ const Player: React.FC = () => {
   }
 
   // Handle episode selection from URL
-  const episodeIdFromUrl = searchParams.get('episode')
+  const episodeNumberFromUrl = searchParams.get('episode')
   if (
-    episodeIdFromUrl &&
+    episodeNumberFromUrl &&
     playerState.episodes.length > 0 &&
-    (!playerState.currentEpisode || playerState.currentEpisode._id !== episodeIdFromUrl)
+    (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== parseInt(episodeNumberFromUrl, 10))
   ) {
-    const episode = findEpisodeById(playerState.episodes, episodeIdFromUrl)
+    const episode = findEpisodeByNumber(playerState.episodes, parseInt(episodeNumberFromUrl, 10))
     if (episode) {
       playerStoreActions.setCurrentEpisode(episode)
     }
@@ -145,7 +145,7 @@ const Player: React.FC = () => {
 
   const handleEpisodeClick = (episode: Episode) => {
     playerStoreActions.setCurrentEpisode(episode)
-    navigate(`/player/${id}?episode=${episode._id}`, { replace: true })
+    navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
   }
 
   const handleTagClick = (tag: string) => {
@@ -222,11 +222,9 @@ const Player: React.FC = () => {
           allEpisodes={playerState.episodes}
           currentEpisode={playerState.currentEpisode}
           episodeRange={playerState.episodeRange}
-          hoveredEpisodeId={playerState.hoveredEpisodeId}
           title={t.player.episodes}
           onEpisodeClick={handleEpisodeClick}
           onRangeSelect={playerStoreActions.setEpisodeRange}
-          onEpisodeHover={playerStoreActions.setHoveredEpisodeId}
         />
       </main>
 
@@ -504,16 +502,41 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
   </div>
 )
 
+interface EpisodeItemProps {
+  episode: Episode
+  isActive: boolean
+  onClick: () => void
+}
+
+const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, onClick }) => {
+  const [isHovered, setIsHovered] = React.useState(false)
+
+  return (
+    <div
+      className={`episode-thumbnail ${isActive ? 'active' : ''}`}
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <img
+        src={getEpisodeThumbnailUrl(episode, isHovered)}
+        alt={episode.title}
+      />
+      <span className="episode-number">
+        EP {episode.episodeNumber.toString().padStart(2, '0')}
+      </span>
+    </div>
+  )
+}
+
 interface EpisodeSidebarProps {
   episodes: Episode[]
   allEpisodes: Episode[]
   currentEpisode: Episode | null
   episodeRange: [number, number]
-  hoveredEpisodeId: string | null
   title: string
   onEpisodeClick: (episode: Episode) => void
   onRangeSelect: (range: [number, number]) => void
-  onEpisodeHover: (episodeId: string | null) => void
 }
 
 const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
@@ -521,11 +544,9 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
   allEpisodes,
   currentEpisode,
   episodeRange,
-  hoveredEpisodeId,
   title,
   onEpisodeClick,
   onRangeSelect,
-  onEpisodeHover,
 }) => {
   const ranges = getEpisodeRanges(allEpisodes.length)
 
@@ -549,23 +570,12 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
 
       <div className="episode-grid">
         {episodes.map((episode) => (
-          <div
-            key={episode._id}
-            className={`episode-thumbnail ${
-              currentEpisode?._id === episode._id ? 'active' : ''
-            }`}
+          <EpisodeItem
+            key={episode.episodeNumber}
+            episode={episode}
+            isActive={currentEpisode !== null && currentEpisode.episodeNumber === episode.episodeNumber}
             onClick={() => onEpisodeClick(episode)}
-            onMouseEnter={() => onEpisodeHover(episode._id)}
-            onMouseLeave={() => onEpisodeHover(null)}
-          >
-            <img
-              src={getEpisodeThumbnailUrl(episode, hoveredEpisodeId === episode._id)}
-              alt={episode.title}
-            />
-            <span className="episode-number">
-              EP {episode.episodeNumber.toString().padStart(2, '0')}
-            </span>
-          </div>
+          />
         ))}
       </div>
     </aside>
