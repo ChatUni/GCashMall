@@ -124,25 +124,28 @@ The page uses React Router params:
 - **Margin Bottom**: 16px
 - **Items**: Language selector, Favorite button
 
-### Language Selector
+#### Language Selector
 - **Display**: Flex with globe icon
 - **Icon Size**: 18px
 - **Color**: #9CA3AF
 - **Options**: English, 中文, Español, Français
 
-### Favorite Button
+#### Favorite Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%
 - **Background**: #1A1A1A
 - **Color**: #9CA3AF (inactive), #EF4444 (active)
 - **Hover**: Background #2A2A2E, scale(1.05)
 - **Icon**: Heart SVG (filled when active)
+- on click:
+  - inactive: call add to favorite API, change to active
+  - active: call remove from favorite API, change to inactive
 
 ### Tag List
 - **Display**: Flex wrap
 - **Gap**: 10px
 
-### Tag Pill
+#### Tag Pill
 - **Background**: #2A2A2E
 - **Color**: #9CA3AF
 - **Font Size**: 13px

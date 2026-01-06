@@ -155,8 +155,30 @@ export const addToWatchList = async (seriesId: string, episodeNumber: number) =>
 }
 
 // Favorites operations
-export const removeFavorite = async (itemId: string) => {
-  await apiPost('removeFavorite', { itemId })
+export const addToFavorites = async (seriesId: string) => {
+  const result = await apiPostWithAuth<User>('addToFavorites', { seriesId })
+  if (result.success && result.data) {
+    const token = localStorage.getItem('gcashmall_token')
+    if (token) {
+      saveAuthData(token, result.data)
+    }
+    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
+  }
+  return result
+}
+
+export const removeFromFavorites = async (seriesId: string) => {
+  const result = await apiPostWithAuth<User>('removeFromFavorites', { seriesId })
+  if (result.success && result.data) {
+    const token = localStorage.getItem('gcashmall_token')
+    if (token) {
+      saveAuthData(token, result.data)
+    }
+    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
+  }
+  return result
 }
 
 // Top up

@@ -194,15 +194,44 @@
   margin: 0 0 12px 0;
 }
 
+.metadata-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
 .episode-language {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .episode-language svg {
   color: #9ca3af;
+}
+
+.favorite-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.favorite-button:hover {
+  background: #2a2a2e;
+  transform: scale(1.05);
+}
+
+.favorite-button.active {
+  color: #ef4444;
 }
 
 .language-select {

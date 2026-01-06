@@ -7,7 +7,7 @@ import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
 import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions } from '../stores'
-import { fetchPlayerData, addToWatchList } from '../services/dataService'
+import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import {
   formatTime,
@@ -223,6 +223,31 @@ const Player: React.FC = () => {
     navigate(`/series?genre=${encodeURIComponent(tag)}`)
   }
 
+  // Check if current series is in favorites
+  const isSeriesFavorited = (seriesId: string): boolean => {
+    if (!userState.user?.favorites || userState.user.favorites.length === 0) return false
+    return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
+  }
+
+  const handleFavoriteToggle = async () => {
+    if (!isLoggedIn()) {
+      loginModalStoreActions.open()
+      return
+    }
+
+    if (!id) return
+
+    try {
+      if (isSeriesFavorited(id)) {
+        await removeFromFavorites(id)
+      } else {
+        await addToFavorites(id)
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
+
   if (playerState.loading) {
     return (
       <div className="player-page">
@@ -283,8 +308,10 @@ const Player: React.FC = () => {
             series={playerState.series}
             currentEpisode={playerState.currentEpisode}
             selectedLanguage={playerState.selectedLanguage}
+            isFavorited={id ? isSeriesFavorited(id) : false}
             onLanguageChange={playerStoreActions.setSelectedLanguage}
             onTagClick={handleTagClick}
+            onFavoriteToggle={handleFavoriteToggle}
           />
         </div>
 
@@ -523,37 +550,53 @@ interface EpisodeMetadataProps {
   series: { name: string; tags?: string[]; genre?: { _id: string; name: string }[]; description: string; languages?: string[] }
   currentEpisode: Episode | null
   selectedLanguage: string
+  isFavorited: boolean
   onLanguageChange: (language: string) => void
   onTagClick: (tag: string) => void
+  onFavoriteToggle: () => void
 }
 
 const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
   series,
   currentEpisode,
   selectedLanguage,
+  isFavorited,
   onLanguageChange,
   onTagClick,
+  onFavoriteToggle,
 }) => (
   <div className="episode-metadata">
     <h1 className="episode-title">
       {currentEpisode ? buildEpisodeTitle(series.name, currentEpisode.episodeNumber) : series.name}
     </h1>
 
-    <div className="episode-language">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-      </svg>
-      <select
-        value={selectedLanguage}
-        onChange={(e) => onLanguageChange(e.target.value)}
-        className="language-select"
+    <div className="metadata-row">
+      <div className="episode-language">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+        </svg>
+        <select
+          value={selectedLanguage}
+          onChange={(e) => onLanguageChange(e.target.value)}
+          className="language-select"
+        >
+          {series.languages?.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          )) || <option value="English">English</option>}
+        </select>
+      </div>
+
+      <button
+        className={`favorite-button ${isFavorited ? 'active' : ''}`}
+        onClick={onFavoriteToggle}
+        title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
       >
-        {series.languages?.map((lang) => (
-          <option key={lang} value={lang}>
-            {lang}
-          </option>
-        )) || <option value="English">English</option>}
-      </select>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      </button>
     </div>
 
     <div className="episode-tags">
