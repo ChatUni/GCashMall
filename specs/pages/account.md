@@ -222,7 +222,7 @@ Section card with form fields:
 - **Content**:
   - Wallet Icon: 💰 (48px)
   - Label: "Current Balance" - Gray, 14px
-  - Amount: White, 36px, font-weight 700, with GCash logo (32px)
+  - Amount: White, 36px, font-weight 700, with GCash logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
 
 #### Top Up Section
 - **Description**: "Select an amount to add to your wallet"

@@ -918,7 +918,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
         <div className="balance-info">
           <span className="balance-label">{wallet.currentBalance}</span>
           <div className="balance-amount">
-            <img src="/gcash-logo.png" alt="GCash" className="gcash-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="gcash-logo" />
             <span>{balance.toFixed(2)}</span>
           </div>
         </div>
@@ -934,7 +934,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
               className="topup-button"
               onClick={() => onTopUpClick(amount)}
             >
-              <img src="/gcash-logo.png" alt="GCash" className="topup-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="topup-logo" />
               <span className="topup-amount">{amount}</span>
             </button>
           ))}
@@ -949,11 +949,11 @@ const WalletSection: React.FC<WalletSectionProps> = ({
       {showTopUpPopup && selectedTopUpAmount && (
         <div className="popup-overlay" onClick={onClosePopup}>
           <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="/gcash-logo.png" alt="GCash" className="popup-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
             <h2 className="popup-title">{wallet.confirmTopUp}</h2>
             <p className="popup-message">{wallet.addToWallet}</p>
             <div className="popup-amount">
-              <img src="/gcash-logo.png" alt="GCash" className="popup-amount-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
               <span>{selectedTopUpAmount}</span>
             </div>
             <div className="popup-buttons">
