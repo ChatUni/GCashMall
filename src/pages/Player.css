@@ -212,26 +212,24 @@
 }
 
 .favorite-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #1a1a1a;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .favorite-button:hover {
-  background: #2a2a2e;
-  transform: scale(1.05);
+  transform: scale(1.5);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.favorite-button.active {
-  color: #ef4444;
+.favorite-button svg {
+  transition: transform 0.2s ease;
 }
 
 .language-select {
@@ -397,20 +395,24 @@
 .social-button {
   width: 44px;
   height: 44px;
-  background-color: #1a1a1a;
+  background: transparent;
   border: none;
   border-radius: 50%;
-  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  padding: 8px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .social-button:hover {
-  color: #3b82f6;
-  background-color: #242428;
+  transform: scale(1.5);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.social-button svg {
+  transition: transform 0.2s ease;
 }
 
 @media (max-width: 1024px) {
