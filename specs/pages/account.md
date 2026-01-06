@@ -167,6 +167,10 @@ Section card with form fields:
 - **Subtitle**: "Start watching to build your history"
 - **Action**: "Explore Series" button
 
+#### Interactions
+
+- on load: get the watch list from the user's watchList field
+
 ### 3. Favorites
 
 #### Header

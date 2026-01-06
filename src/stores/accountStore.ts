@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { useSyncExternalStore } from 'react'
-import type { WatchHistoryItem, FavoriteItem, User } from '../types'
+import type { FavoriteItem, User } from '../types'
 
 type Listener = () => void
 
@@ -58,7 +58,6 @@ interface AccountState {
   user: User | null
   isLoggedIn: boolean
   loading: boolean
-  watchHistory: WatchHistoryItem[]
   favorites: FavoriteItem[]
   
   // Profile form
@@ -121,7 +120,6 @@ const initialState: AccountState = {
   user: null,
   isLoggedIn: false,
   loading: true,
-  watchHistory: [],
   favorites: [],
   
   profileForm: initialProfileForm,
@@ -168,22 +166,13 @@ export const accountStoreActions = {
     accountStore.setState((prev) => ({ ...prev, showLoginModal })),
   
   // Data
-  setWatchHistory: (watchHistory: WatchHistoryItem[]) => 
-    accountStore.setState((prev) => ({ ...prev, watchHistory })),
-  setFavorites: (favorites: FavoriteItem[]) => 
+  setFavorites: (favorites: FavoriteItem[]) =>
     accountStore.setState((prev) => ({ ...prev, favorites })),
-  removeWatchHistoryItem: (itemId: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      watchHistory: prev.watchHistory.filter((item) => item._id !== itemId),
-    })),
   removeFavoriteItem: (itemId: string) =>
     accountStore.setState((prev) => ({
       ...prev,
       favorites: prev.favorites.filter((item) => item._id !== itemId),
     })),
-  clearWatchHistory: () =>
-    accountStore.setState((prev) => ({ ...prev, watchHistory: [] })),
   
   // Profile form
   setProfileForm: (profileForm: ProfileFormState) => 

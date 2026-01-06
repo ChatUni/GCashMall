@@ -14,7 +14,6 @@ import {
   setPassword,
   uploadAvatar,
   clearWatchHistory,
-  removeWatchHistoryItem,
   removeFavorite,
   topUp,
   hasProfileChanges,
@@ -188,9 +187,8 @@ const Account: React.FC = () => {
           )}
           {state.activeTab === 'watchHistory' && (
             <WatchHistorySection
-              items={state.watchHistory}
+              items={state.user?.watchList || []}
               onClearHistory={clearWatchHistory}
-              onRemoveItem={removeWatchHistoryItem}
               onNavigate={navigate}
               t={t}
             />
@@ -549,9 +547,8 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
 )
 
 interface WatchHistorySectionProps {
-  items: { _id: string; seriesId: string; seriesTitle: string; episodeId: string; episodeNumber: number; thumbnail: string; tag?: string }[]
+  items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]
   onClearHistory: () => void
-  onRemoveItem: (id: string) => void
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
@@ -559,11 +556,15 @@ interface WatchHistorySectionProps {
 const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
   items,
   onClearHistory,
-  onRemoveItem,
   onNavigate,
   t,
 }) => {
   const watchHistory = t.account.watchHistory as Record<string, string>
+
+  // Sort items by updatedAt descending (most recent first)
+  const sortedItems = [...items].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  )
 
   return (
     <div className="content-section history-section">
@@ -583,7 +584,7 @@ const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <EmptyState
           icon="📺"
           title={watchHistory.emptyTitle}
@@ -593,27 +594,16 @@ const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
         />
       ) : (
         <div className="content-grid">
-          {items.map((item) => (
+          {sortedItems.map((item) => (
             <div
-              key={item._id}
+              key={item.seriesId}
               className="history-card"
-              onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeId}`)}
+              onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
             >
               <div className="poster-container">
-                <img src={item.thumbnail} alt={item.seriesTitle} />
                 <span className="episode-badge">EP {item.episodeNumber}</span>
-                <button
-                  className="remove-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveItem(item._id)
-                  }}
-                >
-                  ✕
-                </button>
               </div>
-              <h4 className="card-title">{item.seriesTitle}</h4>
-              {item.tag && <span className="tag-pill">{item.tag}</span>}
+              <h4 className="card-title">Series {item.seriesId}</h4>
             </div>
           ))}
         </div>

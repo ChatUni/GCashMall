@@ -143,6 +143,18 @@ export const removeWatchHistoryItem = async (itemId: string) => {
   await apiPost('removeWatchHistoryItem', { itemId })
 }
 
+// Add to watch list
+export const addToWatchList = async (seriesId: string, episodeNumber: number) => {
+  const result = await apiPostWithAuth<User>('addToWatchList', {
+    seriesId,
+    episodeNumber,
+  })
+  if (result.success && result.data) {
+    userStoreActions.setUser(result.data)
+  }
+  return result
+}
+
 // Favorites operations
 export const removeFavorite = async (itemId: string) => {
   await apiPost('removeFavorite', { itemId })

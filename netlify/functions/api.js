@@ -17,7 +17,6 @@ import {
   getNewReleases,
   getSearchSuggestions,
   getEpisodes,
-  getWatchHistory,
   getFavorites,
   getUser,
   checkEmail,
@@ -31,6 +30,7 @@ import {
   setPassword,
   resetPassword,
   confirmResetPassword,
+  addToWatchList,
   clearWatchHistory,
   migrateGenres,
 } from './utils/handlers.js'
@@ -47,7 +47,6 @@ const apiHandlers = {
     newReleases: (params) => getNewReleases(params),
     searchSuggestions: (params) => getSearchSuggestions(params),
     episodes: (params) => getEpisodes(params),
-    watchHistory: (params) => getWatchHistory(params),
     favorites: (params) => getFavorites(params),
     user: (params) => getUser(params),
     checkEmail: (params) => checkEmail(params),
@@ -69,7 +68,8 @@ const apiHandlers = {
     setPassword: (body, authHeader) => setPassword(body, authHeader),
     resetPassword: (body) => resetPassword(body),
     confirmResetPassword: (body) => confirmResetPassword(body),
-    clearWatchHistory: (body) => clearWatchHistory(body),
+    addToWatchList: (body, authHeader) => addToWatchList(body, authHeader),
+    clearWatchHistory: (body, authHeader) => clearWatchHistory(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
   },
   delete: {

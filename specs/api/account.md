@@ -168,3 +168,24 @@ return the updated user
 ### Output
 
 return empty
+
+## Add to Watch List
+
+### Input
+
+- series id *
+- episode number *
+
+### Prerequisite
+
+- already logged in
+
+### Action
+
+- find the account based on the login
+- if the user's current watch list contains the series, update the episode number and current time
+- otherwise, add the series and episode number to the user's watch list
+
+### Output
+
+return the updated user

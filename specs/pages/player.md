@@ -104,7 +104,10 @@ The page uses React Router params:
 
 ### Interaction
 
-- on load: play video https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId of the first episode}
+- on load:
+  - find the last watched episode in the series in the user's watch list, default to first episode if not found
+  - play video https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId of the episode}
+  - if series not in watch list, call the add to watch list API with current series and first episode
 
 ## Episode Metadata Section
 
@@ -202,6 +205,10 @@ The page uses React Router params:
 
 - https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/thumbnail.jpg
 - on hover: https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/preview.webp
+
+#### Interaction
+
+- on click: play the episode and call the add to watch list API with current series and current episode
 
 ### Episode Number Badge
 - **Position**: Absolute bottom-left

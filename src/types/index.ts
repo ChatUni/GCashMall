@@ -58,6 +58,13 @@ export interface Episode {
 
 export type OAuthType = 'google' | 'facebook' | 'twitter' | 'linkedin'
 
+export interface WatchListItem {
+  seriesId: string
+  episodeNumber: number
+  addedAt: Date
+  updatedAt: Date
+}
+
 export interface User {
   _id: string | null
   email: string
@@ -70,6 +77,7 @@ export interface User {
   dob?: string | null
   balance?: number
   hasPassword?: boolean
+  watchList?: WatchListItem[]
   google_id?: string
   facebook_id?: string
   twitter_id?: string

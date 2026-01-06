@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext'
 import { languageIcons, supportedLanguages, type Language } from '../i18n'
 import { apiGet, isLoggedIn as checkIsLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions } from '../stores/accountStore'
-import type { SearchSuggestion, WatchHistoryItem, User } from '../types'
+import type { SearchSuggestion, WatchListItem, User } from '../types'
 import LoginModal from './LoginModal'
 import './TopBar.css'
 
@@ -15,7 +15,6 @@ const TopBar: React.FC = () => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [showHistoryPopover, setShowHistoryPopover] = useState(false)
-  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([])
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -73,11 +72,13 @@ const TopBar: React.FC = () => {
     }
   }
 
-  const fetchWatchHistory = async () => {
-    const data = await apiGet<WatchHistoryItem[]>('watchHistory', { limit: 5 })
-    if (data.success && data.data) {
-      setWatchHistory(data.data)
-    }
+  // Get watch history from user's watchList (stored on user object, no API call needed)
+  const getWatchHistory = (): WatchListItem[] => {
+    if (!currentUser?.watchList) return []
+    // Return most recent 5 items, sorted by updatedAt descending
+    return [...currentUser.watchList]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5)
   }
 
   const handleSearch = () => {
@@ -130,7 +131,6 @@ const TopBar: React.FC = () => {
 
   const handleHistoryIconHover = () => {
     setShowHistoryPopover(true)
-    fetchWatchHistory()
   }
 
   const handleHistoryIconClick = () => {
@@ -145,8 +145,8 @@ const TopBar: React.FC = () => {
     }
   }
 
-  const handleHistoryItemClick = (item: WatchHistoryItem) => {
-    navigate(`/series/${item.seriesId}?episode=${item.episodeId}`)
+  const handleHistoryItemClick = (item: WatchListItem) => {
+    navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)
     setShowHistoryPopover(false)
   }
 
@@ -233,13 +233,13 @@ const TopBar: React.FC = () => {
               {showHistoryPopover && (
                 <div className="history-popover">
                   <div className="popover-header">{t.topBar.historyTitle}</div>
-                  {watchHistory.length === 0 ? (
+                  {getWatchHistory().length === 0 ? (
                     <div className="popover-empty">{t.topBar.noHistory}</div>
                   ) : (
                     <div className="popover-list">
-                      {watchHistory.map((item) => (
+                      {getWatchHistory().map((item) => (
                         <div
-                          key={item._id}
+                          key={item.seriesId}
                           className="popover-item"
                           onClick={(e) => {
                             e.stopPropagation()
@@ -247,7 +247,7 @@ const TopBar: React.FC = () => {
                           }}
                         >
                           <div className="popover-item-info">
-                            <span className="popover-item-title">{item.seriesTitle}</span>
+                            <span className="popover-item-title">Series {item.seriesId}</span>
                             <span className="popover-item-episode">EP {item.episodeNumber}</span>
                           </div>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

@@ -401,18 +401,6 @@ const getEpisodes = async (params) => {
   }
 }
 
-const getWatchHistory = async (params) => {
-  try {
-    const limit = params.limit ? parseInt(params.limit) : 20
-    const history = await get('watchHistory', {}, {}, { lastWatched: -1 }, limit)
-    return {
-      success: true,
-      data: history
-    }
-  } catch (error) {
-    throw new Error(`Failed to get watch history: ${error.message}`)
-  }
-}
 
 const getFavorites = async (params) => {
   try {
@@ -529,6 +517,7 @@ const emailRegister = async (body) => {
       nickname: newUser.nickname,
       avatar: newUser.avatar,
       hasPassword: !!password,
+      watchList: [],
     }
 
     return {
@@ -688,6 +677,7 @@ const googleLogin = async (body) => {
       gender: user.gender || null,
       birthday: user.birthday || null,
       hasPassword,
+      watchList: user.watchList || [],
     }
 
     return {
@@ -752,6 +742,7 @@ const login = async (body) => {
       gender: user.gender || null,
       birthday: user.birthday || null,
       hasPassword,
+      watchList: user.watchList || [],
     }
 
     return {
@@ -1265,12 +1256,123 @@ const validateResetPasswordBody = (body) => {
   }
 }
 
-const clearWatchHistory = async (body) => {
+// Add to watch list
+const addToWatchList = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateAddToWatchListBody(body)
+
   try {
-    await remove('watchHistory', {})
+    const { seriesId, episodeNumber } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const watchList = currentUser.watchList || []
+
+    // Check if series is already in watch list
+    const existingIndex = watchList.findIndex(
+      (item) => String(item.seriesId) === String(seriesId),
+    )
+
+    if (existingIndex >= 0) {
+      // Update existing entry with new episode and current time
+      watchList[existingIndex].episodeNumber = episodeNumber
+      watchList[existingIndex].updatedAt = new Date()
+    } else {
+      // Add new entry to watch list
+      watchList.push({
+        seriesId,
+        episodeNumber,
+        addedAt: new Date(),
+        updatedAt: new Date(),
+      })
+    }
+
+    // Update user with new watch list
+    const updateData = {
+      ...currentUser,
+      watchList,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+      watchList: updateData.watchList,
+    }
+
     return {
       success: true,
-      data: { cleared: true }
+      data: userResponse,
+    }
+  } catch (error) {
+    throw new Error(`Failed to add to watch list: ${error.message}`)
+  }
+}
+
+const validateAddToWatchListBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+
+  if (!body.episodeNumber && body.episodeNumber !== 0) {
+    throw new Error('Episode number is required')
+  }
+}
+
+// Clear watch history (clear user's watchList array)
+const clearWatchHistory = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Clear the watchList array
+    const updateData = {
+      ...currentUser,
+      watchList: [],
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    // Return updated user without password
+    const userResponse = {
+      _id: updateData._id,
+      email: updateData.email,
+      nickname: updateData.nickname || 'Guest',
+      avatar: updateData.avatar || null,
+      phone: updateData.phone || null,
+      sex: updateData.sex || null,
+      dob: updateData.dob || null,
+      watchList: [],
+    }
+
+    return {
+      success: true,
+      data: userResponse,
     }
   } catch (error) {
     throw new Error(`Failed to clear watch history: ${error.message}`)
@@ -1529,7 +1631,6 @@ export {
   getNewReleases,
   getSearchSuggestions,
   getEpisodes,
-  getWatchHistory,
   getFavorites,
   getUser,
   checkEmail,
@@ -1543,6 +1644,7 @@ export {
   setPassword,
   resetPassword,
   confirmResetPassword,
+  addToWatchList,
   clearWatchHistory,
   migrateGenres,
 }

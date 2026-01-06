@@ -6,8 +6,9 @@ import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, playerStoreActions, loginModalStoreActions } from '../stores'
-import { fetchPlayerData } from '../services/dataService'
+import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions } from '../stores'
+import { fetchPlayerData, addToWatchList } from '../services/dataService'
+import { isLoggedIn } from '../utils/api'
 import {
   formatTime,
   getEpisodeThumbnailUrl,
@@ -18,17 +19,52 @@ import {
   getIframeUrl,
   playbackSpeeds,
 } from '../utils/playerHelpers'
-import type { Episode } from '../types'
+import type { Episode, WatchListItem } from '../types'
 import './Player.css'
 
 // Track the currently loaded series ID to detect changes
 let currentLoadedSeriesId: string | null = null
+// Track if watch list has been updated on load for current series
+let watchListUpdatedForSeriesId: string | null = null
 
 const initializePlayerData = (seriesId: string) => {
   if (currentLoadedSeriesId !== seriesId) {
     currentLoadedSeriesId = seriesId
+    watchListUpdatedForSeriesId = null // Reset watch list tracking for new series
     playerStoreActions.reset()
     fetchPlayerData(seriesId)
+  }
+}
+
+// Find last watched episode for series from user's watch list
+const findLastWatchedEpisode = (
+  seriesId: string,
+  watchList: WatchListItem[] | undefined,
+  episodes: Episode[],
+): Episode | null => {
+  if (!watchList || watchList.length === 0) return null
+
+  const watchListItem = watchList.find((item) => String(item.seriesId) === String(seriesId))
+  if (watchListItem) {
+    return findEpisodeByNumber(episodes, watchListItem.episodeNumber) || null
+  }
+  return null
+}
+
+// Check if series is in user's watch list
+const isSeriesInWatchList = (seriesId: string, watchList: WatchListItem[] | undefined): boolean => {
+  if (!watchList || watchList.length === 0) return false
+  return watchList.some((item) => String(item.seriesId) === String(seriesId))
+}
+
+// Handle adding to watch list on load or episode change
+const handleWatchListUpdate = async (seriesId: string, episodeNumber: number) => {
+  if (!isLoggedIn()) return
+
+  try {
+    await addToWatchList(seriesId, episodeNumber)
+  } catch (error) {
+    console.error('Failed to update watch list:', error)
   }
 }
 
@@ -109,6 +145,7 @@ const Player: React.FC = () => {
 
   const playerState = usePlayerStore()
   const loginModalState = useLoginModalStore()
+  const userState = useUserStore()
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -118,16 +155,46 @@ const Player: React.FC = () => {
     initializePlayerData(id)
   }
 
-  // Handle episode selection from URL
+  // Handle episode selection from URL or watch list
   const episodeNumberFromUrl = searchParams.get('episode')
+  
+  // Determine which episode to show based on priority:
+  // 1. URL parameter (explicit selection)
+  // 2. Last watched from user's watch list
+  // 3. First episode (default)
   if (
-    episodeNumberFromUrl &&
     playerState.episodes.length > 0 &&
-    (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== parseInt(episodeNumberFromUrl, 10))
+    !playerState.loading &&
+    id
   ) {
-    const episode = findEpisodeByNumber(playerState.episodes, parseInt(episodeNumberFromUrl, 10))
-    if (episode) {
-      playerStoreActions.setCurrentEpisode(episode)
+    // If URL has episode parameter, use it
+    if (
+      episodeNumberFromUrl &&
+      (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== parseInt(episodeNumberFromUrl, 10))
+    ) {
+      const episode = findEpisodeByNumber(playerState.episodes, parseInt(episodeNumberFromUrl, 10))
+      if (episode) {
+        playerStoreActions.setCurrentEpisode(episode)
+      }
+    }
+    // Otherwise, if no current episode set, find from watch list or use first episode
+    else if (!playerState.currentEpisode) {
+      const lastWatchedEpisode = findLastWatchedEpisode(id, userState.user?.watchList, playerState.episodes)
+      if (lastWatchedEpisode) {
+        playerStoreActions.setCurrentEpisode(lastWatchedEpisode)
+      } else if (playerState.episodes.length > 0) {
+        playerStoreActions.setCurrentEpisode(playerState.episodes[0])
+      }
+    }
+
+    // Auto-add to watch list on load (only once per series)
+    if (
+      watchListUpdatedForSeriesId !== id &&
+      playerState.currentEpisode &&
+      isLoggedIn()
+    ) {
+      watchListUpdatedForSeriesId = id
+      handleWatchListUpdate(id, playerState.currentEpisode.episodeNumber)
     }
   }
 
@@ -146,6 +213,10 @@ const Player: React.FC = () => {
   const handleEpisodeClick = (episode: Episode) => {
     playerStoreActions.setCurrentEpisode(episode)
     navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
+    // Update watch list when user clicks on an episode
+    if (id) {
+      handleWatchListUpdate(id, episode.episodeNumber)
+    }
   }
 
   const handleTagClick = (tag: string) => {

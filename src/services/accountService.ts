@@ -4,7 +4,7 @@
 import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, WatchHistoryItem, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
+import type { User, FavoriteItem, OAuthType, ResetPasswordResponse } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
@@ -111,16 +111,10 @@ export const checkLoginStatus = async (): Promise<boolean> => {
   return false
 }
 
-// Fetch user data (watch history, favorites)
+// Fetch user data (favorites only, watch history comes from user.watchList)
 export const fetchAccountUserData = async () => {
-  const [historyResponse, favoritesResponse] = await Promise.all([
-    apiGet<WatchHistoryItem[]>('watchHistory'),
-    apiGet<FavoriteItem[]>('favorites'),
-  ])
+  const favoritesResponse = await apiGet<FavoriteItem[]>('favorites')
 
-  if (historyResponse.success && historyResponse.data) {
-    accountStoreActions.setWatchHistory(historyResponse.data)
-  }
   if (favoritesResponse.success && favoritesResponse.data) {
     accountStoreActions.setFavorites(favoritesResponse.data)
   }
@@ -410,25 +404,23 @@ export const removeAvatar = async () => {
   }
 }
 
-// Clear watch history
+// Clear watch history (clears user's watchList)
 export const clearWatchHistory = async () => {
   try {
-    await apiPost('clearWatchHistory', {})
-    accountStoreActions.clearWatchHistory()
+    const response = await apiPostWithAuth<User>('clearWatchHistory', {})
+    if (response.success && response.data) {
+      // Update stored user with cleared watchList
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.setUser(response.data)
+    }
   } catch (error) {
     console.error('Error clearing history:', error)
   }
 }
 
-// Remove watch history item
-export const removeWatchHistoryItem = async (itemId: string) => {
-  try {
-    await apiPost('removeWatchHistoryItem', { itemId })
-    accountStoreActions.removeWatchHistoryItem(itemId)
-  } catch (error) {
-    console.error('Error removing history item:', error)
-  }
-}
 
 // Remove favorite
 export const removeFavorite = async (itemId: string) => {
