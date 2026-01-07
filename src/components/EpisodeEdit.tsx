@@ -67,6 +67,7 @@ const EpisodeEdit = ({
           mediaUrl={videoPreview}
           videoId={videoId}
           onMediaChange={onVideoChange}
+          showRemoveButton={false}
         />
       </div>
       <button

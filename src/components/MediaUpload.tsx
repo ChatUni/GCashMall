@@ -8,9 +8,10 @@ interface MediaUploadProps {
   mediaUrl?: string
   videoId?: string
   onMediaChange: (file: File | null, previewUrl: string | null) => void
+  showRemoveButton?: boolean
 }
 
-const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProps) => {
+const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange, showRemoveButton = true }: MediaUploadProps) => {
   validateProps({ mode, onMediaChange })
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(mediaUrl || null)
@@ -88,6 +89,7 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProp
         videoId={videoId}
         onClick={handlePreviewClick}
         onRemove={handleRemove}
+        showRemoveButton={showRemoveButton}
       />
       <FileInput ref={fileInputRef} accept={acceptType} onChange={handleFileChange} />
       {showOverlay && hasMedia && (
@@ -112,9 +114,10 @@ interface PreviewBoxProps {
   videoId?: string
   onClick: () => void
   onRemove: () => void
+  showRemoveButton: boolean
 }
 
-const PreviewBox = ({ mode, previewUrl, videoId, onClick, onRemove }: PreviewBoxProps) => {
+const PreviewBox = ({ mode, previewUrl, videoId, onClick, onRemove, showRemoveButton }: PreviewBoxProps) => {
   const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
   const className = buildPreviewClassName(hasMedia)
 
@@ -128,9 +131,11 @@ const PreviewBox = ({ mode, previewUrl, videoId, onClick, onRemove }: PreviewBox
       {hasMedia ? (
         <>
           <PreviewContent mode={mode} previewUrl={previewUrl} videoId={videoId} />
-          <button className="media-upload-remove-button" onClick={handleRemoveClick}>
-            ×
-          </button>
+          {showRemoveButton && (
+            <button className="media-upload-remove-button" onClick={handleRemoveClick}>
+              ×
+            </button>
+          )}
         </>
       ) : (
         <span className="media-upload-plus">+</span>

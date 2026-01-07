@@ -31,7 +31,7 @@ The component to upload a single media file
 - when no media selected: a big plus sign at the center of the preview box
 - when media selected:
   - show the image/thumbnail in contain mode
-  - remove button: Top-right, appears on hover, 28px circular
+  - remove button: Top-right, appears on hover, 28px circular (optional)
 - rounded corner: 4px
 
 ### Interaction

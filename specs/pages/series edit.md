@@ -35,7 +35,7 @@ Vertical
 
 - episode number
 - title followed by edit icon
-- video (shared media upload in video mode)
+- video (shared media upload in video mode, no remove button)
 - "Delete Episode" button 
 
 #### Interaction
