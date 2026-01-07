@@ -57,7 +57,7 @@ Vertical
     - upload new video to cloud for each episode added
     - set the returned video id to the videoId field on the episode
     - show the delete/upload progress in a popup dialog 
-  - save the series to db
+  - save the series to db (with the current user as the uploader)
   - show success/error message
     - if success, go back to previous page
     - otherwise stay on the editing page

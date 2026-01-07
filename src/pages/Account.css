@@ -993,3 +993,70 @@
     font-size: 36px;
   }
 }
+
+/* My Series Section */
+.my-series-section {
+  padding-bottom: 40px;
+}
+
+.my-series-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.my-series-card:hover {
+  transform: translateY(-4px);
+}
+
+.my-series-card.shelved {
+  opacity: 0.5;
+}
+
+.my-series-card .series-card-poster {
+  position: relative;
+}
+
+.shelved-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.series-action-icons {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.action-icon-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.action-icon-btn:hover {
+  background-color: rgba(59, 130, 246, 0.9);
+  transform: scale(1.1);
+}

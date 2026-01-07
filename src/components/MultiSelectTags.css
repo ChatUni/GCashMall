@@ -8,21 +8,22 @@
 
 .multi-select-tag {
   padding: 6px 12px;
-  border: 1px solid black;
-  border-radius: 2px;
-  background-color: white;
-  color: black;
+  border: 1px solid #242428;
+  border-radius: 4px;
+  background-color: #1a1a1e;
+  color: #e5e7eb;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
 }
 
 .multi-select-tag:hover {
-  opacity: 0.8;
+  background-color: #242428;
+  border-color: #3b82f6;
 }
 
 .multi-select-tag.selected {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: #3b82f6;
+  border-color: #3b82f6;
   color: white;
 }

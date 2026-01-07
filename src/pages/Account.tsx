@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
-import SeriesCard from '../components/SeriesCard'
+import { SeriesEditContent } from './SeriesEdit'
 import { useLanguage } from '../context/LanguageContext'
 import { useAccountStore, accountStoreActions, navItems, topUpAmounts, type AccountTab } from '../stores/accountStore'
 import {
@@ -20,14 +20,18 @@ import {
   clearFavorites,
   topUp,
   hasProfileChanges,
+  fetchMySeries,
+  shelveSeries,
+  setEditingSeries,
 } from '../services/accountService'
 import { toastStoreActions, useToastStore } from '../stores'
-import type { User } from '../types'
+import type { Series, User } from '../types'
 import './Account.css'
 
 // Track initialization
 let accountInitialized = false
 let userDataFetched = false
+let mySeriesFetched = false
 
 const Account: React.FC = () => {
   const { t, language, setLanguage } = useLanguage()
@@ -47,6 +51,12 @@ const Account: React.FC = () => {
   if (state.isLoggedIn && !userDataFetched) {
     userDataFetched = true
     fetchAccountUserData()
+  }
+
+  // Fetch my series when logged in (only once)
+  if (state.isLoggedIn && !mySeriesFetched) {
+    mySeriesFetched = true
+    fetchMySeries()
   }
 
   // Handle tab from URL
@@ -224,6 +234,16 @@ const Account: React.FC = () => {
               onTopUpClick={onTopUpClick}
               onConfirmTopUp={onConfirmTopUp}
               onClosePopup={() => accountStoreActions.setShowTopUpPopup(false)}
+              t={t}
+            />
+          )}
+          {state.activeTab === 'mySeries' && (
+            <MySeriesSection
+              series={state.mySeries}
+              loading={state.mySeriesLoading}
+              editingSeries={state.editingSeries}
+              editingSeriesId={state.editingSeriesId}
+              onNavigate={navigate}
               t={t}
             />
           )}
@@ -967,6 +987,185 @@ const WalletSection: React.FC<WalletSectionProps> = ({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+interface MySeriesSectionProps {
+  series: Series[]
+  loading: boolean
+  editingSeries: Series | null
+  editingSeriesId: string | null
+  onNavigate: (path: string) => void
+  t: Record<string, Record<string, unknown>>
+}
+
+const MySeriesSection: React.FC<MySeriesSectionProps> = ({
+  series,
+  loading,
+  editingSeries,
+  editingSeriesId,
+  onNavigate,
+  t,
+}) => {
+  const mySeries = (t.account.mySeries || {}) as Record<string, string>
+
+  const handleShelve = async (seriesId: string) => {
+    const result = await shelveSeries(seriesId)
+    if (!result.success && result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+  }
+
+  const handleEdit = (seriesItem: Series) => {
+    setEditingSeries(seriesItem)
+    accountStoreActions.setEditingSeriesId(seriesItem._id)
+  }
+
+  const handleAddSeries = () => {
+    setEditingSeries(null)
+    accountStoreActions.setEditingSeriesId('new')
+  }
+
+  const handleCancelEdit = () => {
+    accountStoreActions.setEditingSeriesId(null)
+    setEditingSeries(null)
+  }
+
+  const handleSaveComplete = () => {
+    accountStoreActions.setEditingSeriesId(null)
+    setEditingSeries(null)
+    // Refresh the series list
+    fetchMySeries()
+  }
+
+  if (loading) {
+    return (
+      <div className="content-section my-series-section">
+        <div className="loading">Loading...</div>
+      </div>
+    )
+  }
+
+  // Show SeriesEditContent when editing or adding
+  if (editingSeriesId) {
+    const isAddMode = editingSeriesId === 'new'
+    const sectionTitle = isAddMode
+      ? (mySeries.addSeriesTitle || 'Add Series')
+      : (mySeries.editSeriesTitle || 'Edit Series')
+    
+    return (
+      <div className="content-section my-series-section">
+        <h1 className="page-title">{sectionTitle}</h1>
+        <SeriesEditContent
+          seriesId={editingSeriesId}
+          onCancel={handleCancelEdit}
+          onSaveComplete={handleSaveComplete}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="content-section my-series-section">
+      <div className="section-header-row">
+        <h1 className="page-title">{mySeries.title || 'My Series'}</h1>
+        <div className="header-actions">
+          <button className="btn-primary" onClick={handleAddSeries}>
+            {mySeries.addSeries || 'Add Series'}
+          </button>
+        </div>
+      </div>
+
+      {series.length === 0 ? (
+        <EmptyState
+          icon="🎬"
+          title={mySeries.emptyTitle || 'No series yet'}
+          subtext={mySeries.emptySubtext || 'Start creating your first series'}
+          buttonText={mySeries.addSeries || 'Add Series'}
+          onButtonClick={handleAddSeries}
+        />
+      ) : (
+        <div className="content-grid">
+          {series.map((seriesItem) => (
+            <MySeriesCard
+              key={seriesItem._id}
+              series={seriesItem}
+              onShelve={() => handleShelve(seriesItem._id)}
+              onEdit={() => handleEdit(seriesItem)}
+              onClick={() => onNavigate(`/player/${seriesItem._id}`)}
+              translations={mySeries}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface MySeriesCardProps {
+  series: Series
+  onShelve: () => void
+  onEdit: () => void
+  onClick: () => void
+  translations: Record<string, string>
+}
+
+const MySeriesCard: React.FC<MySeriesCardProps> = ({
+  series,
+  onShelve,
+  onEdit,
+  onClick,
+  translations,
+}) => {
+  const [showActions, setShowActions] = React.useState(false)
+
+  return (
+    <div
+      className={`my-series-card series-card ${series.shelved ? 'shelved' : ''}`}
+      onClick={onClick}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      <div className="series-card-poster">
+        {series.cover ? (
+          <img src={series.cover} alt={series.name || 'Series'} className="series-card-image" />
+        ) : (
+          <div className="series-card-placeholder" />
+        )}
+        <div className="series-card-overlay">
+          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+        </div>
+        {series.shelved && (
+          <span className="shelved-badge">{translations.shelved || 'Shelved'}</span>
+        )}
+        {showActions && (
+          <div className="series-action-icons">
+            <button
+              className="action-icon-btn"
+              onClick={(e) => { e.stopPropagation(); onShelve(); }}
+              title={series.shelved ? (translations.unshelve || 'Unshelve') : (translations.shelve || 'Shelve')}
+            >
+              {series.shelved ? '📤' : '📥'}
+            </button>
+            <button
+              className="action-icon-btn"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              title={translations.edit || 'Edit'}
+            >
+              ✏️
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="series-card-info">
+        <h3 className="series-card-title">{series.name || 'Untitled Series'}</h3>
+        {series.genre && series.genre.length > 0 && (
+          <span className="series-card-tag">{series.genre[0].name}</span>
+        )}
+      </div>
     </div>
   )
 }

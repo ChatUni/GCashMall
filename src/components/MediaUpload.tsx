@@ -21,8 +21,10 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProp
     setPreviewUrl(mediaUrl || null)
   }, [mediaUrl])
 
+  const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
+
   const handlePreviewClick = () => {
-    if (previewUrl) {
+    if (hasMedia) {
       setShowOverlay(true)
     } else {
       openFilePicker()
@@ -79,7 +81,7 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProp
         onClick={handlePreviewClick}
       />
       <FileInput ref={fileInputRef} accept={acceptType} onChange={handleFileChange} />
-      {showOverlay && previewUrl && (
+      {showOverlay && hasMedia && (
         <MediaOverlay
           mode={mode}
           mediaUrl={previewUrl}
@@ -103,11 +105,12 @@ interface PreviewBoxProps {
 }
 
 const PreviewBox = ({ mode, previewUrl, videoId, onClick }: PreviewBoxProps) => {
-  const className = buildPreviewClassName(previewUrl)
+  const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
+  const className = buildPreviewClassName(hasMedia)
 
   return (
     <div className={className} onClick={onClick}>
-      {previewUrl ? (
+      {hasMedia ? (
         <PreviewContent mode={mode} previewUrl={previewUrl} videoId={videoId} />
       ) : (
         <span className="media-upload-plus">+</span>
@@ -118,12 +121,12 @@ const PreviewBox = ({ mode, previewUrl, videoId, onClick }: PreviewBoxProps) => 
 
 interface PreviewContentProps {
   mode: MediaMode
-  previewUrl: string
+  previewUrl: string | null
   videoId?: string
 }
 
 const PreviewContent = ({ mode, previewUrl, videoId }: PreviewContentProps) => {
-  if (mode === 'image') {
+  if (mode === 'image' && previewUrl) {
     return <img src={previewUrl} alt="Preview" className="media-upload-image" />
   }
 
@@ -131,36 +134,40 @@ const PreviewContent = ({ mode, previewUrl, videoId }: PreviewContentProps) => {
 }
 
 interface VideoThumbnailProps {
-  previewUrl: string
+  previewUrl: string | null
   videoId?: string
 }
 
 const VideoThumbnail = ({ previewUrl, videoId }: VideoThumbnailProps) => {
   const thumbnailUrl = getThumbnailUrl(previewUrl, videoId)
-  const isLocalBlob = previewUrl.startsWith('blob:')
+  const isLocalBlob = previewUrl?.startsWith('blob:')
 
-  if (isLocalBlob) {
+  if (isLocalBlob && previewUrl) {
     return <video src={previewUrl} className="media-upload-video-thumbnail" muted />
   }
 
-  return (
-    <div className="media-upload-video-container">
-      <img src={thumbnailUrl} alt="Video thumbnail" className="media-upload-image" />
-      <div className="media-upload-play-icon">▶</div>
-    </div>
-  )
+  if (thumbnailUrl) {
+    return (
+      <div className="media-upload-video-container">
+        <img src={thumbnailUrl} alt="Video thumbnail" className="media-upload-image" />
+        <div className="media-upload-play-icon">▶</div>
+      </div>
+    )
+  }
+
+  return <span className="media-upload-plus">+</span>
 }
 
-const getThumbnailUrl = (previewUrl: string, videoId?: string): string => {
+const getThumbnailUrl = (previewUrl: string | null, videoId?: string): string | null => {
   if (videoId) {
-    return `https://vz-4ecde8c7-5c4.b-cdn.net/${videoId}/thumbnail.jpg`
+    return `https://vz-918d4e7e-1fb.b-cdn.net/${videoId}/thumbnail.jpg`
   }
   return previewUrl
 }
 
-const buildPreviewClassName = (previewUrl: string | null): string => {
+const buildPreviewClassName = (hasMedia: boolean): string => {
   const baseClass = 'media-upload-preview'
-  return previewUrl ? `${baseClass} has-media` : baseClass
+  return hasMedia ? `${baseClass} has-media` : baseClass
 }
 
 interface FileInputProps {
@@ -186,7 +193,7 @@ const FileInput = ({
 
 interface MediaOverlayProps {
   mode: MediaMode
-  mediaUrl: string
+  mediaUrl: string | null
   videoId?: string
   onClick: () => void
 }
@@ -198,7 +205,7 @@ const MediaOverlay = ({ mode, mediaUrl, videoId, onClick }: MediaOverlayProps) =
 
   return (
     <div className="media-upload-overlay" onClick={onClick}>
-      {mode === 'image' ? (
+      {mode === 'image' && mediaUrl ? (
         <img src={mediaUrl} alt="Full size preview" className="media-upload-overlay-image" />
       ) : (
         <div className="media-upload-overlay-video" onClick={handleContentClick}>
@@ -210,14 +217,14 @@ const MediaOverlay = ({ mode, mediaUrl, videoId, onClick }: MediaOverlayProps) =
 }
 
 interface VideoPlayerProps {
-  mediaUrl: string
+  mediaUrl: string | null
   videoId?: string
 }
 
 const VideoPlayer = ({ mediaUrl, videoId }: VideoPlayerProps) => {
-  const isLocalBlob = mediaUrl.startsWith('blob:')
+  const isLocalBlob = mediaUrl?.startsWith('blob:')
 
-  if (isLocalBlob) {
+  if (isLocalBlob && mediaUrl) {
     return <video src={mediaUrl} className="media-upload-video-player" controls autoPlay />
   }
 
@@ -232,7 +239,11 @@ const VideoPlayer = ({ mediaUrl, videoId }: VideoPlayerProps) => {
     )
   }
 
-  return <video src={mediaUrl} className="media-upload-video-player" controls autoPlay />
+  if (mediaUrl) {
+    return <video src={mediaUrl} className="media-upload-video-player" controls autoPlay />
+  }
+
+  return null
 }
 
 const validateProps = ({

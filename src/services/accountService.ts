@@ -1,11 +1,11 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { apiGet, apiPost, apiPostWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
+import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
+import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
@@ -563,4 +563,61 @@ const fileToDataUrl = (file: File): Promise<string> => {
     reader.onload = () => resolve(reader.result as string)
     reader.onerror = (error) => reject(error)
   })
+}
+
+// Fetch my series list
+export const fetchMySeries = async (): Promise<{ success: boolean; error?: string }> => {
+  accountStoreActions.setMySeriesLoading(true)
+
+  try {
+    const response = await apiGetWithAuth<Series[]>('mySeries')
+
+    if (response.success && response.data) {
+      accountStoreActions.setMySeries(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to fetch my series' }
+  } catch (error) {
+    console.error('Error fetching my series:', error)
+    return { success: false, error: 'Failed to fetch my series' }
+  } finally {
+    accountStoreActions.setMySeriesLoading(false)
+  }
+}
+
+// Shelve/unshelve series
+export const shelveSeries = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
+  const state = accountStoreActions.getState()
+  const series = state.mySeries.find((s) => s._id === seriesId)
+  const isShelved = series?.shelved
+  
+  const confirmMessage = isShelved
+    ? 'Are you sure you want to unshelve this series? It will be visible to users again.'
+    : 'Are you sure you want to shelve this series? It will be hidden from users.'
+  
+  const confirmed = window.confirm(confirmMessage)
+  if (!confirmed) {
+    return { success: false }
+  }
+
+  try {
+    const response = await apiPostWithAuth<Series>('shelveSeries', { seriesId })
+
+    if (response.success && response.data) {
+      // Update the series in the list
+      accountStoreActions.updateSeriesInList(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to update series' }
+  } catch (error) {
+    console.error('Error shelving/unshelving series:', error)
+    return { success: false, error: 'Failed to update series' }
+  }
+}
+
+// Set editing series for the series edit component
+export const setEditingSeries = (series: Series | null) => {
+  accountStoreActions.setEditingSeries(series)
 }

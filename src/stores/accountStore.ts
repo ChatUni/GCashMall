@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { useSyncExternalStore } from 'react'
-import type { FavoriteItem, User } from '../types'
+import type { FavoriteItem, Series, User } from '../types'
 
 type Listener = () => void
 
@@ -25,7 +25,7 @@ const createStore = <T>(initialState: T) => {
   return { getState, setState, subscribe }
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'mySeries'
 
 export interface ProfileFormState {
   nickname: string
@@ -59,6 +59,12 @@ interface AccountState {
   isLoggedIn: boolean
   loading: boolean
   favorites: FavoriteItem[]
+  
+  // My Series
+  mySeries: Series[]
+  mySeriesLoading: boolean
+  editingSeries: Series | null
+  editingSeriesId: string | null  // 'new' for adding, series._id for editing, null for list view
   
   // Profile form
   profileForm: ProfileFormState
@@ -122,6 +128,12 @@ const initialState: AccountState = {
   loading: true,
   favorites: [],
   
+  // My Series
+  mySeries: [],
+  mySeriesLoading: false,
+  editingSeries: null,
+  editingSeriesId: null,
+  
   profileForm: initialProfileForm,
   profileErrors: initialProfileErrors,
   profileSaving: false,
@@ -172,6 +184,23 @@ export const accountStoreActions = {
     accountStore.setState((prev) => ({
       ...prev,
       favorites: prev.favorites.filter((item) => item._id !== itemId),
+    })),
+  
+  // My Series
+  setMySeries: (mySeries: Series[]) =>
+    accountStore.setState((prev) => ({ ...prev, mySeries })),
+  setMySeriesLoading: (mySeriesLoading: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, mySeriesLoading })),
+  setEditingSeries: (editingSeries: Series | null) =>
+    accountStore.setState((prev) => ({ ...prev, editingSeries })),
+  setEditingSeriesId: (editingSeriesId: string | null) =>
+    accountStore.setState((prev) => ({ ...prev, editingSeriesId })),
+  updateSeriesInList: (updatedSeries: Series) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      mySeries: prev.mySeries.map((s) =>
+        s._id === updatedSeries._id ? updatedSeries : s,
+      ),
     })),
   
   // Profile form
@@ -281,6 +310,7 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'favorites', icon: '❤️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
+  { key: 'mySeries', icon: '🎬' },
 ]
 
 export const topUpAmounts = [5, 10, 20, 50, 100, 200]

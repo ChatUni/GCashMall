@@ -189,3 +189,37 @@ return empty
 ### Output
 
 return the updated user
+
+## Get My Series List
+
+### Prerequisite
+
+- already logged in
+
+### Action
+
+- find the user id based on the login
+- find all series uploaded by the user
+
+### Output
+
+return the series list
+
+## Shelve/unshelve Series
+
+### Input
+
+- series id *
+
+### Prerequisite
+
+- already logged in
+- the logged in user is the uploader of the series 
+
+### Action
+
+- mark the series as shelved/unshelved
+
+### Output
+
+return the updated series

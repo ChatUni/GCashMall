@@ -25,11 +25,21 @@ import './SeriesEdit.css'
 // Track initialization per series ID
 const initializedIds = new Set<string | undefined>()
 
-const SeriesEdit: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+// Reusable SeriesEdit content component
+export interface SeriesEditContentProps {
+  seriesId?: string
+  onCancel: () => void
+  onSaveComplete: () => void
+}
+
+export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
+  seriesId,
+  onCancel,
+  onSaveComplete,
+}) => {
   const { t } = useLanguage()
-  const isEditMode = Boolean(id)
+  const isEditMode = Boolean(seriesId) && seriesId !== 'new'
+  const id = seriesId === 'new' ? undefined : seriesId
 
   const state = useSeriesEditStore()
 
@@ -41,25 +51,27 @@ const SeriesEdit: React.FC = () => {
     initializeSeriesEdit(id, isEditMode)
   }
 
-  const handleCancel = () => {
+  const handleCancelClick = () => {
     const confirmed = window.confirm(t.seriesEdit.confirmCancel)
     if (confirmed) {
-      navigate(-1)
+      // Clear from initialized set so it reinitializes next time
+      initializedIds.delete(initKey)
+      onCancel()
     }
   }
 
-  const handleSave = () => {
-    saveSeries(id, t.seriesEdit as Record<string, string>, () => navigate(-1))
+  const handleSaveClick = () => {
+    saveSeries(id, t.seriesEdit as Record<string, string>, () => {
+      // Clear from initialized set so it reinitializes next time
+      initializedIds.delete(initKey)
+      onSaveComplete()
+    })
   }
 
   if (state.loading) {
     return (
-      <div className="series-edit-page">
-        <TopBar />
-        <div className="series-edit-content">
-          <div className="series-edit-loading">{t.seriesEdit.loading}</div>
-        </div>
-        <BottomBar />
+      <div className="series-edit-content">
+        <div className="series-edit-loading">{t.seriesEdit.loading}</div>
       </div>
     )
   }
@@ -67,67 +79,81 @@ const SeriesEdit: React.FC = () => {
   const activeEpisodes = getActiveEpisodes(state.formData.episodes)
 
   return (
+    <div className="series-edit-content">
+      {state.error && <div className="series-edit-error">{state.error}</div>}
+      {state.success && <div className="series-edit-success">{state.success}</div>}
+
+      <form className="series-edit-form" onSubmit={(e) => e.preventDefault()}>
+        <NameField
+          value={state.formData.name}
+          onChange={seriesEditStoreActions.setName}
+          label={t.seriesEdit.name}
+        />
+
+        <DescriptionField
+          value={state.formData.description}
+          onChange={seriesEditStoreActions.setDescription}
+          label={t.seriesEdit.description}
+        />
+
+        <GenreField
+          genres={state.genres}
+          selectedIds={state.formData.genreIds}
+          onChange={seriesEditStoreActions.setGenreIds}
+          label={t.seriesEdit.genre}
+        />
+
+        <CoverField
+          imageUrl={state.formData.cover}
+          onImageChange={handleImageChange}
+          label={t.seriesEdit.cover}
+        />
+
+        <EpisodeListField
+          episodes={activeEpisodes}
+          onTitleChange={handleEpisodeTitleChange}
+          onVideoChange={handleEpisodeVideoChange}
+          onDelete={seriesEditStoreActions.markEpisodeDeleted}
+          onAddEpisode={handleAddEpisode}
+          isAddDisabled={isAddEpisodeDisabled(state.formData.episodes)}
+          label={t.seriesEdit.episodes}
+          addLabel={t.seriesEdit.addEpisode}
+        />
+
+        <ActionButtons
+          onCancel={handleCancelClick}
+          onSave={handleSaveClick}
+          saving={state.saving}
+          cancelLabel={t.seriesEdit.cancel}
+          saveLabel={t.seriesEdit.save}
+        />
+      </form>
+
+      {state.uploadProgress.show && (
+        <UploadProgressDialog
+          message={state.uploadProgress.message}
+          current={state.uploadProgress.current}
+          total={state.uploadProgress.total}
+          title={t.seriesEdit.uploadProgress}
+        />
+      )}
+    </div>
+  )
+}
+
+// Page component that wraps SeriesEditContent with TopBar/BottomBar
+const SeriesEdit: React.FC = () => {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+
+  return (
     <div className="series-edit-page">
       <TopBar />
-      <div className="series-edit-content">
-        {state.error && <div className="series-edit-error">{state.error}</div>}
-        {state.success && <div className="series-edit-success">{state.success}</div>}
-
-        <form className="series-edit-form" onSubmit={(e) => e.preventDefault()}>
-          <NameField
-            value={state.formData.name}
-            onChange={seriesEditStoreActions.setName}
-            label={t.seriesEdit.name}
-          />
-
-          <DescriptionField
-            value={state.formData.description}
-            onChange={seriesEditStoreActions.setDescription}
-            label={t.seriesEdit.description}
-          />
-
-          <GenreField
-            genres={state.genres}
-            selectedIds={state.formData.genreIds}
-            onChange={seriesEditStoreActions.setGenreIds}
-            label={t.seriesEdit.genre}
-          />
-
-          <CoverField
-            imageUrl={state.formData.cover}
-            onImageChange={handleImageChange}
-            label={t.seriesEdit.cover}
-          />
-
-          <EpisodeListField
-            episodes={activeEpisodes}
-            onTitleChange={handleEpisodeTitleChange}
-            onVideoChange={handleEpisodeVideoChange}
-            onDelete={seriesEditStoreActions.markEpisodeDeleted}
-            onAddEpisode={handleAddEpisode}
-            isAddDisabled={isAddEpisodeDisabled(state.formData.episodes)}
-            label={t.seriesEdit.episodes}
-            addLabel={t.seriesEdit.addEpisode}
-          />
-
-          <ActionButtons
-            onCancel={handleCancel}
-            onSave={handleSave}
-            saving={state.saving}
-            cancelLabel={t.seriesEdit.cancel}
-            saveLabel={t.seriesEdit.save}
-          />
-        </form>
-
-        {state.uploadProgress.show && (
-          <UploadProgressDialog
-            message={state.uploadProgress.message}
-            current={state.uploadProgress.current}
-            total={state.uploadProgress.total}
-            title={t.seriesEdit.uploadProgress}
-          />
-        )}
-      </div>
+      <SeriesEditContent
+        seriesId={id}
+        onCancel={() => navigate(-1)}
+        onSaveComplete={() => navigate(-1)}
+      />
       <BottomBar />
     </div>
   )

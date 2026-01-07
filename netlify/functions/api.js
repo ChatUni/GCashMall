@@ -37,6 +37,8 @@ import {
   removeFromFavorites,
   clearFavorites,
   migrateGenres,
+  getMySeries,
+  shelveSeries,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -54,10 +56,11 @@ const apiHandlers = {
     favorites: (params) => getFavorites(params),
     user: (params) => getUser(params),
     checkEmail: (params) => checkEmail(params),
+    mySeries: (params, authHeader) => getMySeries(params, authHeader),
   },
   post: {
     todo: (body) => saveTodo(body),
-    saveSeries: (body) => saveSeries(body),
+    saveSeries: (body, authHeader) => saveSeries(body, authHeader),
     uploadImage: (body) => uploadImage(body),
     deleteImage: (body) => deleteImage(body),
     uploadVideo: (body) => uploadVideo(body),
@@ -79,6 +82,7 @@ const apiHandlers = {
     removeFromFavorites: (body, authHeader) => removeFromFavorites(body, authHeader),
     clearFavorites: (body, authHeader) => clearFavorites(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
+    shelveSeries: (body, authHeader) => shelveSeries(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),
@@ -104,7 +108,8 @@ export const handler = async (event, context) => {
     let result
 
     if (method === 'get') {
-      result = await handler(queryParams)
+      // Pass auth header for handlers that need it (e.g., mySeries)
+      result = await handler(queryParams, authHeader)
     } else {
       const body = parseBody(event.body)
       // Pass auth header for handlers that need it

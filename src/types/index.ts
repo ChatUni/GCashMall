@@ -36,6 +36,10 @@ export interface Series {
   tags?: string[]
   episodes?: Episode[]
   languages?: string[]
+  uploaderId?: string
+  shelved?: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface Genre {

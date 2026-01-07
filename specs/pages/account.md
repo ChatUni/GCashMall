@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, settings, and wallet functionality.
+The Account page is a comprehensive user profile and settings management interface for GCashTV. It features a sidebar navigation system with multiple content sections including profile management, watch history, favorites, settings, wallet and manage my series functionality.
 
 ## Page Structure
 
@@ -256,6 +256,29 @@ Section card with form fields:
 
 #### Transaction History
 - Empty state: "No transactions yet"
+
+### 6. My Series
+
+#### Header
+- **Title**: "My Series"
+- Add Series button (green, align right)
+
+#### Content Grid
+- Same layout as Watch History (5 columns)
+
+#### My Series Card
+- Use the shared series card
+- action icons: Top-right, appears on hover, 28px each, circular
+  - Shelve or Unshelve icon (depends on whether series is shelved)
+  - edit icon
+
+#### Interactions
+
+- on load: get my series list by calling get my series API
+- on Shelve button click: confirm then call shelve series API with the selected series
+- on Unshelve button click: confirm then call unshelve series API with the selected series
+- on edit click: show the series edit page (in the content pane) in edit mode with the selected series
+- on add series click: show the series edit page (in the content pane) in add mode
 
 ## URL Parameters
 

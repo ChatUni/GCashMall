@@ -215,10 +215,18 @@ const getGenres = async (params) => {
   }
 }
 
-const saveSeries = async (body) => {
+const saveSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
   validateSaveSeriesBody(body)
 
   try {
+    // If creating a new series (no _id), set the uploader
+    if (!body._id) {
+      body.uploaderId = new ObjectId(userId)
+      body.createdAt = new Date()
+    }
+    body.updatedAt = new Date()
+    
     const result = await save('series', body)
     return {
       success: true,
@@ -1852,6 +1860,78 @@ const prepareTodoData = (body) => {
   return todoData
 }
 
+// Get My Series List - get all series uploaded by the logged in user
+const getMySeries = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Find all series where uploaderId matches the logged in user
+    const series = await get('series', { uploaderId: new ObjectId(userId) }, {}, { createdAt: -1 })
+    const populatedSeries = await populateSeriesGenres(series)
+
+    return {
+      success: true,
+      data: populatedSeries,
+    }
+  } catch (error) {
+    throw new Error(`Failed to get my series: ${error.message}`)
+  }
+}
+
+// Shelve/unshelve series
+const shelveSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateShelveSeriesBody(body)
+
+  try {
+    const { seriesId } = body
+
+    // Get the series
+    const seriesResult = await get('series', { _id: new ObjectId(seriesId) }, {}, {}, 1)
+    if (!seriesResult || seriesResult.length === 0) {
+      return { success: false, error: 'Series not found' }
+    }
+
+    const series = seriesResult[0]
+
+    // Verify the logged in user is the uploader
+    // Compare as strings since uploaderId is ObjectId and userId is string from JWT
+    if (String(series.uploaderId) !== String(userId)) {
+      return { success: false, error: 'You are not authorized to modify this series' }
+    }
+
+    // Toggle the shelved status
+    const newShelvedStatus = !series.shelved
+    const updateData = {
+      ...series,
+      shelved: newShelvedStatus,
+      updatedAt: new Date(),
+    }
+
+    await save('series', updateData)
+
+    // Populate genre for response
+    const populatedSeries = await populateSeriesGenres([updateData])
+
+    return {
+      success: true,
+      data: populatedSeries[0],
+    }
+  } catch (error) {
+    throw new Error(`Failed to shelve/unshelve series: ${error.message}`)
+  }
+}
+
+const validateShelveSeriesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+}
+
 export {
   getTodos,
   saveTodo,
@@ -1891,6 +1971,8 @@ export {
   removeFromFavorites,
   clearFavorites,
   migrateGenres,
+  getMySeries,
+  shelveSeries,
 }
 
 // Database migration: update genre structure

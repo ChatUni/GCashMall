@@ -6,28 +6,29 @@
   width: 500px;
   height: 500px;
   max-width: 100%;
-  border: 2px dashed #ccc;
-  border-radius: 4px;
+  border: 2px dashed #242428;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   overflow: hidden;
-  background-color: #fafafa;
+  background-color: #1a1a1e;
   transition: border-color 0.2s ease;
 }
 
 .media-upload-preview:hover {
-  border-color: #999;
+  border-color: #3b82f6;
 }
 
 .media-upload-preview.has-media {
   border-style: solid;
+  border-color: #242428;
 }
 
 .media-upload-plus {
   font-size: 80px;
-  color: #ccc;
+  color: #4b5563;
   line-height: 1;
   user-select: none;
 }

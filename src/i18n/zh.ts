@@ -19,6 +19,7 @@ export const zh = {
       favorites: '收藏夹',
       settings: '设置',
       wallet: '钱包',
+      mySeries: '我的剧集',
       logout: '退出登录',
     },
     overview: {
@@ -102,6 +103,18 @@ export const zh = {
       addToWallet: '添加到钱包',
       confirm: '确认',
       cancel: '取消',
+    },
+    mySeries: {
+      title: '我的剧集',
+      addSeries: '添加剧集',
+      addSeriesTitle: '添加剧集',
+      editSeriesTitle: '编辑剧集',
+      emptyTitle: '暂无剧集',
+      emptySubtext: '开始创建您的第一个剧集',
+      shelved: '已下架',
+      shelve: '下架',
+      unshelve: '上架',
+      edit: '编辑',
     },
   },
   series: {

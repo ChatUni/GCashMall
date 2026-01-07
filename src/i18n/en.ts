@@ -19,6 +19,7 @@ export const en = {
       favorites: 'Favorites',
       settings: 'Settings',
       wallet: 'Wallet',
+      mySeries: 'My Series',
       logout: 'Logout',
     },
     overview: {
@@ -103,6 +104,18 @@ export const en = {
       addToWallet: 'Add to your wallet',
       confirm: 'Confirm',
       cancel: 'Cancel',
+    },
+    mySeries: {
+      title: 'My Series',
+      addSeries: 'Add Series',
+      addSeriesTitle: 'Add Series',
+      editSeriesTitle: 'Edit Series',
+      emptyTitle: 'No series yet',
+      emptySubtext: 'Start creating your first series',
+      shelved: 'Shelved',
+      shelve: 'Shelve',
+      unshelve: 'Unshelve',
+      edit: 'Edit',
     },
   },
   series: {

@@ -46,6 +46,32 @@ export const apiGet = async <T>(
   }
 }
 
+export const apiGetWithAuth = async <T>(
+  type: string,
+  params?: Record<string, string | number>,
+): Promise<{ success: boolean; data?: T; error?: string }> => {
+  try {
+    const url = buildUrl(type, params)
+    const token = localStorage.getItem('gcashmall_token')
+
+    const headers: Record<string, string> = {}
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(url, { headers })
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error(`API GET (auth) error for type "${type}":`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
 export const apiPost = async <T>(
   type: string,
   body: Record<string, unknown>,
