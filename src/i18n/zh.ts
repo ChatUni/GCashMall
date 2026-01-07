@@ -145,6 +145,7 @@ export const zh = {
     uploadProgress: '上传进度',
     deletingVideos: '正在删除视频...',
     uploadingVideos: '正在上传视频...',
+    shelved: '已下架',
   },
   home: {
     play: '播放',

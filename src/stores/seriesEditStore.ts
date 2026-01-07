@@ -42,6 +42,7 @@ export interface SeriesFormData {
   genreIds: string[]
   cover: string
   episodes: EpisodeFormData[]
+  shelved: boolean
 }
 
 export interface UploadProgress {
@@ -70,6 +71,7 @@ const initialFormData: SeriesFormData = {
   genreIds: [],
   cover: '',
   episodes: [],
+  shelved: true,
 }
 
 const initialState: SeriesEditState = {
@@ -140,6 +142,13 @@ export const seriesEditStoreActions = {
     seriesEditStore.setState((prev) => ({ ...prev, imageFile })),
   setOriginalCover: (originalCover: string) =>
     seriesEditStore.setState((prev) => ({ ...prev, originalCover })),
+  
+  // Shelved
+  setShelved: (shelved: boolean) =>
+    seriesEditStore.setState((prev) => ({
+      ...prev,
+      formData: { ...prev.formData, shelved },
+    })),
 
   // Episodes
   setEpisodes: (episodes: EpisodeFormData[]) =>
@@ -220,10 +229,10 @@ export const seriesEditStoreActions = {
   getState: seriesEditStore.getState,
 }
 
-// Helper function to create a new episode
+// Helper function to create a new episode with default title
 export const createNewEpisode = (episodeNumber: number): EpisodeFormData => ({
   episodeNumber,
-  title: '',
+  title: `EP ${String(episodeNumber).padStart(2, '0')}`,
   videoId: '',
   videoPreview: undefined,
   videoFile: null,

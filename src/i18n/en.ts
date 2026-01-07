@@ -146,6 +146,7 @@ export const en = {
     uploadProgress: 'Upload Progress',
     deletingVideos: 'Deleting videos...',
     uploadingVideos: 'Uploading videos...',
+    shelved: 'Shelved',
   },
   home: {
     play: 'Play',

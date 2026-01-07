@@ -120,6 +120,12 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
           addLabel={t.seriesEdit.addEpisode}
         />
 
+        <ShelvedField
+          checked={state.formData.shelved}
+          onChange={seriesEditStoreActions.setShelved}
+          label={t.seriesEdit.shelved}
+        />
+
         <ActionButtons
           onCancel={handleCancelClick}
           onSave={handleSaveClick}
@@ -277,6 +283,25 @@ const EpisodeListField: React.FC<EpisodeListFieldProps> = ({
     >
       {addLabel}
     </button>
+  </div>
+)
+
+interface ShelvedFieldProps {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  label: string
+}
+
+const ShelvedField: React.FC<ShelvedFieldProps> = ({ checked, onChange, label }) => (
+  <div className="series-edit-field series-edit-field-checkbox">
+    <label className="series-edit-checkbox-label">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {label}
+    </label>
   </div>
 )
 

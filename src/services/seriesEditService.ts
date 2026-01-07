@@ -42,6 +42,7 @@ export const fetchSeries = async (seriesId: string) => {
         genreIds: series.genre ? series.genre.map((g: Genre) => g._id) : [],
         cover: series.cover,
         episodes: episodes,
+        shelved: series.shelved !== undefined ? series.shelved : true,
       })
       seriesEditStoreActions.setOriginalCover(series.cover)
       seriesEditStoreActions.setOriginalEpisodes(episodes.map((ep) => ({ ...ep })))
@@ -105,6 +106,7 @@ export const saveSeries = async (
       description: state.formData.description,
       cover: coverUrl,
       genre: state.formData.genreIds,
+      shelved: state.formData.shelved,
       episodes: episodesData.map((ep) => ({
         episodeNumber: ep.episodeNumber,
         title: ep.title,
@@ -161,10 +163,31 @@ const uploadNewCover = async (imageFile: File): Promise<string> => {
   return result.data.url
 }
 
+// Remove last empty episode if it has no video
+const removeLastEmptyEpisode = (episodes: EpisodeFormData[]): EpisodeFormData[] => {
+  const activeEpisodes = episodes.filter((ep) => !ep.isDeleted)
+  if (activeEpisodes.length === 0) return episodes
+
+  const lastActive = activeEpisodes[activeEpisodes.length - 1]
+  const hasNoVideo = !lastActive.videoId && !lastActive.videoFile
+
+  if (hasNoVideo) {
+    // If it's a new episode, just filter it out
+    if (lastActive.isNew) {
+      return episodes.filter((ep) => ep !== lastActive)
+    }
+    // Otherwise mark it as deleted
+    return episodes.map((ep) => (ep === lastActive ? { ...ep, isDeleted: true } : ep))
+  }
+
+  return episodes
+}
+
 // Handle episode list changes (deletions and uploads)
 const handleEpisodeListChanges = async (t: Record<string, string>): Promise<EpisodeFormData[]> => {
   const state = seriesEditStoreActions.getState()
-  const episodes = state.formData.episodes
+  // Remove last empty episode before processing
+  const episodes = removeLastEmptyEpisode(state.formData.episodes)
 
   const episodesToDelete = episodes.filter((ep) => ep.isDeleted && ep.videoId && !ep.isNew)
   const episodesToUpload = episodes.filter((ep) => !ep.isDeleted && ep.videoFile)

@@ -535,14 +535,10 @@ const emailRegister = async (body) => {
     const token = generateToken({ email: newUser.email, id: result.insertedId })
 
     // Return user without password
-    const userResponse = {
+    const userResponse = buildUserResponse({
+      ...newUser,
       _id: result.insertedId,
-      email: newUser.email,
-      nickname: newUser.nickname,
-      avatar: newUser.avatar,
-      hasPassword: !!password,
-      watchList: [],
-    }
+    })
 
     return {
       success: true,
@@ -688,21 +684,8 @@ const googleLogin = async (body) => {
       }
     }
 
-    // Determine if user has a password set
-    const hasPassword = !!user.password
-
     // Return user without password
-    const userResponse = {
-      _id: user._id,
-      email: user.email,
-      nickname: user.nickname || 'Guest',
-      avatar: user.avatar || null,
-      phone: user.phone || null,
-      gender: user.gender || null,
-      birthday: user.birthday || null,
-      hasPassword,
-      watchList: user.watchList || [],
-    }
+    const userResponse = buildUserResponse(user)
 
     return {
       success: true,
@@ -753,21 +736,8 @@ const login = async (body) => {
       }
     }
 
-    // Determine if user has a password set
-    const hasPassword = !!user.password
-
     // Return user without password
-    const userResponse = {
-      _id: user._id,
-      email: user.email,
-      nickname: user.nickname || 'Guest',
-      avatar: user.avatar || null,
-      phone: user.phone || null,
-      gender: user.gender || null,
-      birthday: user.birthday || null,
-      hasPassword,
-      watchList: user.watchList || [],
-    }
+    const userResponse = buildUserResponse(user)
 
     return {
       success: true,
@@ -865,20 +835,9 @@ const updateProfile = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update profile: ${error.message}`)
@@ -962,20 +921,9 @@ const updateProfilePicture = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update profile picture: ${error.message}`)
@@ -1026,20 +974,9 @@ const updatePassword = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update password: ${error.message}`)
@@ -1099,21 +1036,9 @@ const setPassword = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-      hasPassword: true,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to set password: ${error.message}`)
@@ -1334,21 +1259,9 @@ const addToWatchList = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-      watchList: updateData.watchList,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to add to watch list: ${error.message}`)
@@ -1391,21 +1304,9 @@ const clearWatchHistory = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-      watchList: [],
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to clear watch history: ${error.message}`)
@@ -1443,21 +1344,9 @@ const removeFromWatchList = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Return updated user without password
-    const userResponse = {
-      _id: updateData._id,
-      email: updateData.email,
-      nickname: updateData.nickname || 'Guest',
-      avatar: updateData.avatar || null,
-      phone: updateData.phone || null,
-      sex: updateData.sex || null,
-      dob: updateData.dob || null,
-      watchList: updatedWatchList,
-    }
-
     return {
       success: true,
-      data: userResponse,
+      data: buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to remove from watch list: ${error.message}`)
