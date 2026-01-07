@@ -48,12 +48,20 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProp
     onMediaChange(file, url)
   }
 
+  const handleRemove = () => {
+    setPreviewUrl(null)
+    onMediaChange(null, null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleOverlayClick = () => {
     setShowOverlay(false)
   }
 
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
+    (_event: KeyboardEvent) => {
       if (showOverlay) {
         setShowOverlay(false)
       }
@@ -79,6 +87,7 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange }: MediaUploadProp
         previewUrl={previewUrl}
         videoId={videoId}
         onClick={handlePreviewClick}
+        onRemove={handleRemove}
       />
       <FileInput ref={fileInputRef} accept={acceptType} onChange={handleFileChange} />
       {showOverlay && hasMedia && (
@@ -102,16 +111,27 @@ interface PreviewBoxProps {
   previewUrl: string | null
   videoId?: string
   onClick: () => void
+  onRemove: () => void
 }
 
-const PreviewBox = ({ mode, previewUrl, videoId, onClick }: PreviewBoxProps) => {
+const PreviewBox = ({ mode, previewUrl, videoId, onClick, onRemove }: PreviewBoxProps) => {
   const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
   const className = buildPreviewClassName(hasMedia)
+
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onRemove()
+  }
 
   return (
     <div className={className} onClick={onClick}>
       {hasMedia ? (
-        <PreviewContent mode={mode} previewUrl={previewUrl} videoId={videoId} />
+        <>
+          <PreviewContent mode={mode} previewUrl={previewUrl} videoId={videoId} />
+          <button className="media-upload-remove-button" onClick={handleRemoveClick}>
+            ×
+          </button>
+        </>
       ) : (
         <span className="media-upload-plus">+</span>
       )}
