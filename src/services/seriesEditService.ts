@@ -1,7 +1,7 @@
 // SeriesEdit service - business logic extracted from SeriesEdit page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { apiGet, apiPost } from '../utils/api'
+import { apiGet, apiPostWithAuth } from '../utils/api'
 import { seriesEditStoreActions, type EpisodeFormData, createNewEpisode } from '../stores/seriesEditStore'
 import type { Series, Genre, Episode } from '../types'
 
@@ -99,7 +99,23 @@ export const saveSeries = async (
 
     const episodesData = await handleEpisodeListChanges(t)
 
-    await saveSeriesData(id, coverUrl, episodesData, state.genres)
+    const seriesData = {
+      _id: id || undefined,
+      name: state.formData.name,
+      description: state.formData.description,
+      cover: coverUrl,
+      genre: state.formData.genreIds,
+      episodes: episodesData.map((ep) => ({
+        episodeNumber: ep.episodeNumber,
+        title: ep.title,
+        videoId: ep.videoId,
+      })),
+    }
+
+    const result = await apiPostWithAuth('saveSeries', seriesData)
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to save series')
+    }
     seriesEditStoreActions.setSuccess(t.saveSuccess)
     setTimeout(onSuccess, 1500)
   } catch (err) {
@@ -125,7 +141,7 @@ const handleCoverUpload = async (
 
 const deleteExistingCover = async (url: string) => {
   try {
-    await apiPost('deleteImage', { url })
+    await apiPostWithAuth('deleteImage', { url })
   } catch (err) {
     console.error('Failed to delete existing cover:', err)
   }
@@ -134,7 +150,7 @@ const deleteExistingCover = async (url: string) => {
 const uploadNewCover = async (imageFile: File): Promise<string> => {
   const imageBase64 = await fileToDataUrl(imageFile)
 
-  const result = await apiPost<{ url: string }>('uploadImage', {
+  const result = await apiPostWithAuth<{ url: string }>('uploadImage', {
     image: imageBase64,
     folder: 'GCash',
   })
@@ -196,7 +212,7 @@ const handleEpisodeListChanges = async (t: Record<string, string>): Promise<Epis
 const deleteEpisodeVideo = async (episode: EpisodeFormData) => {
   if (!episode.videoId) return
   try {
-    await apiPost('deleteVideo', { videoId: episode.videoId })
+    await apiPostWithAuth('deleteVideo', { videoId: episode.videoId })
   } catch (err) {
     console.error('Failed to delete video:', err)
   }
@@ -206,7 +222,7 @@ const uploadEpisodeVideo = async (episode: EpisodeFormData): Promise<string> => 
   if (!episode.videoFile) throw new Error('No video file to upload')
 
   // Step 1: Create video entry and get upload URL
-  const createResult = await apiPost<{
+  const createResult = await apiPostWithAuth<{
     videoId: string
     uploadUrl: string
     accessKey: string
@@ -243,37 +259,6 @@ const uploadVideoDirectly = async (
 
   if (!response.ok) {
     throw new Error(`Failed to upload video: ${response.statusText}`)
-  }
-}
-
-// Save series to database
-const saveSeriesData = async (
-  id: string | undefined,
-  coverUrl: string,
-  episodes: EpisodeFormData[],
-  genres: Genre[],
-) => {
-  const state = seriesEditStoreActions.getState()
-  // After migration, genre is stored as array of _ids only
-  const selectedGenreIds = state.formData.genreIds
-    .filter((genreId) => genres.some((g) => g._id === genreId))
-
-  const seriesData = {
-    _id: id || undefined,
-    name: state.formData.name,
-    description: state.formData.description,
-    cover: coverUrl,
-    genre: selectedGenreIds,
-    episodes: episodes.map((ep) => ({
-      episodeNumber: ep.episodeNumber,
-      title: ep.title,
-      videoId: ep.videoId,
-    })),
-  }
-
-  const result = await apiPost('saveSeries', seriesData)
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to save series')
   }
 }
 

@@ -223,3 +223,23 @@ return the series list
 ### Output
 
 return the updated series
+
+## Save Series
+
+### Input
+
+- series body *
+
+### Prerequisite
+
+- already logged in
+- if edit (series body contains _id), the logged in user is the uploader of the series 
+
+### Action
+
+- if new (series body doesn't contain _id), create the series
+- otherwise, update the series
+
+### Output
+
+return the created/updated series

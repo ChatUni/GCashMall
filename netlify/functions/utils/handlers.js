@@ -220,12 +220,28 @@ const saveSeries = async (body, authHeader) => {
   validateSaveSeriesBody(body)
 
   try {
-    // If creating a new series (no _id), set the uploader
-    if (!body._id) {
+    // If editing existing series, verify the logged in user is the uploader
+    if (body._id) {
+      const existingSeries = await get('series', { _id: new ObjectId(body._id) }, {}, {}, 1)
+      if (!existingSeries || existingSeries.length === 0) {
+        return { success: false, error: 'Series not found' }
+      }
+      if (String(existingSeries[0].uploaderId) !== String(userId)) {
+        return { success: false, error: 'You are not authorized to edit this series' }
+      }
+      // Convert _id to ObjectId
+      body._id = new ObjectId(body._id)
+    } else {
+      // If creating a new series (no _id), set the uploader
       body.uploaderId = new ObjectId(userId)
       body.createdAt = new Date()
     }
     body.updatedAt = new Date()
+    
+    // Convert genre array to ObjectIds
+    if (Array.isArray(body.genre)) {
+      body.genre = body.genre.map((genreId) => new ObjectId(genreId))
+    }
     
     const result = await save('series', body)
     return {
