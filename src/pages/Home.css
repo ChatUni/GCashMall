@@ -1,60 +1,67 @@
+/* Home Page Container */
 .home-page {
   min-height: 100vh;
-  background-color: #0b0b0e;
+  display: flex;
+  flex-direction: column;
+  background-color: #0B0B0E;
+  box-sizing: border-box;
 }
 
+/* Loading State */
 .hero-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 70vh;
-  color: #9ca3af;
+  flex: 1;
   font-size: 18px;
+  color: #9CA3AF;
 }
 
+/* Hero Section */
 .hero-section {
-  padding: 40px 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 40px 60px;
+  margin-bottom: 60px;
 }
 
 .hero-content {
   display: flex;
-  gap: 48px;
-  align-items: flex-start;
+  gap: 40px;
+  min-height: 500px;
 }
 
+/* Hero Poster Container */
 .hero-poster {
-  position: relative;
+  width: 340px;
   flex-shrink: 0;
-  width: 320px;
   aspect-ratio: 2 / 3;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.hero-poster:hover {
-  transform: scale(1.02);
+  position: relative;
 }
 
 .hero-poster-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
+.hero-poster:hover .hero-poster-image {
+  transform: scale(1.05);
+}
+
+/* Hero Poster Overlay */
 .hero-poster-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -63,123 +70,167 @@
   opacity: 1;
 }
 
+/* Hero Play Icon (on poster) */
 .play-icon {
+  width: 80px;
+  height: 80px;
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* Hero Info Section */
 .hero-info {
   flex: 1;
-  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 0;
 }
 
+/* Hero Title */
 .hero-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 16px 0;
+  color: #FFFFFF;
+  margin: 0 0 20px 0;
   line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* Hero Tags */
 .hero-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
+/* Hero Tag (individual) */
 .hero-tag {
-  background-color: #1a1a1a;
-  color: #9ca3af;
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 16px;
+  background: #2A2A2E;
+  color: #9CA3AF;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.hero-tag:hover {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Hero Description */
 .hero-description {
   font-size: 15px;
-  color: #9ca3af;
+  color: #9CA3AF;
   line-height: 1.7;
-  margin: 0 0 24px 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0 0 30px 0;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* Hero Play Button */
 .hero-play-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  background-color: #3b82f6;
-  color: #ffffff;
-  border: none;
-  padding: 14px 32px;
-  border-radius: 30px;
+  background: #3B82F6;
+  color: #FFFFFF;
   font-size: 16px;
   font-weight: 600;
+  padding: 14px 32px;
+  border-radius: 30px;
+  border: none;
+  width: fit-content;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .hero-play-button:hover {
   transform: scale(1.05);
-  background-color: #2563eb;
+  background: #2563EB;
 }
 
 .hero-play-button svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
-@media (max-width: 900px) {
-  .hero-content {
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-  }
+/* Responsive Design */
 
+/* 1024px (Tablet) */
+@media (max-width: 1024px) {
+  .hero-content {
+    gap: 30px;
+    min-height: 400px;
+  }
+  
   .hero-poster {
     width: 280px;
   }
-
-  .hero-info {
-    text-align: center;
-    padding-top: 0;
-  }
-
-  .hero-tags {
-    justify-content: center;
-  }
-
+  
   .hero-title {
     font-size: 28px;
   }
 }
 
-@media (max-width: 600px) {
+/* 768px (Mobile) */
+@media (max-width: 768px) {
   .hero-section {
-    padding: 24px 16px;
+    padding: 20px 15px;
   }
-
+  
+  .hero-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    min-height: auto;
+  }
+  
   .hero-poster {
-    width: 240px;
+    width: 100%;
+    max-width: 300px;
   }
-
+  
+  .hero-info {
+    text-align: center;
+    padding: 0;
+  }
+  
   .hero-title {
     font-size: 24px;
   }
-
+  
+  .hero-tags {
+    justify-content: center;
+  }
+  
   .hero-description {
-    font-size: 14px;
     -webkit-line-clamp: 3;
   }
+  
+  .hero-play-button {
+    margin: 0 auto;
+  }
+}
 
+/* 480px (Small Mobile) */
+@media (max-width: 480px) {
+  .hero-poster {
+    max-width: 250px;
+  }
+  
+  .hero-title {
+    font-size: 22px;
+  }
+  
   .hero-play-button {
     padding: 12px 24px;
     font-size: 14px;

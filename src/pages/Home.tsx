@@ -21,14 +21,18 @@ const initializeData = () => {
 // Click handlers defined outside component (avoiding embedded functions)
 const createPlayClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
   if (seriesId) {
-    navigate(`/series/${seriesId}`)
+    navigate(`/player/${seriesId}`)
   }
 }
 
 const createPosterClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
   if (seriesId) {
-    navigate(`/series/${seriesId}`)
+    navigate(`/player/${seriesId}`)
   }
+}
+
+const createTagClickHandler = (navigate: ReturnType<typeof useNavigate>, tag: string) => () => {
+  navigate(`/genre?category=${encodeURIComponent(tag)}`)
 }
 
 const Home: React.FC = () => {
@@ -41,6 +45,7 @@ const Home: React.FC = () => {
 
   const handlePlayClick = createPlayClickHandler(navigate, featuredSeries?._id)
   const handlePosterClick = createPosterClickHandler(navigate, featuredSeries?._id)
+  const handleTagClick = (tag: string) => createTagClickHandler(navigate, tag)()
 
   return (
     <div className="home-page">
@@ -53,6 +58,7 @@ const Home: React.FC = () => {
           series={featuredSeries}
           onPlayClick={handlePlayClick}
           onPosterClick={handlePosterClick}
+          onTagClick={handleTagClick}
           playText={t.home.play}
         />
       ) : null}
@@ -77,6 +83,7 @@ interface HeroSectionProps {
   }
   onPlayClick: () => void
   onPosterClick: () => void
+  onTagClick: (tag: string) => void
   playText: string
 }
 
@@ -84,6 +91,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   series,
   onPlayClick,
   onPosterClick,
+  onTagClick,
   playText,
 }) => (
   <section className="hero-section">
@@ -95,7 +103,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           className="hero-poster-image"
         />
         <div className="hero-poster-overlay">
-          <svg className="play-icon" width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+          <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         </div>
@@ -106,10 +114,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({
 
         <div className="hero-tags">
           {series.tags?.map((tag, index) => (
-            <span key={index} className="hero-tag">{tag}</span>
+            <span key={index} className="hero-tag" onClick={() => onTagClick(tag)}>
+              {tag}
+            </span>
           ))}
           {series.genre?.map((genre) => (
-            <span key={genre._id} className="hero-tag">{genre.name}</span>
+            <span key={genre._id} className="hero-tag" onClick={() => onTagClick(genre.name)}>
+              {genre.name}
+            </span>
           ))}
         </div>
 

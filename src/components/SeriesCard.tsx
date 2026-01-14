@@ -15,7 +15,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ series, onClick }) => {
     if (onClick) {
       onClick()
     } else {
-      navigate(`/series/${series._id}`)
+      navigate(`/player/${series._id}`)
     }
   }
 
@@ -29,20 +29,23 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ series, onClick }) => {
     return ''
   }
 
+  const handleTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const tag = getMainTag()
+    navigate(`/genre?category=${encodeURIComponent(tag)}`)
+  }
+
   return (
     <div className="series-card" onClick={handleClick}>
-      <div className="series-card-poster">
-        <img src={series.cover} alt={series.name} className="series-card-image" />
-        <div className="series-card-overlay">
-          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21" />
-          </svg>
-        </div>
+      <div className="series-poster-container">
+        <img src={series.cover} alt={series.name} className="series-poster" />
       </div>
-      <div className="series-card-info">
-        <h3 className="series-card-title">{series.name}</h3>
-        {getMainTag() && <span className="series-card-tag">{getMainTag()}</span>}
-      </div>
+      <h3 className="series-title">{series.name}</h3>
+      {getMainTag() && (
+        <span className="series-tag" onClick={handleTagClick}>
+          {getMainTag()}
+        </span>
+      )}
     </div>
   )
 }

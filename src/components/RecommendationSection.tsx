@@ -1,12 +1,12 @@
 import React from 'react'
-import SeriesCard from './SeriesCard'
+import SeriesCarousel from './SeriesCarousel'
 import { useLanguage } from '../context/LanguageContext'
 import { useRecommendationsStore } from '../stores'
 import { fetchRecommendations } from '../services/dataService'
-import './RecommendationSection.css'
 
 interface RecommendationSectionProps {
   title?: string
+  excludeSeriesId?: string
 }
 
 // Initialize data fetch outside component (not in useEffect)
@@ -18,30 +18,20 @@ const initializeData = () => {
   }
 }
 
-const RecommendationSection: React.FC<RecommendationSectionProps> = ({ title }) => {
+const RecommendationSection: React.FC<RecommendationSectionProps> = ({ title, excludeSeriesId }) => {
   const { t } = useLanguage()
   const { series, loading } = useRecommendationsStore()
 
   // Initialize data on first render (avoiding useEffect for API calls)
   initializeData()
 
-  if (loading) {
-    return <div className="recommendation-section loading">Loading...</div>
-  }
-
   return (
-    <section className="recommendation-section">
-      <h2 className="recommendation-title">{title || t.home.youMightLike}</h2>
-      <div className="recommendation-carousel">
-        <div className="recommendation-list">
-          {series.map((item) => (
-            <div key={item._id} className="recommendation-item">
-              <SeriesCard series={item} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+    <SeriesCarousel
+      title={title || t.home.youMightLike}
+      series={series}
+      loading={loading}
+      excludeSeriesId={excludeSeriesId}
+    />
   )
 }
 

@@ -51,12 +51,6 @@ const findLastWatchedEpisode = (
   return null
 }
 
-// Check if series is in user's watch list
-const isSeriesInWatchList = (seriesId: string, watchList: WatchListItem[] | undefined): boolean => {
-  if (!watchList || watchList.length === 0) return false
-  return watchList.some((item) => String(item.seriesId) === String(seriesId))
-}
-
 // Handle adding to watch list on load or episode change
 const handleWatchListUpdate = async (seriesId: string, episodeNumber: number) => {
   if (!isLoggedIn()) return
@@ -326,8 +320,8 @@ const Player: React.FC = () => {
         />
       </main>
 
-      <RecommendationSection />
-      <NewReleasesSection />
+      <RecommendationSection excludeSeriesId={id} />
+      <NewReleasesSection excludeSeriesId={id} />
 
       <SocialButtons favoritesText={t.player.addToFavorites} />
 

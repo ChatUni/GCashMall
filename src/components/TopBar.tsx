@@ -161,8 +161,21 @@ const TopBar: React.FC = () => {
               className="app-logo"
               onClick={handleLogoClick}
             />
-            <span className="app-name" onClick={handleLogoClick}>GcashReels</span>
+            <span className="app-name" onClick={handleLogoClick}>GcashTV</span>
             
+            {/* Genre Icon - Shown on tablet/mobile when nav-links are hidden */}
+            <div
+              className={`icon-button genre-icon ${isActiveRoute('/genre') ? 'active' : ''}`}
+              onClick={() => handleNavClick('/genre')}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </div>
+
             <nav className="nav-links">
               <a
                 className={`nav-link ${isActiveRoute('/') ? 'active' : ''}`}
@@ -171,8 +184,8 @@ const TopBar: React.FC = () => {
                 {t.topBar.home}
               </a>
               <a
-                className={`nav-link ${isActiveRoute('/series') ? 'active' : ''}`}
-                onClick={() => handleNavClick('/series')}
+                className={`nav-link ${isActiveRoute('/genre') ? 'active' : ''}`}
+                onClick={() => handleNavClick('/genre')}
               >
                 {t.topBar.genre}
               </a>
@@ -180,25 +193,27 @@ const TopBar: React.FC = () => {
           </div>
           
           <div className="search-container" ref={searchRef}>
-            <input
-              type="text"
-              className="search-input"
-              placeholder={t.topBar.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowSuggestions(true)
-                setHighlightedIndex(-1)
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={handleKeyDown}
-            />
-            <button className="search-button" onClick={handleSearch}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-            </button>
+            <div className="search-combo">
+              <input
+                type="text"
+                className="search-input"
+                placeholder={t.topBar.searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setShowSuggestions(true)
+                  setHighlightedIndex(-1)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={handleKeyDown}
+              />
+              <button className="search-button" onClick={handleSearch}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+              </button>
+            </div>
             
             {showSuggestions && suggestions.length > 0 && (
               <div className="search-suggestions">

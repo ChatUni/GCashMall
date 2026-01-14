@@ -152,12 +152,13 @@ export const en = {
     play: 'Play',
     youMightLike: 'You Might Like',
     newReleases: 'New Releases',
+    viewMore: 'View More',
   },
   player: {
     episodes: 'Episodes',
     share: 'Share',
     addToFavorites: 'Add to favorites',
-    breadcrumbHome: 'GcashReels',
+    breadcrumbHome: 'GcashTV',
   },
   login: {
     title: 'Login',

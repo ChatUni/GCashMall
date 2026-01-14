@@ -151,12 +151,13 @@ export const zh = {
     play: '播放',
     youMightLike: '猜你喜欢',
     newReleases: '新上线',
+    viewMore: '查看更多',
   },
   player: {
     episodes: '剧集',
     share: '分享',
     addToFavorites: '添加到收藏',
-    breadcrumbHome: 'GcashReels',
+    breadcrumbHome: 'GcashTV',
   },
   login: {
     title: '登录',

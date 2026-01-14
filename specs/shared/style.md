@@ -26,6 +26,18 @@ This document defines the global styling standards for GCashTV, including the co
 | Tag Background | #2A2A2E | Tags, pills, badges |
 | Border | #242428 | Dividers, borders |
 | Black | #000000 | Footer, video player |
+| Sidebar Background | #0B0B0E |
+| Card Placeholder | #1A1A1E |
+| Border | #1A1A1E |
+| Search Background | #1A1A1A |
+| Active Background | rgba(59, 130, 246, 0.1) |
+| Hover Background | rgba(255, 255, 255, 0.05) |
+| Overlay | rgba(0, 0, 0, 0.4) |
+| Progress Bar | rgba(255, 255, 255, 0.3) |
+| Controls Gradient | linear-gradient(transparent, rgba(0, 0, 0, 0.8)) |
+| Popover Background | #121214 |
+| Border | rgba(255, 255, 255, 0.1) |
+| Divider | #242428 |
 
 ### Text Colors
 | Name | Hex | Usage |
@@ -185,6 +197,32 @@ transition: all 0.2s ease;
 | Progress | width 0.1s linear |
 | Hover effects | 0.2s ease |
 | Poster scale | 0.3s ease |
+| Poster Image | transform | 0.3s | ease |
+| Poster Overlay | opacity | 0.3s | ease |
+| Play Button | transform, background | 0.2s | ease |
+| Tag | background, color | 0.2s | ease |
+| Series Title | color | 0.2s | ease |
+| Carousel Arrow | background, border, shadow | 0.2s | ease |
+| View More Card | transform | 0.2s | ease |
+| View More Content | background, shadow | 0.2s | ease |
+| View More Arrow/Text | color | 0.2s | ease |
+| Logo | opacity | 0.2s | ease |
+| Nav Link | color | 0.2s | ease |
+| Search Combo | border-color, box-shadow | 0.2s | ease |
+| Search Button | color | 0.2s | ease |
+| Suggestion Item | background-color | 0.2s | ease |
+| Icon Button | color | 0.2s | ease |
+| Avatar | border-color | 0.2s | ease |
+| Popover Item | background-color | 0.2s | ease |
+| Language Option | background-color | 0.2s | ease |
+| Genre Item | color, background | 0.2s | ease |
+| Card Container | transform | 0.3s | ease |
+| Card Image | transform | 0.3s | ease |
+| Card Title | color | 0.2s | ease |
+| Genre Item | color, background | 0.2s | ease |
+| Dropdown Trigger | border-color | 0.2s | ease |
+| Dropdown Arrow | transform | 0.2s | ease |
+| Dropdown Item | background-color, color | 0.2s | ease |
 
 ## Common UI Patterns
 
