@@ -196,22 +196,23 @@ export const playerStoreActions = {
   },
 
   // Handle purchase action
+  // Returns true if purchase was successful, false otherwise
   handlePurchase: async (
     seriesId: string,
     user: User | null,
     t: { player?: { purchaseDialog?: { insufficientBalance?: string; purchaseSuccess?: string; purchaseFailed?: string } } },
     navigate: (path: string) => void,
-  ) => {
+  ): Promise<boolean> => {
     const state = basePlayerStoreActions.getState()
 
     // If not logged in, show login modal
     if (!isLoggedIn()) {
       basePlayerStoreActions.setShowPurchaseDialog(false)
       loginModalStoreActions.open()
-      return
+      return false
     }
 
-    if (!state.currentEpisode) return
+    if (!state.currentEpisode) return false
 
     // Check if user has enough balance
     const userBalance = user?.balance || 0
@@ -222,8 +223,8 @@ export const playerStoreActions = {
         'error',
       )
       basePlayerStoreActions.setShowPurchaseDialog(false)
-      navigate('/account?section=wallet')
-      return
+      navigate('/account?tab=wallet')
+      return false
     }
 
     // Attempt to purchase
@@ -236,11 +237,13 @@ export const playerStoreActions = {
           'success',
         )
         basePlayerStoreActions.setShowPurchaseDialog(false)
+        return true
       } else {
         showToast(
           result.error || t.player?.purchaseDialog?.purchaseFailed || 'Failed to purchase episode',
           'error',
         )
+        return false
       }
     } catch (error) {
       console.error('Purchase error:', error)
@@ -248,6 +251,7 @@ export const playerStoreActions = {
         t.player?.purchaseDialog?.purchaseFailed || 'Failed to purchase episode',
         'error',
       )
+      return false
     } finally {
       basePlayerStoreActions.setPurchaseLoading(false)
     }

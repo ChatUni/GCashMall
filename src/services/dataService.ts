@@ -217,6 +217,8 @@ export const purchaseEpisode = async (seriesId: string, episodeNumber: number) =
       saveAuthData(token, updatedUser)
       userStoreActions.setUser(updatedUser)
       accountStoreActions.setUser(updatedUser)
+      // Also update the separate balance field in accountStore (used by WalletSection)
+      accountStoreActions.setBalance(result.data.balance)
     }
   }
   return result

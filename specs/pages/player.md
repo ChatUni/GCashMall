@@ -131,7 +131,12 @@ Episode Cost = 1 GCash
   - if the user is not logged in, show the log in dialog
   - if the this is not enough GCash in the user's wallet, show message "You don't have enough GCash, please top up first", then take user to the wallet section in the account page (/account?tab=wallet)
   - otherwise, call the purchase episode API:
-    - on success, deduct EC GCash from the user's wallet, add it to the user's purchase history, then close the dialog
+    - on success:
+      - deduct EC GCash from the user's wallet
+      - add it to the user's purchase history
+      - show the successful message in toast notification
+      - close the dialog
+      - continue playing
     - on fail, show the error in toast notification
 - on close button click: close the dialog
 
@@ -238,6 +243,7 @@ Episode Cost = 1 GCash
 #### Interaction
 
 - on click: play the episode and call the add to watch list API with current series and current episode
+- purchsed episodes will show a top right green ribbon
 
 ### Episode Number Badge
 - **Position**: Absolute bottom-left

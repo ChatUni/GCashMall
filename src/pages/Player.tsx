@@ -24,7 +24,7 @@ import {
   getIframeUrl,
   playbackSpeeds,
 } from '../utils/playerHelpers'
-import type { Episode } from '../types'
+import type { Episode, User } from '../types'
 import './Player.css'
 
 const Player: React.FC = () => {
@@ -169,9 +169,13 @@ const Player: React.FC = () => {
     }
   }
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (id) {
-      playerStoreActions.handlePurchase(id, userState.user, t, navigate)
+      const success = await playerStoreActions.handlePurchase(id, userState.user, t, navigate)
+      // Continue playing after successful purchase
+      if (success && playerInstanceRef.current) {
+        playerInstanceRef.current.play()
+      }
     }
   }
 
@@ -254,6 +258,8 @@ const Player: React.FC = () => {
           currentEpisode={playerState.currentEpisode}
           episodeRange={playerState.episodeRange}
           title={t.player.episodes}
+          seriesId={id || ''}
+          user={userState.user}
           onEpisodeClick={handleEpisodeClick}
           onRangeSelect={playerStoreActions.setEpisodeRange}
         />
@@ -569,10 +575,11 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
 interface EpisodeItemProps {
   episode: Episode
   isActive: boolean
+  isPurchased: boolean
   onClick: () => void
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, onClick }) => {
+const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, isPurchased, onClick }) => {
   const [isHovered, setIsHovered] = React.useState(false)
 
   return (
@@ -586,6 +593,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, onClick })
         src={getEpisodeThumbnailUrl(episode, isHovered)}
         alt={episode.title}
       />
+      {isPurchased && <div className="purchased-ribbon" />}
       <span className="episode-number">
         EP {episode.episodeNumber.toString().padStart(2, '0')}
       </span>
@@ -599,8 +607,19 @@ interface EpisodeSidebarProps {
   currentEpisode: Episode | null
   episodeRange: [number, number]
   title: string
+  seriesId: string
+  user: User | null
   onEpisodeClick: (episode: Episode) => void
   onRangeSelect: (range: [number, number]) => void
+}
+
+const isEpisodePurchased = (seriesId: string, episodeNumber: number, user: User | null): boolean => {
+  if (!user?.purchaseHistory || user.purchaseHistory.length === 0) return false
+  return user.purchaseHistory.some(
+    (p) =>
+      String(p.seriesId) === String(seriesId) &&
+      p.episodeNumber === episodeNumber,
+  )
 }
 
 const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
@@ -609,6 +628,8 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
   currentEpisode,
   episodeRange,
   title,
+  seriesId,
+  user,
   onEpisodeClick,
   onRangeSelect,
 }) => {
@@ -638,6 +659,7 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
             key={episode.episodeNumber}
             episode={episode}
             isActive={currentEpisode !== null && currentEpisode.episodeNumber === episode.episodeNumber}
+            isPurchased={isEpisodePurchased(seriesId, episode.episodeNumber, user)}
             onClick={() => onEpisodeClick(episode)}
           />
         ))}
