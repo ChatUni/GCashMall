@@ -25,7 +25,7 @@ The Top Bar is a sticky header navigation component for GCashTV that provides br
 ### Container
 - **Display**: Flex, center aligned
 - **Gap**: 30px
-- **Flex**: 1
+- **Flex Shrink**: 0
 
 ### App Logo
 - **Height**: 44px
