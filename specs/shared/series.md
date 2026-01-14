@@ -224,10 +224,15 @@ Uses the Series Carousel Section component with:
 
 ### 1024px (Tablet)
 - **Series Card**: Width 180px
+- **Section Container**: Padding-top 20px (adds spacing above section header)
+- **Section Header**: Margin-bottom 16px
 
 ### 768px (Mobile)
 - **Series Card**: Width 160px
+- **Section Container**: Padding 24px 20px 0 20px (increased top padding for better spacing)
+- **Section Header**: flex-wrap wrap, gap 12px
 - **Section Title**: 20px
+- **Carousel Controls**: margin-left auto
 - **Carousel Arrow**: 36px × 36px
 
 ### 480px (Small Mobile)

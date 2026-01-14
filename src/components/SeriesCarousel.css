@@ -158,13 +158,32 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .series-section {
+    padding-top: 20px;
+  }
+  
+  .series-section-header {
+    margin-bottom: 16px;
+  }
+}
+
 @media (max-width: 768px) {
   .series-section {
-    padding: 0 20px;
+    padding: 24px 20px 0 20px;
+  }
+  
+  .series-section-header {
+    flex-wrap: wrap;
+    gap: 12px;
   }
   
   .series-section-title {
     font-size: 20px;
+  }
+  
+  .carousel-controls {
+    margin-left: auto;
   }
   
   .carousel-arrow {
