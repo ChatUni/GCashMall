@@ -109,6 +109,32 @@ The page uses React Router params:
   - play video https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId of the episode}
   - if series not in watch list, call the add to watch list API with current series and first episode
 
+### Video Playing Restriction
+
+- Time Limit (TL) = 3 seconds
+- if user is not logged in, or if the logged in user hasn't purchased the current episode, only the first TL seconds can be played, when the video play reaches TL, or if the user tries to play/jump pass TL, stop playing and show the purchase dialog
+- in order to capture time updates from a Bunny Stream iframe, use the Bunny Stream Playback Control API
+
+## Purchase Dialog
+
+Episode Cost = 1 GCash
+
+### Layout
+
+- "You must purchase the episode in order to continue watching. It will cost {EC} GCash."
+- "Do you want to purchase?"
+- "Purchase" button (green), "Cancel" button (red)
+
+### Interaction
+
+- on purchase button click:
+  - if the user is not logged in, show the log in dialog
+  - if the this is not enough GCash in the user's wallet, show message "You don't have enough GCash, please top up first", then take user to the wallet section in the account page (/account?tab=wallet)
+  - otherwise, call the purchase episode API:
+    - on success, deduct EC GCash from the user's wallet, add it to the user's purchase history, then close the dialog
+    - on fail, show the error in toast notification
+- on close button click: close the dialog
+
 ## Episode Metadata Section
 
 ### Episode Title

@@ -157,6 +157,16 @@ export const zh = {
     share: '分享',
     addToFavorites: '添加到收藏',
     breadcrumbHome: 'GcashReels',
+    purchaseDialog: {
+      title: '需要购买',
+      message: '您需要购买此集才能继续观看。费用为 {cost} GCash。',
+      confirm: '您要购买吗？',
+      purchaseButton: '购买',
+      cancelButton: '取消',
+      insufficientBalance: '您的 GCash 余额不足，请先充值',
+      purchaseSuccess: '剧集购买成功',
+      purchaseFailed: '购买剧集失败',
+    },
   },
   login: {
     title: '登录',

@@ -1,141 +1,31 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
+import PurchaseDialog from '../components/PurchaseDialog'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions } from '../stores'
-import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites } from '../services/dataService'
-import { isLoggedIn } from '../utils/api'
+import { useLoginModalStore, useUserStore, loginModalStoreActions } from '../stores'
+import {
+  usePlayerStore,
+  playerStoreActions,
+  EPISODE_COST,
+  TIME_LIMIT,
+} from '../stores/playerStore'
+import type { WindowWithPlayerJs, PlayerJsPlayer } from '../stores/playerStore'
 import {
   formatTime,
   getEpisodeThumbnailUrl,
   getEpisodeRanges,
   filterEpisodesByRange,
-  findEpisodeByNumber,
   buildEpisodeTitle,
   getIframeUrl,
   playbackSpeeds,
 } from '../utils/playerHelpers'
-import type { Episode, WatchListItem } from '../types'
+import type { Episode } from '../types'
 import './Player.css'
-
-// Track the currently loaded series ID to detect changes
-let currentLoadedSeriesId: string | null = null
-// Track if watch list has been updated on load for current series
-let watchListUpdatedForSeriesId: string | null = null
-
-const initializePlayerData = (seriesId: string) => {
-  if (currentLoadedSeriesId !== seriesId) {
-    currentLoadedSeriesId = seriesId
-    watchListUpdatedForSeriesId = null // Reset watch list tracking for new series
-    playerStoreActions.reset()
-    fetchPlayerData(seriesId)
-  }
-}
-
-// Find last watched episode for series from user's watch list
-const findLastWatchedEpisode = (
-  seriesId: string,
-  watchList: WatchListItem[] | undefined,
-  episodes: Episode[],
-): Episode | null => {
-  if (!watchList || watchList.length === 0) return null
-
-  const watchListItem = watchList.find((item) => String(item.seriesId) === String(seriesId))
-  if (watchListItem) {
-    return findEpisodeByNumber(episodes, watchListItem.episodeNumber) || null
-  }
-  return null
-}
-
-// Check if series is in user's watch list
-const isSeriesInWatchList = (seriesId: string, watchList: WatchListItem[] | undefined): boolean => {
-  if (!watchList || watchList.length === 0) return false
-  return watchList.some((item) => String(item.seriesId) === String(seriesId))
-}
-
-// Handle adding to watch list on load or episode change
-const handleWatchListUpdate = async (seriesId: string, episodeNumber: number) => {
-  if (!isLoggedIn()) return
-
-  try {
-    await addToWatchList(seriesId, episodeNumber)
-  } catch (error) {
-    console.error('Failed to update watch list:', error)
-  }
-}
-
-// Event handlers (pure functions)
-const handlePlayPause = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  isPlaying: boolean,
-) => {
-  if (videoRef.current) {
-    if (isPlaying) {
-      videoRef.current.pause()
-    } else {
-      videoRef.current.play()
-    }
-    playerStoreActions.setIsPlaying(!isPlaying)
-  }
-}
-
-const handleTimeUpdate = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
-  if (videoRef.current) {
-    playerStoreActions.setCurrentTime(videoRef.current.currentTime)
-  }
-}
-
-const handleLoadedMetadata = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
-  if (videoRef.current) {
-    playerStoreActions.setDuration(videoRef.current.duration)
-  }
-}
-
-const handleProgressChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  time: number,
-) => {
-  if (videoRef.current) {
-    videoRef.current.currentTime = time
-    playerStoreActions.setCurrentTime(time)
-  }
-}
-
-const handleVolumeToggle = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  currentVolume: number,
-) => {
-  if (videoRef.current) {
-    const newVolume = currentVolume === 0 ? 1 : 0
-    videoRef.current.volume = newVolume
-    playerStoreActions.setVolume(newVolume)
-  }
-}
-
-const handleSpeedChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  speed: number,
-) => {
-  if (videoRef.current) {
-    videoRef.current.playbackRate = speed
-    playerStoreActions.setPlaybackSpeed(speed)
-    playerStoreActions.setShowSpeedSelector(false)
-  }
-}
-
-const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
-  if (videoRef.current) {
-    if (document.fullscreenElement) {
-      document.exitFullscreen()
-    } else {
-      videoRef.current.requestFullscreen()
-    }
-  }
-}
 
 const Player: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -148,74 +38,124 @@ const Player: React.FC = () => {
   const userState = useUserStore()
 
   const videoRef = useRef<HTMLVideoElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const playerInstanceRef = useRef<PlayerJsPlayer | null>(null)
+  
+  // Ref to hold latest user state for use in event callbacks (avoids stale closures)
+  const userStateRef = useRef(userState)
+  userStateRef.current = userState
 
   // Initialize data on first render
   if (id) {
-    initializePlayerData(id)
+    playerStoreActions.initializePlayerData(id)
   }
 
-  // Handle episode selection from URL or watch list
+  // Determine which episode to show based on URL, watch list, or default to first
   const episodeNumberFromUrl = searchParams.get('episode')
-  
-  // Determine which episode to show based on priority:
-  // 1. URL parameter (explicit selection)
-  // 2. Last watched from user's watch list
-  // 3. First episode (default)
-  if (
-    playerState.episodes.length > 0 &&
-    !playerState.loading &&
-    id
-  ) {
-    // If URL has episode parameter, use it
-    if (
-      episodeNumberFromUrl &&
-      (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== parseInt(episodeNumberFromUrl, 10))
-    ) {
-      const episode = findEpisodeByNumber(playerState.episodes, parseInt(episodeNumberFromUrl, 10))
-      if (episode) {
-        playerStoreActions.setCurrentEpisode(episode)
-      }
-    }
-    // Otherwise, if no current episode set, find from watch list or use first episode
-    else if (!playerState.currentEpisode) {
-      const lastWatchedEpisode = findLastWatchedEpisode(id, userState.user?.watchList, playerState.episodes)
-      if (lastWatchedEpisode) {
-        playerStoreActions.setCurrentEpisode(lastWatchedEpisode)
-      } else if (playerState.episodes.length > 0) {
-        playerStoreActions.setCurrentEpisode(playerState.episodes[0])
-      }
-    }
+  if (playerState.episodes.length > 0 && !playerState.loading && id) {
+    playerStoreActions.determineCurrentEpisode(id, episodeNumberFromUrl, userState.user)
 
-    // Auto-add to watch list on load (only once per series)
-    if (
-      watchListUpdatedForSeriesId !== id &&
-      playerState.currentEpisode &&
-      isLoggedIn()
-    ) {
-      watchListUpdatedForSeriesId = id
-      handleWatchListUpdate(id, playerState.currentEpisode.episodeNumber)
+    // Auto-add to watch list on load
+    if (playerState.currentEpisode) {
+      playerStoreActions.updateWatchList(id, playerState.currentEpisode.episodeNumber)
     }
   }
 
-  const handleMouseMove = () => {
-    playerStoreActions.setShowControls(true)
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current)
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (playerState.isPlaying) {
-        playerStoreActions.setShowControls(false)
-      }
-    }, 3000)
-  }
+  // Handle Bunny Stream iframe time updates via Player.js library
+  // Dependency on currentEpisode?.videoId ensures this runs when iframe becomes available
+  const currentVideoId = playerState.currentEpisode?.videoId
+  const currentEpisodeNumber = playerState.currentEpisode?.episodeNumber
+  useEffect(() => {
+    // Only run when we have a videoId (which means iframe is rendered)
+    if (!currentVideoId || !iframeRef.current || typeof window === 'undefined') return
 
+    const playerjs = (window as WindowWithPlayerJs).playerjs
+    if (!playerjs) {
+      console.warn('Player.js library not loaded')
+      return
+    }
+
+    // Capture the videoId this player instance was created for
+    // This prevents stale events from old players affecting new episodes
+    const playerVideoId = currentVideoId
+    const playerEpisodeNumber = currentEpisodeNumber
+
+    const player = new playerjs.Player(iframeRef.current)
+    playerInstanceRef.current = player
+
+    player.on('ready', () => {
+      console.log('Bunny Stream player ready for episode', playerEpisodeNumber)
+
+      player.on('timeupdate', (data: { seconds: number; duration: number }) => {
+        const currentTime = data.seconds
+        
+        // Get current state
+        const currentPlayerState = playerStoreActions.getState()
+        
+        // Guard: Only process if this player is still for the current episode
+        // This prevents stale timeupdate events from triggering for wrong episodes
+        if (currentPlayerState.currentEpisode?.videoId !== playerVideoId) {
+          return
+        }
+        
+        // Use ref to get latest user state to avoid stale closure
+        const currentUserState = userStateRef.current
+        const canWatch = id && currentPlayerState.currentEpisode
+          ? playerStoreActions.canWatchEpisodeUnrestricted(
+              id,
+              currentPlayerState.series?.uploaderId,
+              currentPlayerState.currentEpisode.episodeNumber,
+              currentUserState.user,
+            )
+          : false
+
+        if (!canWatch && currentTime >= TIME_LIMIT) {
+          player.pause()
+          playerStoreActions.setShowPurchaseDialog(true)
+        }
+      })
+
+      player.on('seeked', () => {
+        player.getCurrentTime((currentTime: number) => {
+          // Get current state
+          const currentPlayerState = playerStoreActions.getState()
+          
+          // Guard: Only process if this player is still for the current episode
+          if (currentPlayerState.currentEpisode?.videoId !== playerVideoId) {
+            return
+          }
+          
+          // Use ref to get latest user state to avoid stale closure
+          const currentUserState = userStateRef.current
+          const canWatch = id && currentPlayerState.currentEpisode
+            ? playerStoreActions.canWatchEpisodeUnrestricted(
+                id,
+                currentPlayerState.series?.uploaderId,
+                currentPlayerState.currentEpisode.episodeNumber,
+                currentUserState.user,
+              )
+            : false
+
+          if (!canWatch && currentTime >= TIME_LIMIT) {
+            player.setCurrentTime(TIME_LIMIT - 0.5)
+            player.pause()
+            playerStoreActions.setShowPurchaseDialog(true)
+          }
+        })
+      })
+    })
+
+    return () => {
+      playerInstanceRef.current = null
+    }
+  }, [id, currentVideoId, currentEpisodeNumber]) // Re-run when seriesId or episode changes
+
+  // Event handlers
   const handleEpisodeClick = (episode: Episode) => {
-    playerStoreActions.setCurrentEpisode(episode)
-    navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
-    // Update watch list when user clicks on an episode
     if (id) {
-      handleWatchListUpdate(id, episode.episodeNumber)
+      playerStoreActions.selectEpisode(episode, id)
+      navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
     }
   }
 
@@ -223,29 +163,20 @@ const Player: React.FC = () => {
     navigate(`/series?genre=${encodeURIComponent(tag)}`)
   }
 
-  // Check if current series is in favorites
-  const isSeriesFavorited = (seriesId: string): boolean => {
-    if (!userState.user?.favorites || userState.user.favorites.length === 0) return false
-    return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
+  const handleFavoriteToggle = () => {
+    if (id) {
+      playerStoreActions.toggleFavorite(id, userState.user)
+    }
   }
 
-  const handleFavoriteToggle = async () => {
-    if (!isLoggedIn()) {
-      loginModalStoreActions.open()
-      return
+  const handlePurchase = () => {
+    if (id) {
+      playerStoreActions.handlePurchase(id, userState.user, t, navigate)
     }
+  }
 
-    if (!id) return
-
-    try {
-      if (isSeriesFavorited(id)) {
-        await removeFromFavorites(id)
-      } else {
-        await addToFavorites(id)
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-    }
+  const handleMouseMove = () => {
+    playerStoreActions.showControlsTemporarily(controlsTimeoutRef)
   }
 
   if (playerState.loading) {
@@ -269,6 +200,7 @@ const Player: React.FC = () => {
   }
 
   const filteredEpisodes = filterEpisodesByRange(playerState.episodes, playerState.episodeRange)
+  const isFavorited = id ? playerStoreActions.isSeriesFavorited(id, userState.user) : false
 
   return (
     <div className="player-page">
@@ -285,6 +217,7 @@ const Player: React.FC = () => {
           <VideoPlayer
             episode={playerState.currentEpisode}
             videoRef={videoRef}
+            iframeRef={iframeRef}
             isPlaying={playerState.isPlaying}
             showControls={playerState.showControls}
             currentTime={playerState.currentTime}
@@ -292,23 +225,23 @@ const Player: React.FC = () => {
             volume={playerState.volume}
             playbackSpeed={playerState.playbackSpeed}
             showSpeedSelector={playerState.showSpeedSelector}
-            onPlayPause={() => handlePlayPause(videoRef, playerState.isPlaying)}
-            onTimeUpdate={() => handleTimeUpdate(videoRef)}
-            onLoadedMetadata={() => handleLoadedMetadata(videoRef)}
-            onProgressChange={(time) => handleProgressChange(videoRef, time)}
-            onVolumeToggle={() => handleVolumeToggle(videoRef, playerState.volume)}
-            onSpeedChange={(speed) => handleSpeedChange(videoRef, speed)}
+            onPlayPause={() => playerStoreActions.handlePlayPause(videoRef)}
+            onTimeUpdate={() => playerStoreActions.handleTimeUpdate(videoRef)}
+            onLoadedMetadata={() => playerStoreActions.handleLoadedMetadata(videoRef)}
+            onProgressChange={(time) => playerStoreActions.handleProgressChange(videoRef, time)}
+            onVolumeToggle={() => playerStoreActions.handleVolumeToggle(videoRef)}
+            onSpeedChange={(speed) => playerStoreActions.handleSpeedChange(videoRef, speed)}
             onSpeedSelectorToggle={() => playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)}
-            onFullscreen={() => handleFullscreen(videoRef)}
+            onFullscreen={() => playerStoreActions.handleFullscreen(videoRef)}
             onMouseMove={handleMouseMove}
-            onMouseLeave={() => playerState.isPlaying && playerStoreActions.setShowControls(false)}
+            onMouseLeave={playerStoreActions.hideControlsIfPlaying}
           />
 
           <EpisodeMetadata
             series={playerState.series}
             currentEpisode={playerState.currentEpisode}
             selectedLanguage={playerState.selectedLanguage}
-            isFavorited={id ? isSeriesFavorited(id) : false}
+            isFavorited={isFavorited}
             onLanguageChange={playerStoreActions.setSelectedLanguage}
             onTagClick={handleTagClick}
             onFavoriteToggle={handleFavoriteToggle}
@@ -339,6 +272,15 @@ const Player: React.FC = () => {
           onLoginSuccess={loginModalStoreActions.close}
         />
       )}
+
+      {playerState.showPurchaseDialog && (
+        <PurchaseDialog
+          episodeCost={EPISODE_COST}
+          onPurchase={handlePurchase}
+          onCancel={playerStoreActions.cancelPurchase}
+          loading={playerState.purchaseLoading}
+        />
+      )}
     </div>
   )
 }
@@ -364,6 +306,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ seriesName, homeText, onHomeCli
 interface VideoPlayerProps {
   episode: Episode | null
   videoRef: React.RefObject<HTMLVideoElement | null>
+  iframeRef: React.RefObject<HTMLIFrameElement | null>
   isPlaying: boolean
   showControls: boolean
   currentTime: number
@@ -386,6 +329,7 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   episode,
   videoRef,
+  iframeRef,
   isPlaying,
   showControls,
   currentTime,
@@ -409,6 +353,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <div className="video-placeholder">No video available</div>
     ) : episode.videoId ? (
       <iframe
+        ref={iframeRef}
         src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId)}
         loading="lazy"
         style={{ border: 'none', width: '100%', height: '100%' }}

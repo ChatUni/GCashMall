@@ -243,3 +243,30 @@ return the updated series
 ### Output
 
 return the created/updated series
+
+## Purchase Episode
+
+Episode Cost = 1 GCash
+
+### Input
+
+- series id *
+- episode number *
+
+### Prerequisite
+
+- already logged in
+- the balance of the user's wallet is no less than the episode's cost
+- series exist
+- episode exist
+- the series is not uploaded by the user
+
+### Action
+
+- deduct EC from user's wallet
+- add it to the user's purchase history
+- save user to db
+
+### Output
+
+return updated user

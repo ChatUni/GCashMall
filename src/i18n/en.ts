@@ -158,6 +158,16 @@ export const en = {
     share: 'Share',
     addToFavorites: 'Add to favorites',
     breadcrumbHome: 'GcashReels',
+    purchaseDialog: {
+      title: 'Purchase Required',
+      message: 'You must purchase the episode in order to continue watching. It will cost {cost} GCash.',
+      confirm: 'Do you want to purchase?',
+      purchaseButton: 'Purchase',
+      cancelButton: 'Cancel',
+      insufficientBalance: "You don't have enough GCash, please top up first",
+      purchaseSuccess: 'Episode purchased successfully',
+      purchaseFailed: 'Failed to purchase episode',
+    },
   },
   login: {
     title: 'Login',

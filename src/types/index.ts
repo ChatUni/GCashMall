@@ -79,6 +79,14 @@ export interface FavoriteUserItem {
   addedAt: Date
 }
 
+export interface PurchaseHistoryItem {
+  seriesId: string
+  seriesName?: string
+  episodeNumber: number
+  cost?: number
+  purchasedAt: Date | string
+}
+
 export interface User {
   _id: string | null
   email: string
@@ -93,6 +101,7 @@ export interface User {
   hasPassword?: boolean
   watchList?: WatchListItem[]
   favorites?: FavoriteUserItem[]
+  purchaseHistory?: PurchaseHistoryItem[]
   google_id?: string
   facebook_id?: string
   twitter_id?: string

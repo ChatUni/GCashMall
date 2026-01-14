@@ -40,7 +40,7 @@ const Account: React.FC = () => {
   
   const state = useAccountStore()
   const toastState = useToastStore()
-
+console.log(state)
   // Initialize data (not in useEffect)
   if (!accountInitialized) {
     accountInitialized = true

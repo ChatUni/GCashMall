@@ -11,7 +11,7 @@ import {
   toastStoreActions,
 } from '../stores'
 import { accountStoreActions } from '../stores/accountStore'
-import type { Series, Episode, WatchHistoryItem, FavoriteItem, Genre, User } from '../types'
+import type { Series, WatchHistoryItem, FavoriteItem, Genre, User } from '../types'
 import { getStoredUser, isLoggedIn, clearAuthData, saveAuthData } from '../utils/api'
 
 // Featured series
@@ -48,21 +48,22 @@ export const fetchNewReleases = async () => {
 export const fetchPlayerData = async (seriesId: string) => {
   playerStoreActions.setLoading(true)
   try {
-    const [seriesResponse, episodesResponse] = await Promise.all([
-      apiGet<Series>('series', { id: seriesId }),
-      apiGet<Episode[]>('episodes', { seriesId }),
-    ])
+    // Get series - episodes are embedded in the series.episodes field
+    const seriesResponse = await apiGet<Series>('series', { id: seriesId })
 
     if (seriesResponse.success && seriesResponse.data) {
       playerStoreActions.setSeries(seriesResponse.data)
       
-      // Use episodes from series object if available, otherwise use separate episodes API response
-      const episodes = seriesResponse.data.episodes ||
-        (episodesResponse.success && episodesResponse.data ? episodesResponse.data : [])
+      // Use episodes from series.episodes field
+      const episodes = seriesResponse.data.episodes || []
       
       if (episodes.length > 0) {
-        playerStoreActions.setEpisodes(episodes)
-        playerStoreActions.setCurrentEpisode(episodes[0])
+        // Sort episodes by episodeNumber
+        const sortedEpisodes = [...episodes].sort(
+          (a, b) => a.episodeNumber - b.episodeNumber,
+        )
+        playerStoreActions.setEpisodes(sortedEpisodes)
+        playerStoreActions.setCurrentEpisode(sortedEpisodes[0])
       }
     }
   } catch (error) {
@@ -177,6 +178,46 @@ export const removeFromFavorites = async (seriesId: string) => {
     }
     userStoreActions.setUser(result.data)
     accountStoreActions.setUser(result.data)
+  }
+  return result
+}
+
+// Purchase episode
+interface PurchaseEpisodeResponse {
+  message: string
+  balance: number
+  purchasedEpisode: {
+    seriesId: string
+    episodeNumber: number
+  }
+}
+
+export const purchaseEpisode = async (seriesId: string, episodeNumber: number) => {
+  const result = await apiPostWithAuth<PurchaseEpisodeResponse>('purchaseEpisode', {
+    seriesId,
+    episodeNumber,
+  })
+  if (result.success && result.data) {
+    // Update user balance and purchaseHistory in local storage and stores
+    const token = localStorage.getItem('gcashmall_token')
+    const storedUser = getStoredUser()
+    if (token && storedUser) {
+      const updatedUser = {
+        ...storedUser,
+        balance: result.data.balance,
+        purchaseHistory: [
+          ...(storedUser.purchaseHistory || []),
+          {
+            seriesId,
+            episodeNumber,
+            purchasedAt: new Date().toISOString(),
+          },
+        ],
+      }
+      saveAuthData(token, updatedUser)
+      userStoreActions.setUser(updatedUser)
+      accountStoreActions.setUser(updatedUser)
+    }
   }
   return result
 }
