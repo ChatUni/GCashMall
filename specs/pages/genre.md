@@ -22,6 +22,7 @@ The Genre page is a content browsing interface for GCashTV that allows users to 
 - **Min Width**: 240px
 - **Background**: #0B0B0E
 - **Padding**: 30px 0
+- **Padding Left**: 40px (to provide spacing from screen edge)
 - **Overflow-Y**: Auto
 - **Position**: Sticky
 - **Top**: 60px (below TopBar)
