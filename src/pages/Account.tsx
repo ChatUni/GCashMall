@@ -5,7 +5,7 @@ import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
 import { useLanguage } from '../context/LanguageContext'
-import { useAccountStore, accountStoreActions, navItems, topUpAmounts, type AccountTab } from '../stores/accountStore'
+import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab } from '../stores/accountStore'
 import {
   initializeAccountData,
   fetchAccountUserData,
@@ -19,6 +19,7 @@ import {
   removeFromFavorites,
   clearFavorites,
   topUp,
+  withdraw,
   hasProfileChanges,
   fetchMySeries,
   shelveSeries,
@@ -145,17 +146,6 @@ const Account: React.FC = () => {
     }
   }
 
-  const onTopUpClick = (amount: number) => {
-    accountStoreActions.setSelectedTopUpAmount(amount)
-    accountStoreActions.setShowTopUpPopup(true)
-  }
-
-  const onConfirmTopUp = () => {
-    if (state.selectedTopUpAmount) {
-      topUp(state.selectedTopUpAmount)
-    }
-  }
-
   if (state.loading) {
     return (
       <div className="account-page">
@@ -229,11 +219,12 @@ const Account: React.FC = () => {
           {state.activeTab === 'wallet' && (
             <WalletSection
               balance={state.balance}
+              walletTab={state.walletTab}
               showTopUpPopup={state.showTopUpPopup}
               selectedTopUpAmount={state.selectedTopUpAmount}
-              onTopUpClick={onTopUpClick}
-              onConfirmTopUp={onConfirmTopUp}
-              onClosePopup={() => accountStoreActions.setShowTopUpPopup(false)}
+              showWithdrawPopup={state.showWithdrawPopup}
+              selectedWithdrawAmount={state.selectedWithdrawAmount}
+              withdrawing={state.withdrawing}
               t={t}
             />
           )}
@@ -241,7 +232,6 @@ const Account: React.FC = () => {
             <MySeriesSection
               series={state.mySeries}
               loading={state.mySeriesLoading}
-              editingSeries={state.editingSeries}
               editingSeriesId={state.editingSeriesId}
               onNavigate={navigate}
               t={t}
@@ -907,24 +897,68 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
 
 interface WalletSectionProps {
   balance: number
+  walletTab: 'topup' | 'withdraw'
   showTopUpPopup: boolean
   selectedTopUpAmount: number | null
-  onTopUpClick: (amount: number) => void
-  onConfirmTopUp: () => void
-  onClosePopup: () => void
+  showWithdrawPopup: boolean
+  selectedWithdrawAmount: number | null
+  withdrawing: boolean
   t: Record<string, Record<string, unknown>>
 }
 
 const WalletSection: React.FC<WalletSectionProps> = ({
   balance,
+  walletTab,
   showTopUpPopup,
   selectedTopUpAmount,
-  onTopUpClick,
-  onConfirmTopUp,
-  onClosePopup,
+  showWithdrawPopup,
+  selectedWithdrawAmount,
+  withdrawing,
   t,
 }) => {
   const wallet = t.account.wallet as Record<string, string>
+
+  const handleTopUpClick = (amount: number) => {
+    accountStoreActions.setSelectedTopUpAmount(amount)
+    accountStoreActions.setShowTopUpPopup(true)
+  }
+
+  const handleWithdrawClick = (amount: number) => {
+    if (amount > balance) {
+      toastStoreActions.show(wallet.insufficientBalance || 'Insufficient balance', 'error')
+      return
+    }
+    accountStoreActions.setSelectedWithdrawAmount(amount)
+    accountStoreActions.setShowWithdrawPopup(true)
+  }
+
+  const handleConfirmTopUp = () => {
+    if (selectedTopUpAmount) {
+      topUp(selectedTopUpAmount)
+      toastStoreActions.show(wallet.topUpSuccess || 'Top up successful', 'success')
+    }
+  }
+
+  const handleConfirmWithdraw = async () => {
+    if (selectedWithdrawAmount) {
+      const result = await withdraw(selectedWithdrawAmount)
+      if (result.success) {
+        toastStoreActions.show(wallet.withdrawSuccess || 'Withdrawal successful', 'success')
+      } else {
+        toastStoreActions.show(result.error || wallet.withdrawFailed || 'Failed to withdraw', 'error')
+      }
+    }
+  }
+
+  const handleCloseTopUpPopup = () => {
+    accountStoreActions.setShowTopUpPopup(false)
+    accountStoreActions.setSelectedTopUpAmount(null)
+  }
+
+  const handleCloseWithdrawPopup = () => {
+    accountStoreActions.setShowWithdrawPopup(false)
+    accountStoreActions.setSelectedWithdrawAmount(null)
+  }
 
   return (
     <div className="content-section wallet-section">
@@ -944,30 +978,54 @@ const WalletSection: React.FC<WalletSectionProps> = ({
         </div>
       </div>
 
-      <div className="section-card topup-section">
-        <h3 className="card-title">{wallet.topUp}</h3>
-        <p className="topup-description">{wallet.topUpDescription}</p>
-        <div className="topup-grid">
-          {topUpAmounts.map((amount) => (
+      {/* Wallet Tabs */}
+      <div className="wallet-tabs">
+        <button
+          className={`wallet-tab ${walletTab === 'topup' ? 'active' : ''}`}
+          onClick={() => accountStoreActions.setWalletTab('topup')}
+        >
+          {wallet.topUp}
+        </button>
+        <button
+          className={`wallet-tab ${walletTab === 'withdraw' ? 'active' : ''}`}
+          onClick={() => accountStoreActions.setWalletTab('withdraw')}
+        >
+          {wallet.withdraw || 'Withdraw'}
+        </button>
+      </div>
+
+      {/* Amount Selection Section */}
+      <div className="section-card amount-section">
+        <h3 className="card-title">
+          {walletTab === 'topup'
+            ? (wallet.selectTopUpAmount || 'Select Top Up Amount')
+            : (wallet.selectWithdrawAmount || 'Select Withdraw Amount')
+          }
+        </h3>
+        <p className="amount-description">
+          {walletTab === 'topup'
+            ? wallet.topUpDescription
+            : (wallet.withdrawDescription || 'Select an amount to withdraw from your wallet')
+          }
+        </p>
+        <div className="amount-grid">
+          {walletAmounts.map((amount) => (
             <button
               key={amount}
-              className="topup-button"
-              onClick={() => onTopUpClick(amount)}
+              className={`amount-button ${walletTab === 'withdraw' && amount > balance ? 'disabled' : ''}`}
+              onClick={() => walletTab === 'topup' ? handleTopUpClick(amount) : handleWithdrawClick(amount)}
+              disabled={walletTab === 'withdraw' && amount > balance}
             >
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="topup-logo" />
-              <span className="topup-amount">{amount}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="amount-logo" />
+              <span className="amount-value">{amount}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="section-card">
-        <h3 className="card-title">{wallet.transactionHistory}</h3>
-        <p className="empty-text">{wallet.noTransactions}</p>
-      </div>
-
+      {/* Top Up Confirmation Popup */}
       {showTopUpPopup && selectedTopUpAmount && (
-        <div className="popup-overlay" onClick={onClosePopup}>
+        <div className="popup-overlay" onClick={handleCloseTopUpPopup}>
           <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
             <h2 className="popup-title">{wallet.confirmTopUp}</h2>
@@ -977,10 +1035,37 @@ const WalletSection: React.FC<WalletSectionProps> = ({
               <span>{selectedTopUpAmount}</span>
             </div>
             <div className="popup-buttons">
-              <button className="btn-confirm" onClick={onConfirmTopUp}>
+              <button className="btn-confirm" onClick={handleConfirmTopUp}>
                 {wallet.confirm}
               </button>
-              <button className="btn-cancel" onClick={onClosePopup}>
+              <button className="btn-cancel" onClick={handleCloseTopUpPopup}>
+                {wallet.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Confirmation Popup */}
+      {showWithdrawPopup && selectedWithdrawAmount && (
+        <div className="popup-overlay" onClick={handleCloseWithdrawPopup}>
+          <div className="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
+            <h2 className="popup-title">{wallet.confirmWithdraw || 'Confirm Withdraw'}</h2>
+            <p className="popup-message">{wallet.withdrawFromWallet || 'Withdraw from your wallet'}</p>
+            <div className="popup-amount withdraw-amount">
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
+              <span>{selectedWithdrawAmount}</span>
+            </div>
+            <div className="popup-buttons">
+              <button
+                className="btn-withdraw-confirm"
+                onClick={handleConfirmWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing ? '...' : (wallet.confirm || 'Confirm')}
+              </button>
+              <button className="btn-cancel" onClick={handleCloseWithdrawPopup} disabled={withdrawing}>
                 {wallet.cancel}
               </button>
             </div>
@@ -994,7 +1079,6 @@ const WalletSection: React.FC<WalletSectionProps> = ({
 interface MySeriesSectionProps {
   series: Series[]
   loading: boolean
-  editingSeries: Series | null
   editingSeriesId: string | null
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
@@ -1003,7 +1087,6 @@ interface MySeriesSectionProps {
 const MySeriesSection: React.FC<MySeriesSectionProps> = ({
   series,
   loading,
-  editingSeries,
   editingSeriesId,
   onNavigate,
   t,

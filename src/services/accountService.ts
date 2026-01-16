@@ -544,6 +544,31 @@ export const topUp = async (amount: number) => {
   }
 }
 
+// Withdraw
+export const withdraw = async (amount: number): Promise<{ success: boolean; error?: string }> => {
+  const state = accountStoreActions.getState()
+  
+  // Check if user has sufficient balance
+  if (amount > state.balance) {
+    return { success: false, error: 'Insufficient balance' }
+  }
+  
+  accountStoreActions.setWithdrawing(true)
+  
+  try {
+    await apiPost('withdraw', { amount })
+    accountStoreActions.subtractBalance(amount)
+    accountStoreActions.setShowWithdrawPopup(false)
+    accountStoreActions.setSelectedWithdrawAmount(null)
+    return { success: true }
+  } catch (error) {
+    console.error('Error withdrawing:', error)
+    return { success: false, error: 'Failed to withdraw' }
+  } finally {
+    accountStoreActions.setWithdrawing(false)
+  }
+}
+
 // Check if profile has changes
 export const hasProfileChanges = (current: ProfileFormState, original: ProfileFormState): boolean => {
   return (

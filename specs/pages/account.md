@@ -224,38 +224,89 @@ Section card with form fields:
   - Label: "Current Balance" - Gray, 14px
   - Amount: White, 36px, font-weight 700, with GCash logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
 
-#### Top Up Section
-- **Description**: "Select an amount to add to your wallet"
-- **Grid**: 3 columns, 16px gap
-- **Amount Options**: 5, 10, 20, 50, 100, 200
+#### Wallet Tabs
+- **Container**: Background #121214, border-radius 12px, padding 4px
+- **Tabs**: Two tabs - "Top Up" and "Withdraw"
+- **Tab Styling**:
+  - Flex: 1 (equal width)
+  - Padding: 14px 24px
+  - Font: 16px, font-weight 600
+  - Border Radius: 8px
+  - Inactive: Gray (#6B7280), transparent background
+  - Active: White (#FFFFFF), blue background (#3B82F6)
+  - Hover (inactive): Lighter gray (#9CA3AF)
 
-#### Top Up Button
-- **Styling**: 
+#### Amount Selection Section
+- **Title**: "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
+- **Description**:
+  - Top Up: "Select an amount to add to your wallet"
+  - Withdraw: "Select an amount to withdraw from your wallet"
+- **Grid**: 3 columns, 16px gap
+- **Amount Options**: 10, 20, 50, 100, 200, 500
+
+#### Amount Button
+- **Styling**:
   - Background: #1A1A1E
   - Border: 2px solid #242428
   - Padding: 24px 16px
   - Border Radius: 12px
 - **Hover**: Blue border, blue tint background, translateY(-2px)
 - **Content**: GCash logo (24px) + amount value (28px, white)
+- **Disabled State** (for withdraw when amount > balance):
+  - Opacity: 0.4
+  - Cursor: not-allowed
+  - No hover effects
 
 #### Top Up Confirmation Popup
 - **Overlay**: Fixed, black 80% opacity
-- **Modal**: 
+- **Modal**:
   - Background: #1A1A1E
   - Border Radius: 16px
   - Padding: 32px
   - Max Width: 400px
 - **Content**:
   - GCash Logo: 80px
-  - Title: "Confirm Top Up" - 24px, white
+  - Title: "Confirm Top Up" - 24px, blue (#3B82F6)
   - Message: "Add to your wallet" - 14px, gray
   - Amount: 48px, blue (#3B82F6), with logo
 - **Buttons**:
-  - Confirm: Green (#22C55E)
+  - Confirm: Blue (#3B82F6), hover: darker blue (#2563EB)
   - Cancel: Gray (#2A2A2E)
 
-#### Transaction History
-- Empty state: "No transactions yet"
+#### Withdraw Confirmation Popup
+- **Overlay**: Fixed, black 80% opacity
+- **Modal**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+- **Content**:
+  - GCash Logo: 80px
+  - Title: "Confirm Withdrawal" - 24px, blue (#3B82F6)
+  - Message: "Withdraw from your wallet" - 14px, gray
+  - Amount: 48px, blue (#3B82F6), with logo
+- **Buttons**:
+  - Confirm: Blue (#3B82F6), hover: darker blue (#2563EB)
+  - Cancel: Gray (#2A2A2E)
+- **Disabled State**: Both buttons disabled while processing, opacity 0.6
+
+#### Wallet Interactions
+- **Tab Switch**: Click on tab to switch between Top Up and Withdraw views
+- **Top Up Flow**:
+  1. Click amount button to select top up amount
+  2. Confirmation popup appears
+  3. Click Confirm to add balance
+  4. Success toast notification appears
+  5. Balance updates immediately
+- **Withdraw Flow**:
+  1. Click amount button (only enabled if amount <= balance)
+  2. Confirmation popup appears
+  3. Click Confirm to withdraw
+  4. Success/error toast notification appears
+  5. Balance updates on success
+- **Insufficient Balance**:
+  - Amount buttons disabled when amount > current balance
+  - If somehow clicked, shows "Insufficient balance" error toast
 
 ### 6. My Series
 

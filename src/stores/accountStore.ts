@@ -88,8 +88,12 @@ interface AccountState {
   
   // Wallet
   balance: number
+  walletTab: 'topup' | 'withdraw'
   showTopUpPopup: boolean
   selectedTopUpAmount: number | null
+  showWithdrawPopup: boolean
+  selectedWithdrawAmount: number | null
+  withdrawing: boolean
   
   // UI
   showLoginModal: boolean
@@ -151,8 +155,12 @@ const initialState: AccountState = {
   notifications: true,
   
   balance: 0,
+  walletTab: 'topup',
   showTopUpPopup: false,
   selectedTopUpAmount: null,
+  showWithdrawPopup: false,
+  selectedWithdrawAmount: null,
+  withdrawing: false,
   
   showLoginModal: false,
 }
@@ -268,14 +276,24 @@ export const accountStoreActions = {
     accountStore.setState((prev) => ({ ...prev, notifications })),
   
   // Wallet
-  setBalance: (balance: number) => 
+  setBalance: (balance: number) =>
     accountStore.setState((prev) => ({ ...prev, balance })),
   addBalance: (amount: number) =>
     accountStore.setState((prev) => ({ ...prev, balance: prev.balance + amount })),
-  setShowTopUpPopup: (showTopUpPopup: boolean) => 
+  subtractBalance: (amount: number) =>
+    accountStore.setState((prev) => ({ ...prev, balance: prev.balance - amount })),
+  setWalletTab: (walletTab: 'topup' | 'withdraw') =>
+    accountStore.setState((prev) => ({ ...prev, walletTab })),
+  setShowTopUpPopup: (showTopUpPopup: boolean) =>
     accountStore.setState((prev) => ({ ...prev, showTopUpPopup })),
-  setSelectedTopUpAmount: (selectedTopUpAmount: number | null) => 
+  setSelectedTopUpAmount: (selectedTopUpAmount: number | null) =>
     accountStore.setState((prev) => ({ ...prev, selectedTopUpAmount })),
+  setShowWithdrawPopup: (showWithdrawPopup: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showWithdrawPopup })),
+  setSelectedWithdrawAmount: (selectedWithdrawAmount: number | null) =>
+    accountStore.setState((prev) => ({ ...prev, selectedWithdrawAmount })),
+  setWithdrawing: (withdrawing: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, withdrawing })),
   
   // Initialize user data
   initializeUserData: (user: User) => {
@@ -313,4 +331,4 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'mySeries', icon: '🎬' },
 ]
 
-export const topUpAmounts = [5, 10, 20, 50, 100, 200]
+export const walletAmounts = [10, 20, 50, 100, 200, 500]

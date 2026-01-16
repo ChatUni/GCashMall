@@ -709,7 +709,91 @@
   height: 32px;
 }
 
-/* Top Up Section */
+/* Wallet Tabs */
+.wallet-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  background-color: #121214;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.wallet-tab {
+  flex: 1;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wallet-tab:hover:not(.active) {
+  color: #9ca3af;
+}
+
+.wallet-tab.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Amount Selection Section */
+.amount-section {
+  margin-bottom: 24px;
+}
+
+.amount-description {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 16px 0;
+}
+
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.amount-button {
+  background-color: #1a1a1e;
+  border: 2px solid #242428;
+  border-radius: 12px;
+  padding: 24px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.amount-button:hover:not(.disabled) {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.amount-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.amount-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.amount-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Legacy Top Up Section (keeping for backward compatibility) */
 .topup-section {
   margin-bottom: 24px;
 }
@@ -790,7 +874,7 @@
 .popup-title {
   font-size: 24px;
   font-weight: 600;
-  color: #ffffff;
+  color: #3b82f6;
   margin: 0 0 8px 0;
 }
 
@@ -824,7 +908,7 @@
 }
 
 .btn-confirm {
-  background-color: #22c55e;
+  background-color: #3b82f6;
   color: #ffffff;
   border: none;
   padding: 14px 24px;
@@ -836,7 +920,7 @@
 }
 
 .btn-confirm:hover {
-  background-color: #16a34a;
+  background-color: #2563eb;
 }
 
 .btn-cancel {
@@ -851,8 +935,44 @@
   transition: background-color 0.2s ease;
 }
 
-.btn-cancel:hover {
+.btn-cancel:hover:not(:disabled) {
   background-color: #3a3a3e;
+}
+
+.btn-cancel:disabled,
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Withdraw Modal Styles */
+.withdraw-modal .popup-title {
+  color: #3b82f6;
+}
+
+.withdraw-amount {
+  color: #3b82f6 !important;
+}
+
+.btn-withdraw-confirm {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-withdraw-confirm:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-withdraw-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Toast Notification */
@@ -988,7 +1108,8 @@
     gap: 12px;
   }
 
-  .topup-grid {
+  .topup-grid,
+  .amount-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -1000,6 +1121,11 @@
     flex-direction: column;
     text-align: center;
     padding: 24px;
+  }
+
+  .wallet-tab {
+    padding: 12px 16px;
+    font-size: 14px;
   }
 }
 
