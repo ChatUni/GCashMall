@@ -367,8 +367,13 @@
 /* Content Grid */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
+}
+
+/* Override series-card fixed width in content grid */
+.content-grid .series-card {
+  width: 100%;
 }
 
 /* History/Favorite Cards */
@@ -383,20 +388,61 @@
   transform: translateY(-4px);
 }
 
-/* History card uses series card styling */
-.history-card.series-card {
-  width: 100%;
-}
-
-.history-card .series-card-poster {
+/* Series Card Poster styling for Account page */
+.content-grid .series-card-poster {
   position: relative;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #1a1a1e;
 }
 
-.history-card .series-card-placeholder {
+.content-grid .series-card-image {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.content-grid .series-card:hover .series-card-image {
+  transform: scale(1.05);
+}
+
+.content-grid .series-card-placeholder {
+  width: 100%;
+  height: 100%;
   background-color: #242428;
-  border-radius: 12px;
+}
+
+/* Series card info section - fixed height to prevent layout shift */
+.content-grid .series-card-info {
+  min-height: 48px;
+}
+
+.content-grid .series-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+.content-grid .series-card:hover .series-card-title {
+  color: #3b82f6;
+}
+
+.content-grid .series-card-tag {
+  display: inline-block;
+  background: #2a2a2e;
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 16px;
 }
 
 .history-card .remove-btn {
@@ -865,12 +911,6 @@
 }
 
 /* Responsive Breakpoints */
-@media (max-width: 1400px) {
-  .content-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 @media (max-width: 1200px) {
   .content-grid {
     grid-template-columns: repeat(3, 1fr);

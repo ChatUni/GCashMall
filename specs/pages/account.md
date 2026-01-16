@@ -150,8 +150,8 @@ Section card with form fields:
   - Clear History button (secondary)
 
 #### Content Grid
-- **Layout**: 5 columns, 20px gap
-- **Responsive**: 4 cols at 1400px, 3 cols at 1200px, 2 cols at 768px
+- **Layout**: 4 columns, 20px gap
+- **Responsive**: 3 cols at 1200px, 2 cols at 768px
 
 #### History Card
 - Use the shared series card
@@ -176,7 +176,7 @@ Section card with form fields:
 - **Title**: "Favorites"
 
 #### Content Grid
-- Same layout as Watch History (5 columns)
+- Same layout as Watch History (4 columns)
 
 #### Favorite Card
 - Use the shared series card
@@ -264,7 +264,7 @@ Section card with form fields:
 - Add Series button (green, align right)
 
 #### Content Grid
-- Same layout as Watch History (5 columns)
+- Same layout as Watch History (4 columns)
 
 #### My Series Card
 - Use the shared series card
@@ -292,9 +292,6 @@ The page supports tab navigation via URL query parameter:
 ## Responsive Design
 
 ### Breakpoints
-
-#### 1400px
-- Grids: 4 columns
 
 #### 1200px
 - Grids: 3 columns
