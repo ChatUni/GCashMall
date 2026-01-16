@@ -113,6 +113,16 @@ export const zh = {
       withdrawSuccess: '提现成功',
       withdrawFailed: '提现失败',
       insufficientBalance: '余额不足',
+      // Transaction history table headers
+      time: '时间',
+      type: '类型',
+      amount: '金额',
+      status: '状态',
+      referenceId: '参考编号',
+      // Transaction status
+      statusSuccess: '成功',
+      statusFailed: '失败',
+      statusProcessing: '处理中',
     },
     mySeries: {
       title: '我的剧集',

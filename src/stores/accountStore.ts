@@ -6,6 +6,19 @@ import type { FavoriteItem, Series, User } from '../types'
 
 type Listener = () => void
 
+// Transaction types
+export type TransactionType = 'topup' | 'withdraw'
+export type TransactionStatus = 'success' | 'failed' | 'processing'
+
+export interface Transaction {
+  id: string
+  referenceId: string
+  type: TransactionType
+  amount: number
+  status: TransactionStatus
+  createdAt: Date
+}
+
 const createStore = <T>(initialState: T) => {
   let state = initialState
   const listeners = new Set<Listener>()
@@ -94,6 +107,7 @@ interface AccountState {
   showWithdrawPopup: boolean
   selectedWithdrawAmount: number | null
   withdrawing: boolean
+  transactions: Transaction[]
   
   // UI
   showLoginModal: boolean
@@ -161,6 +175,7 @@ const initialState: AccountState = {
   showWithdrawPopup: false,
   selectedWithdrawAmount: null,
   withdrawing: false,
+  transactions: [],
   
   showLoginModal: false,
 }
@@ -295,6 +310,22 @@ export const accountStoreActions = {
   setWithdrawing: (withdrawing: boolean) =>
     accountStore.setState((prev) => ({ ...prev, withdrawing })),
   
+  // Transactions
+  setTransactions: (transactions: Transaction[]) =>
+    accountStore.setState((prev) => ({ ...prev, transactions })),
+  addTransaction: (transaction: Transaction) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      transactions: [transaction, ...prev.transactions],
+    })),
+  updateTransactionStatus: (id: string, status: TransactionStatus) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      transactions: prev.transactions.map((t) =>
+        t.id === id ? { ...t, status } : t,
+      ),
+    })),
+  
   // Initialize user data
   initializeUserData: (user: User) => {
     const profileData: ProfileFormState = {
@@ -332,3 +363,15 @@ export const navItems: { key: AccountTab; icon: string }[] = [
 ]
 
 export const walletAmounts = [10, 20, 50, 100, 200, 500]
+
+// Helper function to generate reference ID
+export const generateReferenceId = (): string => {
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+  return `GC${timestamp}${random}`
+}
+
+// Helper function to generate transaction ID
+export const generateTransactionId = (): string => {
+  return `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+}

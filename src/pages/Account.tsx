@@ -5,7 +5,7 @@ import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
 import { useLanguage } from '../context/LanguageContext'
-import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab } from '../stores/accountStore'
+import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab, type Transaction } from '../stores/accountStore'
 import {
   initializeAccountData,
   fetchAccountUserData,
@@ -225,6 +225,7 @@ const Account: React.FC = () => {
               showWithdrawPopup={state.showWithdrawPopup}
               selectedWithdrawAmount={state.selectedWithdrawAmount}
               withdrawing={state.withdrawing}
+              transactions={state.transactions}
               t={t}
             />
           )}
@@ -903,6 +904,7 @@ interface WalletSectionProps {
   showWithdrawPopup: boolean
   selectedWithdrawAmount: number | null
   withdrawing: boolean
+  transactions: Transaction[]
   t: Record<string, Record<string, unknown>>
 }
 
@@ -914,6 +916,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
   showWithdrawPopup,
   selectedWithdrawAmount,
   withdrawing,
+  transactions,
   t,
 }) => {
   const wallet = t.account.wallet as Record<string, string>
@@ -958,6 +961,52 @@ const WalletSection: React.FC<WalletSectionProps> = ({
   const handleCloseWithdrawPopup = () => {
     accountStoreActions.setShowWithdrawPopup(false)
     accountStoreActions.setSelectedWithdrawAmount(null)
+  }
+
+  // Format date for display
+  const formatDate = (date: Date) => {
+    const d = new Date(date)
+    return d.toLocaleString()
+  }
+
+  // Get status display class
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'status-success'
+      case 'failed':
+        return 'status-failed'
+      case 'processing':
+        return 'status-processing'
+      default:
+        return ''
+    }
+  }
+
+  // Get status display text
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'success':
+        return wallet.statusSuccess || 'Success'
+      case 'failed':
+        return wallet.statusFailed || 'Failed'
+      case 'processing':
+        return wallet.statusProcessing || 'Processing'
+      default:
+        return status
+    }
+  }
+
+  // Get type display text
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case 'topup':
+        return wallet.topUp || 'Top Up'
+      case 'withdraw':
+        return wallet.withdraw || 'Withdraw'
+      default:
+        return type
+    }
   }
 
   return (
@@ -1021,6 +1070,47 @@ const WalletSection: React.FC<WalletSectionProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Transaction History Section */}
+      <div className="section-card transaction-history-section">
+        <h3 className="card-title">{wallet.transactionHistory || 'Transaction History'}</h3>
+        {transactions.length === 0 ? (
+          <p className="no-transactions">{wallet.noTransactions || 'No transactions yet'}</p>
+        ) : (
+          <div className="transaction-table-container">
+            <table className="transaction-table">
+              <thead>
+                <tr>
+                  <th>{wallet.time || 'Time'}</th>
+                  <th>{wallet.type || 'Type'}</th>
+                  <th>{wallet.amount || 'Amount'}</th>
+                  <th>{wallet.status || 'Status'}</th>
+                  <th>{wallet.referenceId || 'Reference ID'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((transaction) => (
+                  <tr key={transaction.id}>
+                    <td className="transaction-time">{formatDate(transaction.createdAt)}</td>
+                    <td className={`transaction-type type-${transaction.type}`}>
+                      {getTypeText(transaction.type)}
+                    </td>
+                    <td className="transaction-amount">
+                      <span className={transaction.type === 'topup' ? 'amount-positive' : 'amount-negative'}>
+                        {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className={`transaction-status ${getStatusClass(transaction.status)}`}>
+                      {getStatusText(transaction.status)}
+                    </td>
+                    <td className="transaction-reference">{transaction.referenceId}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Top Up Confirmation Popup */}

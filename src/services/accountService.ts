@@ -2,7 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
-import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
+import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, generateTransactionId, type Transaction } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
@@ -533,14 +533,33 @@ export const removeFavorite = async (itemId: string) => {
 }
 
 // Top up
-export const topUp = async (amount: number) => {
+export const topUp = async (amount: number): Promise<{ success: boolean; error?: string }> => {
+  // Create transaction record
+  const transaction: Transaction = {
+    id: generateTransactionId(),
+    referenceId: generateReferenceId(),
+    type: 'topup',
+    amount,
+    status: 'processing',
+    createdAt: new Date(),
+  }
+  
+  // Add transaction to history immediately
+  accountStoreActions.addTransaction(transaction)
+  
   try {
     await apiPost('topUp', { amount })
     accountStoreActions.addBalance(amount)
     accountStoreActions.setShowTopUpPopup(false)
     accountStoreActions.setSelectedTopUpAmount(null)
+    // Update transaction status to success
+    accountStoreActions.updateTransactionStatus(transaction.id, 'success')
+    return { success: true }
   } catch (error) {
     console.error('Error topping up:', error)
+    // Update transaction status to failed
+    accountStoreActions.updateTransactionStatus(transaction.id, 'failed')
+    return { success: false, error: 'Failed to top up' }
   }
 }
 
@@ -553,6 +572,19 @@ export const withdraw = async (amount: number): Promise<{ success: boolean; erro
     return { success: false, error: 'Insufficient balance' }
   }
   
+  // Create transaction record
+  const transaction: Transaction = {
+    id: generateTransactionId(),
+    referenceId: generateReferenceId(),
+    type: 'withdraw',
+    amount,
+    status: 'processing',
+    createdAt: new Date(),
+  }
+  
+  // Add transaction to history immediately
+  accountStoreActions.addTransaction(transaction)
+  
   accountStoreActions.setWithdrawing(true)
   
   try {
@@ -560,9 +592,13 @@ export const withdraw = async (amount: number): Promise<{ success: boolean; erro
     accountStoreActions.subtractBalance(amount)
     accountStoreActions.setShowWithdrawPopup(false)
     accountStoreActions.setSelectedWithdrawAmount(null)
+    // Update transaction status to success
+    accountStoreActions.updateTransactionStatus(transaction.id, 'success')
     return { success: true }
   } catch (error) {
     console.error('Error withdrawing:', error)
+    // Update transaction status to failed
+    accountStoreActions.updateTransactionStatus(transaction.id, 'failed')
     return { success: false, error: 'Failed to withdraw' }
   } finally {
     accountStoreActions.setWithdrawing(false)

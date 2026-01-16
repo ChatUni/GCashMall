@@ -308,6 +308,64 @@ Section card with form fields:
   - Amount buttons disabled when amount > current balance
   - If somehow clicked, shows "Insufficient balance" error toast
 
+#### Transaction History Section
+- **Title**: "Transaction History"
+- **Container**: Section card below amount selection
+- **Empty State**: "No transactions yet" - Gray (#6B7280), centered, padding 40px
+
+#### Transaction Table
+- **Container**: Overflow-x auto for mobile responsiveness
+- **Table Width**: 100%
+- **Border Collapse**: collapse
+
+##### Table Headers
+| Column | Label | Alignment |
+|--------|-------|-----------|
+| Time | Time | Left |
+| Type | Type | Left |
+| Amount | Amount | Left |
+| Status | Status | Left |
+| Reference ID | Reference ID | Left |
+
+- **Header Styling**:
+  - Background: #1A1A1E
+  - Color: Gray (#9CA3AF)
+  - Font: 14px, font-weight 500
+  - Padding: 12px 16px
+  - Border Bottom: 1px solid #242428
+
+##### Table Rows
+- **Row Styling**:
+  - Padding: 14px 16px
+  - Border Bottom: 1px solid #242428
+  - Hover: Background rgba(59, 130, 246, 0.05)
+
+##### Column Styling
+- **Time**: Gray (#9CA3AF), 13px, white-space nowrap
+- **Type**:
+  - Font-weight: 500
+  - Top Up: Green (#22C55E)
+  - Withdraw: Purple (#A855F7)
+- **Amount**:
+  - Font-weight: 600
+  - Monospace font
+  - Positive (Top Up): Green (#22C55E) with "+" prefix
+  - Negative (Withdraw): Purple (#A855F7) with "-" prefix
+- **Status**:
+  - Pill badge style: padding 4px 10px, border-radius 16px, font-size 12px
+  - Success: Green background (rgba(34, 197, 94, 0.15)), green text (#22C55E)
+  - Failed: Red background (rgba(239, 68, 68, 0.15)), red text (#EF4444)
+  - Processing: Yellow background (rgba(234, 179, 8, 0.15)), yellow text (#EAB308)
+- **Reference ID**: Monospace font, 12px, gray (#6B7280)
+
+#### Transaction Flow
+1. When user initiates top up or withdraw, a transaction record is created with status "processing"
+2. Transaction appears immediately in the history table
+3. After API call completes:
+   - Success: Status updates to "success", balance updates
+   - Failure: Status updates to "failed", balance unchanged
+4. Transactions are sorted by createdAt descending (newest first)
+
 ### 6. My Series
 
 #### Header
