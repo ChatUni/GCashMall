@@ -756,7 +756,7 @@
 
 .amount-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -1114,7 +1114,7 @@
 
   .topup-grid,
   .amount-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .balance-amount {
@@ -1152,7 +1152,13 @@
     gap: 12px;
   }
 
-  .topup-amount {
+  .topup-grid,
+  .amount-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .topup-amount,
+  .amount-value {
     font-size: 22px;
   }
 

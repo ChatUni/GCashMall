@@ -349,6 +349,15 @@ export const accountStoreActions = {
       gender: user.sex || 'not_specified',
       birthday: user.dob || '',
     }
+    // Convert transactions from user data (dates may be strings from JSON)
+    const transactions: Transaction[] = (user.transactions || []).map((t: Transaction | { id: string; referenceId: string; type: TransactionType; amount: number; status: TransactionStatus; createdAt: string | Date }) => ({
+      id: t.id,
+      referenceId: t.referenceId,
+      type: t.type,
+      amount: t.amount,
+      status: t.status,
+      createdAt: typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt,
+    }))
     accountStore.setState((prev) => ({
       ...prev,
       user,
@@ -357,6 +366,7 @@ export const accountStoreActions = {
       profileForm: profileData,
       originalProfile: profileData,
       balance: user.balance || 0,
+      transactions,
     }))
   },
   
@@ -377,7 +387,7 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'mySeries', icon: '🎬' },
 ]
 
-export const walletAmounts = [10, 20, 50, 100, 200, 500]
+export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]
 
 // Helper function to generate reference ID
 export const generateReferenceId = (): string => {

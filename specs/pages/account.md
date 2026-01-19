@@ -254,8 +254,8 @@ Section card with form fields:
 - **Description**:
   - Top Up: "Select an amount to add to your wallet"
   - Withdraw: "Select an amount to withdraw from your wallet"
-- **Grid**: 3 columns, 16px gap
-- **Amount Options**: 10, 20, 50, 100, 200, 500
+- **Grid**: 4 columns, 16px gap
+- **Amount Options**: 1, 5, 10, 20, 50, 100, 200, 500
 
 #### Amount Button
 - **Styling**:
@@ -474,7 +474,7 @@ The page supports tab navigation via URL query parameter:
 - Title: 24px
 - Grids: 2 columns
 - Header actions: Column layout
-- Top-up grid: 2 columns
+- Top-up/Amount grid: 3 columns
 - Balance amount: 28px
 - Membership plans: Single column
 
@@ -575,3 +575,4 @@ Vertical
   - if fail, show the error below the input box in red
   - otherwise, call the reset password API
   - show the message "An email has been sent to {email} with password reset instruction."
+
