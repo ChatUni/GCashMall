@@ -19,6 +19,7 @@ export const en = {
       favorites: 'Favorites',
       settings: 'Settings',
       wallet: 'Wallet',
+      myPurchases: 'My Purchases',
       mySeries: 'My Series',
       logout: 'Logout',
     },
@@ -124,6 +125,15 @@ export const en = {
       statusSuccess: 'Success',
       statusFailed: 'Failed',
       statusProcessing: 'Processing',
+    },
+    myPurchases: {
+      title: 'My Purchases',
+      subtitle: 'Episodes you have purchased',
+      emptyTitle: 'No purchases yet',
+      emptySubtext: 'Browse series and purchase episodes to watch',
+      exploreButton: 'Explore Series',
+      episode: 'episode',
+      episodes: 'episodes',
     },
     mySeries: {
       title: 'My Series',

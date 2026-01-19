@@ -302,3 +302,60 @@ return the updated user (includes balance and transactions)
 ### Output
 
 return the updated user (includes balance and transactions) or error if insufficient balance
+
+## Get My Purchases
+
+### Prerequisite
+
+- already logged in
+
+### Action
+
+- find the account based on the login
+- return the user's purchases array
+
+### Output
+
+return the purchases array (each item contains: _id, seriesId, seriesName, seriesCover, episodeId, episodeNumber, episodeTitle, episodeThumbnail, price, purchasedAt)
+
+## Add Purchase
+
+### Input
+
+- seriesId * (string)
+- episodeId (string, optional)
+- episodeNumber * (number)
+- price * (number)
+
+### Prerequisite
+
+- already logged in
+- user has sufficient balance (price <= current balance)
+- episode not already purchased
+
+### Action
+
+- find the account based on the login
+- check if user has sufficient balance
+- if insufficient, return error
+- check if episode is already purchased
+- if already purchased, return error
+- get series info (name, cover)
+- get episode info (title, thumbnail) if available
+- create a purchase record with:
+  - _id: unique purchase id
+  - seriesId: the input series id
+  - seriesName: from series data
+  - seriesCover: from series data
+  - episodeId: from episode data or input
+  - episodeNumber: the input episode number
+  - episodeTitle: from episode data or "Episode {number}"
+  - episodeThumbnail: from episode data or series cover
+  - price: the input price
+  - purchasedAt: current timestamp
+- add the purchase to the user's purchases array
+- subtract the price from the user's balance
+
+### Output
+
+return the updated user (includes balance and purchases) or error if insufficient balance or already purchased

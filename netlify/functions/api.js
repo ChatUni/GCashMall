@@ -39,6 +39,8 @@ import {
   migrateGenres,
   getMySeries,
   shelveSeries,
+  getMyPurchases,
+  addPurchase,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -57,6 +59,7 @@ const apiHandlers = {
     user: (params) => getUser(params),
     checkEmail: (params) => checkEmail(params),
     mySeries: (params, authHeader) => getMySeries(params, authHeader),
+    myPurchases: (params, authHeader) => getMyPurchases(params, authHeader),
   },
   post: {
     todo: (body) => saveTodo(body),
@@ -83,6 +86,7 @@ const apiHandlers = {
     clearFavorites: (body, authHeader) => clearFavorites(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
     shelveSeries: (body, authHeader) => shelveSeries(body, authHeader),
+    addPurchase: (body, authHeader) => addPurchase(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),

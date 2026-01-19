@@ -5,7 +5,7 @@ import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegi
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, generateTransactionId, type Transaction } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
+import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
@@ -624,6 +624,27 @@ const fileToDataUrl = (file: File): Promise<string> => {
     reader.onload = () => resolve(reader.result as string)
     reader.onerror = (error) => reject(error)
   })
+}
+
+// Fetch my purchases list
+export const fetchMyPurchases = async (): Promise<{ success: boolean; error?: string }> => {
+  accountStoreActions.setMyPurchasesLoading(true)
+
+  try {
+    const response = await apiGetWithAuth<PurchaseItem[]>('myPurchases')
+
+    if (response.success && response.data) {
+      accountStoreActions.setMyPurchases(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to fetch my purchases' }
+  } catch (error) {
+    console.error('Error fetching my purchases:', error)
+    return { success: false, error: 'Failed to fetch my purchases' }
+  } finally {
+    accountStoreActions.setMyPurchasesLoading(false)
+  }
 }
 
 // Fetch my series list

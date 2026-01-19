@@ -45,6 +45,8 @@ The Account page is a comprehensive user profile and settings management interfa
 | favorites | ❤️ | Favorites |
 | settings | ⚙️ | Settings |
 | wallet | 💰 | Wallet |
+| myPurchases | 🛒 | My Purchases |
+| mySeries | 🎬 | My Series |
 
 ### Navigation Styling
 - **Item Padding**: 12px 14px
@@ -59,7 +61,8 @@ The Account page is a comprehensive user profile and settings management interfa
 
 ### Logout Button
 - Positioned at bottom with margin-top: auto
-- Top border: 1px solid #242428
+- Top border: 1px solid #242428 (straight line, no rounded corners)
+- Border radius: top corners set to 0 to ensure straight separator line
 - Hover: Label turns red (#EF4444)
 
 ## Content Sections
@@ -354,6 +357,7 @@ Section card with form fields:
 - **Time**: Gray (#9CA3AF), 13px, white-space nowrap
 - **Type**:
   - Font-weight: 500
+  - White-space: nowrap (prevents "Top Up" from wrapping to two lines)
   - Top Up: Green (#22C55E)
   - Withdraw: Purple (#A855F7)
 - **Amount**:
@@ -377,7 +381,46 @@ Section card with form fields:
 6. Balance and transactions are persisted to the database and retained after page refresh
 7. Transactions are sorted by createdAt descending (newest first)
 
-### 6. My Series
+### 6. My Purchases
+
+#### Header
+- **Title**: "My Purchases"
+- **Subtitle**: "Episodes you have purchased"
+
+#### Content Layout
+- **Container**: Section with purchases grouped by series
+- **Empty State**: Shown when no purchases exist
+
+#### Purchase Series Group
+- **Container**: Section card (#121214), border-radius 12px, padding 20px
+- **Header**: Clickable, navigates to series player
+  - **Cover**: 60px × 90px, border-radius 8px
+  - **Series Name**: White, 18px, font-weight 600
+  - **Episode Count**: Gray (#9CA3AF), 14px, e.g., "3 episodes"
+- **Episodes Grid**: Auto-fill grid, min 140px per item, gap 16px
+
+#### Purchase Episode Card
+- **Thumbnail**: 16:9 aspect ratio, border-radius 8px
+- **Overlay**: Play icon appears on hover
+- **Episode Number**: Blue (#3B82F6), 14px, font-weight 600
+- **Episode Title**: Gray (#9CA3AF), 12px, single line truncated
+
+#### Empty State
+- **Icon**: 🛒 (64px, 50% opacity)
+- **Title**: "No purchases yet"
+- **Subtitle**: "Browse series and purchase episodes to watch"
+- **Action**: "Explore Series" button
+
+#### Interactions
+- On load: Fetch user's purchases from API
+- On series header click: Navigate to series player
+- On episode card click: Navigate to player with specific episode
+
+#### Responsive Design
+- **768px**: Cover 50px × 75px, grid min 120px
+- **480px**: Padding 16px, 2-column grid
+
+### 7. My Series
 
 #### Header
 - **Title**: "My Series"
@@ -408,6 +451,8 @@ The page supports tab navigation via URL query parameter:
 - `?tab=favorites`
 - `?tab=settings`
 - `?tab=wallet`
+- `?tab=myPurchases`
+- `?tab=mySeries`
 
 ## Responsive Design
 
@@ -422,6 +467,7 @@ The page supports tab navigation via URL query parameter:
 - Navigation: Horizontal wrap
 - Active indicator: Hidden
 - Profile actions: Full width buttons
+- Logout button: Full width (flex-basis: 100%), border-radius: 0, straight separator line above
 
 #### 768px (Mobile)
 - Padding: 16px

@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { useSyncExternalStore } from 'react'
-import type { FavoriteItem, Series, User } from '../types'
+import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
 
 type Listener = () => void
 
@@ -38,7 +38,7 @@ const createStore = <T>(initialState: T) => {
   return { getState, setState, subscribe }
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'mySeries'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries'
 
 export interface ProfileFormState {
   nickname: string
@@ -72,6 +72,10 @@ interface AccountState {
   isLoggedIn: boolean
   loading: boolean
   favorites: FavoriteItem[]
+  
+  // My Purchases
+  myPurchases: PurchaseItem[]
+  myPurchasesLoading: boolean
   
   // My Series
   mySeries: Series[]
@@ -146,6 +150,10 @@ const initialState: AccountState = {
   loading: true,
   favorites: [],
   
+  // My Purchases
+  myPurchases: [],
+  myPurchasesLoading: false,
+  
   // My Series
   mySeries: [],
   mySeriesLoading: false,
@@ -208,6 +216,12 @@ export const accountStoreActions = {
       ...prev,
       favorites: prev.favorites.filter((item) => item._id !== itemId),
     })),
+  
+  // My Purchases
+  setMyPurchases: (myPurchases: PurchaseItem[]) =>
+    accountStore.setState((prev) => ({ ...prev, myPurchases })),
+  setMyPurchasesLoading: (myPurchasesLoading: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, myPurchasesLoading })),
   
   // My Series
   setMySeries: (mySeries: Series[]) =>
@@ -359,6 +373,7 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'favorites', icon: '❤️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
+  { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
 ]
 

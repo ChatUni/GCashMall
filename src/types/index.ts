@@ -62,6 +62,31 @@ export interface Episode {
 
 export type OAuthType = 'google' | 'facebook' | 'twitter' | 'linkedin'
 
+export type TransactionType = 'topup' | 'withdraw'
+export type TransactionStatus = 'success' | 'failed' | 'processing'
+
+export interface Transaction {
+  id: string
+  referenceId: string
+  type: TransactionType
+  amount: number
+  status: TransactionStatus
+  createdAt: Date
+}
+
+export interface PurchaseItem {
+  _id: string
+  seriesId: string
+  seriesName: string
+  seriesCover: string
+  episodeId: string
+  episodeNumber: number
+  episodeTitle: string
+  episodeThumbnail?: string
+  price: number
+  purchasedAt: Date
+}
+
 export interface WatchListItem {
   seriesId: string
   seriesName: string
@@ -90,6 +115,8 @@ export interface User {
   sex?: string | null
   dob?: string | null
   balance?: number
+  transactions?: Transaction[]
+  purchases?: PurchaseItem[]
   hasPassword?: boolean
   watchList?: WatchListItem[]
   favorites?: FavoriteUserItem[]

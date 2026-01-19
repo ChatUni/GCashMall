@@ -21,17 +21,19 @@ import {
   topUp,
   withdraw,
   hasProfileChanges,
+  fetchMyPurchases,
   fetchMySeries,
   shelveSeries,
   setEditingSeries,
 } from '../services/accountService'
 import { toastStoreActions, useToastStore } from '../stores'
-import type { Series, User } from '../types'
+import type { PurchaseItem, Series, User } from '../types'
 import './Account.css'
 
 // Track initialization
 let accountInitialized = false
 let userDataFetched = false
+let myPurchasesFetched = false
 let mySeriesFetched = false
 
 const Account: React.FC = () => {
@@ -52,6 +54,12 @@ const Account: React.FC = () => {
   if (state.isLoggedIn && !userDataFetched) {
     userDataFetched = true
     fetchAccountUserData()
+  }
+
+  // Fetch my purchases when logged in (only once)
+  if (state.isLoggedIn && !myPurchasesFetched) {
+    myPurchasesFetched = true
+    fetchMyPurchases()
   }
 
   // Fetch my series when logged in (only once)
@@ -226,6 +234,14 @@ const Account: React.FC = () => {
               selectedWithdrawAmount={state.selectedWithdrawAmount}
               withdrawing={state.withdrawing}
               transactions={state.transactions}
+              t={t}
+            />
+          )}
+          {state.activeTab === 'myPurchases' && (
+            <MyPurchasesSection
+              purchases={state.myPurchases}
+              loading={state.myPurchasesLoading}
+              onNavigate={navigate}
               t={t}
             />
           )}
@@ -1160,6 +1176,117 @@ const WalletSection: React.FC<WalletSectionProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface MyPurchasesSectionProps {
+  purchases: PurchaseItem[]
+  loading: boolean
+  onNavigate: (path: string) => void
+  t: Record<string, Record<string, unknown>>
+}
+
+const MyPurchasesSection: React.FC<MyPurchasesSectionProps> = ({
+  purchases,
+  loading,
+  onNavigate,
+  t,
+}) => {
+  const myPurchases = (t.account.myPurchases || {}) as Record<string, string>
+
+  if (loading) {
+    return (
+      <div className="content-section my-purchases-section">
+        <div className="loading">Loading...</div>
+      </div>
+    )
+  }
+
+  // Group purchases by series
+  const purchasesBySeries = purchases.reduce((acc, purchase) => {
+    if (!acc[purchase.seriesId]) {
+      acc[purchase.seriesId] = {
+        seriesId: purchase.seriesId,
+        seriesName: purchase.seriesName,
+        seriesCover: purchase.seriesCover,
+        episodes: [],
+      }
+    }
+    acc[purchase.seriesId].episodes.push(purchase)
+    return acc
+  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[] }>)
+
+  const seriesList = Object.values(purchasesBySeries)
+
+  return (
+    <div className="content-section my-purchases-section">
+      <div className="section-header">
+        <h1 className="page-title">{myPurchases.title || 'My Purchases'}</h1>
+        <p className="page-subtitle">{myPurchases.subtitle || 'Episodes you have purchased'}</p>
+      </div>
+
+      {seriesList.length === 0 ? (
+        <EmptyState
+          icon="🛒"
+          title={myPurchases.emptyTitle || 'No purchases yet'}
+          subtext={myPurchases.emptySubtext || 'Browse series and purchase episodes to watch'}
+          buttonText={myPurchases.exploreButton || 'Explore Series'}
+          onButtonClick={() => onNavigate('/series')}
+        />
+      ) : (
+        <div className="purchases-list">
+          {seriesList.map((seriesGroup) => (
+            <div key={seriesGroup.seriesId} className="purchase-series-group">
+              <div className="purchase-series-header" onClick={() => onNavigate(`/player/${seriesGroup.seriesId}`)}>
+                <div className="purchase-series-cover">
+                  {seriesGroup.seriesCover ? (
+                    <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
+                  ) : (
+                    <div className="purchase-series-placeholder">🎬</div>
+                  )}
+                </div>
+                <div className="purchase-series-info">
+                  <h3 className="purchase-series-name">{seriesGroup.seriesName}</h3>
+                  <span className="purchase-episode-count">
+                    {seriesGroup.episodes.length} {seriesGroup.episodes.length === 1 ? (myPurchases.episode || 'episode') : (myPurchases.episodes || 'episodes')}
+                  </span>
+                </div>
+              </div>
+              <div className="purchase-episodes-grid">
+                {seriesGroup.episodes
+                  .sort((a, b) => a.episodeNumber - b.episodeNumber)
+                  .map((episode) => (
+                    <div
+                      key={episode.episodeId}
+                      className="purchase-episode-card"
+                      onClick={() => onNavigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
+                    >
+                      <div className="purchase-episode-thumbnail">
+                        {episode.episodeThumbnail ? (
+                          <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
+                        ) : (
+                          <div className="purchase-episode-placeholder">▶️</div>
+                        )}
+                        <div className="purchase-episode-overlay">
+                          <svg className="purchase-play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5,3 19,12 5,21" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="purchase-episode-info">
+                        <span className="purchase-episode-number">EP {episode.episodeNumber}</span>
+                        {episode.episodeTitle && (
+                          <span className="purchase-episode-title">{episode.episodeTitle}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

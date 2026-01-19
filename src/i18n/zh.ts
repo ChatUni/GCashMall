@@ -19,6 +19,7 @@ export const zh = {
       favorites: '收藏夹',
       settings: '设置',
       wallet: '钱包',
+      myPurchases: '我的购买',
       mySeries: '我的剧集',
       logout: '退出登录',
     },
@@ -123,6 +124,15 @@ export const zh = {
       statusSuccess: '成功',
       statusFailed: '失败',
       statusProcessing: '处理中',
+    },
+    myPurchases: {
+      title: '我的购买',
+      subtitle: '您已购买的剧集',
+      emptyTitle: '暂无购买记录',
+      emptySubtext: '浏览剧集并购买观看',
+      exploreButton: '探索剧集',
+      episode: '集',
+      episodes: '集',
     },
     mySeries: {
       title: '我的剧集',

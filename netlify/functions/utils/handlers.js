@@ -1837,6 +1837,137 @@ const validateShelveSeriesBody = (body) => {
   }
 }
 
+// Get My Purchases - get all purchased episodes for the logged in user
+const getMyPurchases = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const purchases = currentUser.purchases || []
+
+    // Return the purchases array directly
+    // Each purchase item should have: seriesId, seriesName, seriesCover, episodeId, episodeNumber, episodeTitle, episodeThumbnail, price, purchasedAt
+    return {
+      success: true,
+      data: purchases,
+    }
+  } catch (error) {
+    throw new Error(`Failed to get my purchases: ${error.message}`)
+  }
+}
+
+// Add purchase - add a purchased episode to user's purchases
+const addPurchase = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateAddPurchaseBody(body)
+
+  try {
+    const { seriesId, episodeId, episodeNumber, price } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if user has enough balance
+    const userBalance = currentUser.balance || 0
+    if (userBalance < price) {
+      return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Get series info
+    const seriesResult = await getSeriesById(seriesId)
+    if (!seriesResult.success || !seriesResult.data) {
+      return { success: false, error: 'Series not found' }
+    }
+    const series = seriesResult.data
+
+    // Get episode info
+    const episodes = await get('episodes', { seriesId, episodeNumber }, {}, {}, 1)
+    let episodeTitle = `Episode ${episodeNumber}`
+    let episodeThumbnail = series.cover
+    let actualEpisodeId = episodeId
+
+    if (episodes && episodes.length > 0) {
+      const episode = episodes[0]
+      episodeTitle = episode.title || episodeTitle
+      episodeThumbnail = episode.thumbnail || episodeThumbnail
+      actualEpisodeId = episode._id || episodeId
+    }
+
+    const purchases = currentUser.purchases || []
+
+    // Check if episode is already purchased
+    const existingPurchase = purchases.find(
+      (p) => String(p.seriesId) === String(seriesId) && p.episodeNumber === episodeNumber
+    )
+
+    if (existingPurchase) {
+      return { success: false, error: 'Episode already purchased' }
+    }
+
+    // Create purchase record
+    const purchaseItem = {
+      _id: new ObjectId().toString(),
+      seriesId,
+      seriesName: series.name,
+      seriesCover: series.cover,
+      episodeId: actualEpisodeId,
+      episodeNumber,
+      episodeTitle,
+      episodeThumbnail,
+      price,
+      purchasedAt: new Date(),
+    }
+
+    purchases.push(purchaseItem)
+
+    // Deduct balance and update purchases
+    const updateData = {
+      ...currentUser,
+      balance: userBalance - price,
+      purchases,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to add purchase: ${error.message}`)
+  }
+}
+
+const validateAddPurchaseBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+
+  if (!body.episodeNumber && body.episodeNumber !== 0) {
+    throw new Error('Episode number is required')
+  }
+
+  if (body.price === undefined || body.price === null) {
+    throw new Error('Price is required')
+  }
+}
+
 export {
   getTodos,
   saveTodo,
@@ -1878,6 +2009,8 @@ export {
   migrateGenres,
   getMySeries,
   shelveSeries,
+  getMyPurchases,
+  addPurchase,
 }
 
 // Database migration: update genre structure
