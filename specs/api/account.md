@@ -243,3 +243,62 @@ return the updated series
 ### Output
 
 return the created/updated series
+
+## Top Up
+
+### Input
+
+- amount * (number, must be positive)
+
+### Prerequisite
+
+- already logged in
+- valid amount (positive number)
+
+### Action
+
+- find the account based on the login
+- create a transaction record with:
+  - id: unique transaction id
+  - referenceId: unique reference id (format: GC{timestamp}{random})
+  - type: "topup"
+  - amount: the input amount
+  - status: "success"
+  - createdAt: current timestamp
+- add the transaction to the user's transactions array (prepend)
+- add the amount to the user's balance
+
+### Output
+
+return the updated user (includes balance and transactions)
+
+## Withdraw
+
+### Input
+
+- amount * (number, must be positive)
+
+### Prerequisite
+
+- already logged in
+- valid amount (positive number)
+- user has sufficient balance (amount <= current balance)
+
+### Action
+
+- find the account based on the login
+- check if user has sufficient balance
+- if insufficient, return error
+- create a transaction record with:
+  - id: unique transaction id
+  - referenceId: unique reference id (format: GC{timestamp}{random})
+  - type: "withdraw"
+  - amount: the input amount
+  - status: "success"
+  - createdAt: current timestamp
+- add the transaction to the user's transactions array (prepend)
+- subtract the amount from the user's balance
+
+### Output
+
+return the updated user (includes balance and transactions) or error if insufficient balance

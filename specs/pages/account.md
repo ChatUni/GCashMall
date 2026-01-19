@@ -219,10 +219,20 @@ Section card with form fields:
 #### Balance Card
 - **Background**: Gradient (#1E3A5F to #0D1B2A)
 - **Border**: 1px solid #3B82F6
+- **Border Radius**: 16px
+- **Padding**: 32px
+- **Layout**: Flexbox row, align-items center
+- **Gap**: 16px (between icon and balance info)
 - **Content**:
   - Wallet Icon: 💰 (48px)
-  - Label: "Current Balance" - Gray, 14px
-  - Amount: White, 36px, font-weight 700, with GCash logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
+  - Balance Info (flex column, gap: 4px):
+    - Label: "Current Balance" - Gray (#9CA3AF), 14px
+    - Amount: White, 36px, font-weight 700, with GCash logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
+- **Mobile (768px)**:
+  - Flex Direction: column
+  - Text Align: center
+  - Padding: 24px
+  - Gap: 12px
 
 #### Wallet Tabs
 - **Container**: Background #121214, border-radius 12px, padding 4px
@@ -352,19 +362,20 @@ Section card with form fields:
   - Positive (Top Up): Green (#22C55E) with "+" prefix
   - Negative (Withdraw): Purple (#A855F7) with "-" prefix
 - **Status**:
-  - Pill badge style: padding 4px 10px, border-radius 16px, font-size 12px
-  - Success: Green background (rgba(34, 197, 94, 0.15)), green text (#22C55E)
-  - Failed: Red background (rgba(239, 68, 68, 0.15)), red text (#EF4444)
-  - Processing: Yellow background (rgba(234, 179, 8, 0.15)), yellow text (#EAB308)
+  - Text style: font-weight 500, font-size 13px
+  - Success: Emerald text (#10B981) - different from top up green for contrast
+  - Failed: Red text (#EF4444)
+  - Processing: Amber text (#F59E0B)
 - **Reference ID**: Monospace font, 12px, gray (#6B7280)
 
 #### Transaction Flow
-1. When user initiates top up or withdraw, a transaction record is created with status "processing"
-2. Transaction appears immediately in the history table
-3. After API call completes:
-   - Success: Status updates to "success", balance updates
-   - Failure: Status updates to "failed", balance unchanged
-4. Transactions are sorted by createdAt descending (newest first)
+1. When user initiates top up or withdraw, the API is called with the amount
+2. Backend creates a transaction record with status "success" and updates the user's balance
+3. Backend returns the updated user data including new balance and transaction history
+4. Frontend updates the store with the new user data
+5. Transaction appears in the history table with "success" status
+6. Balance and transactions are persisted to the database and retained after page refresh
+7. Transactions are sorted by createdAt descending (newest first)
 
 ### 6. My Series
 

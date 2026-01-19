@@ -676,7 +676,7 @@
   padding: 32px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -687,7 +687,7 @@
 .balance-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .balance-label {
@@ -1121,6 +1121,7 @@
     flex-direction: column;
     text-align: center;
     padding: 24px;
+    gap: 12px;
   }
 
   .wallet-tab {
@@ -1211,6 +1212,7 @@
 
 .transaction-type {
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .transaction-type.type-topup {
@@ -1236,25 +1238,19 @@
 
 .transaction-status {
   font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 16px;
-  display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.status-success {
-  background-color: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+.transaction-status.status-success {
+  color: #10b981;
 }
 
-.status-failed {
-  background-color: rgba(239, 68, 68, 0.15);
+.transaction-status.status-failed {
   color: #ef4444;
 }
 
-.status-processing {
-  background-color: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+.transaction-status.status-processing {
+  color: #f59e0b;
 }
 
 .transaction-reference {
