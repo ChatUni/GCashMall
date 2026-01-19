@@ -137,6 +137,7 @@ export const en = {
     },
     mySeries: {
       title: 'My Series',
+      subtitle: 'Series you have created',
       addSeries: 'Add Series',
       addSeriesTitle: 'Add Series',
       editSeriesTitle: 'Edit Series',

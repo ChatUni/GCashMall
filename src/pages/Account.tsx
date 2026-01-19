@@ -1368,13 +1368,9 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
 
   return (
     <div className="content-section my-series-section">
-      <div className="section-header-row">
+      <div className="section-header">
         <h1 className="page-title">{mySeries.title || 'My Series'}</h1>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={handleAddSeries}>
-            {mySeries.addSeries || 'Add Series'}
-          </button>
-        </div>
+        <p className="page-subtitle">{mySeries.subtitle || 'Series you have created'}</p>
       </div>
 
       {series.length === 0 ? (

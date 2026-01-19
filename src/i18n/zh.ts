@@ -136,6 +136,7 @@ export const zh = {
     },
     mySeries: {
       title: '我的剧集',
+      subtitle: '您创建的剧集',
       addSeries: '添加剧集',
       addSeriesTitle: '添加剧集',
       editSeriesTitle: '编辑剧集',

@@ -101,7 +101,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 13px 14px;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -1540,3 +1540,4 @@
     font-size: 11px;
   }
 }
+

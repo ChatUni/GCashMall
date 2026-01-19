@@ -49,7 +49,7 @@ The Account page is a comprehensive user profile and settings management interfa
 | mySeries | 🎬 | My Series |
 
 ### Navigation Styling
-- **Item Padding**: 12px 14px
+- **Item Padding**: 13px 14px
 - **Border Radius**: 8px
 - **Icon Size**: 18px, width 24px
 - **Label**: Gray (#9CA3AF), 14px, font-weight 500
@@ -424,7 +424,7 @@ Section card with form fields:
 
 #### Header
 - **Title**: "My Series"
-- Add Series button (green, align right)
+- **Subtitle**: "Series you have created"
 
 #### Content Grid
 - Same layout as Watch History (4 columns)
