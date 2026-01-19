@@ -50,7 +50,7 @@ const EpisodeEdit = ({
   return (
     <div className="episode-edit">
       <div className="episode-edit-header">
-        <span className="episode-number">{episodeNumber}</span>
+        <span className="episode-number">EP {String(episodeNumber).padStart(2, '0')}</span>
         <TitleField
           title={title}
           editedTitle={editedTitle}
@@ -118,6 +118,7 @@ const TitleField = ({
     <div className="episode-title-display" onClick={onTitleClick}>
       <span className="episode-title">{title || 'Untitled'}</span>
       <span className="episode-edit-icon">✏️</span>
+      <span className="episode-edit-text">(edit)</span>
     </div>
   )
 }

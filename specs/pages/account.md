@@ -422,26 +422,108 @@ Section card with form fields:
 
 ### 7. My Series
 
+#### Section Container
+- **Class**: `.my-series-section`
+- **Padding Bottom**: 40px
+
 #### Header
-- **Title**: "My Series"
-- **Subtitle**: "Series you have created"
+- **Title**: "My Series" - White (#FFFFFF), 28px, font-weight 600
+- **Subtitle**: "Series you have created" - Gray (#9CA3AF), 15px
 
 #### Content Grid
-- Same layout as Watch History (4 columns)
+- Same layout as Watch History (4 columns, 20px gap)
+- **Responsive**: 3 cols at 1200px, 2 cols at 768px
 
 #### My Series Card
-- Use the shared series card
-- action icons: Top-right, appears on hover, 28px each, circular
-  - Shelve or Unshelve icon (depends on whether series is shelved)
-  - edit icon
+- **Class**: `.my-series-card`
+- Use the shared series card styling
+- **Cursor**: pointer
+- **Transition**: transform 0.2s ease, opacity 0.2s ease
+- **Hover**: translateY(-4px)
+
+##### Shelved State
+- **Class**: `.my-series-card.shelved`
+- **Opacity**: 0.5
+
+##### Shelved Badge
+- **Position**: Absolute, top 8px, left 8px
+- **Background**: rgba(239, 68, 68, 0.9) (red)
+- **Color**: White (#FFFFFF)
+- **Font**: 10px, font-weight 600
+- **Padding**: 4px 8px
+- **Border Radius**: 4px
+- **Text**: "Shelved"
+
+##### Action Icons Container
+- **Class**: `.series-action-icons`
+- **Position**: Absolute, top 8px, right 8px
+- **Display**: flex, gap 8px
+- **Z-index**: 10
+- **Visibility**: Appears on card hover
+
+##### Action Icon Button
+- **Class**: `.action-icon-btn`
+- **Size**: 28px × 28px
+- **Border Radius**: 50% (circular)
+- **Background**: rgba(0, 0, 0, 0.7)
+- **Border**: none
+- **Font Size**: 14px
+- **Cursor**: pointer
+- **Transition**: background-color 0.2s ease, transform 0.2s ease
+- **Hover**:
+  - Background: rgba(59, 130, 246, 0.9) (blue)
+  - Transform: scale(1.1)
+- **Icons**:
+  - Shelve: 📥 (when series is not shelved)
+  - Unshelve: 📤 (when series is shelved)
+  - Edit: ✏️
+
+#### Empty State
+- **Class**: `.empty-state`
+- **Display**: flex column, center aligned
+- **Padding**: 60px 20px
+- **Text Align**: center
+
+##### Empty State Elements
+- **Icon**: 🎬
+  - Font Size: 64px
+  - Opacity: 0.5
+  - Margin Bottom: 16px
+- **Title**: "No series yet"
+  - Font Size: 18px
+  - Font Weight: 600
+  - Color: White (#FFFFFF)
+  - Margin: 0 0 8px 0
+- **Subtitle**: "Start creating your first series"
+  - Font Size: 14px
+  - Color: Gray (#9CA3AF)
+  - Margin: 0 0 24px 0
+- **Action Button**: "Add Series"
+  - Primary blue button (#3B82F6)
+  - Padding: 10px 20px
+  - Border Radius: 8px
+  - Font: 14px, font-weight 500
 
 #### Interactions
 
 - on load: get my series list by calling get my series API
+- on card click: navigate to player page for that series
 - on Shelve button click: confirm then call shelve series API with the selected series
 - on Unshelve button click: confirm then call unshelve series API with the selected series
 - on edit click: show the series edit page (in the content pane) in edit mode with the selected series
-- on add series click: show the series edit page (in the content pane) in add mode
+- on add series click (from empty state): show the series edit page (in the content pane) in add mode
+
+#### Add Series / Edit Series View
+
+When adding or editing a series, the content pane switches to show the SeriesEditContent component.
+
+##### Header
+- **Title**: "Add Series" (add mode) or "Edit Series" (edit mode)
+- **Font**: White (#FFFFFF), 28px, font-weight 600
+
+##### Navigation
+- **Cancel**: Returns to the My Series list view
+- **Save Complete**: Returns to the My Series list view and refreshes the series list
 
 ## URL Parameters
 
