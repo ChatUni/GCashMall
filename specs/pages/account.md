@@ -474,7 +474,7 @@ The page supports tab navigation via URL query parameter:
 - Title: 24px
 - Grids: 2 columns
 - Header actions: Column layout
-- Top-up/Amount grid: 3 columns
+- Top-up/Amount grid: 2 columns
 - Balance amount: 28px
 - Membership plans: Single column
 
