@@ -130,6 +130,11 @@ The page uses React Router params:
 - **Color**: #9CA3AF
 - **Options**: English, 中文, Español, Français
 
+#### Action Buttons Container
+- **Display**: Flex
+- **Gap**: 12px
+- **Align Items**: Center
+
 #### Favorite Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%
@@ -140,6 +145,19 @@ The page uses React Router params:
 - on click:
   - inactive: call add to favorite API, change to active
   - active: call remove from favorite API, change to inactive
+
+#### Unlock Button
+- **Size**: 48px × 48px
+- **Border Radius**: 50%
+- **Background**: #1A1A1A (locked), #22C55E (unlocked/purchased)
+- **Color**: #9CA3AF (locked), #FFFFFF (unlocked)
+- **Hover**: Background #2A2A2E, scale(1.05)
+- **Icon**: Lock SVG (locked), Unlock SVG (unlocked)
+- **States**:
+  - **Locked**: Episode not purchased, shows lock icon
+  - **Unlocked**: Episode purchased, shows unlock icon with green background
+- on click (when locked):
+  - Show purchase confirmation popup
 
 ### Tag List
 - **Display**: Flex wrap
@@ -254,11 +272,68 @@ Two sections identical to Home page:
 - **Padding Top**: 80px
 - **Click**: Navigate to `/genre`
 
+## Trial Viewing System
+
+### Overview
+Users can watch the first 60 seconds (1 minute) of any episode for free. After the trial period ends, they must purchase the episode to continue watching.
+
+### Trial Logic
+- **Trial Duration**: 60 seconds
+- **Trigger**: Video playback reaches 60 seconds for unpurchased episodes
+- **Behavior**:
+  - Video pauses automatically at 60 seconds
+  - Purchase popup appears
+  - User can either purchase or close the popup
+  - If closed without purchase, video remains paused at 60 seconds
+
+### Trial State Tracking
+- Track current playback time
+- Check if episode is purchased before applying trial limit
+- Purchased episodes have no time limit
+
+### Trial Ended Notification
+- **Position**: Top of video player
+- **Background**: rgba(0, 0, 0, 0.8)
+- **Padding**: 12px 20px
+- **Border Radius**: 8px
+- **Message**: "Trial ended. Unlock to continue watching."
+- **Animation**: fadeIn 0.3s
+
+## Episode Purchase System
+
+### Purchase Price
+- **Price per Episode**: 0.1 (GCash currency)
+- **Payment Method**: Deduct from user's wallet balance
+
+### Purchase Flow
+1. User clicks unlock button OR trial period ends
+2. Purchase popup appears showing:
+   - Episode information
+   - Price (0.1)
+   - Current wallet balance
+3. User confirms purchase
+4. System checks wallet balance
+5. If sufficient: deduct amount, unlock episode, add to My Purchases
+6. If insufficient: show error message
+
+### Purchased Episode Storage
+- Stored in user's `purchases` array in database
+- Each purchase record contains:
+  - seriesId
+  - episodeId
+  - episodeNumber
+  - episodeTitle
+  - episodeThumbnail
+  - seriesName
+  - seriesCover
+  - purchasedAt (timestamp)
+  - price
+
 ## Confirmation Popups
 
 ### Favorite Popup
 - **Overlay**: Fixed, rgba(0, 0, 0, 0.7), z-index 1000
-- **Modal**: 
+- **Modal**:
   - Background: #1A1A1E
   - Border Radius: 16px
   - Padding: 32px
@@ -268,6 +343,39 @@ Two sections identical to Home page:
 - **Title**: "Add to Favorites?" - 20px, white
 - **Message**: 14px, gray, line-height 1.6
 - **Buttons**: Yes (blue), No (gray)
+
+### Purchase Popup
+- **Overlay**: Fixed, rgba(0, 0, 0, 0.8), z-index 1000
+- **Modal**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Animation: fadeIn 0.2s, slideUp 0.3s
+- **Icon**: 64px lock icon, blue tint
+- **Title**: "Unlock Episode" - 20px, white
+- **Message**: "Unlock this episode to continue watching" - 14px, gray
+- **Price Display**:
+  - GCash logo (24px)
+  - Amount: "0.1" - 36px, bold, #3B82F6
+- **Balance Display**:
+  - Label: "Your balance:" - 14px, gray
+  - Amount: Current wallet balance - 16px, white
+- **Buttons**:
+  - Confirm Purchase (blue, full width)
+  - Cancel (gray, full width)
+- **Loading State**: Show spinner during purchase processing
+- **Error State**: Show red error message if purchase fails
+
+### Toast Notifications
+- **Position**: Fixed, top 80px, right 24px
+- **Padding**: 14px 24px
+- **Border Radius**: 8px
+- **Animation**: slideIn from right
+- **Duration**: 3 seconds auto-dismiss
+- **Types**:
+  - **Success** (green #22C55E): "Episode unlocked successfully!"
+  - **Error** (red #EF4444): "Failed to unlock episode" or "Insufficient balance"
 
 ## Navigation Actions
 

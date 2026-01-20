@@ -211,7 +211,14 @@
   color: #9ca3af;
 }
 
-.favorite-button {
+.metadata-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.favorite-button,
+.unlock-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,13 +230,23 @@
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.favorite-button:hover {
+.favorite-button:hover,
+.unlock-button:hover:not(:disabled) {
   transform: scale(1.5);
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.favorite-button svg {
+.favorite-button svg,
+.unlock-button svg {
   transition: transform 0.2s ease;
+}
+
+.unlock-button:disabled {
+  cursor: default;
+}
+
+.unlock-button.purchased {
+  cursor: default;
 }
 
 .language-select {
@@ -457,5 +474,200 @@
 
   .episode-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Purchase Popup Styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.popup-modal {
+  background-color: #1a1a1e;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.purchase-modal .popup-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.popup-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.popup-message {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+}
+
+.popup-episode-info {
+  background-color: #242428;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.popup-episode-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.popup-price {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 36px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 12px;
+}
+
+.popup-price-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.popup-balance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 24px;
+}
+
+.popup-balance-logo {
+  width: 16px;
+  height: 16px;
+}
+
+.popup-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-confirm {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background-color: #2a2a2e;
+  color: #ffffff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #3a3a3e;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  z-index: 1100;
+  animation: toastFlyIn 0.3s ease forwards;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.toast-success {
+  background-color: #22c55e;
+}
+
+.toast-error {
+  background-color: #ef4444;
+}
+
+.toast-info {
+  background-color: #3b82f6;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastFlyIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

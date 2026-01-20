@@ -6,8 +6,8 @@ import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions } from '../stores'
-import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites } from '../services/dataService'
+import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, toastStoreActions, useToastStore } from '../stores'
+import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import {
   formatTime,
@@ -131,6 +131,9 @@ const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | null>) =>
   }
 }
 
+// Episode price constant
+const EPISODE_PRICE = 0.1
+
 const Player: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
@@ -140,9 +143,14 @@ const Player: React.FC = () => {
   const playerState = usePlayerStore()
   const loginModalState = useLoginModalStore()
   const userState = useUserStore()
+  const toastState = useToastStore()
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Purchase popup state
+  const [showPurchasePopup, setShowPurchasePopup] = React.useState(false)
+  const [isPurchasing, setIsPurchasing] = React.useState(false)
 
   // Initialize data on first render
   if (id) {
@@ -223,6 +231,16 @@ const Player: React.FC = () => {
     return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
   }
 
+  // Check if current episode is purchased
+  const isCurrentEpisodePurchased = (): boolean => {
+    if (!playerState.currentEpisode || !id) return false
+    return isEpisodePurchased(
+      id,
+      playerState.currentEpisode._id,
+      userState.user?.purchases,
+    )
+  }
+
   const handleFavoriteToggle = async () => {
     if (!isLoggedIn()) {
       loginModalStoreActions.open()
@@ -239,6 +257,62 @@ const Player: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error)
+    }
+  }
+
+  // Handle unlock button click
+  const handleUnlockClick = () => {
+    if (!isLoggedIn()) {
+      loginModalStoreActions.open()
+      return
+    }
+    setShowPurchasePopup(true)
+  }
+
+  // Handle purchase confirmation
+  const handlePurchaseConfirm = async () => {
+    if (!id || !playerState.currentEpisode) return
+
+    // Check if user has enough balance
+    const userBalance = userState.user?.balance || 0
+    if (userBalance < EPISODE_PRICE) {
+      toastStoreActions.show(
+        (t.player as Record<string, string>).insufficientBalance || 'Insufficient balance. Please top up your wallet.',
+        'error',
+      )
+      setShowPurchasePopup(false)
+      navigate('/account?tab=wallet')
+      return
+    }
+
+    setIsPurchasing(true)
+    try {
+      const result = await purchaseEpisode(
+        id,
+        playerState.currentEpisode._id,
+        playerState.currentEpisode.episodeNumber,
+        EPISODE_PRICE,
+      )
+      if (result.success) {
+        toastStoreActions.show(
+          (t.player as Record<string, string>).purchaseSuccess || 'Episode unlocked successfully!',
+          'success',
+        )
+        setShowPurchasePopup(false)
+      } else {
+        toastStoreActions.show(
+          result.error || (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode',
+          'error',
+        )
+      }
+    } catch (error) {
+      console.error('Failed to purchase episode:', error)
+      toastStoreActions.show(
+        (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode',
+        'error',
+      )
+    } finally {
+      setIsPurchasing(false)
     }
   }
 
@@ -303,9 +377,11 @@ const Player: React.FC = () => {
             currentEpisode={playerState.currentEpisode}
             selectedLanguage={playerState.selectedLanguage}
             isFavorited={id ? isSeriesFavorited(id) : false}
+            isEpisodePurchased={isCurrentEpisodePurchased()}
             onLanguageChange={playerStoreActions.setSelectedLanguage}
             onTagClick={handleTagClick}
             onFavoriteToggle={handleFavoriteToggle}
+            onUnlockClick={handleUnlockClick}
           />
         </div>
 
@@ -332,6 +408,58 @@ const Player: React.FC = () => {
           onClose={loginModalStoreActions.close}
           onLoginSuccess={loginModalStoreActions.close}
         />
+      )}
+
+      {/* Purchase Popup */}
+      {showPurchasePopup && playerState.currentEpisode && (
+        <div className="popup-overlay" onClick={() => setShowPurchasePopup(false)}>
+          <div className="popup-modal purchase-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-icon">🔓</div>
+            <h2 className="popup-title">
+              {(t.player as Record<string, string>).unlockEpisode || 'Unlock Episode'}
+            </h2>
+            <p className="popup-message">
+              {(t.player as Record<string, string>).unlockMessage || 'Unlock this episode to continue watching'}
+            </p>
+            <div className="popup-episode-info">
+              <span className="popup-episode-name">
+                {buildEpisodeTitle(playerState.series?.name || '', playerState.currentEpisode.episodeNumber)}
+              </span>
+            </div>
+            <div className="popup-price">
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-price-logo" />
+              <span>{EPISODE_PRICE.toFixed(2)}</span>
+            </div>
+            <div className="popup-balance">
+              {(t.player as Record<string, string>).yourBalance || 'Your balance'}:
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-balance-logo" />
+              <span>{(userState.user?.balance || 0).toFixed(2)}</span>
+            </div>
+            <div className="popup-buttons">
+              <button
+                className="btn-confirm"
+                onClick={handlePurchaseConfirm}
+                disabled={isPurchasing}
+              >
+                {isPurchasing ? '...' : ((t.player as Record<string, string>).confirmPurchase || 'Confirm Purchase')}
+              </button>
+              <button
+                className="btn-cancel"
+                onClick={() => setShowPurchasePopup(false)}
+                disabled={isPurchasing}
+              >
+                {(t.player as Record<string, string>).cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastState.isVisible && (
+        <div className={`toast-notification toast-${toastState.type}`}>
+          {toastState.message}
+        </div>
       )}
     </div>
   )
@@ -545,9 +673,11 @@ interface EpisodeMetadataProps {
   currentEpisode: Episode | null
   selectedLanguage: string
   isFavorited: boolean
+  isEpisodePurchased: boolean
   onLanguageChange: (language: string) => void
   onTagClick: (tag: string) => void
   onFavoriteToggle: () => void
+  onUnlockClick: () => void
 }
 
 const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
@@ -555,9 +685,11 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
   currentEpisode,
   selectedLanguage,
   isFavorited,
+  isEpisodePurchased,
   onLanguageChange,
   onTagClick,
   onFavoriteToggle,
+  onUnlockClick,
 }) => (
   <div className="episode-metadata">
     <h1 className="episode-title">
@@ -582,20 +714,45 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
         </select>
       </div>
 
-      <button
-        className={`favorite-button ${isFavorited ? 'active' : ''}`}
-        onClick={onFavoriteToggle}
-        title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        <svg viewBox="0 0 24 24" width="24" height="24">
-          <path
-            fill={isFavorited ? '#ef4444' : 'none'}
-            stroke={isFavorited ? '#ef4444' : '#9ca3af'}
-            strokeWidth="2"
-            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-          />
-        </svg>
-      </button>
+      <div className="metadata-buttons">
+        <button
+          className={`favorite-button ${isFavorited ? 'active' : ''}`}
+          onClick={onFavoriteToggle}
+          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path
+              fill={isFavorited ? '#ef4444' : 'none'}
+              stroke={isFavorited ? '#ef4444' : '#9ca3af'}
+              strokeWidth="2"
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+            />
+          </svg>
+        </button>
+
+        <button
+          className={`unlock-button ${isEpisodePurchased ? 'purchased' : ''}`}
+          onClick={onUnlockClick}
+          title={isEpisodePurchased ? 'Episode unlocked' : 'Unlock episode'}
+          disabled={isEpisodePurchased}
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            {isEpisodePurchased ? (
+              <path
+                fill="#22c55e"
+                d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+              />
+            ) : (
+              <path
+                fill="none"
+                stroke="#9ca3af"
+                strokeWidth="2"
+                d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+              />
+            )}
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div className="episode-tags">

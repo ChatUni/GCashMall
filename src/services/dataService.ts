@@ -332,6 +332,42 @@ export const saveSeries = async (seriesData: Record<string, unknown>) => {
   return result
 }
 
+// Purchase episode
+export const purchaseEpisode = async (
+  seriesId: string,
+  episodeId: string,
+  episodeNumber: number,
+  price: number = 0.1,
+) => {
+  const result = await apiPostWithAuth<User>('purchaseEpisode', {
+    seriesId,
+    episodeId,
+    episodeNumber,
+    price,
+  })
+  if (result.success && result.data) {
+    const token = localStorage.getItem('gcashmall_token')
+    if (token) {
+      saveAuthData(token, result.data)
+    }
+    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
+  }
+  return result
+}
+
+// Check if episode is purchased
+export const isEpisodePurchased = (
+  seriesId: string,
+  episodeId: string,
+  purchases?: { seriesId: string; episodeId: string }[],
+): boolean => {
+  if (!purchases || purchases.length === 0) return false
+  return purchases.some(
+    (p) => String(p.seriesId) === String(seriesId) && String(p.episodeId) === String(episodeId),
+  )
+}
+
 // Show toast helper
 export const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   toastStoreActions.show(message, type)
