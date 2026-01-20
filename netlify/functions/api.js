@@ -41,6 +41,8 @@ import {
   shelveSeries,
   getMyPurchases,
   addPurchase,
+  topUp,
+  withdraw,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -87,6 +89,8 @@ const apiHandlers = {
     migrateGenres: (body) => migrateGenres(body),
     shelveSeries: (body, authHeader) => shelveSeries(body, authHeader),
     addPurchase: (body, authHeader) => addPurchase(body, authHeader),
+    topUp: (body, authHeader) => topUp(body, authHeader),
+    withdraw: (body, authHeader) => withdraw(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),

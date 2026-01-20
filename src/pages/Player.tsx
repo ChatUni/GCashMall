@@ -238,6 +238,7 @@ const Player: React.FC = () => {
       id,
       playerState.currentEpisode._id,
       userState.user?.purchases,
+      playerState.currentEpisode.episodeNumber,
     )
   }
 
@@ -739,7 +740,7 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
           <svg viewBox="0 0 24 24" width="24" height="24">
             {isEpisodePurchased ? (
               <path
-                fill="#22c55e"
+                fill="#f97316"
                 d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
               />
             ) : (

@@ -339,7 +339,7 @@ export const purchaseEpisode = async (
   episodeNumber: number,
   price: number = 0.1,
 ) => {
-  const result = await apiPostWithAuth<User>('purchaseEpisode', {
+  const result = await apiPostWithAuth<User>('addPurchase', {
     seriesId,
     episodeId,
     episodeNumber,
@@ -352,6 +352,14 @@ export const purchaseEpisode = async (
     }
     userStoreActions.setUser(result.data)
     accountStoreActions.setUser(result.data)
+    // Also update myPurchases in accountStore if purchases exist in user data
+    if (result.data.purchases) {
+      accountStoreActions.setMyPurchases(result.data.purchases)
+    }
+    // Update balance in accountStore
+    if (result.data.balance !== undefined) {
+      accountStoreActions.setBalance(result.data.balance)
+    }
   }
   return result
 }
@@ -360,11 +368,19 @@ export const purchaseEpisode = async (
 export const isEpisodePurchased = (
   seriesId: string,
   episodeId: string,
-  purchases?: { seriesId: string; episodeId: string }[],
+  purchases?: { seriesId: string; episodeId: string; episodeNumber?: number }[],
+  episodeNumber?: number,
 ): boolean => {
   if (!purchases || purchases.length === 0) return false
   return purchases.some(
-    (p) => String(p.seriesId) === String(seriesId) && String(p.episodeId) === String(episodeId),
+    (p) => {
+      const seriesMatch = String(p.seriesId) === String(seriesId)
+      if (!seriesMatch) return false
+      // Check by episodeId first, then by episodeNumber as fallback
+      const episodeIdMatch = String(p.episodeId) === String(episodeId)
+      const episodeNumberMatch = episodeNumber !== undefined && p.episodeNumber === episodeNumber
+      return episodeIdMatch || episodeNumberMatch
+    },
   )
 }
 

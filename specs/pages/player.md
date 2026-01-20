@@ -149,13 +149,13 @@ The page uses React Router params:
 #### Unlock Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%
-- **Background**: #1A1A1A (locked), #22C55E (unlocked/purchased)
-- **Color**: #9CA3AF (locked), #FFFFFF (unlocked)
+- **Background**: #1A1A1A (locked), transparent (unlocked/purchased)
+- **Color**: #9CA3AF (locked), #F97316 orange (unlocked)
 - **Hover**: Background #2A2A2E, scale(1.05)
-- **Icon**: Lock SVG (locked), Unlock SVG (unlocked)
+- **Icon**: Lock SVG (locked), Lock SVG filled with orange (unlocked)
 - **States**:
-  - **Locked**: Episode not purchased, shows lock icon
-  - **Unlocked**: Episode purchased, shows unlock icon with green background
+  - **Locked**: Episode not purchased, shows lock icon with gray stroke
+  - **Unlocked**: Episode purchased, shows lock icon filled with orange (#F97316)
 - on click (when locked):
   - Show purchase confirmation popup
 
@@ -352,7 +352,7 @@ Users can watch the first 60 seconds (1 minute) of any episode for free. After t
   - Padding: 32px
   - Max Width: 400px
   - Animation: fadeIn 0.2s, slideUp 0.3s
-- **Icon**: 64px lock icon, blue tint
+- **Icon**: 64px lock emoji (🔓), horizontally flipped (transform: scaleX(-1))
 - **Title**: "Unlock Episode" - 20px, white
 - **Message**: "Unlock this episode to continue watching" - 14px, gray
 - **Price Display**:

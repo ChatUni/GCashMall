@@ -249,6 +249,7 @@ return the created/updated series
 ### Input
 
 - amount * (number, must be positive)
+- referenceId (optional, will be auto-generated if not provided)
 
 ### Prerequisite
 
@@ -267,16 +268,22 @@ return the created/updated series
   - createdAt: current timestamp
 - add the transaction to the user's transactions array (prepend)
 - add the amount to the user's balance
+- **persist the updated balance and transactions to the database**
 
 ### Output
 
 return the updated user (includes balance and transactions)
+
+### Note
+
+The balance and transaction history must be persisted to the database so that they are retained after page refresh. The frontend should update its state from the server response to ensure consistency.
 
 ## Withdraw
 
 ### Input
 
 - amount * (number, must be positive)
+- referenceId (optional, will be auto-generated if not provided)
 
 ### Prerequisite
 
@@ -298,10 +305,15 @@ return the updated user (includes balance and transactions)
   - createdAt: current timestamp
 - add the transaction to the user's transactions array (prepend)
 - subtract the amount from the user's balance
+- **persist the updated balance and transactions to the database**
 
 ### Output
 
 return the updated user (includes balance and transactions) or error if insufficient balance
+
+### Note
+
+The balance and transaction history must be persisted to the database so that they are retained after page refresh. The frontend should update its state from the server response to ensure consistency.
 
 ## Get My Purchases
 

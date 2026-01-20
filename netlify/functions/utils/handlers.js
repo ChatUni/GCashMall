@@ -1530,6 +1530,9 @@ const buildUserResponse = (user) => ({
   hasPassword: !!user.password,
   watchList: user.watchList || [],
   favorites: user.favorites || [],
+  purchases: user.purchases || [],
+  balance: user.balance || 0,
+  transactions: user.transactions || [],
 })
 
 const uploadImage = async (body) => {
@@ -1968,6 +1971,139 @@ const validateAddPurchaseBody = (body) => {
   }
 }
 
+// Top up - add balance to user's wallet
+const topUp = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateTopUpBody(body)
+
+  try {
+    const { amount, referenceId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const currentBalance = currentUser.balance || 0
+    const transactions = currentUser.transactions || []
+
+    // Create transaction record
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      type: 'topup',
+      amount,
+      status: 'success',
+      createdAt: new Date(),
+    }
+
+    // Add transaction to history
+    transactions.unshift(transaction)
+
+    // Update user with new balance and transaction
+    const updateData = {
+      ...currentUser,
+      balance: currentBalance + amount,
+      transactions,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to top up: ${error.message}`)
+  }
+}
+
+const validateTopUpBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+}
+
+// Withdraw - subtract balance from user's wallet
+const withdraw = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateWithdrawBody(body)
+
+  try {
+    const { amount, referenceId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const currentBalance = currentUser.balance || 0
+    const transactions = currentUser.transactions || []
+
+    // Check if user has sufficient balance
+    if (amount > currentBalance) {
+      return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Create transaction record
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      type: 'withdraw',
+      amount,
+      status: 'success',
+      createdAt: new Date(),
+    }
+
+    // Add transaction to history
+    transactions.unshift(transaction)
+
+    // Update user with new balance and transaction
+    const updateData = {
+      ...currentUser,
+      balance: currentBalance - amount,
+      transactions,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to withdraw: ${error.message}`)
+  }
+}
+
+const validateWithdrawBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+}
+
 export {
   getTodos,
   saveTodo,
@@ -2011,6 +2147,8 @@ export {
   shelveSeries,
   getMyPurchases,
   addPurchase,
+  topUp,
+  withdraw,
 }
 
 // Database migration: update genre structure

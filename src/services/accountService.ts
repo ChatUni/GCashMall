@@ -2,7 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
-import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, generateTransactionId, type Transaction } from '../stores/accountStore'
+import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
@@ -534,31 +534,26 @@ export const removeFavorite = async (itemId: string) => {
 
 // Top up
 export const topUp = async (amount: number): Promise<{ success: boolean; error?: string }> => {
-  // Create transaction record
-  const transaction: Transaction = {
-    id: generateTransactionId(),
-    referenceId: generateReferenceId(),
-    type: 'topup',
-    amount,
-    status: 'processing',
-    createdAt: new Date(),
-  }
-  
-  // Add transaction to history immediately
-  accountStoreActions.addTransaction(transaction)
+  const referenceId = generateReferenceId()
   
   try {
-    await apiPost('topUp', { amount })
-    accountStoreActions.addBalance(amount)
-    accountStoreActions.setShowTopUpPopup(false)
-    accountStoreActions.setSelectedTopUpAmount(null)
-    // Update transaction status to success
-    accountStoreActions.updateTransactionStatus(transaction.id, 'success')
-    return { success: true }
+    const response = await apiPostWithAuth<User>('topUp', { amount, referenceId })
+    
+    if (response.success && response.data) {
+      // Update user data from server response (includes new balance and transactions)
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      accountStoreActions.setShowTopUpPopup(false)
+      accountStoreActions.setSelectedTopUpAmount(null)
+      return { success: true }
+    }
+    
+    return { success: false, error: response.error || 'Failed to top up' }
   } catch (error) {
     console.error('Error topping up:', error)
-    // Update transaction status to failed
-    accountStoreActions.updateTransactionStatus(transaction.id, 'failed')
     return { success: false, error: 'Failed to top up' }
   }
 }
@@ -567,38 +562,33 @@ export const topUp = async (amount: number): Promise<{ success: boolean; error?:
 export const withdraw = async (amount: number): Promise<{ success: boolean; error?: string }> => {
   const state = accountStoreActions.getState()
   
-  // Check if user has sufficient balance
+  // Check if user has sufficient balance (client-side check)
   if (amount > state.balance) {
     return { success: false, error: 'Insufficient balance' }
   }
   
-  // Create transaction record
-  const transaction: Transaction = {
-    id: generateTransactionId(),
-    referenceId: generateReferenceId(),
-    type: 'withdraw',
-    amount,
-    status: 'processing',
-    createdAt: new Date(),
-  }
-  
-  // Add transaction to history immediately
-  accountStoreActions.addTransaction(transaction)
+  const referenceId = generateReferenceId()
   
   accountStoreActions.setWithdrawing(true)
   
   try {
-    await apiPost('withdraw', { amount })
-    accountStoreActions.subtractBalance(amount)
-    accountStoreActions.setShowWithdrawPopup(false)
-    accountStoreActions.setSelectedWithdrawAmount(null)
-    // Update transaction status to success
-    accountStoreActions.updateTransactionStatus(transaction.id, 'success')
-    return { success: true }
+    const response = await apiPostWithAuth<User>('withdraw', { amount, referenceId })
+    
+    if (response.success && response.data) {
+      // Update user data from server response (includes new balance and transactions)
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      accountStoreActions.setShowWithdrawPopup(false)
+      accountStoreActions.setSelectedWithdrawAmount(null)
+      return { success: true }
+    }
+    
+    return { success: false, error: response.error || 'Failed to withdraw' }
   } catch (error) {
     console.error('Error withdrawing:', error)
-    // Update transaction status to failed
-    accountStoreActions.updateTransactionStatus(transaction.id, 'failed')
     return { success: false, error: 'Failed to withdraw' }
   } finally {
     accountStoreActions.setWithdrawing(false)
