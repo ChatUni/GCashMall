@@ -234,6 +234,7 @@ const Account: React.FC = () => {
               selectedWithdrawAmount={state.selectedWithdrawAmount}
               withdrawing={state.withdrawing}
               transactions={state.transactions}
+              purchases={state.myPurchases}
               t={t}
             />
           )}
@@ -921,6 +922,7 @@ interface WalletSectionProps {
   selectedWithdrawAmount: number | null
   withdrawing: boolean
   transactions: Transaction[]
+  purchases: PurchaseItem[]
   t: Record<string, Record<string, unknown>>
 }
 
@@ -933,6 +935,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
   selectedWithdrawAmount,
   withdrawing,
   transactions,
+  purchases,
   t,
 }) => {
   const wallet = t.account.wallet as Record<string, string>
@@ -1061,12 +1064,22 @@ const WalletSection: React.FC<WalletSectionProps> = ({
 
       {/* Amount Selection Section */}
       <div className="section-card amount-section">
-        <h3 className="card-title">
-          {walletTab === 'topup'
-            ? (wallet.selectTopUpAmount || 'Select Top Up Amount')
-            : (wallet.selectWithdrawAmount || 'Select Withdraw Amount')
-          }
-        </h3>
+        <div className="amount-section-header">
+          <h3 className="card-title">
+            {walletTab === 'topup'
+              ? (wallet.selectTopUpAmount || 'Select Top Up Amount')
+              : (wallet.selectWithdrawAmount || 'Select Withdrawal Amount')
+            }
+          </h3>
+          {walletTab === 'withdraw' && balance > 0 && (
+            <button
+              className="btn-withdraw-all"
+              onClick={() => handleWithdrawClick(balance)}
+            >
+              {wallet.withdrawAll || 'Withdraw All'}
+            </button>
+          )}
+        </div>
         <p className="amount-description">
           {walletTab === 'topup'
             ? wallet.topUpDescription
@@ -1129,6 +1142,50 @@ const WalletSection: React.FC<WalletSectionProps> = ({
         )}
       </div>
 
+      {/* Purchase History Section */}
+      <div className="section-card purchase-history-section">
+        <h3 className="card-title">{wallet.purchaseHistory || 'Purchase History'}</h3>
+        {purchases.length === 0 ? (
+          <p className="no-transactions">{wallet.noPurchases || 'No purchases yet'}</p>
+        ) : (
+          <div className="transaction-table-container">
+            <table className="transaction-table">
+              <thead>
+                <tr>
+                  <th>{wallet.time || 'Time'}</th>
+                  <th>{wallet.item || 'Item'}</th>
+                  <th>{wallet.amount || 'Amount'}</th>
+                  <th>{wallet.status || 'Status'}</th>
+                  <th>{wallet.referenceId || 'Reference ID'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases
+                  .sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime())
+                  .map((purchase) => (
+                    <tr key={purchase._id}>
+                      <td className="transaction-time">{formatDate(new Date(purchase.purchasedAt))}</td>
+                      <td className="purchase-item-cell">
+                        <span className="purchase-series-name">{purchase.seriesName}</span>
+                        <span className="purchase-episode-name">
+                          EP {purchase.episodeNumber}{purchase.episodeTitle ? ` - ${purchase.episodeTitle}` : ''}
+                        </span>
+                      </td>
+                      <td className="transaction-amount">
+                        <span className="amount-negative">-{purchase.price.toFixed(2)}</span>
+                      </td>
+                      <td className={`transaction-status ${getStatusClass(purchase.status)}`}>
+                        {getStatusText(purchase.status)}
+                      </td>
+                      <td className="transaction-reference">{purchase.referenceId}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Top Up Confirmation Popup */}
       {showTopUpPopup && selectedTopUpAmount && (
         <div className="popup-overlay" onClick={handleCloseTopUpPopup}>
@@ -1161,7 +1218,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
             <p className="popup-message">{wallet.withdrawFromWallet || 'Withdraw from your wallet'}</p>
             <div className="popup-amount withdraw-amount">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
-              <span>{selectedWithdrawAmount}</span>
+              <span>{selectedWithdrawAmount.toFixed(2)}</span>
             </div>
             <div className="popup-buttons">
               <button

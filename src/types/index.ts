@@ -85,6 +85,8 @@ export interface PurchaseItem {
   episodeThumbnail?: string
   price: number
   purchasedAt: Date
+  status: TransactionStatus
+  referenceId: string
 }
 
 export interface WatchListItem {

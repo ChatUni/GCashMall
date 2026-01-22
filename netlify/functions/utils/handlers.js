@@ -1918,6 +1918,9 @@ const addPurchase = async (body, authHeader) => {
       return { success: false, error: 'Episode already purchased' }
     }
 
+    // Generate reference ID for the purchase
+    const purchaseReferenceId = `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
     // Create purchase record
     const purchaseItem = {
       _id: new ObjectId().toString(),
@@ -1930,6 +1933,8 @@ const addPurchase = async (body, authHeader) => {
       episodeThumbnail,
       price,
       purchasedAt: new Date(),
+      status: 'success',
+      referenceId: purchaseReferenceId,
     }
 
     purchases.push(purchaseItem)

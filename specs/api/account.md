@@ -367,7 +367,16 @@ return the purchases array (each item contains: _id, seriesId, seriesName, serie
   - purchasedAt: current timestamp
 - add the purchase to the user's purchases array
 - subtract the price from the user's balance
+- **persist the updated balance and purchases to the database**
 
 ### Output
 
-return the updated user (includes balance and purchases) or error if insufficient balance or already purchased
+return the updated user (includes balance, transactions, and purchases) or error if insufficient balance or already purchased
+
+### Note
+
+The purchases and balance must be persisted to the database so that they are retained after page refresh. The frontend should:
+1. Update the user state from the server response
+2. Update the myPurchases list in the account store
+3. Update the balance in the account store
+4. The lock icon on the Player page should change to orange (#F97316) for purchased episodes

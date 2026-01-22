@@ -748,10 +748,37 @@
   margin-bottom: 24px;
 }
 
+.amount-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.amount-section-header .card-title {
+  margin-bottom: 0;
+}
+
+.btn-withdraw-all {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-withdraw-all:hover {
+  background-color: #2563eb;
+}
+
 .amount-description {
   font-size: 14px;
   color: #9ca3af;
-  margin: 0 0 16px 0;
+  margin: 16px 0 16px 0;
 }
 
 .amount-grid {
@@ -1539,5 +1566,28 @@
   .purchase-episode-title {
     font-size: 11px;
   }
+}
+
+/* Purchase History Section (in Wallet) */
+.purchase-history-section {
+  margin-top: 24px;
+}
+
+/* Purchase Item Cell in Table */
+.purchase-item-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.purchase-series-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.purchase-episode-name {
+  font-size: 12px;
+  color: #9ca3af;
 }
 

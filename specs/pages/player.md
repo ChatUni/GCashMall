@@ -319,6 +319,7 @@ Users can watch the first 60 seconds (1 minute) of any episode for free. After t
 ### Purchased Episode Storage
 - Stored in user's `purchases` array in database
 - Each purchase record contains:
+  - _id (unique purchase id)
   - seriesId
   - episodeId
   - episodeNumber
@@ -328,6 +329,24 @@ Users can watch the first 60 seconds (1 minute) of any episode for free. After t
   - seriesCover
   - purchasedAt (timestamp)
   - price
+
+### Purchase State Synchronization
+After a successful purchase:
+1. Backend persists the purchase to the user's `purchases` array in database
+2. Backend returns the updated user object including `purchases`, `balance`, and `transactions`
+3. Frontend updates:
+   - `userStore.user` - for Player page purchase check
+   - `accountStore.user` - for Account page display
+   - `accountStore.myPurchases` - for My Purchases section
+   - `accountStore.balance` - for wallet display
+4. The lock icon immediately changes from gray stroke to orange fill (#F97316)
+5. The episode appears in the "My Purchases" section on the Account page
+
+### Purchase Check Logic
+To determine if an episode is purchased:
+1. Check the user's `purchases` array
+2. Match by both `seriesId` AND (`episodeId` OR `episodeNumber`)
+3. Using episodeNumber as fallback handles cases where episodeId is synthetic (e.g., `${seriesId}-ep1`)
 
 ## Confirmation Popups
 

@@ -250,7 +250,16 @@ Section card with form fields:
   - Hover (inactive): Lighter gray (#9CA3AF)
 
 #### Amount Selection Section
-- **Title**: "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
+- **Header**: Flexbox row with title and optional button
+  - **Title**: "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
+  - **Withdraw All Button** (only visible in withdraw tab when balance > 0):
+    - Background: Blue (#3B82F6)
+    - Color: White (#FFFFFF)
+    - Padding: 8px 16px
+    - Border Radius: 6px
+    - Font: 13px, font-weight 500
+    - Hover: Darker blue (#2563EB)
+    - Click: Triggers withdraw flow with full balance amount
 - **Description**:
   - Top Up: "Select an amount to add to your wallet"
   - Withdraw: "Select an amount to withdraw from your wallet"
@@ -380,6 +389,50 @@ Section card with form fields:
 5. Transaction appears in the history table with "success" status
 6. Balance and transactions are persisted to the database and retained after page refresh
 7. Transactions are sorted by createdAt descending (newest first)
+
+#### Purchase History Section
+- **Title**: "Purchase History"
+- **Container**: Section card below transaction history
+- **Empty State**: "No purchases yet" - Gray (#6B7280), centered, padding 40px
+
+##### Purchase History Table
+- **Container**: Overflow-x auto for mobile responsiveness
+- **Table Width**: 100%
+- **Border Collapse**: collapse
+
+##### Table Headers
+| Column | Label | Alignment |
+|--------|-------|-----------|
+| Time | Time | Left |
+| Item | Item | Left |
+| Amount | Amount | Left |
+| Status | Status | Left |
+| Reference ID | Reference ID | Left |
+
+- **Header Styling**: Same as Transaction History table
+
+##### Table Rows
+- **Row Styling**: Same as Transaction History table
+
+##### Column Styling
+- **Time**: Gray (#9CA3AF), 13px, white-space nowrap
+- **Item** (flex column, gap 2px):
+  - Series Name: White (#FFFFFF), 14px, font-weight 500
+  - Episode: Gray (#9CA3AF), 12px, format "EP X - Title"
+- **Amount**:
+  - Font-weight: 600
+  - Monospace font
+  - Negative: Purple (#A855F7) with "-" prefix
+- **Status**:
+  - Text style: font-weight 500, font-size 13px
+  - Success: Emerald text (#10B981)
+  - Failed: Red text (#EF4444)
+  - Processing: Amber text (#F59E0B)
+- **Reference ID**: Monospace font, 12px, gray (#6B7280)
+
+##### Purchase History Data
+- Purchases sorted by purchasedAt descending (newest first)
+- No click interaction (display only)
 
 ### 6. My Purchases
 
