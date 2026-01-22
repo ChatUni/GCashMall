@@ -173,18 +173,24 @@ The Top Bar is a sticky header navigation component for GCashTV that provides br
 
 ## Watch History Icon
 
+### History Wrapper
+The history icon and popover are wrapped in a container to ensure proper hover behavior:
+- **Class**: `.history-wrapper`
+- **Position**: Relative
+- **Purpose**: Contains both the icon and popover so mouse events work correctly when moving between them
+
 ### Icon
 - **SVG**: Clock icon (circle with hands)
 - **Stroke Width**: 2
 
 ### Behavior
-- **Hover**: Shows history popover
+- **Hover**: Shows history popover (hover event on wrapper, not icon)
 - **Click**:
   - If logged in (localStorage has `gcashtv-user`): Navigate to `/account?tab=watchHistory`
   - If not logged in: Open LoginModal
 
 ### History Popover
-- **Position**: Absolute, top calc(100% + 8px), right 0
+- **Position**: Absolute (relative to wrapper), top calc(100% + 8px), right 0
 - **Width**: 320px
 - **Background**: #121214
 - **Border Radius**: 12px

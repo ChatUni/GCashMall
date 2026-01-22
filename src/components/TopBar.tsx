@@ -234,16 +234,20 @@ const TopBar: React.FC = () => {
 
           <div className="top-bar-right">
             <div
-              className="icon-button history-icon"
+              className="history-wrapper"
               ref={historyRef}
               onMouseEnter={handleHistoryIconHover}
               onMouseLeave={() => setShowHistoryPopover(false)}
-              onClick={handleHistoryIconClick}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12,6 12,12 16,14" />
-              </svg>
+              <div
+                className="icon-button history-icon"
+                onClick={handleHistoryIconClick}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12,6 12,12 16,14" />
+                </svg>
+              </div>
               
               {showHistoryPopover && (
                 <div className="history-popover">

@@ -220,6 +220,11 @@
   color: #3b82f6;
 }
 
+/* History wrapper for hover area */
+.history-wrapper {
+  position: relative;
+}
+
 .history-popover {
   position: absolute;
   top: calc(100% + 8px);
@@ -230,6 +235,16 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 1001;
   overflow: hidden;
+}
+
+/* Bridge the gap between icon and popover to prevent mouseLeave when moving to popover */
+.history-popover::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  right: 0;
+  width: 60px;
+  height: 12px;
 }
 
 .popover-header {

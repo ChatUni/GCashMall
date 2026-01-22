@@ -250,17 +250,25 @@ Section card with form fields:
   - Hover (inactive): Lighter gray (#9CA3AF)
 
 #### Amount Selection Section
-- **Header**: Flexbox row with title and optional button
-  - **Title**: "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
-  - **Withdraw All Button** (only visible in withdraw tab when balance > 0):
+- **Header** (`.amount-section-header`):
+  - Display: Flexbox row
+  - Justify Content: space-between
+  - Align Items: center
+  - Min Height: 36px (ensures consistent height with or without button)
+  - Margin Bottom: 0
+  - **Title** (`.card-title`): "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
+    - Margin Bottom: 0 (overrides default card-title margin)
+  - **Withdraw All Button** (`.btn-withdraw-all`, only visible in withdraw tab when balance > 0):
     - Background: Blue (#3B82F6)
     - Color: White (#FFFFFF)
     - Padding: 8px 16px
     - Border Radius: 6px
     - Font: 13px, font-weight 500
     - Hover: Darker blue (#2563EB)
-    - Click: Triggers withdraw flow with full balance amount
-- **Description**:
+    - Click: Triggers withdraw flow with full balance amount (formatted to 2 decimal places)
+- **Description** (`.amount-description`):
+  - Font: 14px, Gray (#9CA3AF)
+  - Margin: 16px 0 16px 0
   - Top Up: "Select an amount to add to your wallet"
   - Withdraw: "Select an amount to withdraw from your wallet"
 - **Grid**: 4 columns, 16px gap
