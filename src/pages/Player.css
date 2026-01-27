@@ -315,6 +315,8 @@
   padding: 16px;
   max-height: calc(70vh + 100px);
   overflow-y: auto;
+  margin-left: auto;
+  margin-right: 80px;
 }
 
 .sidebar-title {
@@ -444,6 +446,7 @@
   .episode-sidebar {
     width: 100%;
     max-height: none;
+    margin-left: 0;
   }
 
   .social-buttons {

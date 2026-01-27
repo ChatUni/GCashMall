@@ -189,6 +189,8 @@ The page uses React Router params:
 - **Box Shadow**: 0 4px 20px rgba(0, 0, 0, 0.3)
 - **Max Height**: 700px
 - **Overflow-Y**: Auto
+- **Margin Left**: auto (pushes sidebar to the right edge of the container)
+- **Margin Right**: 80px 
 
 ### Panel Title
 - **Font Size**: 18px

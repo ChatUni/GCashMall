@@ -473,7 +473,8 @@ Section card with form fields:
 - **Action**: "Explore Series" button
 
 #### Interactions
-- On load: Fetch user's purchases from API
+- On login: Purchases are loaded from `user.purchases` array and stored in `myPurchases` state
+- On load: Display purchases from `myPurchases` state (already populated from user data on login)
 - On series header click: Navigate to series player
 - On episode card click: Navigate to player with specific episode
 

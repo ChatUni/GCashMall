@@ -367,6 +367,7 @@ export const accountStoreActions = {
       originalProfile: profileData,
       balance: user.balance || 0,
       transactions,
+      myPurchases: user.purchases || [],
     }))
   },
   
