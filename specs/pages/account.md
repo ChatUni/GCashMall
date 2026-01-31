@@ -86,10 +86,14 @@ Section card with form fields:
 
 - **Form Input Styling**:
   - Background: #1A1A1E
-  - Border: 1px solid #242428
+  - Border: 1px solid #2A2A2E
   - Border Radius: 8px
   - Padding: 12px 16px
+  - Hover: Border #3B82F6, Background #242428
   - Focus: Blue border (#3B82F6) with shadow
+  - **Select elements**: Flat dark theme (see Global Style Specification)
+    - Custom dropdown arrow (SVG-based, no browser default)
+    - Padding-right: 36px (for arrow space)
 
 - **Save Button**: Primary blue button (#3B82F6)
 
@@ -211,6 +215,14 @@ Section card with form fields:
 | Notifications | Toggle | On/Off |
 
 - **Row Styling**: Flex between, padding 16px 0, border-bottom #242428
+- **Select Control Styling**: Flat dark theme (see Global Style Specification)
+  - Background: #1A1A1E
+  - Border: 1px solid #2A2A2E
+  - Border Radius: 6px
+  - Padding: 8px 32px 8px 12px
+  - Custom dropdown arrow (SVG-based)
+  - Hover: Border #3B82F6, Background #242428
+  - Focus: Border #3B82F6 with blue glow
 - **Toggle**: 44px × 24px, custom styled checkbox
 
 ### 5. Wallet

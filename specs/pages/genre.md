@@ -170,15 +170,16 @@ On tablet and mobile devices (≤1024px), the sidebar is replaced with a dropdow
 - **Width**: 100%
 - **Padding**: 12px 16px
 - **Background**: #1A1A1E
-- **Border**: 1px solid #242428
+- **Border**: 1px solid #2A2A2E
 - **Border Radius**: 8px
 - **Color**: #FFFFFF
 - **Font Size**: 14px
 - **Font Weight**: 500
 - **Cursor**: Pointer
-- **Transition**: border-color 0.2s ease
-- **Hover**: Border color #3B82F6
+- **Transition**: border-color 0.2s ease, background-color 0.2s ease
+- **Hover**: Border color #3B82F6, Background #242428
 - **Content**: Active genre name + dropdown arrow icon
+- **Style**: Flat dark theme (consistent with global select styling)
 
 ### Dropdown Arrow Icon
 - **Size**: 16px × 16px

@@ -127,7 +127,15 @@ The page uses React Router params:
 #### Language Selector
 - **Display**: Flex with globe icon
 - **Icon Size**: 18px
-- **Color**: #9CA3AF
+- **Styling**: Flat dark theme select (see Global Style Specification)
+  - Background: #1A1A1E
+  - Border: 1px solid #2A2A2E
+  - Border Radius: 6px
+  - Padding: 6px 28px 6px 10px
+  - Color: #FFFFFF
+  - Custom dropdown arrow (SVG-based)
+  - Hover: Border #3B82F6, Background #242428
+  - Focus: Border #3B82F6 with blue glow
 - **Options**: English, 中文, Español, Français
 
 #### Action Buttons Container

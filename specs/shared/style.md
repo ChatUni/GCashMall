@@ -260,11 +260,63 @@ border-radius: 8px;
 ```css
 background-color: #1A1A1E;
 color: #FFFFFF;
-border: 1px solid #242428;
+border: 1px solid #2A2A2E;
 border-radius: 8px;
 padding: 12px 16px;
 font-size: 15px;
 ```
+
+### Select/Dropdown
+Flat, dark-themed select elements with custom styling to replace browser defaults.
+
+```css
+/* Base styles */
+appearance: none;
+-webkit-appearance: none;
+-moz-appearance: none;
+background-color: #1A1A1E;
+border: 1px solid #2A2A2E;
+border-radius: 6px;
+padding: 8px 32px 8px 12px;
+font-size: 14px;
+font-weight: 500;
+color: #FFFFFF;
+cursor: pointer;
+outline: none;
+transition: border-color 0.2s ease, background-color 0.2s ease;
+
+/* Custom dropdown arrow */
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+background-repeat: no-repeat;
+background-position: right 10px center;
+background-size: 12px;
+
+/* Hover state */
+:hover {
+  border-color: #3B82F6;
+  background-color: #242428;
+}
+
+/* Focus state */
+:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Option styles */
+option {
+  background-color: #1A1A1E;
+  color: #FFFFFF;
+  padding: 8px 12px;
+}
+```
+
+#### Key Design Principles
+- **Flat design**: No gradients, glossy effects, or 3D appearance
+- **Dark theme**: Consistent with the overall dark UI
+- **Custom arrow**: SVG-based dropdown indicator replacing browser default
+- **Subtle borders**: Using #2A2A2E for a softer appearance
+- **Interactive feedback**: Hover and focus states with blue accent color
 
 ### Tags/Pills
 ```css
