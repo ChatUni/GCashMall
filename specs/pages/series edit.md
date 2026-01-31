@@ -19,6 +19,7 @@ Vertical
 Vertical
 
 - name (input box)
+  - "Total EPs {number}" displayed below the input (e.g., "Total EPs 01"), showing the total count of episodes
 - description (text area, 5 rows)
 - genre (shared multi select tags)
 - cover (shared media upload in image mode)
@@ -38,8 +39,7 @@ Vertical
 #### Episode Edit
 
 - card with 8px border-radius on all four corners
-- episode number displayed as "Total EPs {number}" (e.g., "Total EPs 01")
-- title followed by edit icon
+- title displayed as "EP {number}" by default (e.g., "EP 01"), followed by edit icon
 - video (shared media upload in video mode, no remove button)
 - "Delete Episode" button with 8px border-radius
 

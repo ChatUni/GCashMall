@@ -17,14 +17,6 @@
   line-height: 1;
 }
 
-.episode-number {
-  font-size: 18px;
-  font-weight: bold;
-  color: #ffffff;
-  min-width: fit-content;
-  white-space: nowrap;
-}
-
 .episode-title-display {
   display: flex;
   align-items: center;

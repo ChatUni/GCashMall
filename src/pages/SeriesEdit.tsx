@@ -88,6 +88,7 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
           value={state.formData.name}
           onChange={seriesEditStoreActions.setName}
           label={t.seriesEdit.name}
+          totalEpisodes={activeEpisodes.length}
         />
 
         <DescriptionField
@@ -171,9 +172,10 @@ interface NameFieldProps {
   value: string
   onChange: (value: string) => void
   label: string
+  totalEpisodes: number
 }
 
-const NameField: React.FC<NameFieldProps> = ({ value, onChange, label }) => (
+const NameField: React.FC<NameFieldProps> = ({ value, onChange, label, totalEpisodes }) => (
   <div className="series-edit-field">
     <label className="series-edit-label">{label}</label>
     <input
@@ -182,6 +184,7 @@ const NameField: React.FC<NameFieldProps> = ({ value, onChange, label }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
+    <span className="series-edit-total-eps">Total EPs {String(totalEpisodes).padStart(2, '0')}</span>
   </div>
 )
 
