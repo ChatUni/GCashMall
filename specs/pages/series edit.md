@@ -28,16 +28,20 @@ Vertical
 
 #### Episode List
 
-- horizontal, wrappable
+- 4-column responsive grid layout (same as Watch History grid in Account page)
+  - 4 columns on large screens (>1200px)
+  - 3 columns on medium screens (768px-1200px)
+  - 2 columns on small screens (<768px)
 - each one is a Episode Edit component
-- the "Add Episode" button below the list 
+- the "Add Episode" button below the list
 
 #### Episode Edit
 
-- episode number
+- card with 8px border-radius on all four corners
+- episode number displayed as "Total EPs {number}" (e.g., "Total EPs 01")
 - title followed by edit icon
 - video (shared media upload in video mode, no remove button)
-- "Delete Episode" button 
+- "Delete Episode" button with 8px border-radius
 
 #### Interaction
 

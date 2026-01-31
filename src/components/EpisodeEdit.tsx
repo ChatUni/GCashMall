@@ -50,7 +50,7 @@ const EpisodeEdit = ({
   return (
     <div className="episode-edit">
       <div className="episode-edit-header">
-        <span className="episode-number">EP {String(episodeNumber).padStart(2, '0')}</span>
+        <span className="episode-number">Total EPs {String(episodeNumber).padStart(2, '0')}</span>
         <TitleField
           title={title}
           editedTitle={editedTitle}
