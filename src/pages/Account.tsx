@@ -1174,10 +1174,10 @@ const WalletSection: React.FC<WalletSectionProps> = ({
                       <td className="transaction-amount">
                         <span className="amount-negative">-{purchase.price.toFixed(2)}</span>
                       </td>
-                      <td className={`transaction-status ${getStatusClass(purchase.status)}`}>
-                        {getStatusText(purchase.status)}
+                      <td className={`transaction-status ${getStatusClass(purchase.status || 'success')}`}>
+                        {getStatusText(purchase.status || 'success')}
                       </td>
-                      <td className="transaction-reference">{purchase.referenceId}</td>
+                      <td className="transaction-reference">{purchase.referenceId || '-'}</td>
                     </tr>
                   ))}
               </tbody>

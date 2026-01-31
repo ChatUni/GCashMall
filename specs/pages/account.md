@@ -449,10 +449,15 @@ Section card with form fields:
   - Failed: Red text (#EF4444)
   - Processing: Amber text (#F59E0B)
 - **Reference ID**: Monospace font, 12px, gray (#6B7280)
+  - Fallback: "-" if referenceId is not available (for legacy records)
 
 ##### Purchase History Data
 - Purchases sorted by purchasedAt descending (newest first)
 - No click interaction (display only)
+- **Legacy Data Handling**:
+  - Status defaults to "success" if not present in purchase record
+  - Reference ID displays "-" if not present in purchase record
+  - This ensures backward compatibility with purchases made before these fields were added
 
 ### 6. My Purchases
 
