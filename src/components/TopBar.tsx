@@ -15,6 +15,7 @@ const TopBar: React.FC = () => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [showHistoryPopover, setShowHistoryPopover] = useState(false)
+  const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -129,8 +130,20 @@ const TopBar: React.FC = () => {
     setShowLanguageDropdown(false)
   }
 
-  const handleHistoryIconHover = () => {
+  const handleHistoryMouseEnter = () => {
+    // Clear any pending hide timeout
+    if (historyTimeoutRef.current) {
+      clearTimeout(historyTimeoutRef.current)
+      historyTimeoutRef.current = null
+    }
     setShowHistoryPopover(true)
+  }
+
+  const handleHistoryMouseLeave = () => {
+    // Add a small delay before hiding to allow mouse to move to popover
+    historyTimeoutRef.current = setTimeout(() => {
+      setShowHistoryPopover(false)
+    }, 150)
   }
 
   const handleHistoryIconClick = () => {
@@ -236,8 +249,8 @@ const TopBar: React.FC = () => {
             <div
               className="history-wrapper"
               ref={historyRef}
-              onMouseEnter={handleHistoryIconHover}
-              onMouseLeave={() => setShowHistoryPopover(false)}
+              onMouseEnter={handleHistoryMouseEnter}
+              onMouseLeave={handleHistoryMouseLeave}
             >
               <div
                 className="icon-button history-icon"

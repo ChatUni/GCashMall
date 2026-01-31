@@ -184,7 +184,10 @@ The history icon and popover are wrapped in a container to ensure proper hover b
 - **Stroke Width**: 2
 
 ### Behavior
-- **Hover**: Shows history popover (hover event on wrapper, not icon)
+- **Hover**: Shows history popover with delayed hide behavior
+  - **Mouse Enter**: Immediately shows popover and cancels any pending hide timeout
+  - **Mouse Leave**: Waits 150ms before hiding popover (allows user to move mouse to popover content)
+  - **Hover Area**: Entire wrapper including both icon and popover
 - **Click**:
   - If logged in (localStorage has `gcashtv-user`): Navigate to `/account?tab=watchHistory`
   - If not logged in: Open LoginModal
