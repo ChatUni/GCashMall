@@ -22,7 +22,11 @@ The Account page is a comprehensive user profile and settings management interfa
 
 ### Login Requirement
 - Page automatically shows LoginModal if user is not logged in
-- On successful login, modal closes and user can access account features
+- On successful login:
+  - Modal closes and user can access account features
+  - All data fetch flags are reset (userDataFetched, myPurchasesFetched, mySeriesFetched)
+  - User data, My Purchases, and My Series are explicitly fetched from the server
+  - This ensures data persists correctly after logout and re-login
 - If user closes modal without logging in, they are redirected to home page
 
 ### Logout Functionality
@@ -472,8 +476,19 @@ Section card with form fields:
 - **Padding Bottom**: 40px
 
 #### Header
+- **Layout**: `.section-header` - Standard section header
 - **Title**: "My Series" - White (#FFFFFF), 28px, font-weight 600
-- **Subtitle**: "Series you have created" - Gray (#9CA3AF), 15px
+- **Conditional Content** (below title):
+  - **When series list is empty**: Show subtitle "Series you have created" - Gray (#9CA3AF), 15px
+  - **When series list has items**: Show "Add Series" button instead of subtitle
+    - Class: `.add-series-btn`
+    - Primary blue button (#3B82F6)
+    - Text: "Add Series"
+    - Padding: 10px 20px
+    - Border Radius: 8px
+    - Font: 14px, font-weight 500
+    - Margin Top: 8px
+    - Click: Opens series edit view in add mode
 
 #### Content Grid
 - Same layout as Watch History (4 columns, 20px gap)
@@ -488,7 +503,7 @@ Section card with form fields:
 
 ##### Shelved State
 - **Class**: `.my-series-card.shelved`
-- **Opacity**: 0.5
+- **Opacity**: 1
 
 ##### Shelved Badge
 - **Position**: Absolute, top 8px, left 8px

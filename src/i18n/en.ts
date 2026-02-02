@@ -200,6 +200,12 @@ export const en = {
     insufficientBalance: 'Insufficient balance. Please top up your wallet.',
     episodeUnlocked: 'Episode unlocked',
     trialEnded: 'Trial ended. Unlock to continue watching.',
+    addToFavoritesTitle: 'Add to Favorites',
+    removeFromFavoritesTitle: 'Remove from Favorites',
+    addToFavoritesMessage: 'Add this series to your favorites?',
+    removeFromFavoritesMessage: 'Remove this series from your favorites?',
+    dontShowAgain: "Don't show again",
+    confirm: 'Confirm',
   },
   login: {
     title: 'Login',

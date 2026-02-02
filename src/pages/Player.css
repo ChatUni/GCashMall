@@ -778,3 +778,50 @@
 .btn-result-error:hover {
   background-color: #dc2626;
 }
+
+/* Favorite Modal Styles */
+.favorite-modal .popup-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.popup-series-info {
+  background-color: #242428;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.popup-series-info .popup-series-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Don't show again checkbox */
+.dont-show-again {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dont-show-again input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.dont-show-again span {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.dont-show-again:hover span {
+  color: #ffffff;
+}

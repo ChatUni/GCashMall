@@ -107,10 +107,18 @@ const Account: React.FC = () => {
   const handleLoginSuccess = async (user: User) => {
     // Initialize user data (sets loading: false, isLoggedIn: true)
     accountStoreActions.initializeUserData(user)
-    // Fetch additional user data
+    // Reset fetch flags so data is re-fetched for the new user
     userDataFetched = false
+    myPurchasesFetched = false
+    mySeriesFetched = false
+    // Fetch additional user data
     await fetchAccountUserData()
     userDataFetched = true
+    // Fetch my purchases and my series
+    await fetchMyPurchases()
+    myPurchasesFetched = true
+    await fetchMySeries()
+    mySeriesFetched = true
     // Hide the modal after loading is complete
     accountStoreActions.setShowLoginModal(false)
   }
@@ -1411,7 +1419,13 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
     <div className="content-section my-series-section">
       <div className="section-header">
         <h1 className="page-title">{mySeries.title || 'My Series'}</h1>
-        <p className="page-subtitle">{mySeries.subtitle || 'Series you have created'}</p>
+        {series.length > 0 ? (
+          <button className="btn-primary add-series-btn" onClick={handleAddSeries}>
+            {mySeries.addSeries || 'Add Series'}
+          </button>
+        ) : (
+          <p className="page-subtitle">{mySeries.subtitle || 'Series you have created'}</p>
+        )}
       </div>
 
       {series.length === 0 ? (

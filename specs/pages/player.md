@@ -151,8 +151,12 @@ The page uses React Router params:
 - **Hover**: Background #2A2A2E, scale(1.05)
 - **Icon**: Heart SVG (filled when active)
 - on click:
-  - inactive: call add to favorite API, change to active
-  - active: call remove from favorite API, change to inactive
+  - Check localStorage for `hideFavoriteModal` preference
+  - If `hideFavoriteModal` is `'true'`:
+    - inactive: directly call add to favorite API, change to active
+    - active: directly call remove from favorite API, change to inactive
+  - If `hideFavoriteModal` is not set or `'false'`:
+    - Show Favorite Confirmation Modal (see Confirmation Popups section)
 
 #### Unlock Button
 - **Size**: 48px × 48px
@@ -360,7 +364,7 @@ To determine if an episode is purchased:
 
 ## Confirmation Popups
 
-### Favorite Popup
+### Favorite Confirmation Modal
 - **Overlay**: Fixed, rgba(0, 0, 0, 0.7), z-index 1000
 - **Modal**:
   - Background: #1A1A1E
@@ -368,10 +372,41 @@ To determine if an episode is purchased:
   - Padding: 32px
   - Max Width: 400px
   - Animation: fadeIn 0.2s, slideUp 0.3s
-- **Icon**: 64px circle, red tint background, heart icon
-- **Title**: "Add to Favorites?" - 20px, white
-- **Message**: 14px, gray, line-height 1.6
-- **Buttons**: Yes (blue), No (gray)
+- **Icon**: 48px heart emoji (❤️ for add, 💔 for remove)
+- **Title**:
+  - Adding: "Add to Favorites" - 20px, white
+  - Removing: "Remove from Favorites" - 20px, white
+- **Series Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Margin Bottom: 20px
+  - **Series Name**: 16px, font-weight 600, white
+  - **Episode Info**: 14px, gray (#9CA3AF)
+- **Message**:
+  - Adding: "Add this series to your favorites?"
+  - Removing: "Remove this series from your favorites?"
+  - Font Size: 14px, Color: #9CA3AF, Line Height: 1.6
+- **Don't Show Again Checkbox**:
+  - Display: Flex, centered, gap 8px
+  - Margin Bottom: 20px
+  - Cursor: Pointer
+  - User Select: None
+  - **Checkbox Input**:
+    - Size: 18px × 18px
+    - Accent Color: #3B82F6
+    - Cursor: Pointer
+  - **Label**: "Don't show again" - 14px, #9CA3AF
+- **Buttons**:
+  - Confirm (blue, full width) - triggers favorite action
+  - Cancel (gray, full width) - closes modal without action
+- **Persistence**:
+  - When "Don't show again" is checked and Confirm is clicked:
+    - Save preference to localStorage key: `hideFavoriteModal` = `'true'`
+  - On subsequent favorite button clicks:
+    - Check localStorage for `hideFavoriteModal`
+    - If `'true'`: directly perform add/remove action without showing modal
+    - If not set or `'false'`: show confirmation modal
 
 ### Purchase Popup
 - **Overlay**: Fixed, rgba(0, 0, 0, 0.8), z-index 1000

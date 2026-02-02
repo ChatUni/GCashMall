@@ -1360,6 +1360,10 @@
   padding-bottom: 40px;
 }
 
+.my-series-section .add-series-btn {
+  margin-top: 8px;
+}
+
 .my-series-card {
   cursor: pointer;
   transition: transform 0.2s ease, opacity 0.2s ease;
@@ -1370,7 +1374,7 @@
 }
 
 .my-series-card.shelved {
-  opacity: 0.5;
+  opacity: 1;
 }
 
 .my-series-card .series-card-poster {

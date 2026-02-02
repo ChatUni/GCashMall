@@ -199,6 +199,12 @@ export const zh = {
     insufficientBalance: '余额不足，请先充值。',
     episodeUnlocked: '剧集已解锁',
     trialEnded: '试看结束，解锁以继续观看。',
+    addToFavoritesTitle: '添加到收藏',
+    removeFromFavoritesTitle: '从收藏中移除',
+    addToFavoritesMessage: '将此剧集添加到收藏夹？',
+    removeFromFavoritesMessage: '从收藏夹中移除此剧集？',
+    dontShowAgain: '不再提醒',
+    confirm: '确认',
   },
   login: {
     title: '登录',

@@ -156,6 +156,11 @@ const Player: React.FC = () => {
   const [showResultModal, setShowResultModal] = React.useState(false)
   const [resultModalType, setResultModalType] = React.useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = React.useState('')
+  
+  // Favorite confirmation modal state
+  const [showFavoriteModal, setShowFavoriteModal] = React.useState(false)
+  const [favoriteModalDontShowAgain, setFavoriteModalDontShowAgain] = React.useState(false)
+  const [pendingFavoriteAction, setPendingFavoriteAction] = React.useState<'add' | 'remove' | null>(null)
 
   // Initialize data on first render
   if (id) {
@@ -247,6 +252,12 @@ const Player: React.FC = () => {
     )
   }
 
+  // Check if favorite modal should be shown (based on localStorage)
+  const shouldShowFavoriteModal = (): boolean => {
+    const dontShowAgain = localStorage.getItem('hideFavoriteModal')
+    return dontShowAgain !== 'true'
+  }
+
   const handleFavoriteToggle = async () => {
     if (!isLoggedIn()) {
       loginModalStoreActions.open()
@@ -255,15 +266,55 @@ const Player: React.FC = () => {
 
     if (!id) return
 
+    const willAdd = !isSeriesFavorited(id)
+    
+    // If "don't show again" is set, directly perform the action
+    if (!shouldShowFavoriteModal()) {
+      try {
+        if (willAdd) {
+          await addToFavorites(id)
+        } else {
+          await removeFromFavorites(id)
+        }
+      } catch (error) {
+        console.error('Failed to toggle favorite:', error)
+      }
+      return
+    }
+
+    // Show confirmation modal
+    setPendingFavoriteAction(willAdd ? 'add' : 'remove')
+    setFavoriteModalDontShowAgain(false)
+    setShowFavoriteModal(true)
+  }
+
+  // Confirm favorite action from modal
+  const handleFavoriteConfirm = async () => {
+    if (!id || !pendingFavoriteAction) return
+
+    // Save "don't show again" preference
+    if (favoriteModalDontShowAgain) {
+      localStorage.setItem('hideFavoriteModal', 'true')
+    }
+
     try {
-      if (isSeriesFavorited(id)) {
-        await removeFromFavorites(id)
-      } else {
+      if (pendingFavoriteAction === 'add') {
         await addToFavorites(id)
+      } else {
+        await removeFromFavorites(id)
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error)
     }
+
+    setShowFavoriteModal(false)
+    setPendingFavoriteAction(null)
+  }
+
+  // Cancel favorite action
+  const handleFavoriteCancel = () => {
+    setShowFavoriteModal(false)
+    setPendingFavoriteAction(null)
   }
 
   // Handle unlock button click
@@ -508,6 +559,52 @@ const Player: React.FC = () => {
                 ? ((t.player as Record<string, string>).goToWallet || 'Go to Wallet')
                 : 'OK'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Confirmation Modal */}
+      {showFavoriteModal && (
+        <div className="popup-overlay" onClick={handleFavoriteCancel}>
+          <div className="popup-modal favorite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-icon">
+              {pendingFavoriteAction === 'add' ? '❤️' : '💔'}
+            </div>
+            <h2 className="popup-title">
+              {pendingFavoriteAction === 'add'
+                ? ((t.player as Record<string, string>).addToFavoritesTitle || 'Add to Favorites')
+                : ((t.player as Record<string, string>).removeFromFavoritesTitle || 'Remove from Favorites')}
+            </h2>
+            <p className="popup-message">
+              {pendingFavoriteAction === 'add'
+                ? ((t.player as Record<string, string>).addToFavoritesMessage || 'Add this series to your favorites?')
+                : ((t.player as Record<string, string>).removeFromFavoritesMessage || 'Remove this series from your favorites?')}
+            </p>
+            <div className="popup-series-info">
+              <span className="popup-series-name">{playerState.series?.name || ''}</span>
+            </div>
+            <label className="dont-show-again">
+              <input
+                type="checkbox"
+                checked={favoriteModalDontShowAgain}
+                onChange={(e) => setFavoriteModalDontShowAgain(e.target.checked)}
+              />
+              <span>{(t.player as Record<string, string>).dontShowAgain || "Don't show again"}</span>
+            </label>
+            <div className="popup-buttons">
+              <button
+                className="btn-confirm"
+                onClick={handleFavoriteConfirm}
+              >
+                {(t.player as Record<string, string>).confirm || 'Confirm'}
+              </button>
+              <button
+                className="btn-cancel"
+                onClick={handleFavoriteCancel}
+              >
+                {(t.player as Record<string, string>).cancel || 'Cancel'}
+              </button>
+            </div>
           </div>
         </div>
       )}
