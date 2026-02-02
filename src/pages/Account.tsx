@@ -1358,12 +1358,70 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
   t,
 }) => {
   const mySeries = (t.account.mySeries || {}) as Record<string, string>
+  
+  // Shelve confirmation modal state
+  const [showShelveModal, setShowShelveModal] = React.useState(false)
+  const [pendingShelveSeriesId, setPendingShelveSeriesId] = React.useState<string | null>(null)
+  const [pendingShelveSeries, setPendingShelveSeries] = React.useState<Series | null>(null)
+  
+  // Unshelve confirmation modal state
+  const [showUnshelveModal, setShowUnshelveModal] = React.useState(false)
+  const [pendingUnshelveSeriesId, setPendingUnshelveSeriesId] = React.useState<string | null>(null)
+  const [pendingUnshelveSeries, setPendingUnshelveSeries] = React.useState<Series | null>(null)
 
-  const handleShelve = async (seriesId: string) => {
-    const result = await shelveSeries(seriesId)
+  const handleShelve = async (seriesId: string, isShelved: boolean, seriesItem: Series) => {
+    // If unshelving, show unshelve confirmation modal
+    if (isShelved) {
+      setPendingUnshelveSeriesId(seriesId)
+      setPendingUnshelveSeries(seriesItem)
+      setShowUnshelveModal(true)
+      return
+    }
+    
+    // If shelving, show shelve confirmation modal
+    setPendingShelveSeriesId(seriesId)
+    setPendingShelveSeries(seriesItem)
+    setShowShelveModal(true)
+  }
+
+  const handleShelveConfirm = async () => {
+    if (!pendingShelveSeriesId) return
+    
+    // Pass true to skip confirmation since we already confirmed via modal
+    const result = await shelveSeries(pendingShelveSeriesId, true)
     if (!result.success && result.error) {
       toastStoreActions.show(result.error, 'error')
     }
+    
+    setShowShelveModal(false)
+    setPendingShelveSeriesId(null)
+    setPendingShelveSeries(null)
+  }
+
+  const handleShelveCancel = () => {
+    setShowShelveModal(false)
+    setPendingShelveSeriesId(null)
+    setPendingShelveSeries(null)
+  }
+
+  const handleUnshelveConfirm = async () => {
+    if (!pendingUnshelveSeriesId) return
+    
+    // Pass true to skip confirmation since we already confirmed via modal
+    const result = await shelveSeries(pendingUnshelveSeriesId, true)
+    if (!result.success && result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+    
+    setShowUnshelveModal(false)
+    setPendingUnshelveSeriesId(null)
+    setPendingUnshelveSeries(null)
+  }
+
+  const handleUnshelveCancel = () => {
+    setShowUnshelveModal(false)
+    setPendingUnshelveSeriesId(null)
+    setPendingUnshelveSeries(null)
   }
 
   const handleEdit = (seriesItem: Series) => {
@@ -1442,13 +1500,39 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
             <MySeriesCard
               key={seriesItem._id}
               series={seriesItem}
-              onShelve={() => handleShelve(seriesItem._id)}
+              onShelve={() => handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)}
               onEdit={() => handleEdit(seriesItem)}
               onClick={() => onNavigate(`/player/${seriesItem._id}`)}
               translations={mySeries}
             />
           ))}
         </div>
+      )}
+
+      {/* Shelve Confirmation Modal */}
+      {showShelveModal && pendingShelveSeries && (
+        <ShelveConfirmationModal
+          seriesName={pendingShelveSeries.name || 'Untitled Series'}
+          title={mySeries.shelveConfirmTitle || 'Confirm Shelve'}
+          message={mySeries.shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
+          confirmLabel={mySeries.shelve || 'Shelve'}
+          cancelLabel={mySeries.cancel || 'Cancel'}
+          onConfirm={handleShelveConfirm}
+          onCancel={handleShelveCancel}
+        />
+      )}
+
+      {/* Unshelve Confirmation Modal */}
+      {showUnshelveModal && pendingUnshelveSeries && (
+        <UnshelveConfirmationModal
+          seriesName={pendingUnshelveSeries.name || 'Untitled Series'}
+          title={mySeries.unshelveConfirmTitle || 'Confirm Unshelve'}
+          message={mySeries.unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
+          confirmLabel={mySeries.unshelve || 'Unshelve'}
+          cancelLabel={mySeries.cancel || 'Cancel'}
+          onConfirm={handleUnshelveConfirm}
+          onCancel={handleUnshelveCancel}
+        />
       )}
     </div>
   )
@@ -1520,5 +1604,83 @@ const MySeriesCard: React.FC<MySeriesCardProps> = ({
     </div>
   )
 }
+
+interface ShelveConfirmationModalProps {
+  seriesName: string
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const ShelveConfirmationModal: React.FC<ShelveConfirmationModalProps> = ({
+  seriesName,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="shelve-modal-overlay" onClick={onCancel}>
+    <div className="shelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="shelve-modal-icon">📥</div>
+      <h2 className="shelve-modal-title">{title}</h2>
+      <div className="shelve-modal-series-info">
+        <span className="shelve-modal-series-name">{seriesName}</span>
+      </div>
+      <p className="shelve-modal-message">{message}</p>
+      <div className="shelve-modal-buttons">
+        <button className="shelve-modal-btn shelve-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="shelve-modal-btn shelve-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+interface UnshelveConfirmationModalProps {
+  seriesName: string
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const UnshelveConfirmationModal: React.FC<UnshelveConfirmationModalProps> = ({
+  seriesName,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="unshelve-modal-overlay" onClick={onCancel}>
+    <div className="unshelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="unshelve-modal-icon">📤</div>
+      <h2 className="unshelve-modal-title">{title}</h2>
+      <div className="unshelve-modal-series-info">
+        <span className="unshelve-modal-series-name">{seriesName}</span>
+      </div>
+      <p className="unshelve-modal-message">{message}</p>
+      <div className="unshelve-modal-buttons">
+        <button className="unshelve-modal-btn unshelve-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="unshelve-modal-btn unshelve-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
 
 export default Account

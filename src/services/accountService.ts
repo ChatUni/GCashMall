@@ -659,18 +659,12 @@ export const fetchMySeries = async (): Promise<{ success: boolean; error?: strin
 }
 
 // Shelve/unshelve series
-export const shelveSeries = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
-  const state = accountStoreActions.getState()
-  const series = state.mySeries.find((s) => s._id === seriesId)
-  const isShelved = series?.shelved
-  
-  const confirmMessage = isShelved
-    ? 'Are you sure you want to unshelve this series? It will be visible to users again.'
-    : 'Are you sure you want to shelve this series? It will be hidden from users.'
-  
-  const confirmed = window.confirm(confirmMessage)
-  if (!confirmed) {
-    return { success: false }
+// skipConfirm: if true, skip the confirmation dialog (used when confirmation is handled by the component)
+export const shelveSeries = async (seriesId: string, skipConfirm: boolean = false): Promise<{ success: boolean; error?: string }> => {
+  // skipConfirm is now always expected to be true since confirmation is handled by modals in the component
+  // Keeping the parameter for backward compatibility
+  if (!skipConfirm) {
+    // If somehow called without skipConfirm, just proceed (modals should handle confirmation)
   }
 
   try {

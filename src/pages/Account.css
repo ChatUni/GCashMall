@@ -1654,3 +1654,227 @@
   color: #9ca3af;
 }
 
+/* Shelve Confirmation Modal */
+.shelve-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: shelveModalFadeIn 0.2s ease;
+}
+
+.shelve-modal {
+  background-color: #1a1a1e;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: shelveModalSlideUp 0.3s ease;
+}
+
+.shelve-modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.shelve-modal-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.shelve-modal-series-info {
+  background-color: #242428;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.shelve-modal-series-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.shelve-modal-message {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+.shelve-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shelve-modal-btn {
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.shelve-modal-btn-confirm {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.shelve-modal-btn-confirm:hover {
+  background-color: #2563eb;
+}
+
+.shelve-modal-btn-cancel {
+  background-color: #2a2a2e;
+  color: #ffffff;
+}
+
+.shelve-modal-btn-cancel:hover {
+  background-color: #3a3a3e;
+}
+
+@keyframes shelveModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shelveModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Unshelve Confirmation Modal */
+.unshelve-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: unshelveModalFadeIn 0.2s ease;
+}
+
+.unshelve-modal {
+  background-color: #1a1a1e;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: unshelveModalSlideUp 0.3s ease;
+}
+
+.unshelve-modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.unshelve-modal-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.unshelve-modal-series-info {
+  background-color: #242428;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.unshelve-modal-series-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.unshelve-modal-message {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+.unshelve-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unshelve-modal-btn {
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.unshelve-modal-btn-confirm {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.unshelve-modal-btn-confirm:hover {
+  background-color: #2563eb;
+}
+
+.unshelve-modal-btn-cancel {
+  background-color: #2a2a2e;
+  color: #ffffff;
+}
+
+.unshelve-modal-btn-cancel:hover {
+  background-color: #3a3a3e;
+}
+
+@keyframes unshelveModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes unshelveModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

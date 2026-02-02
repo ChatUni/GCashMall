@@ -568,10 +568,114 @@ Section card with form fields:
 
 - on load: get my series list by calling get my series API
 - on card click: navigate to player page for that series
-- on Shelve button click: confirm then call shelve series API with the selected series
-- on Unshelve button click: confirm then call unshelve series API with the selected series
+- on Shelve button click: show Shelve Confirmation Modal, then call shelve series API with the selected series
+- on Unshelve button click: show Unshelve Confirmation Modal, then call unshelve series API with the selected series
 - on edit click: show the series edit page (in the content pane) in edit mode with the selected series
 - on add series click (from empty state): show the series edit page (in the content pane) in add mode
+
+### Shelve Confirmation Modal
+
+A styled modal dialog that appears when the user clicks the Shelve button on an active (not shelved) series.
+
+#### Layout
+
+- **Overlay**: Fixed position, black 80% opacity background
+- **Modal Container**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Width: 90%
+  - Text Align: center
+  - Animation: slideUp 0.3s ease
+
+#### Content
+
+- **Icon**: 📥 (48px, margin-bottom 16px)
+- **Title**: "Confirm Shelve" - White (#FFFFFF), 24px, font-weight 600
+- **Series Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Margin Bottom: 16px
+  - Series Name: White (#FFFFFF), 16px, font-weight 600
+- **Message**: "Are you sure you want to shelve this series? It will be hidden from users." - Gray (#9CA3AF), 14px, line-height 1.6
+
+#### Buttons
+
+- **Container**: Flex column, gap 12px
+- **Shelve Button**:
+  - Background: Blue (#3B82F6)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 600
+  - Hover: Darker blue (#2563EB)
+- **Cancel Button**:
+  - Background: Gray (#2A2A2E)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 500
+  - Hover: Lighter gray (#3A3A3E)
+
+#### Interaction
+
+- Click overlay to cancel (close modal)
+- Click Cancel button to close modal
+- Click Shelve button to proceed with shelve operation
+
+### Unshelve Confirmation Modal
+
+A styled modal dialog that appears when the user clicks the Unshelve button on a shelved series.
+
+#### Layout
+
+- **Overlay**: Fixed position, black 80% opacity background
+- **Modal Container**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Width: 90%
+  - Text Align: center
+  - Animation: slideUp 0.3s ease
+
+#### Content
+
+- **Icon**: 📤 (48px, margin-bottom 16px)
+- **Title**: "Confirm Unshelve" - White (#FFFFFF), 24px, font-weight 600
+- **Series Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Margin Bottom: 16px
+  - Series Name: White (#FFFFFF), 16px, font-weight 600
+- **Message**: "Are you sure you want to unshelve this series? It will become visible to all users." - Gray (#9CA3AF), 14px, line-height 1.6
+
+#### Buttons
+
+- **Container**: Flex column, gap 12px
+- **Unshelve Button**:
+  - Background: Blue (#3B82F6)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 600
+  - Hover: Darker blue (#2563EB)
+- **Cancel Button**:
+  - Background: Gray (#2A2A2E)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 500
+  - Hover: Lighter gray (#3A3A3E)
+
+#### Interaction
+
+- Click overlay to cancel (close modal)
+- Click Cancel button to close modal
+- Click Unshelve button to proceed with unshelve operation
 
 #### Add Series / Edit Series View
 
