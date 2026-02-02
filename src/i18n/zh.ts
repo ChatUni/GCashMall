@@ -94,7 +94,7 @@ export const zh = {
     },
     wallet: {
       title: '钱包',
-      subtitle: '管理您的 GCash 余额',
+      subtitle: '管理您的 Gcash 余额',
       currentBalance: '当前余额',
       topUp: '充值',
       topUpDescription: '选择要添加到钱包的金额',

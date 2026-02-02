@@ -189,8 +189,8 @@ The history icon and popover are wrapped in a container to ensure proper hover b
   - **Mouse Leave**: Waits 150ms before hiding popover (allows user to move mouse to popover content)
   - **Hover Area**: Entire wrapper including both icon and popover
 - **Click**:
-  - If logged in (localStorage has `gcashtv-user`): Navigate to `/account?tab=watchHistory`
-  - If not logged in: Open LoginModal
+  - If logged in: Navigate to `/account?tab=watchHistory`
+  - If not logged in: Open LoginModal (after successful login, navigate to Home page)
 
 ### History Popover
 - **Position**: Absolute (relative to wrapper), top calc(100% + 8px), right 0
@@ -301,7 +301,7 @@ The history icon and popover are wrapped in a container to ensure proper hover b
 
 The TopBar includes the LoginModal component:
 - **Trigger**: Account icon click when not logged in
-- **On Success**: Close modal, navigate to `/account`
+- **On Success**: Close modal, navigate to Home page (`/`)
 - **On Close**: Just close modal
 
 ## Context Dependencies

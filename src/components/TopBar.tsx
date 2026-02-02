@@ -147,7 +147,11 @@ const TopBar: React.FC = () => {
   }
 
   const handleHistoryIconClick = () => {
-    navigate('/account?tab=watchHistory')
+    if (isLoggedIn) {
+      navigate('/account?tab=watchHistory')
+    } else {
+      setShowLoginModal(true)
+    }
   }
 
   const handleAccountClick = () => {
@@ -339,7 +343,8 @@ const TopBar: React.FC = () => {
             // Initialize account store with user data before navigating
             accountStoreActions.initializeUserData(user)
             setShowLoginModal(false)
-            navigate('/account')
+            // Navigate to Home page after successful login
+            navigate('/')
           }}
         />
       )}
