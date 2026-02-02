@@ -151,6 +151,11 @@ const Player: React.FC = () => {
   // Purchase popup state
   const [showPurchasePopup, setShowPurchasePopup] = React.useState(false)
   const [isPurchasing, setIsPurchasing] = React.useState(false)
+  
+  // Result modal state
+  const [showResultModal, setShowResultModal] = React.useState(false)
+  const [resultModalType, setResultModalType] = React.useState<'success' | 'error'>('success')
+  const [resultModalMessage, setResultModalMessage] = React.useState('')
 
   // Initialize data on first render
   if (id) {
@@ -277,12 +282,10 @@ const Player: React.FC = () => {
     // Check if user has enough balance
     const userBalance = userState.user?.balance || 0
     if (userBalance < EPISODE_PRICE) {
-      toastStoreActions.show(
-        (t.player as Record<string, string>).insufficientBalance || 'Insufficient balance. Please top up your wallet.',
-        'error',
-      )
       setShowPurchasePopup(false)
-      navigate('/account?tab=wallet')
+      setResultModalType('error')
+      setResultModalMessage((t.player as Record<string, string>).insufficientBalance || 'Insufficient balance. Please top up your wallet.')
+      setShowResultModal(true)
       return
     }
 
@@ -294,24 +297,22 @@ const Player: React.FC = () => {
         playerState.currentEpisode.episodeNumber,
         EPISODE_PRICE,
       )
+      setShowPurchasePopup(false)
       if (result.success) {
-        toastStoreActions.show(
-          (t.player as Record<string, string>).purchaseSuccess || 'Episode unlocked successfully!',
-          'success',
-        )
-        setShowPurchasePopup(false)
+        setResultModalType('success')
+        setResultModalMessage((t.player as Record<string, string>).purchaseSuccess || 'Unlock Episode Successfully!')
+        setShowResultModal(true)
       } else {
-        toastStoreActions.show(
-          result.error || (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode',
-          'error',
-        )
+        setResultModalType('error')
+        setResultModalMessage(result.error || (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode')
+        setShowResultModal(true)
       }
     } catch (error) {
       console.error('Failed to purchase episode:', error)
-      toastStoreActions.show(
-        (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode',
-        'error',
-      )
+      setShowPurchasePopup(false)
+      setResultModalType('error')
+      setResultModalMessage((t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode')
+      setShowResultModal(true)
     } finally {
       setIsPurchasing(false)
     }
@@ -423,8 +424,9 @@ const Player: React.FC = () => {
               {(t.player as Record<string, string>).unlockMessage || 'Unlock this episode to continue watching'}
             </p>
             <div className="popup-episode-info">
+              <span className="popup-series-name">{playerState.series?.name || ''}</span>
               <span className="popup-episode-name">
-                {buildEpisodeTitle(playerState.series?.name || '', playerState.currentEpisode.episodeNumber)}
+                EP {playerState.currentEpisode.episodeNumber.toString().padStart(2, '0')}{playerState.currentEpisode.title ? ` ${playerState.currentEpisode.title}` : ''}
               </span>
             </div>
             <div className="popup-price">
@@ -452,6 +454,60 @@ const Player: React.FC = () => {
                 {(t.player as Record<string, string>).cancel || 'Cancel'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Modal */}
+      {showResultModal && (
+        <div className="popup-overlay" onClick={() => setShowResultModal(false)}>
+          <div className={`popup-modal result-modal result-${resultModalType}`} onClick={(e) => e.stopPropagation()}>
+            <div className="result-icon">
+              {resultModalType === 'success' ? (
+                <svg viewBox="0 0 24 24" width="64" height="64">
+                  <circle cx="12" cy="12" r="11" fill="#22c55e" />
+                  <path
+                    d="M7 12l3 3 7-7"
+                    stroke="#ffffff"
+                    strokeWidth="2.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="64" height="64">
+                  <circle cx="12" cy="12" r="11" fill="#ef4444" />
+                  <path
+                    d="M8 8l8 8M16 8l-8 8"
+                    stroke="#ffffff"
+                    strokeWidth="2.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </div>
+            <h2 className="result-title">
+              {resultModalType === 'success'
+                ? ((t.player as Record<string, string>).unlockSuccess || 'Unlock Episode Successfully!')
+                : ((t.player as Record<string, string>).unlockFailed || 'Unlock Failed')}
+            </h2>
+            <p className="result-message">{resultModalMessage}</p>
+            <button
+              className={`btn-result ${resultModalType === 'success' ? 'btn-result-success' : 'btn-result-error'}`}
+              onClick={() => {
+                setShowResultModal(false)
+                if (resultModalType === 'error' && resultModalMessage.includes('balance')) {
+                  navigate('/account?tab=wallet')
+                }
+              }}
+            >
+              {resultModalType === 'error' && resultModalMessage.includes('balance')
+                ? ((t.player as Record<string, string>).goToWallet || 'Go to Wallet')
+                : 'OK'}
+            </button>
           </div>
         </div>
       )}

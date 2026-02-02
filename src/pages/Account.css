@@ -1293,6 +1293,28 @@
   color: #a855f7;
 }
 
+.transaction-type.type-purchase {
+  color: #eab308;
+}
+
+/* Purchase Type Cell - Two Lines */
+.purchase-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.purchase-type-series {
+  font-size: 14px;
+  font-weight: 500;
+  color: #eab308;
+}
+
+.purchase-type-episode {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
 .transaction-amount {
   font-weight: 600;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
@@ -1304,6 +1326,10 @@
 
 .amount-negative {
   color: #a855f7;
+}
+
+.amount-purchase {
+  color: #eab308;
 }
 
 .transaction-status {

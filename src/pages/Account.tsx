@@ -1016,17 +1016,36 @@ const WalletSection: React.FC<WalletSectionProps> = ({
     }
   }
 
-  // Get type display text
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case 'topup':
-        return wallet.topUp || 'Top Up'
-      case 'withdraw':
-        return wallet.withdraw || 'Withdraw'
-      default:
-        return type
-    }
+  // Combine transactions and purchases into a single list
+  type CombinedTransaction = {
+    id: string
+    type: 'topup' | 'withdraw' | 'purchase'
+    amount: number
+    status: string
+    referenceId: string
+    createdAt: Date
+    purchase?: PurchaseItem
   }
+
+  const combinedTransactions: CombinedTransaction[] = [
+    ...transactions.map((t) => ({
+      id: t.id,
+      type: t.type as 'topup' | 'withdraw',
+      amount: t.amount,
+      status: t.status,
+      referenceId: t.referenceId,
+      createdAt: t.createdAt,
+    })),
+    ...purchases.map((p) => ({
+      id: p._id,
+      type: 'purchase' as const,
+      amount: p.price,
+      status: p.status || 'success',
+      referenceId: p.referenceId || '-',
+      createdAt: new Date(p.purchasedAt),
+      purchase: p,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (
     <div className="content-section wallet-section">
@@ -1104,7 +1123,7 @@ const WalletSection: React.FC<WalletSectionProps> = ({
       {/* Transaction History Section */}
       <div className="section-card transaction-history-section">
         <h3 className="card-title">{wallet.transactionHistory || 'Transaction History'}</h3>
-        {transactions.length === 0 ? (
+        {combinedTransactions.length === 0 ? (
           <p className="no-transactions">{wallet.noTransactions || 'No transactions yet'}</p>
         ) : (
           <div className="transaction-table-container">
@@ -1119,14 +1138,23 @@ const WalletSection: React.FC<WalletSectionProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => (
+                {combinedTransactions.map((transaction) => (
                   <tr key={transaction.id}>
                     <td className="transaction-time">{formatDate(transaction.createdAt)}</td>
                     <td className={`transaction-type type-${transaction.type}`}>
-                      {getTypeText(transaction.type)}
+                      {transaction.type === 'purchase' && transaction.purchase ? (
+                        <div className="purchase-type-cell">
+                          <span className="purchase-type-series">{transaction.purchase.seriesName}</span>
+                          <span className="purchase-type-episode">
+                            EP {transaction.purchase.episodeNumber}{transaction.purchase.episodeTitle ? ` ${transaction.purchase.episodeTitle}` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        transaction.type === 'topup' ? (wallet.topUp || 'Top Up') : (wallet.withdraw || 'Withdraw')
+                      )}
                     </td>
                     <td className="transaction-amount">
-                      <span className={transaction.type === 'topup' ? 'amount-positive' : 'amount-negative'}>
+                      <span className={transaction.type === 'topup' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
                         {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
                       </span>
                     </td>
@@ -1136,50 +1164,6 @@ const WalletSection: React.FC<WalletSectionProps> = ({
                     <td className="transaction-reference">{transaction.referenceId}</td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Purchase History Section */}
-      <div className="section-card purchase-history-section">
-        <h3 className="card-title">{wallet.purchaseHistory || 'Purchase History'}</h3>
-        {purchases.length === 0 ? (
-          <p className="no-transactions">{wallet.noPurchases || 'No purchases yet'}</p>
-        ) : (
-          <div className="transaction-table-container">
-            <table className="transaction-table">
-              <thead>
-                <tr>
-                  <th>{wallet.time || 'Time'}</th>
-                  <th>{wallet.item || 'Item'}</th>
-                  <th>{wallet.amount || 'Amount'}</th>
-                  <th>{wallet.status || 'Status'}</th>
-                  <th>{wallet.referenceId || 'Reference ID'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchases
-                  .sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime())
-                  .map((purchase) => (
-                    <tr key={purchase._id}>
-                      <td className="transaction-time">{formatDate(new Date(purchase.purchasedAt))}</td>
-                      <td className="purchase-item-cell">
-                        <span className="purchase-series-name">{purchase.seriesName}</span>
-                        <span className="purchase-episode-name">
-                          EP {purchase.episodeNumber}{purchase.episodeTitle ? ` - ${purchase.episodeTitle}` : ''}
-                        </span>
-                      </td>
-                      <td className="transaction-amount">
-                        <span className="amount-negative">-{purchase.price.toFixed(2)}</span>
-                      </td>
-                      <td className={`transaction-status ${getStatusClass(purchase.status || 'success')}`}>
-                        {getStatusText(purchase.status || 'success')}
-                      </td>
-                      <td className="transaction-reference">{purchase.referenceId || '-'}</td>
-                    </tr>
-                  ))}
               </tbody>
             </table>
           </div>

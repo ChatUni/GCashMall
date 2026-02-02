@@ -551,12 +551,21 @@
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popup-series-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .popup-episode-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #ffffff;
+  font-size: 14px;
+  font-weight: 400;
+  color: #9ca3af;
 }
 
 .popup-price {
@@ -695,4 +704,77 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Result Modal Styles */
+.result-modal {
+  text-align: center;
+  padding: 40px 32px;
+}
+
+.result-icon {
+  margin-bottom: 20px;
+}
+
+.result-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.result-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.result-success .result-title {
+  color: #22c55e;
+}
+
+.result-error .result-title {
+  color: #ef4444;
+}
+
+.result-message {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 28px 0;
+  line-height: 1.6;
+}
+
+.btn-result {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-result:hover {
+  transform: scale(1.02);
+}
+
+.btn-result:active {
+  transform: scale(0.98);
+}
+
+.btn-result-success {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+
+.btn-result-success:hover {
+  background-color: #16a34a;
+}
+
+.btn-result-error {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.btn-result-error:hover {
+  background-color: #dc2626;
 }

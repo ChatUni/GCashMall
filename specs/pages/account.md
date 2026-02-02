@@ -354,6 +354,7 @@ Section card with form fields:
 - **Title**: "Transaction History"
 - **Container**: Section card below amount selection
 - **Empty State**: "No transactions yet" - Gray (#6B7280), centered, padding 40px
+- **Data**: Combined list of wallet transactions (top up, withdraw) and purchases, sorted by date descending
 
 #### Transaction Table
 - **Container**: Overflow-x auto for mobile responsiveness
@@ -389,17 +390,22 @@ Section card with form fields:
   - White-space: nowrap (prevents "Top Up" from wrapping to two lines)
   - Top Up: Green (#22C55E)
   - Withdraw: Purple (#A855F7)
+  - Purchase: Yellow (#EAB308), displayed in two lines:
+    - Line 1: Series Name (14px, font-weight 500, #EAB308)
+    - Line 2: "EP X Episode Title" (12px, gray #9CA3AF)
 - **Amount**:
   - Font-weight: 600
   - Monospace font
   - Positive (Top Up): Green (#22C55E) with "+" prefix
   - Negative (Withdraw): Purple (#A855F7) with "-" prefix
+  - Negative (Purchase): Yellow (#EAB308) with "-" prefix
 - **Status**:
   - Text style: font-weight 500, font-size 13px
   - Success: Emerald text (#10B981) - different from top up green for contrast
   - Failed: Red text (#EF4444)
   - Processing: Amber text (#F59E0B)
 - **Reference ID**: Monospace font, 12px, gray (#6B7280)
+  - Fallback: "-" if referenceId is not available (for legacy purchase records)
 
 #### Transaction Flow
 1. When user initiates top up or withdraw, the API is called with the amount
@@ -408,56 +414,16 @@ Section card with form fields:
 4. Frontend updates the store with the new user data
 5. Transaction appears in the history table with "success" status
 6. Balance and transactions are persisted to the database and retained after page refresh
-7. Transactions are sorted by createdAt descending (newest first)
+7. All transactions (top up, withdraw, purchases) are combined and sorted by createdAt descending (newest first)
 
-#### Purchase History Section
-- **Title**: "Purchase History"
-- **Container**: Section card below transaction history
-- **Empty State**: "No purchases yet" - Gray (#6B7280), centered, padding 40px
-
-##### Purchase History Table
-- **Container**: Overflow-x auto for mobile responsiveness
-- **Table Width**: 100%
-- **Border Collapse**: collapse
-
-##### Table Headers
-| Column | Label | Alignment |
-|--------|-------|-----------|
-| Time | Time | Left |
-| Item | Item | Left |
-| Amount | Amount | Left |
-| Status | Status | Left |
-| Reference ID | Reference ID | Left |
-
-- **Header Styling**: Same as Transaction History table
-
-##### Table Rows
-- **Row Styling**: Same as Transaction History table
-
-##### Column Styling
-- **Time**: Gray (#9CA3AF), 13px, white-space nowrap
-- **Item** (flex column, gap 2px):
-  - Series Name: White (#FFFFFF), 14px, font-weight 500
-  - Episode: Gray (#9CA3AF), 12px, format "EP X - Title"
-- **Amount**:
-  - Font-weight: 600
-  - Monospace font
-  - Negative: Purple (#A855F7) with "-" prefix
-- **Status**:
-  - Text style: font-weight 500, font-size 13px
-  - Success: Emerald text (#10B981)
-  - Failed: Red text (#EF4444)
-  - Processing: Amber text (#F59E0B)
-- **Reference ID**: Monospace font, 12px, gray (#6B7280)
-  - Fallback: "-" if referenceId is not available (for legacy records)
-
-##### Purchase History Data
-- Purchases sorted by purchasedAt descending (newest first)
-- No click interaction (display only)
-- **Legacy Data Handling**:
-  - Status defaults to "success" if not present in purchase record
-  - Reference ID displays "-" if not present in purchase record
-  - This ensures backward compatibility with purchases made before these fields were added
+#### Combined Transaction Data
+- Wallet transactions (top up, withdraw) from user.transactions
+- Purchases from user.purchases, converted to transaction format with type "purchase"
+- For purchases:
+  - Type displays as "Series Name - EP X Episode Title"
+  - Amount shows the purchase price with "-" prefix
+  - Status defaults to "success" if not present (for legacy records)
+  - Reference ID displays "-" if not present (for legacy records)
 
 ### 6. My Purchases
 

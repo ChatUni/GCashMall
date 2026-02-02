@@ -384,6 +384,14 @@ To determine if an episode is purchased:
 - **Icon**: 64px lock emoji (🔓), horizontally flipped (transform: scaleX(-1))
 - **Title**: "Unlock Episode" - 20px, white
 - **Message**: "Unlock this episode to continue watching" - 14px, gray
+- **Episode Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Display: Flex column, gap 4px
+  - **Series Name** (first line): 16px, font-weight 600, white
+  - **Episode Name** (second line): 14px, font-weight 400, gray (#9CA3AF)
+    - Format: "EP XX" or "EP XX {Episode Title}"
 - **Price Display**:
   - GCash logo (24px)
   - Amount: "0.1" - 36px, bold, #3B82F6
@@ -395,6 +403,44 @@ To determine if an episode is purchased:
   - Cancel (gray, full width)
 - **Loading State**: Show spinner during purchase processing
 - **Error State**: Show red error message if purchase fails
+
+### Purchase Result Modal
+- **Overlay**: Fixed, rgba(0, 0, 0, 0.8), z-index 1000
+- **Modal**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 40px 32px
+  - Max Width: 400px
+  - Text Align: Center
+  - Animation: fadeIn 0.2s, slideUp 0.3s
+- **Result Icon**:
+  - Size: 64px × 64px
+  - Drop Shadow: 0 4px 12px rgba(0, 0, 0, 0.3)
+  - **Success**: Green circle (#22C55E) with white checkmark
+  - **Error**: Red circle (#EF4444) with white X
+- **Result Title**:
+  - Font Size: 22px
+  - Font Weight: 600
+  - **Success**: "Unlock Episode Successfully!" - color #22C55E
+  - **Error**: "Unlock Failed" - color #EF4444
+- **Result Message**:
+  - Font Size: 14px
+  - Color: #9CA3AF
+  - Line Height: 1.6
+  - Margin Bottom: 28px
+- **Result Button**:
+  - Width: 100%
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font Size: 16px
+  - Font Weight: 600
+  - Hover: scale(1.02)
+  - Active: scale(0.98)
+  - **Success Button**: Background #22C55E, hover #16A34A
+  - **Error Button**: Background #EF4444, hover #DC2626
+  - **Button Text**:
+    - Default: "OK"
+    - If insufficient balance error: "Go to Wallet" (navigates to /account?tab=wallet)
 
 ### Toast Notifications
 - **Position**: Fixed, top 80px, right 24px
