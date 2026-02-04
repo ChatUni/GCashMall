@@ -46,7 +46,7 @@ const ImageUpload = ({ imageUrl, onImageChange }: ImageUploadProps) => {
     setShowOverlay(false)
   }
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+  const handleKeyDown = useCallback((_event: KeyboardEvent) => {
     if (showOverlay) {
       setShowOverlay(false)
     }

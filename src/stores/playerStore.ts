@@ -230,7 +230,8 @@ export const playerStoreActions = {
     // Attempt to purchase
     basePlayerStoreActions.setPurchaseLoading(true)
     try {
-      const result = await purchaseEpisode(seriesId, state.currentEpisode.episodeNumber)
+      const episodeId = (state.currentEpisode as { _id?: string })?._id || ''
+      const result = await purchaseEpisode(seriesId, episodeId, state.currentEpisode.episodeNumber)
       if (result.success) {
         showToast(
           t.player?.purchaseDialog?.purchaseSuccess || 'Episode purchased successfully',

@@ -3,7 +3,13 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-window.tap = x => {
+declare global {
+  interface Window {
+    tap: <T>(x: T) => T
+  }
+}
+
+window.tap = <T,>(x: T): T => {
   console.log(x)
   return x
 }
