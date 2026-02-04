@@ -18,3 +18,19 @@ Horizontal
 
 - click About: go to about page
 - click Contact: go to contact page
+
+## Internationalization
+
+### English (en)
+
+| Key | Value |
+|-----|-------|
+| about | About |
+| contact | Contact |
+
+### Chinese (zh)
+
+| Key | Value |
+|-----|-------|
+| about | 关于我们 |
+| contact | 联系我们 |

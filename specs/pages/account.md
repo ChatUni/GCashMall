@@ -275,6 +275,7 @@ Section card with form fields:
   - **Title** (`.card-title`): "Select Top Up Amount" or "Select Withdrawal Amount" (based on active tab)
     - Margin Bottom: 0 (overrides default card-title margin)
   - **Withdraw All Button** (`.btn-withdraw-all`, only visible in withdraw tab when balance > 0):
+    - Text: "Withdraw All" (en) / "全部提现" (zh)
     - Background: Blue (#3B82F6)
     - Color: White (#FFFFFF)
     - Padding: 8px 16px
