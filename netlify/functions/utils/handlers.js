@@ -1904,17 +1904,24 @@ const addPurchase = async (body, authHeader) => {
     }
     const series = seriesResult.data
 
-    // Get episode info
-    const episodes = await get('episodes', { seriesId, episodeNumber }, {}, {}, 1)
+    // Get episode info from series.episodes array
     let episodeTitle = `Episode ${episodeNumber}`
     let episodeThumbnail = series.cover
     let actualEpisodeId = episodeId
 
-    if (episodes && episodes.length > 0) {
-      const episode = episodes[0]
-      episodeTitle = episode.title || episodeTitle
-      episodeThumbnail = episode.thumbnail || episodeThumbnail
-      actualEpisodeId = episode._id || episodeId
+    // Episodes are stored in series.episodes array, not a separate collection
+    if (series.episodes && series.episodes.length > 0) {
+      const episode = series.episodes.find(ep => ep.episodeNumber === episodeNumber)
+      if (episode) {
+        episodeTitle = episode.title || episodeTitle
+        // Get episode thumbnail from Bunny CDN using videoId
+        if (episode.videoId) {
+          episodeThumbnail = `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
+        } else if (episode.thumbnail) {
+          episodeThumbnail = episode.thumbnail
+        }
+        actualEpisodeId = episode._id || `${seriesId}-ep${episodeNumber}`
+      }
     }
 
     const purchases = currentUser.purchases || []

@@ -321,16 +321,21 @@ Two sections identical to Home page:
 ## Trial Viewing System
 
 ### Overview
-Users can watch the first 60 seconds (1 minute) of any episode for free. After the trial period ends, they must purchase the episode to continue watching.
+Users can watch the first few seconds of any episode for free (configurable, default 3 seconds). After the trial period ends, they must purchase the episode to continue watching.
+
+### Configuration
+- **Constant**: `TIME_LIMIT` in `src/stores/playerStore.ts`
+- **Default Value**: 3 seconds
+- **Location**: Both the markdown spec and the code constant should be updated together when changing this value
 
 ### Trial Logic
-- **Trial Duration**: 60 seconds
-- **Trigger**: Video playback reaches 60 seconds for unpurchased episodes
+- **Trial Duration**: 3 seconds (configurable via TIME_LIMIT constant)
+- **Trigger**: Video playback reaches the time limit for unpurchased episodes
 - **Behavior**:
-  - Video pauses automatically at 60 seconds
+  - Video pauses automatically at the time limit
   - Purchase popup appears
   - User can either purchase or close the popup
-  - If closed without purchase, video remains paused at 60 seconds
+  - If closed without purchase, video remains paused at the time limit
 
 ### Trial State Tracking
 - Track current playback time

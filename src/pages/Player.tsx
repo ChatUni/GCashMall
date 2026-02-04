@@ -77,9 +77,21 @@ const handlePlayPause = (
   }
 }
 
-const handleTimeUpdate = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+const handleTimeUpdate = (
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  isPurchased: boolean,
+  onTimeLimitReached: () => void,
+) => {
   if (videoRef.current) {
-    playerStoreActions.setCurrentTime(videoRef.current.currentTime)
+    const currentTime = videoRef.current.currentTime
+    playerStoreActions.setCurrentTime(currentTime)
+    
+    // Enforce trial time limit if episode is not purchased
+    if (!isPurchased && currentTime >= TIME_LIMIT) {
+      videoRef.current.pause()
+      playerStoreActions.setIsPlaying(false)
+      onTimeLimitReached()
+    }
   }
 }
 
@@ -92,8 +104,19 @@ const handleLoadedMetadata = (videoRef: React.RefObject<HTMLVideoElement | null>
 const handleProgressChange = (
   videoRef: React.RefObject<HTMLVideoElement | null>,
   time: number,
+  isPurchased: boolean,
+  onTimeLimitReached: () => void,
 ) => {
   if (videoRef.current) {
+    // Enforce trial time limit if episode is not purchased and user tries to seek past limit
+    if (!isPurchased && time >= TIME_LIMIT) {
+      videoRef.current.currentTime = TIME_LIMIT
+      videoRef.current.pause()
+      playerStoreActions.setCurrentTime(TIME_LIMIT)
+      playerStoreActions.setIsPlaying(false)
+      onTimeLimitReached()
+      return
+    }
     videoRef.current.currentTime = time
     playerStoreActions.setCurrentTime(time)
   }
@@ -131,7 +154,11 @@ const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | null>) =>
   }
 }
 
-// Episode price constant
+// Configurable constants
+// Trial time limit in seconds - users can watch this much before purchase is required
+// To change the trial duration, update this value and the corresponding value in specs/pages/player.md
+const TIME_LIMIT = 3
+// Episode price in GCash
 const EPISODE_PRICE = 0.1
 
 const Player: React.FC = () => {
@@ -241,9 +268,18 @@ const Player: React.FC = () => {
     return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
   }
 
-  // Check if current episode is purchased
+  // Check if user is the owner of the series (uploader)
+  const isUserSeriesOwner = (): boolean => {
+    if (!playerState.series?.uploaderId || !userState.user?._id) return false
+    return String(playerState.series.uploaderId) === String(userState.user._id)
+  }
+
+  // Check if current episode is purchased or user is the uploader
+  // If user is the uploader, TIME_LIMIT should not apply
   const isCurrentEpisodePurchased = (): boolean => {
     if (!playerState.currentEpisode || !id) return false
+    // Series owner can watch without restriction
+    if (isUserSeriesOwner()) return true
     return isEpisodePurchased(
       id,
       playerState.currentEpisode._id,
@@ -413,16 +449,18 @@ const Player: React.FC = () => {
             volume={playerState.volume}
             playbackSpeed={playerState.playbackSpeed}
             showSpeedSelector={playerState.showSpeedSelector}
+            isPurchased={isCurrentEpisodePurchased()}
             onPlayPause={() => handlePlayPause(videoRef, playerState.isPlaying)}
-            onTimeUpdate={() => handleTimeUpdate(videoRef)}
+            onTimeUpdate={() => handleTimeUpdate(videoRef, isCurrentEpisodePurchased(), () => setShowPurchasePopup(true))}
             onLoadedMetadata={() => handleLoadedMetadata(videoRef)}
-            onProgressChange={(time) => handleProgressChange(videoRef, time)}
+            onProgressChange={(time) => handleProgressChange(videoRef, time, isCurrentEpisodePurchased(), () => setShowPurchasePopup(true))}
             onVolumeToggle={() => handleVolumeToggle(videoRef, playerState.volume)}
             onSpeedChange={(speed) => handleSpeedChange(videoRef, speed)}
             onSpeedSelectorToggle={() => playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)}
             onFullscreen={() => handleFullscreen(videoRef)}
             onMouseMove={handleMouseMove}
             onMouseLeave={() => playerState.isPlaying && playerStoreActions.setShowControls(false)}
+            onTimeLimitReached={() => setShowPurchasePopup(true)}
           />
 
           <EpisodeMetadata
@@ -444,6 +482,7 @@ const Player: React.FC = () => {
           currentEpisode={playerState.currentEpisode}
           episodeRange={playerState.episodeRange}
           title={t.player.episodes}
+          isEpisodePurchased={(episode) => id ? isEpisodePurchased(id, episode._id, userState.user?.purchases, episode.episodeNumber) : false}
           onEpisodeClick={handleEpisodeClick}
           onRangeSelect={playerStoreActions.setEpisodeRange}
         />
@@ -647,6 +686,7 @@ interface VideoPlayerProps {
   volume: number
   playbackSpeed: number
   showSpeedSelector: boolean
+  isPurchased: boolean
   onPlayPause: () => void
   onTimeUpdate: () => void
   onLoadedMetadata: () => void
@@ -657,6 +697,20 @@ interface VideoPlayerProps {
   onFullscreen: () => void
   onMouseMove: () => void
   onMouseLeave: () => void
+  onTimeLimitReached: () => void
+}
+
+// Bunny Player.js interface
+interface PlayerJsPlayer {
+  on(event: string, callback: (data?: { seconds?: number }) => void): void
+  pause(): void
+  setCurrentTime(time: number): void
+}
+
+interface WindowWithPlayerJs extends Window {
+  playerjs?: {
+    Player: new (iframe: HTMLIFrameElement) => PlayerJsPlayer
+  }
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -669,6 +723,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   volume,
   playbackSpeed,
   showSpeedSelector,
+  isPurchased,
   onPlayPause,
   onTimeUpdate,
   onLoadedMetadata,
@@ -679,18 +734,88 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onFullscreen,
   onMouseMove,
   onMouseLeave,
-}) => (
-  <div className="video-player">
-    {!episode ? (
-      <div className="video-placeholder">No video available</div>
-    ) : episode.videoId ? (
-      <iframe
-        src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId)}
-        loading="lazy"
-        style={{ border: 'none', width: '100%', height: '100%' }}
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen
-      />
+  onTimeLimitReached,
+}) => {
+  const iframeRef = React.useRef<HTMLIFrameElement>(null)
+  const playerRef = React.useRef<PlayerJsPlayer | null>(null)
+  // Track if dialog is currently shown to prevent rapid re-triggering
+  const dialogShownRef = React.useRef(false)
+  // Use ref to track purchased status so event handler always sees current value
+  const isPurchasedRef = React.useRef(isPurchased)
+  
+  // Keep ref in sync with prop
+  React.useEffect(() => {
+    isPurchasedRef.current = isPurchased
+  }, [isPurchased])
+
+  // Initialize Player.js for Bunny iframe
+  React.useEffect(() => {
+    if (!episode?.videoId || !iframeRef.current) return
+
+    const initPlayer = () => {
+      const windowWithPlayerJs = window as WindowWithPlayerJs
+      if (!windowWithPlayerJs.playerjs || !iframeRef.current) return
+
+      try {
+        const player = new windowWithPlayerJs.playerjs.Player(iframeRef.current)
+        playerRef.current = player
+
+        player.on('ready', () => {
+          // Listen for time updates
+          player.on('timeupdate', (data) => {
+            if (!data?.seconds) return
+            const currentSeconds = data.seconds
+
+            // Enforce trial time limit if episode is not purchased
+            // Use ref to get current purchased status (not stale closure value)
+            if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
+              player.pause()
+              player.setCurrentTime(TIME_LIMIT - 0.1) // Set slightly before limit to prevent immediate re-trigger
+              if (!dialogShownRef.current) {
+                dialogShownRef.current = true
+                onTimeLimitReached()
+                // Reset the flag after a short delay to allow showing again if needed
+                setTimeout(() => {
+                  dialogShownRef.current = false
+                }, 500)
+              }
+            }
+          })
+        })
+      } catch (error) {
+        console.error('Failed to initialize Player.js:', error)
+      }
+    }
+
+    // Load Player.js script if not already loaded
+    const windowWithPlayerJs = window as WindowWithPlayerJs
+    if (windowWithPlayerJs.playerjs) {
+      initPlayer()
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://cdn.embed.ly/player-0.1.0.min.js'
+      script.onload = initPlayer
+      document.head.appendChild(script)
+    }
+
+    return () => {
+      playerRef.current = null
+    }
+  }, [episode?.videoId, onTimeLimitReached])
+
+  return (
+    <div className="video-player">
+      {!episode ? (
+        <div className="video-placeholder">No video available</div>
+      ) : episode.videoId ? (
+        <iframe
+          ref={iframeRef}
+          src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId)}
+          loading="lazy"
+          style={{ border: 'none', width: '100%', height: '100%' }}
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+        />
     ) : (
       <div
         className="video-player-native"
@@ -736,7 +861,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
     )}
   </div>
-)
+  )
+}
 
 interface PlayPauseButtonProps {
   isPlaying: boolean
@@ -884,28 +1010,22 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
           </svg>
         </button>
 
-        <button
-          className={`unlock-button ${isEpisodePurchased ? 'purchased' : ''}`}
-          onClick={onUnlockClick}
-          title={isEpisodePurchased ? 'Episode unlocked' : 'Unlock episode'}
-          disabled={isEpisodePurchased}
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            {isEpisodePurchased ? (
-              <path
-                fill="#f97316"
-                d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
-              />
-            ) : (
+        {!isEpisodePurchased && (
+          <button
+            className="unlock-button"
+            onClick={onUnlockClick}
+            title="Unlock episode"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24">
               <path
                 fill="none"
                 stroke="#9ca3af"
                 strokeWidth="2"
                 d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
               />
-            )}
-          </svg>
-        </button>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
 
@@ -929,10 +1049,11 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
 interface EpisodeItemProps {
   episode: Episode
   isActive: boolean
+  isPurchased: boolean
   onClick: () => void
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, onClick }) => {
+const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, isPurchased, onClick }) => {
   const [isHovered, setIsHovered] = React.useState(false)
 
   return (
@@ -942,6 +1063,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, onClick })
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {isPurchased && <div className="purchased-ribbon" />}
       <img
         src={getEpisodeThumbnailUrl(episode, isHovered)}
         alt={episode.title}
@@ -959,6 +1081,7 @@ interface EpisodeSidebarProps {
   currentEpisode: Episode | null
   episodeRange: [number, number]
   title: string
+  isEpisodePurchased: (episode: Episode) => boolean
   onEpisodeClick: (episode: Episode) => void
   onRangeSelect: (range: [number, number]) => void
 }
@@ -969,6 +1092,7 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
   currentEpisode,
   episodeRange,
   title,
+  isEpisodePurchased,
   onEpisodeClick,
   onRangeSelect,
 }) => {
@@ -998,6 +1122,7 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
             key={episode.episodeNumber}
             episode={episode}
             isActive={currentEpisode !== null && currentEpisode.episodeNumber === episode.episodeNumber}
+            isPurchased={isEpisodePurchased(episode)}
             onClick={() => onEpisodeClick(episode)}
           />
         ))}
