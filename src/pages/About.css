@@ -1,0 +1,295 @@
+.about-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #0b0b0e;
+}
+
+.about-content {
+  flex: 1;
+  padding: 40px 20px;
+}
+
+.about-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Hero Section */
+.about-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.about-logo {
+  margin-bottom: 20px;
+}
+
+.about-logo-image {
+  width: 80px;
+  height: 80px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.about-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.about-tagline {
+  font-size: 18px;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Cards */
+.about-card {
+  background-color: #121214;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.about-card-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+/* Mission Section */
+.about-section {
+  text-align: center;
+}
+
+.about-section-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.about-section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.about-section-text {
+  font-size: 16px;
+  color: #d1d5db;
+  line-height: 1.8;
+  margin: 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Features Grid */
+.about-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.about-feature {
+  background-color: #1a1a1e;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.about-feature:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+}
+
+.about-feature-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.about-feature-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.about-feature-text {
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Steps */
+.about-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background-color: #1a1a1e;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.about-step-number {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.about-step-content {
+  flex: 1;
+}
+
+.about-step-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.about-step-text {
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Footer */
+.about-footer {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.about-footer p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .about-content {
+    padding: 24px 16px;
+  }
+
+  .about-logo-image {
+    width: 64px;
+    height: 64px;
+  }
+
+  .about-title {
+    font-size: 36px;
+  }
+
+  .about-tagline {
+    font-size: 16px;
+  }
+
+  .about-card {
+    padding: 24px;
+  }
+
+  .about-card-title {
+    font-size: 20px;
+  }
+
+  .about-section-icon {
+    font-size: 40px;
+  }
+
+  .about-section-title {
+    font-size: 20px;
+  }
+
+  .about-features-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .about-feature {
+    padding: 20px;
+  }
+
+  .about-feature-icon {
+    font-size: 32px;
+  }
+
+  .about-feature-title {
+    font-size: 16px;
+  }
+
+  .about-step {
+    padding: 20px;
+  }
+
+  .about-step-number {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 16px;
+  }
+
+  .about-step-title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-title {
+    font-size: 28px;
+  }
+
+  .about-tagline {
+    font-size: 14px;
+  }
+
+  .about-card {
+    padding: 20px;
+  }
+
+  .about-step {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .about-step-content {
+    text-align: center;
+  }
+}

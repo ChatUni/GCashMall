@@ -9,6 +9,8 @@ import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
 import Account from './pages/Account'
 import ResetPassword from './pages/ResetPassword'
+import Contact from './pages/Contact'
+import About from './pages/About'
 import { LanguageProvider } from './context/LanguageContext'
 import './App.css'
 
@@ -29,8 +31,8 @@ function App() {
             <Route path="/player/:id" element={<Player />} />
             <Route path="/account" element={<Account />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/about" element={<div>About Page - Coming Soon</div>} />
-            <Route path="/contact" element={<div>Contact Page - Coming Soon</div>} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </div>
       </Router>
