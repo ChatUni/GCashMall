@@ -9,7 +9,7 @@ export const getApiBaseUrl = (): string => {
   if (import.meta.env.DEV) {
     return 'http://localhost:8888'
   }
-  return ''
+  return window.location.origin
 }
 
 const buildUrl = (type: string, params?: Record<string, string | number>): string => {
