@@ -420,6 +420,18 @@
   border-radius: 4px;
 }
 
+.purchased-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 28px 28px 0;
+  border-color: transparent #22c55e transparent transparent;
+  z-index: 1;
+}
+
 .social-buttons {
   position: fixed;
   right: 24px;

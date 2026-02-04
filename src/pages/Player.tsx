@@ -6,7 +6,7 @@ import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, toastStoreActions, useToastStore } from '../stores'
+import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, useToastStore } from '../stores'
 import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import {
@@ -335,7 +335,7 @@ const Player: React.FC = () => {
     if (userBalance < EPISODE_PRICE) {
       setShowPurchasePopup(false)
       setResultModalType('error')
-      setResultModalMessage((t.player as Record<string, string>).insufficientBalance || 'Insufficient balance. Please top up your wallet.')
+      setResultModalMessage(t.player.insufficientBalance)
       setShowResultModal(true)
       return
     }
@@ -351,18 +351,18 @@ const Player: React.FC = () => {
       setShowPurchasePopup(false)
       if (result.success) {
         setResultModalType('success')
-        setResultModalMessage((t.player as Record<string, string>).purchaseSuccess || 'Unlock Episode Successfully!')
+        setResultModalMessage(t.player.purchaseSuccess)
         setShowResultModal(true)
       } else {
         setResultModalType('error')
-        setResultModalMessage(result.error || (t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode')
+        setResultModalMessage(result.error || t.player.purchaseFailed)
         setShowResultModal(true)
       }
     } catch (error) {
       console.error('Failed to purchase episode:', error)
       setShowPurchasePopup(false)
       setResultModalType('error')
-      setResultModalMessage((t.player as Record<string, string>).purchaseFailed || 'Failed to unlock episode')
+      setResultModalMessage(t.player.purchaseFailed)
       setShowResultModal(true)
     } finally {
       setIsPurchasing(false)
@@ -469,10 +469,10 @@ const Player: React.FC = () => {
           <div className="popup-modal purchase-modal" onClick={(e) => e.stopPropagation()}>
             <div className="popup-icon">🔓</div>
             <h2 className="popup-title">
-              {(t.player as Record<string, string>).unlockEpisode || 'Unlock Episode'}
+              {t.player.unlockEpisode}
             </h2>
             <p className="popup-message">
-              {(t.player as Record<string, string>).unlockMessage || 'Unlock this episode to continue watching'}
+              {t.player.unlockMessage}
             </p>
             <div className="popup-episode-info">
               <span className="popup-series-name">{playerState.series?.name || ''}</span>
@@ -485,7 +485,7 @@ const Player: React.FC = () => {
               <span>{EPISODE_PRICE.toFixed(2)}</span>
             </div>
             <div className="popup-balance">
-              {(t.player as Record<string, string>).yourBalance || 'Your balance'}:
+              {t.player.yourBalance}:
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-balance-logo" />
               <span>{(userState.user?.balance || 0).toFixed(2)}</span>
             </div>
@@ -495,14 +495,14 @@ const Player: React.FC = () => {
                 onClick={handlePurchaseConfirm}
                 disabled={isPurchasing}
               >
-                {isPurchasing ? '...' : ((t.player as Record<string, string>).confirmPurchase || 'Confirm Purchase')}
+                {isPurchasing ? '...' : t.player.confirmPurchase}
               </button>
               <button
                 className="btn-cancel"
                 onClick={() => setShowPurchasePopup(false)}
                 disabled={isPurchasing}
               >
-                {(t.player as Record<string, string>).cancel || 'Cancel'}
+                {t.player.cancel}
               </button>
             </div>
           </div>
@@ -542,8 +542,8 @@ const Player: React.FC = () => {
             </div>
             <h2 className="result-title">
               {resultModalType === 'success'
-                ? ((t.player as Record<string, string>).unlockSuccess || 'Unlock Episode Successfully!')
-                : ((t.player as Record<string, string>).unlockFailed || 'Unlock Failed')}
+                ? t.player.unlockSuccess
+                : t.player.unlockFailed}
             </h2>
             <p className="result-message">{resultModalMessage}</p>
             <button
@@ -556,7 +556,7 @@ const Player: React.FC = () => {
               }}
             >
               {resultModalType === 'error' && resultModalMessage.includes('balance')
-                ? ((t.player as Record<string, string>).goToWallet || 'Go to Wallet')
+                ? t.player.goToWallet
                 : 'OK'}
             </button>
           </div>
@@ -572,13 +572,13 @@ const Player: React.FC = () => {
             </div>
             <h2 className="popup-title">
               {pendingFavoriteAction === 'add'
-                ? ((t.player as Record<string, string>).addToFavoritesTitle || 'Add to Favorites')
-                : ((t.player as Record<string, string>).removeFromFavoritesTitle || 'Remove from Favorites')}
+                ? t.player.addToFavoritesTitle
+                : t.player.removeFromFavoritesTitle}
             </h2>
             <p className="popup-message">
               {pendingFavoriteAction === 'add'
-                ? ((t.player as Record<string, string>).addToFavoritesMessage || 'Add this series to your favorites?')
-                : ((t.player as Record<string, string>).removeFromFavoritesMessage || 'Remove this series from your favorites?')}
+                ? t.player.addToFavoritesMessage
+                : t.player.removeFromFavoritesMessage}
             </p>
             <div className="popup-series-info">
               <span className="popup-series-name">{playerState.series?.name || ''}</span>
@@ -589,20 +589,20 @@ const Player: React.FC = () => {
                 checked={favoriteModalDontShowAgain}
                 onChange={(e) => setFavoriteModalDontShowAgain(e.target.checked)}
               />
-              <span>{(t.player as Record<string, string>).dontShowAgain || "Don't show again"}</span>
+              <span>{t.player.dontShowAgain}</span>
             </label>
             <div className="popup-buttons">
               <button
                 className="btn-confirm"
                 onClick={handleFavoriteConfirm}
               >
-                {(t.player as Record<string, string>).confirm || 'Confirm'}
+                {t.player.confirm}
               </button>
               <button
                 className="btn-cancel"
                 onClick={handleFavoriteCancel}
               >
-                {(t.player as Record<string, string>).cancel || 'Cancel'}
+                {t.player.cancel}
               </button>
             </div>
           </div>

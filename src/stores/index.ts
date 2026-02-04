@@ -153,6 +153,8 @@ interface PlayerState {
   selectedLanguage: string
   episodeRange: [number, number]
   hoveredEpisodeId: string | null
+  showPurchaseDialog: boolean
+  purchaseLoading: boolean
 }
 
 const playerStore = createStore<PlayerState>({
@@ -170,6 +172,8 @@ const playerStore = createStore<PlayerState>({
   selectedLanguage: 'English',
   episodeRange: [1, 40],
   hoveredEpisodeId: null,
+  showPurchaseDialog: false,
+  purchaseLoading: false,
 })
 
 export const usePlayerStore = () => {
@@ -192,6 +196,8 @@ export const playerStoreActions = {
   setSelectedLanguage: (selectedLanguage: string) => playerStore.setState((prev) => ({ ...prev, selectedLanguage })),
   setEpisodeRange: (episodeRange: [number, number]) => playerStore.setState((prev) => ({ ...prev, episodeRange })),
   setHoveredEpisodeId: (hoveredEpisodeId: string | null) => playerStore.setState((prev) => ({ ...prev, hoveredEpisodeId })),
+  setShowPurchaseDialog: (showPurchaseDialog: boolean) => playerStore.setState((prev) => ({ ...prev, showPurchaseDialog })),
+  setPurchaseLoading: (purchaseLoading: boolean) => playerStore.setState((prev) => ({ ...prev, purchaseLoading })),
   reset: () => playerStore.setState({
     series: null,
     episodes: [],
@@ -207,6 +213,8 @@ export const playerStoreActions = {
     selectedLanguage: 'English',
     episodeRange: [1, 40],
     hoveredEpisodeId: null,
+    showPurchaseDialog: false,
+    purchaseLoading: false,
   }),
   getState: playerStore.getState,
 }

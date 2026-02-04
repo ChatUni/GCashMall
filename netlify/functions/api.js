@@ -43,6 +43,7 @@ import {
   addPurchase,
   topUp,
   withdraw,
+  purchaseEpisode,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -91,6 +92,7 @@ const apiHandlers = {
     addPurchase: (body, authHeader) => addPurchase(body, authHeader),
     topUp: (body, authHeader) => topUp(body, authHeader),
     withdraw: (body, authHeader) => withdraw(body, authHeader),
+    purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),
@@ -170,7 +172,7 @@ const createResponse = (statusCode, data) => {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'
     },
     body: JSON.stringify(data)

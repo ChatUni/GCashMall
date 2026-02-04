@@ -385,40 +385,50 @@ const getEpisodes = async (params) => {
       return { success: false, error: 'Series ID is required' }
     }
     
-    const episodes = await get(
-      'episodes',
-      { seriesId: seriesId },
-      {},
-      { episodeNumber: 1 }
-    )
+    // Get series and return episodes from the series.episodes field
+    const seriesResult = await getSeriesById(seriesId)
+    if (!seriesResult.success || !seriesResult.data) {
+      return { success: false, error: 'Series not found' }
+    }
     
-    // If no episodes found, return the series videoId as a single episode
-    if (!episodes || episodes.length === 0) {
-      const seriesResult = await getSeriesById(seriesId)
-      if (seriesResult.success && seriesResult.data && seriesResult.data.videoId) {
-        const series = seriesResult.data
-        return {
-          success: true,
-          data: [
-            {
-              _id: `${seriesId}-ep1`,
-              id: 1,
-              seriesId: seriesId,
-              title: series.name || 'Episode 1',
-              description: series.description || '',
-              thumbnail: series.cover || '',
-              videoId: series.videoId,
-              duration: 0,
-              episodeNumber: 1,
-            },
-          ],
-        }
+    const series = seriesResult.data
+    
+    // If series has episodes array, return it
+    if (series.episodes && series.episodes.length > 0) {
+      // Sort episodes by episodeNumber
+      const sortedEpisodes = [...series.episodes].sort(
+        (a, b) => a.episodeNumber - b.episodeNumber,
+      )
+      return {
+        success: true,
+        data: sortedEpisodes,
       }
     }
     
+    // If no episodes array but series has a videoId, return it as single episode
+    if (series.videoId) {
+      return {
+        success: true,
+        data: [
+          {
+            _id: `${seriesId}-ep1`,
+            id: 1,
+            seriesId: seriesId,
+            title: series.name || 'Episode 1',
+            description: series.description || '',
+            thumbnail: series.cover || '',
+            videoId: series.videoId,
+            duration: 0,
+            episodeNumber: 1,
+          },
+        ],
+      }
+    }
+    
+    // No episodes found
     return {
       success: true,
-      data: episodes
+      data: [],
     }
   } catch (error) {
     throw new Error(`Failed to get episodes: ${error.message}`)
@@ -2109,6 +2119,120 @@ const validateWithdrawBody = (body) => {
   }
 }
 
+// Episode Cost constant
+const EPISODE_COST = 1
+
+// Purchase Episode API handler
+const purchaseEpisode = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validatePurchaseEpisodeBody(body)
+
+  try {
+    const { seriesId, episodeNumber } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if user has enough balance
+    const balance = currentUser.balance || 0
+    if (balance < EPISODE_COST) {
+      return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Check if series exists
+    const seriesResult = await get('series', { _id: new ObjectId(seriesId) }, {}, {}, 1)
+    if (!seriesResult || seriesResult.length === 0) {
+      return { success: false, error: 'Series not found' }
+    }
+
+    const series = seriesResult[0]
+
+    // Check if the series is uploaded by the user (users cannot purchase their own series)
+    if (String(series.uploaderId) === String(userId)) {
+      return { success: false, error: 'You cannot purchase your own series' }
+    }
+
+    // Check if episode exists in series.episodes array or single episode via videoId
+    const seriesEpisodes = series.episodes || []
+    const episodeInSeries = seriesEpisodes.find(
+      (ep) => ep.episodeNumber === parseInt(episodeNumber),
+    )
+    const hasEpisode =
+      episodeInSeries ||
+      (parseInt(episodeNumber) === 1 && series.videoId)
+    if (!hasEpisode) {
+      return { success: false, error: 'Episode not found' }
+    }
+
+    // Check if already purchased
+    const purchaseHistory = currentUser.purchaseHistory || []
+    const alreadyPurchased = purchaseHistory.some(
+      (p) =>
+        String(p.seriesId) === String(seriesId) &&
+        p.episodeNumber === parseInt(episodeNumber),
+    )
+    if (alreadyPurchased) {
+      return { success: false, error: 'Episode already purchased' }
+    }
+
+    // Deduct from balance and add to purchase history
+    const newBalance = balance - EPISODE_COST
+    const newPurchaseHistory = [
+      ...purchaseHistory,
+      {
+        seriesId,
+        seriesName: series.name,
+        episodeNumber: parseInt(episodeNumber),
+        cost: EPISODE_COST,
+        purchasedAt: new Date(),
+      },
+    ]
+
+    // Update user
+    const updateData = {
+      ...currentUser,
+      balance: newBalance,
+      purchaseHistory: newPurchaseHistory,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: {
+        message: 'Episode purchased successfully',
+        balance: newBalance,
+        purchasedEpisode: {
+          seriesId,
+          episodeNumber: parseInt(episodeNumber),
+        },
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to purchase episode: ${error.message}`)
+  }
+}
+
+const validatePurchaseEpisodeBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+
+  if (body.episodeNumber === undefined || body.episodeNumber === null) {
+    throw new Error('Episode number is required')
+  }
+}
+
 export {
   getTodos,
   saveTodo,
@@ -2154,6 +2278,7 @@ export {
   addPurchase,
   topUp,
   withdraw,
+  purchaseEpisode,
 }
 
 // Database migration: update genre structure
