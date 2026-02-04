@@ -1,79 +1,101 @@
+/* Series Card Container */
 .series-card {
-  display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
+  width: 200px;
   cursor: pointer;
-  transition: transform 0.3s ease-in-out;
+  transition: transform 0.3s ease;
 }
 
 .series-card:hover {
   transform: scale(1.02);
 }
 
-.series-card:hover .series-card-image {
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+.series-card:hover .series-poster-container {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
-.series-card:hover .series-card-overlay {
-  opacity: 1;
+.series-card:hover .series-title {
+  color: #3B82F6;
 }
 
-.series-card-poster {
-  position: relative;
-  width: 100%;
+.series-card:hover .series-poster {
+  transform: scale(1.05);
+}
+
+/* Override title color when tag is hovered */
+.series-card:has(.series-tag:hover) .series-title {
+  color: #FFFFFF;
+}
+
+/* Poster Container */
+.series-poster-container {
   aspect-ratio: 2 / 3;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
-  background-color: #0b0b0e;
+  margin-bottom: 12px;
+  position: relative;
+  background: #1A1A1E;
+  transition: box-shadow 0.2s ease;
 }
 
-.series-card-image {
+/* Poster Image */
+.series-poster {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: box-shadow 0.3s ease-in-out;
+  transition: transform 0.3s ease;
 }
 
-.series-card-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.series-card-play-icon {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.series-card-info {
-  padding: 8px 0;
-}
-
-.series-card-title {
+/* Series Title */
+.series-title {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #FFFFFF;
+  margin: 0 0 4px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
+  overflow: hidden;
+  transition: color 0.2s ease;
 }
 
-.series-card-tag {
+/* Series Tag */
+.series-tag {
   display: inline-block;
+  width: fit-content;
+  background: #2A2A2E;
+  color: #9CA3AF;
   font-size: 12px;
-  color: #9ca3af;
-  background-color: #1a1a1a;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.series-tag:hover {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .series-card {
+    width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .series-card {
+    width: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .series-card {
+    width: 140px;
+  }
+  
+  .series-title {
+    font-size: 13px;
+  }
 }

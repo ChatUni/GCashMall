@@ -1,79 +1,161 @@
-# Home page
+# Home Page Specification
 
-## Layout
+## Overview
 
-Vertical
+The Home page is the main landing page for GCashTV, featuring a hero section showcasing a featured series and horizontal carousels displaying recommended content. It serves as the primary discovery interface for users to find and watch video content.
 
-- Shared top bar
-- Large hero banner (Hero Section)
-- Shared Recommendation section
-- Shared New Releases section
-- Shared bottom bar
+## Page Structure
 
-## Components
+### Layout
+- **Container**: Full viewport height, flexbox column layout
+- **Background**: Dark theme (#0B0B0E)
+- **Content Padding**: 40px vertical, 60px horizontal
+- **Width**: 100%, box-sizing border-box
 
-### Large hero banner (Hero Section)
+### Components Used
+- TopBar (header navigation)
+- BottomBar (footer navigation)
 
-#### Layout
-- Left: featured poster image
-- Right: content information panel
+## Hero Section
 
-#### Style
-- Full-width
-- Large height, occupying most of the first viewport
+### Layout
+- **Display**: Flexbox row
+- **Gap**: 40px
+- **Margin Bottom**: 60px
+- **Min Height**: 500px
 
-#### featured poster image
-##### style
-Featured Poster
-- Image only
-- Aspect ratio: vertical poster (approximately 2:3)
-- Rounded corners
-- Fixed width on desktop
-- Image fully covers the container (no distortion)
+### Hero Poster Container
+- **Width**: 340px (fixed)
+- **Aspect Ratio**: 2:3
+- **Border Radius**: 16px
+- **Overflow**: Hidden
+- **Cursor**: Pointer
+- **Position**: Relative
 
-##### Interaction
-- on hover: Poster slightly scales up，A semi-transparent gray play icon appears centered on the image
-- on click: Navigate to the player page
+### Hero Poster Image
+- **Size**: 100% width and height
+- **Object Fit**: Cover
+- **Transition**: transform 0.3s ease
+- **Hover Effect**: scale(1.05)
 
-#### Content Information Panel
+### Hero Poster Overlay
+- **Position**: Absolute, covers entire container
+- **Background**: rgba(0, 0, 0, 0.4)
+- **Display**: Flex, centered
+- **Opacity**: 0 (default), 1 on hover
+- **Transition**: opacity 0.3s ease
 
-##### Layout
-Vertical
-- Title
-- Tag list
-- Description
-- Primary action button
+### Hero Play Icon (on poster)
+- **Size**: 80px × 80px
+- **Color**: rgba(255, 255, 255, 0.9)
+- **SVG Path**: Play triangle icon
 
-##### style
-Title
-- Font size: large (28–36px)
-- Font weight: bold
-- Color: white
-- Single line or max 2 lines with ellipsis
+### Hero Info Section
+- **Flex**: 1 (fills remaining space)
+- **Display**: Flex column
+- **Justify Content**: Center
+- **Padding**: 20px 0
 
-Tag List
-- Horizontal
-- Wrappable
-- Each tag rendered as pill / chip
-- Background: dark gray
-- Text: light gray
-- Font size: small
-- Rounded corners
-- Even spacing between tags
+### Hero Title
+- **Font Size**: 36px
+- **Font Weight**: 700
+- **Color**: #FFFFFF
+- **Margin**: 0 0 20px 0
+- **Line Height**: 1.2
+- **Text Clamp**: 2 lines max
 
-Description
-- Font size: small–medium
-- Color: light gray
-- Max lines: 3–4 (truncate overflow)
-- Line height: relaxed for readability
+### Hero Tags
+- **Display**: Flex wrap
+- **Gap**: 10px
+- **Margin Bottom**: 20px
 
-Primary Action Button "Play"
-- Background: blue (#3B82F6)
-- Text color: white
-- Pill-shaped rounded corners
-- Icon: play icon displayed before text
-- Medium height 
+### Hero Tag (individual)
+- **Background**: #2A2A2E
+- **Color**: #9CA3AF
+- **Font Size**: 13px
+- **Padding**: 6px 14px
+- **Border Radius**: 20px (pill shape)
+- **Cursor**: Pointer
+- **Hover**: Background #3B82F6, Color #FFFFFF
+- **Click Action**: Clicking a tag will navigate you to the corresponding tag category on the genre page. Navigate to `/genre?category={tag}` 
 
-##### Interaction
-- On hover of the Play button: Button slightly scales up to provide visual feedback
-- On click of the Play button: Navigate to the content player page
+### Hero Description
+- **Font Size**: 15px
+- **Color**: #9CA3AF
+- **Line Height**: 1.7
+- **Margin**: 0 0 30px 0
+- **Text Clamp**: 4 lines max
+
+### Hero Play Button
+- **Display**: Inline-flex, centered
+- **Gap**: 10px
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Padding**: 14px 32px
+- **Border Radius**: 30px (pill shape)
+- **Width**: fit-content
+- **Hover**: scale(1.05), Background #2563EB
+- **Icon Size**: 20px × 20px
+- **Click Action**: Navigate to `/player/{featuredSeriesId}`
+
+## Series Sections
+
+Use shared series list component. See [shared/series.md](../shared/series.md) for detailed specifications.
+
+Two sections with different data:
+1. **You Might Like** - Uses `youMightLikeSeries` data
+2. **New Releases** - Uses `newReleasesSeries` data
+
+## Loading State
+
+### Loading Container
+- **Display**: Flex, centered
+- **Flex**: 1
+- **Font Size**: 18px
+- **Color**: #9CA3AF
+
+## Responsive Design
+
+### Breakpoints
+
+#### 1024px (Tablet)
+- **Hero Section**:
+  - Gap: 30px
+  - Min Height: 400px
+  - Poster Width: 280px
+  - Title: 28px
+- **Series Card**:
+  - Width: calc((100% - 40px) / 3) - Shows ~3 cards
+  - Min Width: 180px
+
+#### 768px (Mobile)
+- **Content Padding**: 20px 15px
+- **Hero Section**:
+  - Flex Direction: Column
+  - Align Items: Center
+  - Gap: 24px
+  - Min Height: Auto
+- **Hero Poster**:
+  - Width: 100%
+  - Max Width: 300px
+- **Hero Info**:
+  - Text Align: Center
+  - Padding: 0
+- **Hero Title**: 24px
+- **Hero Tags**: Justify Center
+- **Hero Description**: 3 lines max
+- **Hero Play Button**: Margin auto (centered)
+- **Series Card**:
+  - Width: calc((100% - 20px) / 2) - Shows ~2 cards
+  - Min Width: 150px
+- **Section Title**: 20px
+- **Carousel Arrow**: 36px × 36px
+
+#### 480px (Small Mobile)
+- **Hero Poster**: Max Width 250px
+- **Hero Title**: 22px
+- **Hero Play Button**: Padding 12px 24px, Font 14px
+- **Series Card**: Min Width 140px
+- **Series Title**: 14px

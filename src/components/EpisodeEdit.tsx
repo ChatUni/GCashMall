@@ -50,8 +50,8 @@ const EpisodeEdit = ({
   return (
     <div className="episode-edit">
       <div className="episode-edit-header">
-        <span className="episode-number">{episodeNumber}</span>
         <TitleField
+          episodeNumber={episodeNumber}
           title={title}
           editedTitle={editedTitle}
           isEditingTitle={isEditingTitle}
@@ -82,6 +82,7 @@ const EpisodeEdit = ({
 }
 
 interface TitleFieldProps {
+  episodeNumber: number
   title: string
   editedTitle: string
   isEditingTitle: boolean
@@ -92,6 +93,7 @@ interface TitleFieldProps {
 }
 
 const TitleField = ({
+  episodeNumber,
   title,
   editedTitle,
   isEditingTitle,
@@ -100,6 +102,8 @@ const TitleField = ({
   onTitleBlur,
   onTitleKeyDown,
 }: TitleFieldProps) => {
+  const displayTitle = title || `EP ${String(episodeNumber).padStart(2, '0')}`
+  
   if (isEditingTitle) {
     return (
       <input
@@ -116,8 +120,9 @@ const TitleField = ({
 
   return (
     <div className="episode-title-display" onClick={onTitleClick}>
-      <span className="episode-title">{title || 'Untitled'}</span>
+      <span className="episode-title">{displayTitle}</span>
       <span className="episode-edit-icon">✏️</span>
+      <span className="episode-edit-text">(edit)</span>
     </div>
   )
 }

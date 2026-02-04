@@ -5,7 +5,7 @@ import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
 import { useLanguage } from '../context/LanguageContext'
-import { useAccountStore, accountStoreActions, navItems, topUpAmounts, type AccountTab } from '../stores/accountStore'
+import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab, type Transaction } from '../stores/accountStore'
 import {
   initializeAccountData,
   fetchAccountUserData,
@@ -19,18 +19,21 @@ import {
   removeFromFavorites,
   clearFavorites,
   topUp,
+  withdraw,
   hasProfileChanges,
+  fetchMyPurchases,
   fetchMySeries,
   shelveSeries,
   setEditingSeries,
 } from '../services/accountService'
 import { toastStoreActions, useToastStore } from '../stores'
-import type { Series, User } from '../types'
+import type { PurchaseItem, Series, User } from '../types'
 import './Account.css'
 
 // Track initialization
 let accountInitialized = false
 let userDataFetched = false
+let myPurchasesFetched = false
 let mySeriesFetched = false
 
 const Account: React.FC = () => {
@@ -44,13 +47,19 @@ console.log(state)
   // Initialize data (not in useEffect)
   if (!accountInitialized) {
     accountInitialized = true
-    initializeAccountData(searchParams, (params) => setSearchParams(params))
+    initializeAccountData(searchParams, (params) => setSearchParams(params), navigate)
   }
 
   // Fetch user data when logged in (only once)
   if (state.isLoggedIn && !userDataFetched) {
     userDataFetched = true
     fetchAccountUserData()
+  }
+
+  // Fetch my purchases when logged in (only once)
+  if (state.isLoggedIn && !myPurchasesFetched) {
+    myPurchasesFetched = true
+    fetchMyPurchases()
   }
 
   // Fetch my series when logged in (only once)
@@ -98,10 +107,18 @@ console.log(state)
   const handleLoginSuccess = async (user: User) => {
     // Initialize user data (sets loading: false, isLoggedIn: true)
     accountStoreActions.initializeUserData(user)
-    // Fetch additional user data
+    // Reset fetch flags so data is re-fetched for the new user
     userDataFetched = false
+    myPurchasesFetched = false
+    mySeriesFetched = false
+    // Fetch additional user data
     await fetchAccountUserData()
     userDataFetched = true
+    // Fetch my purchases and my series
+    await fetchMyPurchases()
+    myPurchasesFetched = true
+    await fetchMySeries()
+    mySeriesFetched = true
     // Hide the modal after loading is complete
     accountStoreActions.setShowLoginModal(false)
   }
@@ -142,17 +159,6 @@ console.log(state)
       toastStoreActions.show(t.account.overview.avatarUpdateSuccess || 'Avatar updated successfully', 'success')
     } else if (result.error) {
       toastStoreActions.show(result.error, 'error')
-    }
-  }
-
-  const onTopUpClick = (amount: number) => {
-    accountStoreActions.setSelectedTopUpAmount(amount)
-    accountStoreActions.setShowTopUpPopup(true)
-  }
-
-  const onConfirmTopUp = () => {
-    if (state.selectedTopUpAmount) {
-      topUp(state.selectedTopUpAmount)
     }
   }
 
@@ -229,11 +235,22 @@ console.log(state)
           {state.activeTab === 'wallet' && (
             <WalletSection
               balance={state.balance}
+              walletTab={state.walletTab}
               showTopUpPopup={state.showTopUpPopup}
               selectedTopUpAmount={state.selectedTopUpAmount}
-              onTopUpClick={onTopUpClick}
-              onConfirmTopUp={onConfirmTopUp}
-              onClosePopup={() => accountStoreActions.setShowTopUpPopup(false)}
+              showWithdrawPopup={state.showWithdrawPopup}
+              selectedWithdrawAmount={state.selectedWithdrawAmount}
+              withdrawing={state.withdrawing}
+              transactions={state.transactions}
+              purchases={state.myPurchases}
+              t={t}
+            />
+          )}
+          {state.activeTab === 'myPurchases' && (
+            <MyPurchasesSection
+              purchases={state.myPurchases}
+              loading={state.myPurchasesLoading}
+              onNavigate={navigate}
               t={t}
             />
           )}
@@ -241,7 +258,6 @@ console.log(state)
             <MySeriesSection
               series={state.mySeries}
               loading={state.mySeriesLoading}
-              editingSeries={state.editingSeries}
               editingSeriesId={state.editingSeriesId}
               onNavigate={navigate}
               t={t}
@@ -907,24 +923,137 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
 
 interface WalletSectionProps {
   balance: number
+  walletTab: 'topup' | 'withdraw'
   showTopUpPopup: boolean
   selectedTopUpAmount: number | null
-  onTopUpClick: (amount: number) => void
-  onConfirmTopUp: () => void
-  onClosePopup: () => void
+  showWithdrawPopup: boolean
+  selectedWithdrawAmount: number | null
+  withdrawing: boolean
+  transactions: Transaction[]
+  purchases: PurchaseItem[]
   t: Record<string, Record<string, unknown>>
 }
 
 const WalletSection: React.FC<WalletSectionProps> = ({
   balance,
+  walletTab,
   showTopUpPopup,
   selectedTopUpAmount,
-  onTopUpClick,
-  onConfirmTopUp,
-  onClosePopup,
+  showWithdrawPopup,
+  selectedWithdrawAmount,
+  withdrawing,
+  transactions,
+  purchases,
   t,
 }) => {
   const wallet = t.account.wallet as Record<string, string>
+
+  const handleTopUpClick = (amount: number) => {
+    accountStoreActions.setSelectedTopUpAmount(amount)
+    accountStoreActions.setShowTopUpPopup(true)
+  }
+
+  const handleWithdrawClick = (amount: number) => {
+    if (amount > balance) {
+      toastStoreActions.show(wallet.insufficientBalance || 'Insufficient balance', 'error')
+      return
+    }
+    accountStoreActions.setSelectedWithdrawAmount(amount)
+    accountStoreActions.setShowWithdrawPopup(true)
+  }
+
+  const handleConfirmTopUp = () => {
+    if (selectedTopUpAmount) {
+      topUp(selectedTopUpAmount)
+      toastStoreActions.show(wallet.topUpSuccess || 'Top up successful', 'success')
+    }
+  }
+
+  const handleConfirmWithdraw = async () => {
+    if (selectedWithdrawAmount) {
+      const result = await withdraw(selectedWithdrawAmount)
+      if (result.success) {
+        toastStoreActions.show(wallet.withdrawSuccess || 'Withdrawal successful', 'success')
+      } else {
+        toastStoreActions.show(result.error || wallet.withdrawFailed || 'Failed to withdraw', 'error')
+      }
+    }
+  }
+
+  const handleCloseTopUpPopup = () => {
+    accountStoreActions.setShowTopUpPopup(false)
+    accountStoreActions.setSelectedTopUpAmount(null)
+  }
+
+  const handleCloseWithdrawPopup = () => {
+    accountStoreActions.setShowWithdrawPopup(false)
+    accountStoreActions.setSelectedWithdrawAmount(null)
+  }
+
+  // Format date for display
+  const formatDate = (date: Date) => {
+    const d = new Date(date)
+    return d.toLocaleString()
+  }
+
+  // Get status display class
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'status-success'
+      case 'failed':
+        return 'status-failed'
+      case 'processing':
+        return 'status-processing'
+      default:
+        return ''
+    }
+  }
+
+  // Get status display text
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'success':
+        return wallet.statusSuccess || 'Success'
+      case 'failed':
+        return wallet.statusFailed || 'Failed'
+      case 'processing':
+        return wallet.statusProcessing || 'Processing'
+      default:
+        return status
+    }
+  }
+
+  // Combine transactions and purchases into a single list
+  type CombinedTransaction = {
+    id: string
+    type: 'topup' | 'withdraw' | 'purchase'
+    amount: number
+    status: string
+    referenceId: string
+    createdAt: Date
+    purchase?: PurchaseItem
+  }
+
+  const combinedTransactions: CombinedTransaction[] = [
+    ...transactions.map((t) => ({
+      id: t.id,
+      type: t.type as 'topup' | 'withdraw',
+      amount: t.amount,
+      status: t.status,
+      referenceId: t.referenceId,
+      createdAt: t.createdAt,
+    })),
+    ...purchases.map((p) => ({
+      id: p._id,
+      type: 'purchase' as const,
+      amount: p.price,
+      status: p.status || 'success',
+      referenceId: p.referenceId || '-',
+      createdAt: new Date(p.purchasedAt),
+      purchase: p,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (
     <div className="content-section wallet-section">
@@ -944,30 +1073,114 @@ const WalletSection: React.FC<WalletSectionProps> = ({
         </div>
       </div>
 
-      <div className="section-card topup-section">
-        <h3 className="card-title">{wallet.topUp}</h3>
-        <p className="topup-description">{wallet.topUpDescription}</p>
-        <div className="topup-grid">
-          {topUpAmounts.map((amount) => (
+      {/* Wallet Tabs */}
+      <div className="wallet-tabs">
+        <button
+          className={`wallet-tab ${walletTab === 'topup' ? 'active' : ''}`}
+          onClick={() => accountStoreActions.setWalletTab('topup')}
+        >
+          {wallet.topUp}
+        </button>
+        <button
+          className={`wallet-tab ${walletTab === 'withdraw' ? 'active' : ''}`}
+          onClick={() => accountStoreActions.setWalletTab('withdraw')}
+        >
+          {wallet.withdraw || 'Withdraw'}
+        </button>
+      </div>
+
+      {/* Amount Selection Section */}
+      <div className="section-card amount-section">
+        <div className="amount-section-header">
+          <h3 className="card-title">
+            {walletTab === 'topup'
+              ? (wallet.selectTopUpAmount || 'Select Top Up Amount')
+              : (wallet.selectWithdrawAmount || 'Select Withdrawal Amount')
+            }
+          </h3>
+          {walletTab === 'withdraw' && balance > 0 && (
+            <button
+              className="btn-withdraw-all"
+              onClick={() => handleWithdrawClick(balance)}
+            >
+              {wallet.withdrawAll || 'Withdraw All'}
+            </button>
+          )}
+        </div>
+        <p className="amount-description">
+          {walletTab === 'topup'
+            ? wallet.topUpDescription
+            : (wallet.withdrawDescription || 'Select an amount to withdraw from your wallet')
+          }
+        </p>
+        <div className="amount-grid">
+          {walletAmounts.map((amount) => (
             <button
               key={amount}
-              className="topup-button"
-              onClick={() => onTopUpClick(amount)}
+              className={`amount-button ${walletTab === 'withdraw' && amount > balance ? 'disabled' : ''}`}
+              onClick={() => walletTab === 'topup' ? handleTopUpClick(amount) : handleWithdrawClick(amount)}
+              disabled={walletTab === 'withdraw' && amount > balance}
             >
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="topup-logo" />
-              <span className="topup-amount">{amount}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="amount-logo" />
+              <span className="amount-value">{amount}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="section-card">
-        <h3 className="card-title">{wallet.transactionHistory}</h3>
-        <p className="empty-text">{wallet.noTransactions}</p>
+      {/* Transaction History Section */}
+      <div className="section-card transaction-history-section">
+        <h3 className="card-title">{wallet.transactionHistory || 'Transaction History'}</h3>
+        {combinedTransactions.length === 0 ? (
+          <p className="no-transactions">{wallet.noTransactions || 'No transactions yet'}</p>
+        ) : (
+          <div className="transaction-table-container">
+            <table className="transaction-table">
+              <thead>
+                <tr>
+                  <th>{wallet.time || 'Time'}</th>
+                  <th>{wallet.type || 'Type'}</th>
+                  <th>{wallet.amount || 'Amount'}</th>
+                  <th>{wallet.status || 'Status'}</th>
+                  <th>{wallet.referenceId || 'Reference ID'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {combinedTransactions.map((transaction) => (
+                  <tr key={transaction.id}>
+                    <td className="transaction-time">{formatDate(transaction.createdAt)}</td>
+                    <td className={`transaction-type type-${transaction.type}`}>
+                      {transaction.type === 'purchase' && transaction.purchase ? (
+                        <div className="purchase-type-cell">
+                          <span className="purchase-type-series">{transaction.purchase.seriesName}</span>
+                          <span className="purchase-type-episode">
+                            EP {transaction.purchase.episodeNumber}{transaction.purchase.episodeTitle ? ` ${transaction.purchase.episodeTitle}` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        transaction.type === 'topup' ? (wallet.topUp || 'Top Up') : (wallet.withdraw || 'Withdraw')
+                      )}
+                    </td>
+                    <td className="transaction-amount">
+                      <span className={transaction.type === 'topup' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
+                        {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className={`transaction-status ${getStatusClass(transaction.status)}`}>
+                      {getStatusText(transaction.status)}
+                    </td>
+                    <td className="transaction-reference">{transaction.referenceId}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
+      {/* Top Up Confirmation Popup */}
       {showTopUpPopup && selectedTopUpAmount && (
-        <div className="popup-overlay" onClick={onClosePopup}>
+        <div className="popup-overlay" onClick={handleCloseTopUpPopup}>
           <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
             <h2 className="popup-title">{wallet.confirmTopUp}</h2>
@@ -977,10 +1190,37 @@ const WalletSection: React.FC<WalletSectionProps> = ({
               <span>{selectedTopUpAmount}</span>
             </div>
             <div className="popup-buttons">
-              <button className="btn-confirm" onClick={onConfirmTopUp}>
+              <button className="btn-confirm" onClick={handleConfirmTopUp}>
                 {wallet.confirm}
               </button>
-              <button className="btn-cancel" onClick={onClosePopup}>
+              <button className="btn-cancel" onClick={handleCloseTopUpPopup}>
+                {wallet.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Confirmation Popup */}
+      {showWithdrawPopup && selectedWithdrawAmount && (
+        <div className="popup-overlay" onClick={handleCloseWithdrawPopup}>
+          <div className="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
+            <h2 className="popup-title">{wallet.confirmWithdraw || 'Confirm Withdraw'}</h2>
+            <p className="popup-message">{wallet.withdrawFromWallet || 'Withdraw from your wallet'}</p>
+            <div className="popup-amount withdraw-amount">
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
+              <span>{selectedWithdrawAmount.toFixed(2)}</span>
+            </div>
+            <div className="popup-buttons">
+              <button
+                className="btn-withdraw-confirm"
+                onClick={handleConfirmWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing ? '...' : (wallet.confirm || 'Confirm')}
+              </button>
+              <button className="btn-cancel" onClick={handleCloseWithdrawPopup} disabled={withdrawing}>
                 {wallet.cancel}
               </button>
             </div>
@@ -991,10 +1231,120 @@ const WalletSection: React.FC<WalletSectionProps> = ({
   )
 }
 
+interface MyPurchasesSectionProps {
+  purchases: PurchaseItem[]
+  loading: boolean
+  onNavigate: (path: string) => void
+  t: Record<string, Record<string, unknown>>
+}
+
+const MyPurchasesSection: React.FC<MyPurchasesSectionProps> = ({
+  purchases,
+  loading,
+  onNavigate,
+  t,
+}) => {
+  const myPurchases = (t.account.myPurchases || {}) as Record<string, string>
+
+  if (loading) {
+    return (
+      <div className="content-section my-purchases-section">
+        <div className="loading">Loading...</div>
+      </div>
+    )
+  }
+
+  // Group purchases by series
+  const purchasesBySeries = purchases.reduce((acc, purchase) => {
+    if (!acc[purchase.seriesId]) {
+      acc[purchase.seriesId] = {
+        seriesId: purchase.seriesId,
+        seriesName: purchase.seriesName,
+        seriesCover: purchase.seriesCover,
+        episodes: [],
+      }
+    }
+    acc[purchase.seriesId].episodes.push(purchase)
+    return acc
+  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[] }>)
+
+  const seriesList = Object.values(purchasesBySeries)
+
+  return (
+    <div className="content-section my-purchases-section">
+      <div className="section-header">
+        <h1 className="page-title">{myPurchases.title || 'My Purchases'}</h1>
+        <p className="page-subtitle">{myPurchases.subtitle || 'Episodes you have purchased'}</p>
+      </div>
+
+      {seriesList.length === 0 ? (
+        <EmptyState
+          icon="🛒"
+          title={myPurchases.emptyTitle || 'No purchases yet'}
+          subtext={myPurchases.emptySubtext || 'Browse series and purchase episodes to watch'}
+          buttonText={myPurchases.exploreButton || 'Explore Series'}
+          onButtonClick={() => onNavigate('/series')}
+        />
+      ) : (
+        <div className="purchases-list">
+          {seriesList.map((seriesGroup) => (
+            <div key={seriesGroup.seriesId} className="purchase-series-group">
+              <div className="purchase-series-header" onClick={() => onNavigate(`/player/${seriesGroup.seriesId}`)}>
+                <div className="purchase-series-cover">
+                  {seriesGroup.seriesCover ? (
+                    <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
+                  ) : (
+                    <div className="purchase-series-placeholder">🎬</div>
+                  )}
+                </div>
+                <div className="purchase-series-info">
+                  <h3 className="purchase-series-name">{seriesGroup.seriesName}</h3>
+                  <span className="purchase-episode-count">
+                    {seriesGroup.episodes.length} {seriesGroup.episodes.length === 1 ? (myPurchases.episode || 'episode') : (myPurchases.episodes || 'episodes')}
+                  </span>
+                </div>
+              </div>
+              <div className="purchase-episodes-grid">
+                {seriesGroup.episodes
+                  .sort((a, b) => a.episodeNumber - b.episodeNumber)
+                  .map((episode) => (
+                    <div
+                      key={episode.episodeId}
+                      className="purchase-episode-card"
+                      onClick={() => onNavigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
+                    >
+                      <div className="purchase-episode-thumbnail">
+                        {episode.episodeThumbnail ? (
+                          <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
+                        ) : (
+                          <div className="purchase-episode-placeholder">▶️</div>
+                        )}
+                        <div className="purchase-episode-overlay">
+                          <svg className="purchase-play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5,3 19,12 5,21" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="purchase-episode-info">
+                        <span className="purchase-episode-number">EP {episode.episodeNumber}</span>
+                        {episode.episodeTitle && (
+                          <span className="purchase-episode-title">{episode.episodeTitle}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface MySeriesSectionProps {
   series: Series[]
   loading: boolean
-  editingSeries: Series | null
   editingSeriesId: string | null
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
@@ -1003,18 +1353,75 @@ interface MySeriesSectionProps {
 const MySeriesSection: React.FC<MySeriesSectionProps> = ({
   series,
   loading,
-  editingSeries,
   editingSeriesId,
   onNavigate,
   t,
 }) => {
   const mySeries = (t.account.mySeries || {}) as Record<string, string>
+  
+  // Shelve confirmation modal state
+  const [showShelveModal, setShowShelveModal] = React.useState(false)
+  const [pendingShelveSeriesId, setPendingShelveSeriesId] = React.useState<string | null>(null)
+  const [pendingShelveSeries, setPendingShelveSeries] = React.useState<Series | null>(null)
+  
+  // Unshelve confirmation modal state
+  const [showUnshelveModal, setShowUnshelveModal] = React.useState(false)
+  const [pendingUnshelveSeriesId, setPendingUnshelveSeriesId] = React.useState<string | null>(null)
+  const [pendingUnshelveSeries, setPendingUnshelveSeries] = React.useState<Series | null>(null)
 
-  const handleShelve = async (seriesId: string) => {
-    const result = await shelveSeries(seriesId)
+  const handleShelve = async (seriesId: string, isShelved: boolean, seriesItem: Series) => {
+    // If unshelving, show unshelve confirmation modal
+    if (isShelved) {
+      setPendingUnshelveSeriesId(seriesId)
+      setPendingUnshelveSeries(seriesItem)
+      setShowUnshelveModal(true)
+      return
+    }
+    
+    // If shelving, show shelve confirmation modal
+    setPendingShelveSeriesId(seriesId)
+    setPendingShelveSeries(seriesItem)
+    setShowShelveModal(true)
+  }
+
+  const handleShelveConfirm = async () => {
+    if (!pendingShelveSeriesId) return
+    
+    // Pass true to skip confirmation since we already confirmed via modal
+    const result = await shelveSeries(pendingShelveSeriesId, true)
     if (!result.success && result.error) {
       toastStoreActions.show(result.error, 'error')
     }
+    
+    setShowShelveModal(false)
+    setPendingShelveSeriesId(null)
+    setPendingShelveSeries(null)
+  }
+
+  const handleShelveCancel = () => {
+    setShowShelveModal(false)
+    setPendingShelveSeriesId(null)
+    setPendingShelveSeries(null)
+  }
+
+  const handleUnshelveConfirm = async () => {
+    if (!pendingUnshelveSeriesId) return
+    
+    // Pass true to skip confirmation since we already confirmed via modal
+    const result = await shelveSeries(pendingUnshelveSeriesId, true)
+    if (!result.success && result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+    
+    setShowUnshelveModal(false)
+    setPendingUnshelveSeriesId(null)
+    setPendingUnshelveSeries(null)
+  }
+
+  const handleUnshelveCancel = () => {
+    setShowUnshelveModal(false)
+    setPendingUnshelveSeriesId(null)
+    setPendingUnshelveSeries(null)
   }
 
   const handleEdit = (seriesItem: Series) => {
@@ -1068,13 +1475,15 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
 
   return (
     <div className="content-section my-series-section">
-      <div className="section-header-row">
+      <div className="section-header">
         <h1 className="page-title">{mySeries.title || 'My Series'}</h1>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={handleAddSeries}>
+        {series.length > 0 ? (
+          <button className="btn-primary add-series-btn" onClick={handleAddSeries}>
             {mySeries.addSeries || 'Add Series'}
           </button>
-        </div>
+        ) : (
+          <p className="page-subtitle">{mySeries.subtitle || 'Series you have created'}</p>
+        )}
       </div>
 
       {series.length === 0 ? (
@@ -1091,13 +1500,39 @@ const MySeriesSection: React.FC<MySeriesSectionProps> = ({
             <MySeriesCard
               key={seriesItem._id}
               series={seriesItem}
-              onShelve={() => handleShelve(seriesItem._id)}
+              onShelve={() => handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)}
               onEdit={() => handleEdit(seriesItem)}
               onClick={() => onNavigate(`/player/${seriesItem._id}`)}
               translations={mySeries}
             />
           ))}
         </div>
+      )}
+
+      {/* Shelve Confirmation Modal */}
+      {showShelveModal && pendingShelveSeries && (
+        <ShelveConfirmationModal
+          seriesName={pendingShelveSeries.name || 'Untitled Series'}
+          title={mySeries.shelveConfirmTitle || 'Confirm Shelve'}
+          message={mySeries.shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
+          confirmLabel={mySeries.shelve || 'Shelve'}
+          cancelLabel={mySeries.cancel || 'Cancel'}
+          onConfirm={handleShelveConfirm}
+          onCancel={handleShelveCancel}
+        />
+      )}
+
+      {/* Unshelve Confirmation Modal */}
+      {showUnshelveModal && pendingUnshelveSeries && (
+        <UnshelveConfirmationModal
+          seriesName={pendingUnshelveSeries.name || 'Untitled Series'}
+          title={mySeries.unshelveConfirmTitle || 'Confirm Unshelve'}
+          message={mySeries.unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
+          confirmLabel={mySeries.unshelve || 'Unshelve'}
+          cancelLabel={mySeries.cancel || 'Cancel'}
+          onConfirm={handleUnshelveConfirm}
+          onCancel={handleUnshelveCancel}
+        />
       )}
     </div>
   )
@@ -1169,5 +1604,83 @@ const MySeriesCard: React.FC<MySeriesCardProps> = ({
     </div>
   )
 }
+
+interface ShelveConfirmationModalProps {
+  seriesName: string
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const ShelveConfirmationModal: React.FC<ShelveConfirmationModalProps> = ({
+  seriesName,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="shelve-modal-overlay" onClick={onCancel}>
+    <div className="shelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="shelve-modal-icon">📥</div>
+      <h2 className="shelve-modal-title">{title}</h2>
+      <div className="shelve-modal-series-info">
+        <span className="shelve-modal-series-name">{seriesName}</span>
+      </div>
+      <p className="shelve-modal-message">{message}</p>
+      <div className="shelve-modal-buttons">
+        <button className="shelve-modal-btn shelve-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="shelve-modal-btn shelve-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+interface UnshelveConfirmationModalProps {
+  seriesName: string
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const UnshelveConfirmationModal: React.FC<UnshelveConfirmationModalProps> = ({
+  seriesName,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="unshelve-modal-overlay" onClick={onCancel}>
+    <div className="unshelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="unshelve-modal-icon">📤</div>
+      <h2 className="unshelve-modal-title">{title}</h2>
+      <div className="unshelve-modal-series-info">
+        <span className="unshelve-modal-series-name">{seriesName}</span>
+      </div>
+      <p className="unshelve-modal-message">{message}</p>
+      <div className="unshelve-modal-buttons">
+        <button className="unshelve-modal-btn unshelve-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="unshelve-modal-btn unshelve-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
 
 export default Account

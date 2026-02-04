@@ -290,21 +290,31 @@ const validateDeleteSeriesBody = (body) => {
 
 // New handlers for player and account features
 
+// Utility function to shuffle an array using Fisher-Yates algorithm
+const shuffleArray = (array) => {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 const getFeaturedSeries = async (params) => {
   try {
-    // Get the first series marked as featured, or just the first series
-    let featured = await get('series', { isFeatured: true }, {}, {}, 1)
+    // Get all series and pick a random one as featured
+    const allSeries = await get('series', {}, {}, {})
     
-    if (!featured || featured.length === 0) {
-      featured = await get('series', {}, {}, { createdAt: -1 }, 1)
-    }
-    
-    if (!featured || featured.length === 0) {
+    if (!allSeries || allSeries.length === 0) {
       return {
         success: true,
         data: null
       }
     }
+    
+    // Pick a random series
+    const randomIndex = Math.floor(Math.random() * allSeries.length)
+    const featured = [allSeries[randomIndex]]
     
     const populatedSeries = await populateSeriesGenres(featured)
     return {
@@ -318,9 +328,10 @@ const getFeaturedSeries = async (params) => {
 
 const getRecommendations = async (params) => {
   try {
-    // Get a random selection of series as recommendations
-    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const populatedSeries = await populateSeriesGenres(series)
+    // Get series and randomize the order
+    const series = await get('series', {}, {}, {}, 20)
+    const shuffledSeries = shuffleArray(series).slice(0, 10)
+    const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {
       success: true,
       data: populatedSeries
@@ -332,9 +343,10 @@ const getRecommendations = async (params) => {
 
 const getNewReleases = async (params) => {
   try {
-    // Get the most recently added series
-    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const populatedSeries = await populateSeriesGenres(series)
+    // Get series and randomize the order
+    const series = await get('series', {}, {}, {}, 20)
+    const shuffledSeries = shuffleArray(series).slice(0, 10)
+    const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {
       success: true,
       data: populatedSeries
@@ -1540,8 +1552,9 @@ const buildUserResponse = (user) => ({
   hasPassword: !!user.password,
   watchList: user.watchList || [],
   favorites: user.favorites || [],
+  purchases: user.purchases || [],
   balance: user.balance || 0,
-  purchaseHistory: user.purchaseHistory || [],
+  transactions: user.transactions || [],
 })
 
 const uploadImage = async (body) => {
@@ -1849,6 +1862,282 @@ const validateShelveSeriesBody = (body) => {
   }
 }
 
+// Get My Purchases - get all purchased episodes for the logged in user
+const getMyPurchases = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const purchases = currentUser.purchases || []
+
+    // Return the purchases array directly
+    // Each purchase item should have: seriesId, seriesName, seriesCover, episodeId, episodeNumber, episodeTitle, episodeThumbnail, price, purchasedAt
+    return {
+      success: true,
+      data: purchases,
+    }
+  } catch (error) {
+    throw new Error(`Failed to get my purchases: ${error.message}`)
+  }
+}
+
+// Add purchase - add a purchased episode to user's purchases
+const addPurchase = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateAddPurchaseBody(body)
+
+  try {
+    const { seriesId, episodeId, episodeNumber, price } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if user has enough balance
+    const userBalance = currentUser.balance || 0
+    if (userBalance < price) {
+      return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Get series info
+    const seriesResult = await getSeriesById(seriesId)
+    if (!seriesResult.success || !seriesResult.data) {
+      return { success: false, error: 'Series not found' }
+    }
+    const series = seriesResult.data
+
+    // Get episode info from series.episodes array
+    let episodeTitle = `Episode ${episodeNumber}`
+    let episodeThumbnail = series.cover
+    let actualEpisodeId = episodeId
+
+    // Episodes are stored in series.episodes array, not a separate collection
+    if (series.episodes && series.episodes.length > 0) {
+      const episode = series.episodes.find(ep => ep.episodeNumber === episodeNumber)
+      if (episode) {
+        episodeTitle = episode.title || episodeTitle
+        // Get episode thumbnail from Bunny CDN using videoId
+        if (episode.videoId) {
+          episodeThumbnail = `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
+        } else if (episode.thumbnail) {
+          episodeThumbnail = episode.thumbnail
+        }
+        actualEpisodeId = episode._id || `${seriesId}-ep${episodeNumber}`
+      }
+    }
+
+    const purchases = currentUser.purchases || []
+
+    // Check if episode is already purchased
+    const existingPurchase = purchases.find(
+      (p) => String(p.seriesId) === String(seriesId) && p.episodeNumber === episodeNumber
+    )
+
+    if (existingPurchase) {
+      return { success: false, error: 'Episode already purchased' }
+    }
+
+    // Generate reference ID for the purchase
+    const purchaseReferenceId = `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+    // Create purchase record
+    const purchaseItem = {
+      _id: new ObjectId().toString(),
+      seriesId,
+      seriesName: series.name,
+      seriesCover: series.cover,
+      episodeId: actualEpisodeId,
+      episodeNumber,
+      episodeTitle,
+      episodeThumbnail,
+      price,
+      purchasedAt: new Date(),
+      status: 'success',
+      referenceId: purchaseReferenceId,
+    }
+
+    purchases.push(purchaseItem)
+
+    // Deduct balance and update purchases
+    const updateData = {
+      ...currentUser,
+      balance: userBalance - price,
+      purchases,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to add purchase: ${error.message}`)
+  }
+}
+
+const validateAddPurchaseBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('Series ID is required')
+  }
+
+  if (!body.episodeNumber && body.episodeNumber !== 0) {
+    throw new Error('Episode number is required')
+  }
+
+  if (body.price === undefined || body.price === null) {
+    throw new Error('Price is required')
+  }
+}
+
+// Top up - add balance to user's wallet
+const topUp = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateTopUpBody(body)
+
+  try {
+    const { amount, referenceId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const currentBalance = currentUser.balance || 0
+    const transactions = currentUser.transactions || []
+
+    // Create transaction record
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      type: 'topup',
+      amount,
+      status: 'success',
+      createdAt: new Date(),
+    }
+
+    // Add transaction to history
+    transactions.unshift(transaction)
+
+    // Update user with new balance and transaction
+    const updateData = {
+      ...currentUser,
+      balance: currentBalance + amount,
+      transactions,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to top up: ${error.message}`)
+  }
+}
+
+const validateTopUpBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+}
+
+// Withdraw - subtract balance from user's wallet
+const withdraw = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateWithdrawBody(body)
+
+  try {
+    const { amount, referenceId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+    const currentBalance = currentUser.balance || 0
+    const transactions = currentUser.transactions || []
+
+    // Check if user has sufficient balance
+    if (amount > currentBalance) {
+      return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Create transaction record
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      type: 'withdraw',
+      amount,
+      status: 'success',
+      createdAt: new Date(),
+    }
+
+    // Add transaction to history
+    transactions.unshift(transaction)
+
+    // Update user with new balance and transaction
+    const updateData = {
+      ...currentUser,
+      balance: currentBalance - amount,
+      transactions,
+      updatedAt: new Date(),
+    }
+
+    await save('users', updateData)
+
+    return {
+      success: true,
+      data: buildUserResponse(updateData),
+    }
+  } catch (error) {
+    throw new Error(`Failed to withdraw: ${error.message}`)
+  }
+}
+
+const validateWithdrawBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+}
+
 // Episode Cost constant
 const EPISODE_COST = 1
 
@@ -2004,6 +2293,10 @@ export {
   migrateGenres,
   getMySeries,
   shelveSeries,
+  getMyPurchases,
+  addPurchase,
+  topUp,
+  withdraw,
   purchaseEpisode,
 }
 

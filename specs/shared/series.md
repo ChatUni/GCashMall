@@ -1,48 +1,243 @@
-# Series Card component
+# Series Card Component Specification
+
+## Overview
+
+The Series Card is a reusable component used throughout GCashTV to display series information in carousels and grids. It appears in the Home page, Player page recommendations, and Genre page.
 
 ## Layout
 
-Vertical
+Vertical stack:
+- Poster image container
+- Title
+- Tag (single, most representative)
 
-- poster image
-- title
-- tag (only one, the most representative one)
+## Series Card Container
 
-## Style
+### Styling
+- **Flex Shrink**: 0
+- **Width**: 200px (fixed)
+- **Cursor**: Pointer
+- **Transition**: transform 0.3s ease
+- **Click Action**: Navigate to `/player/{seriesId}`
 
-Poster Image
+### Hover Effects
+- **Card**: scale(1.02)
+- **Poster Container**: Box shadow 0 0 20px rgba(59, 130, 246, 0.3)
+- **Title**: Color changes to #3B82F6
 
-- Aspect ratio: vertical (2:3)
-- rounded corner: 4px
-- bg color: black / near-black  (#0B0B0E)
-- Image fully covers the container
+## Poster Container
 
-Title
+### Styling
+- **Aspect Ratio**: 2:3 (vertical)
+- **Border Radius**: 8px
+- **Overflow**: Hidden
+- **Margin Bottom**: 12px
+- **Position**: Relative
+- **Background**: #1A1A1E (placeholder)
+- **Transition**: box-shadow 0.2s ease
 
-- Font size: small–medium
-- Color: white
-- Maximum lines: 1–2 with ellipsis
-- Small margin above the title for spacing
+### Poster Image
+- **Size**: 100% width and height
+- **Object Fit**: Cover
+- **Transition**: transform 0.3s ease
+- **Hover Effect**: scale(1.05)
 
-## Interaction
+## Series Title
 
-- On hover: Poster image slightly scales up，subtle glows, scale up by 2%, animate the change in 0.3 sec. Dim the background, show a big play icon at the center of the image.
-- On click: Navigate to the series page
+### Styling
+- **Font Size**: 14px
+- **Font Weight**: 500
+- **Color**: #FFFFFF
+- **Margin**: 0 0 4px 0
+- **Text Clamp**: 2 lines max (using -webkit-line-clamp)
+- **Transition**: color 0.2s ease
 
+## Series Tag
 
-# Recommendation Section
+### Styling
+- **Display**: Inline-block
+- **Width**: fit-content (only as wide as the text)
+- **Background**: #2A2A2E
+- **Color**: #9CA3AF
+- **Font Size**: 12px
+- **Padding**: 4px 10px
+- **Border Radius**: 16px (pill shape)
+- **Cursor**: Pointer
+- **Transition**: background-color 0.2s ease, color 0.2s ease
+- **Click Action**: Navigate to `/genre?category={tag}` (corresponding tag category on the genre page)
 
-## Layout
-Vertical
-- Title: "You Might Like"
-- series card list
+### Hover State
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Title Override**: When tag is hovered, title stays white (not blue)
+  - CSS: `.series-card:has(.series-tag:hover) .series-title { color: #FFFFFF; }`
 
-## Style
-- series card list: horizontal carousel
+---
 
-## Series Card
-Use shared series card component
+# Series Carousel Section Specification
 
+## Overview
+
+A horizontal scrolling carousel section used to display series cards. Used for "You Might Like" and "New Releases" sections on Home and Player pages.
+
+## Section Layout
+
+### Container
+- **Margin Bottom**: 50px
+- **Padding**: 0 60px (horizontal padding to match page content)
+
+### Responsive Padding
+- **768px (Mobile)**: Padding 0 20px
+- **480px (Small Mobile)**: Padding 0 15px
+
+### Section Header
+- **Display**: Flex, space-between, center aligned
+- **Margin Bottom**: 20px
+
+### Section Title
+- **Font Size**: 28px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin**: 0
+
+## Carousel Controls
+
+### Container
+- **Display**: Flex
+- **Gap**: 10px
+
+### Arrow Button
+- **Size**: 40px × 40px (fixed)
+- **Border Radius**: 50% (circular)
+- **Background**: #1A1A1E
+- **Border**: 1px solid #2A2A2E
+- **Cursor**: Pointer
+- **Display**: Flex, centered
+- **Transition**: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease
+
+### Arrow Button Hover
+- **Background**: #2A2A2E
+- **Border Color**: #3B82F6
+- **Box Shadow**: 0 0 12px rgba(59, 130, 246, 0.5)
+
+### Arrow Icon (CSS-based)
+- **Method**: CSS borders (::before pseudo-element)
+- **Size**: 10px × 10px
+- **Border**: 2px solid #FFFFFF (top and right)
+- **Position**: Absolute, centered
+- **Left Arrow**: rotate(-135deg)
+- **Right Arrow**: rotate(45deg)
+- **Hover**: Border color #3B82F6
+
+## Series Carousel
+
+### Container
+- **Display**: Flex
+- **Gap**: 20px
+- **Overflow-X**: Auto (horizontal scroll)
+- **Scroll Behavior**: Smooth
+- **Padding Bottom**: 10px
+- **Scrollbar**: Hidden (all browsers)
+  - `-ms-overflow-style`: none
+  - `scrollbar-width`: none
+  - `::-webkit-scrollbar`: display none
+
+### Scroll Functionality
+- **Scroll Amount**: 80% of container width
+- **Direction**: Left or Right based on button clicked
+- **Behavior**: Smooth scrolling via `scrollBy()`
+
+## View More Card
+
+Appears at the end of each carousel.
+
+### Card Container
+- **Flex Shrink**: 0
+- **Width**: 120px (fixed)
+- **Display**: Flex column, centered
+- **Padding Top**: 50px
+- **Cursor**: Pointer
+- **Transition**: transform 0.2s ease
+- **Hover**: scale(1.05)
+- **Click Action**: Navigate to `/genre`
+
+### View More Content (Circle)
+- **Display**: Flex column, centered
+- **Gap**: 0px
+- **Padding**: 16px
+- **Background**: #1A1A1E
+- **Border Radius**: 50% (circular)
+- **Size**: 80px × 80px
+- **Transition**: background-color 0.2s ease, box-shadow 0.2s ease
+
+### View More Content Hover
+- **Background**: #2A2A2E
+- **Box Shadow**: 0 0 20px rgba(59, 130, 246, 0.3)
+
+### View More Arrow Icon
+- **Size**: 40px × 40px
+- **Color**: #9CA3AF
+- **Transition**: color 0.2s ease
+- **Hover**: Color #3B82F6
+- **SVG**: Chevron right icon (no hardcoded width/height attributes)
+
+### View More Text
+- **Font Size**: 12px
+- **Color**: #9CA3AF
+- **Text Align**: Center
+- **Margin Top**: 10px
+- **Transition**: color 0.2s ease
+- **Hover**: Color #3B82F6
+- **Position**: Outside the circle (below view-more-content)
+
+---
+
+# You Might Like Section
+
+## Overview
+A recommendation carousel section displaying series the user might enjoy based on their viewing history or preferences.
+
+## Implementation
+Uses the Series Carousel Section component with:
+- **Title**: "You Might Like" (i18n: `t.home.youMightLike`)
+- **Data Source**: `youMightLikeSeries` array or filtered recommendations
+- **Filtering**: Excludes current series when on Player page
+
+---
 
 # New Releases Section
-The same as Recommendation Section, but with title "New Releases".
+
+## Overview
+A carousel section displaying newly released series content.
+
+## Implementation
+Uses the Series Carousel Section component with:
+- **Title**: "New Releases" (i18n: `t.home.newReleases`)
+- **Data Source**: `newReleasesSeries` array or filtered new releases
+- **Filtering**: Excludes current series when on Player page
+
+---
+
+# Responsive Design
+
+## Breakpoints
+
+### 1024px (Tablet)
+- **Series Card**: Width 180px
+- **Section Container**: Padding-top 20px (adds spacing above section header)
+- **Section Header**: Margin-bottom 16px
+
+### 768px (Mobile)
+- **Series Card**: Width 160px
+- **Section Container**: Padding 24px 20px 0 20px (increased top padding for better spacing)
+- **Section Header**: flex-wrap wrap, gap 12px
+- **Section Title**: 20px
+- **Carousel Controls**: margin-left auto
+- **Carousel Arrow**: 36px × 36px
+
+### 480px (Small Mobile)
+- **Series Card**: Width 140px
+- **Series Title**: 13px
+- **View More Card**: Width 100px
+- **View More Circle**: 70px × 70px
+- **View More Arrow**: 32px × 32px

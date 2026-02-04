@@ -192,7 +192,7 @@ interface PurchaseEpisodeResponse {
   }
 }
 
-export const purchaseEpisode = async (seriesId: string, episodeNumber: number) => {
+export const purchaseEpisodeSimple = async (seriesId: string, episodeNumber: number) => {
   const result = await apiPostWithAuth<PurchaseEpisodeResponse>('purchaseEpisode', {
     seriesId,
     episodeNumber,
@@ -373,6 +373,58 @@ export const saveSeries = async (seriesData: Record<string, unknown>) => {
     throw new Error(result.error || 'Failed to save series')
   }
   return result
+}
+
+// Purchase episode
+export const purchaseEpisode = async (
+  seriesId: string,
+  episodeId: string,
+  episodeNumber: number,
+  price: number = 0.1,
+) => {
+  const result = await apiPostWithAuth<User>('addPurchase', {
+    seriesId,
+    episodeId,
+    episodeNumber,
+    price,
+  })
+  if (result.success && result.data) {
+    const token = localStorage.getItem('gcashmall_token')
+    if (token) {
+      saveAuthData(token, result.data)
+    }
+    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
+    // Also update myPurchases in accountStore if purchases exist in user data
+    if (result.data.purchases) {
+      accountStoreActions.setMyPurchases(result.data.purchases)
+    }
+    // Update balance in accountStore
+    if (result.data.balance !== undefined) {
+      accountStoreActions.setBalance(result.data.balance)
+    }
+  }
+  return result
+}
+
+// Check if episode is purchased
+export const isEpisodePurchased = (
+  seriesId: string,
+  episodeId: string,
+  purchases?: { seriesId: string; episodeId: string; episodeNumber?: number }[],
+  episodeNumber?: number,
+): boolean => {
+  if (!purchases || purchases.length === 0) return false
+  return purchases.some(
+    (p) => {
+      const seriesMatch = String(p.seriesId) === String(seriesId)
+      if (!seriesMatch) return false
+      // Check by episodeId first, then by episodeNumber as fallback
+      const episodeIdMatch = String(p.episodeId) === String(episodeId)
+      const episodeNumberMatch = episodeNumber !== undefined && p.episodeNumber === episodeNumber
+      return episodeIdMatch || episodeNumberMatch
+    },
+  )
 }
 
 // Show toast helper

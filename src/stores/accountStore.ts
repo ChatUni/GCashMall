@@ -2,9 +2,22 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { useSyncExternalStore } from 'react'
-import type { FavoriteItem, Series, User } from '../types'
+import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
 
 type Listener = () => void
+
+// Transaction types
+export type TransactionType = 'topup' | 'withdraw'
+export type TransactionStatus = 'success' | 'failed' | 'processing'
+
+export interface Transaction {
+  id: string
+  referenceId: string
+  type: TransactionType
+  amount: number
+  status: TransactionStatus
+  createdAt: Date
+}
 
 const createStore = <T>(initialState: T) => {
   let state = initialState
@@ -25,7 +38,7 @@ const createStore = <T>(initialState: T) => {
   return { getState, setState, subscribe }
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'mySeries'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries'
 
 export interface ProfileFormState {
   nickname: string
@@ -60,6 +73,10 @@ interface AccountState {
   loading: boolean
   favorites: FavoriteItem[]
   
+  // My Purchases
+  myPurchases: PurchaseItem[]
+  myPurchasesLoading: boolean
+  
   // My Series
   mySeries: Series[]
   mySeriesLoading: boolean
@@ -88,8 +105,13 @@ interface AccountState {
   
   // Wallet
   balance: number
+  walletTab: 'topup' | 'withdraw'
   showTopUpPopup: boolean
   selectedTopUpAmount: number | null
+  showWithdrawPopup: boolean
+  selectedWithdrawAmount: number | null
+  withdrawing: boolean
+  transactions: Transaction[]
   
   // UI
   showLoginModal: boolean
@@ -128,6 +150,10 @@ const initialState: AccountState = {
   loading: true,
   favorites: [],
   
+  // My Purchases
+  myPurchases: [],
+  myPurchasesLoading: false,
+  
   // My Series
   mySeries: [],
   mySeriesLoading: false,
@@ -151,8 +177,13 @@ const initialState: AccountState = {
   notifications: true,
   
   balance: 0,
+  walletTab: 'topup',
   showTopUpPopup: false,
   selectedTopUpAmount: null,
+  showWithdrawPopup: false,
+  selectedWithdrawAmount: null,
+  withdrawing: false,
+  transactions: [],
   
   showLoginModal: false,
 }
@@ -185,6 +216,12 @@ export const accountStoreActions = {
       ...prev,
       favorites: prev.favorites.filter((item) => item._id !== itemId),
     })),
+  
+  // My Purchases
+  setMyPurchases: (myPurchases: PurchaseItem[]) =>
+    accountStore.setState((prev) => ({ ...prev, myPurchases })),
+  setMyPurchasesLoading: (myPurchasesLoading: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, myPurchasesLoading })),
   
   // My Series
   setMySeries: (mySeries: Series[]) =>
@@ -268,14 +305,40 @@ export const accountStoreActions = {
     accountStore.setState((prev) => ({ ...prev, notifications })),
   
   // Wallet
-  setBalance: (balance: number) => 
+  setBalance: (balance: number) =>
     accountStore.setState((prev) => ({ ...prev, balance })),
   addBalance: (amount: number) =>
     accountStore.setState((prev) => ({ ...prev, balance: prev.balance + amount })),
-  setShowTopUpPopup: (showTopUpPopup: boolean) => 
+  subtractBalance: (amount: number) =>
+    accountStore.setState((prev) => ({ ...prev, balance: prev.balance - amount })),
+  setWalletTab: (walletTab: 'topup' | 'withdraw') =>
+    accountStore.setState((prev) => ({ ...prev, walletTab })),
+  setShowTopUpPopup: (showTopUpPopup: boolean) =>
     accountStore.setState((prev) => ({ ...prev, showTopUpPopup })),
-  setSelectedTopUpAmount: (selectedTopUpAmount: number | null) => 
+  setSelectedTopUpAmount: (selectedTopUpAmount: number | null) =>
     accountStore.setState((prev) => ({ ...prev, selectedTopUpAmount })),
+  setShowWithdrawPopup: (showWithdrawPopup: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showWithdrawPopup })),
+  setSelectedWithdrawAmount: (selectedWithdrawAmount: number | null) =>
+    accountStore.setState((prev) => ({ ...prev, selectedWithdrawAmount })),
+  setWithdrawing: (withdrawing: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, withdrawing })),
+  
+  // Transactions
+  setTransactions: (transactions: Transaction[]) =>
+    accountStore.setState((prev) => ({ ...prev, transactions })),
+  addTransaction: (transaction: Transaction) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      transactions: [transaction, ...prev.transactions],
+    })),
+  updateTransactionStatus: (id: string, status: TransactionStatus) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      transactions: prev.transactions.map((t) =>
+        t.id === id ? { ...t, status } : t,
+      ),
+    })),
   
   // Initialize user data
   initializeUserData: (user: User) => {
@@ -286,6 +349,15 @@ export const accountStoreActions = {
       gender: user.sex || 'not_specified',
       birthday: user.dob || '',
     }
+    // Convert transactions from user data (dates may be strings from JSON)
+    const transactions: Transaction[] = (user.transactions || []).map((t: Transaction | { id: string; referenceId: string; type: TransactionType; amount: number; status: TransactionStatus; createdAt: string | Date }) => ({
+      id: t.id,
+      referenceId: t.referenceId,
+      type: t.type,
+      amount: t.amount,
+      status: t.status,
+      createdAt: typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt,
+    }))
     accountStore.setState((prev) => ({
       ...prev,
       user,
@@ -294,6 +366,8 @@ export const accountStoreActions = {
       profileForm: profileData,
       originalProfile: profileData,
       balance: user.balance || 0,
+      transactions,
+      myPurchases: user.purchases || [],
     }))
   },
   
@@ -310,7 +384,20 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'favorites', icon: '❤️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'wallet', icon: '💰' },
+  { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
 ]
 
-export const topUpAmounts = [5, 10, 20, 50, 100, 200]
+export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]
+
+// Helper function to generate reference ID
+export const generateReferenceId = (): string => {
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+  return `GC${timestamp}${random}`
+}
+
+// Helper function to generate transaction ID
+export const generateTransactionId = (): string => {
+  return `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+}

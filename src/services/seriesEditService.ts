@@ -77,15 +77,12 @@ const addInitialEpisode = () => {
   seriesEditStoreActions.addEpisode(createNewEpisode(1))
 }
 
-// Save series
-export const saveSeries = async (
+// Save series (called after confirmation)
+export const saveSeriesWithConfirmation = async (
   id: string | undefined,
   t: Record<string, string>,
   onSuccess: () => void,
 ) => {
-  const confirmed = window.confirm(t.confirmSave)
-  if (!confirmed) return
-
   seriesEditStoreActions.setSaving(true)
   seriesEditStoreActions.setError(null)
   seriesEditStoreActions.setSuccess(null)

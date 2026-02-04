@@ -39,6 +39,10 @@ import {
   migrateGenres,
   getMySeries,
   shelveSeries,
+  getMyPurchases,
+  addPurchase,
+  topUp,
+  withdraw,
   purchaseEpisode,
 } from './utils/handlers.js'
 
@@ -58,6 +62,7 @@ const apiHandlers = {
     user: (params) => getUser(params),
     checkEmail: (params) => checkEmail(params),
     mySeries: (params, authHeader) => getMySeries(params, authHeader),
+    myPurchases: (params, authHeader) => getMyPurchases(params, authHeader),
   },
   post: {
     todo: (body) => saveTodo(body),
@@ -84,6 +89,9 @@ const apiHandlers = {
     clearFavorites: (body, authHeader) => clearFavorites(body, authHeader),
     migrateGenres: (body) => migrateGenres(body),
     shelveSeries: (body, authHeader) => shelveSeries(body, authHeader),
+    addPurchase: (body, authHeader) => addPurchase(body, authHeader),
+    topUp: (body, authHeader) => topUp(body, authHeader),
+    withdraw: (body, authHeader) => withdraw(body, authHeader),
     purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
   },
   delete: {
@@ -164,7 +172,7 @@ const createResponse = (statusCode, data) => {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'
     },
     body: JSON.stringify(data)

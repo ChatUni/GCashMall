@@ -26,6 +26,18 @@ This document defines the global styling standards for GCashTV, including the co
 | Tag Background | #2A2A2E | Tags, pills, badges |
 | Border | #242428 | Dividers, borders |
 | Black | #000000 | Footer, video player |
+| Sidebar Background | #0B0B0E |
+| Card Placeholder | #1A1A1E |
+| Border | #1A1A1E |
+| Search Background | #1A1A1A |
+| Active Background | rgba(59, 130, 246, 0.1) |
+| Hover Background | rgba(255, 255, 255, 0.05) |
+| Overlay | rgba(0, 0, 0, 0.4) |
+| Progress Bar | rgba(255, 255, 255, 0.3) |
+| Controls Gradient | linear-gradient(transparent, rgba(0, 0, 0, 0.8)) |
+| Popover Background | #121214 |
+| Border | rgba(255, 255, 255, 0.1) |
+| Divider | #242428 |
 
 ### Text Colors
 | Name | Hex | Usage |
@@ -185,6 +197,32 @@ transition: all 0.2s ease;
 | Progress | width 0.1s linear |
 | Hover effects | 0.2s ease |
 | Poster scale | 0.3s ease |
+| Poster Image | transform | 0.3s | ease |
+| Poster Overlay | opacity | 0.3s | ease |
+| Play Button | transform, background | 0.2s | ease |
+| Tag | background, color | 0.2s | ease |
+| Series Title | color | 0.2s | ease |
+| Carousel Arrow | background, border, shadow | 0.2s | ease |
+| View More Card | transform | 0.2s | ease |
+| View More Content | background, shadow | 0.2s | ease |
+| View More Arrow/Text | color | 0.2s | ease |
+| Logo | opacity | 0.2s | ease |
+| Nav Link | color | 0.2s | ease |
+| Search Combo | border-color, box-shadow | 0.2s | ease |
+| Search Button | color | 0.2s | ease |
+| Suggestion Item | background-color | 0.2s | ease |
+| Icon Button | color | 0.2s | ease |
+| Avatar | border-color | 0.2s | ease |
+| Popover Item | background-color | 0.2s | ease |
+| Language Option | background-color | 0.2s | ease |
+| Genre Item | color, background | 0.2s | ease |
+| Card Container | transform | 0.3s | ease |
+| Card Image | transform | 0.3s | ease |
+| Card Title | color | 0.2s | ease |
+| Genre Item | color, background | 0.2s | ease |
+| Dropdown Trigger | border-color | 0.2s | ease |
+| Dropdown Arrow | transform | 0.2s | ease |
+| Dropdown Item | background-color, color | 0.2s | ease |
 
 ## Common UI Patterns
 
@@ -222,11 +260,63 @@ border-radius: 8px;
 ```css
 background-color: #1A1A1E;
 color: #FFFFFF;
-border: 1px solid #242428;
+border: 1px solid #2A2A2E;
 border-radius: 8px;
 padding: 12px 16px;
 font-size: 15px;
 ```
+
+### Select/Dropdown
+Flat, dark-themed select elements with custom styling to replace browser defaults.
+
+```css
+/* Base styles */
+appearance: none;
+-webkit-appearance: none;
+-moz-appearance: none;
+background-color: #1A1A1E;
+border: 1px solid #2A2A2E;
+border-radius: 6px;
+padding: 8px 32px 8px 12px;
+font-size: 14px;
+font-weight: 500;
+color: #FFFFFF;
+cursor: pointer;
+outline: none;
+transition: border-color 0.2s ease, background-color 0.2s ease;
+
+/* Custom dropdown arrow */
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+background-repeat: no-repeat;
+background-position: right 10px center;
+background-size: 12px;
+
+/* Hover state */
+:hover {
+  border-color: #3B82F6;
+  background-color: #242428;
+}
+
+/* Focus state */
+:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Option styles */
+option {
+  background-color: #1A1A1E;
+  color: #FFFFFF;
+  padding: 8px 12px;
+}
+```
+
+#### Key Design Principles
+- **Flat design**: No gradients, glossy effects, or 3D appearance
+- **Dark theme**: Consistent with the overall dark UI
+- **Custom arrow**: SVG-based dropdown indicator replacing browser default
+- **Subtle borders**: Using #2A2A2E for a softer appearance
+- **Interactive feedback**: Hover and focus states with blue accent color
 
 ### Tags/Pills
 ```css

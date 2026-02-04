@@ -44,6 +44,13 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.series-edit-total-eps {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-top: 4px;
+}
+
 .series-edit-input:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
@@ -142,9 +149,36 @@
 }
 
 .episode-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 1400px) {
+  .episode-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .episode-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .episode-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .episode-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }
 
 .add-episode-button {
@@ -241,4 +275,103 @@
   height: 18px;
   accent-color: #3b82f6;
   cursor: pointer;
+}
+
+/* Save Confirmation Modal */
+.save-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.save-modal {
+  background-color: #1a1a1e;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.save-modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.save-modal-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.save-modal-message {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+.save-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.save-modal-btn {
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.save-modal-btn-confirm {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.save-modal-btn-confirm:hover {
+  background-color: #2563eb;
+}
+
+.save-modal-btn-cancel {
+  background-color: #2a2a2e;
+  color: #ffffff;
+}
+
+.save-modal-btn-cancel:hover {
+  background-color: #3a3a3e;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -158,8 +158,21 @@ Episode Cost = 1 GCash
 #### Language Selector
 - **Display**: Flex with globe icon
 - **Icon Size**: 18px
-- **Color**: #9CA3AF
+- **Styling**: Flat dark theme select (see Global Style Specification)
+  - Background: #1A1A1E
+  - Border: 1px solid #2A2A2E
+  - Border Radius: 6px
+  - Padding: 6px 28px 6px 10px
+  - Color: #FFFFFF
+  - Custom dropdown arrow (SVG-based)
+  - Hover: Border #3B82F6, Background #242428
+  - Focus: Border #3B82F6 with blue glow
 - **Options**: English, 中文, Español, Français
+
+#### Action Buttons Container
+- **Display**: Flex
+- **Gap**: 12px
+- **Align Items**: Center
 
 #### Favorite Button
 - **Size**: 48px × 48px
@@ -169,8 +182,25 @@ Episode Cost = 1 GCash
 - **Hover**: Background #2A2A2E, scale(1.05)
 - **Icon**: Heart SVG (filled when active)
 - on click:
-  - inactive: call add to favorite API, change to active
-  - active: call remove from favorite API, change to inactive
+  - Check localStorage for `hideFavoriteModal` preference
+  - If `hideFavoriteModal` is `'true'`:
+    - inactive: directly call add to favorite API, change to active
+    - active: directly call remove from favorite API, change to inactive
+  - If `hideFavoriteModal` is not set or `'false'`:
+    - Show Favorite Confirmation Modal (see Confirmation Popups section)
+
+#### Unlock Button
+- **Size**: 48px × 48px
+- **Border Radius**: 50%
+- **Background**: #1A1A1A (locked), transparent (unlocked/purchased)
+- **Color**: #9CA3AF (locked), #F97316 orange (unlocked)
+- **Hover**: Background #2A2A2E, scale(1.05)
+- **Icon**: Lock SVG (locked), Lock SVG filled with orange (unlocked)
+- **States**:
+  - **Locked**: Episode not purchased, shows lock icon with gray stroke
+  - **Unlocked**: Episode purchased, shows lock icon filled with orange (#F97316)
+- on click (when locked):
+  - Show purchase confirmation popup
 
 ### Tag List
 - **Display**: Flex wrap
@@ -202,6 +232,8 @@ Episode Cost = 1 GCash
 - **Box Shadow**: 0 4px 20px rgba(0, 0, 0, 0.3)
 - **Max Height**: 700px
 - **Overflow-Y**: Auto
+- **Margin Left**: auto (pushes sidebar to the right edge of the container)
+- **Margin Right**: 80px 
 
 ### Panel Title
 - **Font Size**: 18px
@@ -286,20 +318,211 @@ Two sections identical to Home page:
 - **Padding Top**: 80px
 - **Click**: Navigate to `/genre`
 
+## Trial Viewing System
+
+### Overview
+Users can watch the first few seconds of any episode for free (configurable, default 3 seconds). After the trial period ends, they must purchase the episode to continue watching.
+
+### Configuration
+- **Constant**: `TIME_LIMIT` in `src/stores/playerStore.ts`
+- **Default Value**: 3 seconds
+- **Location**: Both the markdown spec and the code constant should be updated together when changing this value
+
+### Trial Logic
+- **Trial Duration**: 3 seconds (configurable via TIME_LIMIT constant)
+- **Trigger**: Video playback reaches the time limit for unpurchased episodes
+- **Behavior**:
+  - Video pauses automatically at the time limit
+  - Purchase popup appears
+  - User can either purchase or close the popup
+  - If closed without purchase, video remains paused at the time limit
+
+### Trial State Tracking
+- Track current playback time
+- Check if episode is purchased before applying trial limit
+- Purchased episodes have no time limit
+
+### Trial Ended Notification
+- **Position**: Top of video player
+- **Background**: rgba(0, 0, 0, 0.8)
+- **Padding**: 12px 20px
+- **Border Radius**: 8px
+- **Message**: "Trial ended. Unlock to continue watching."
+- **Animation**: fadeIn 0.3s
+
+## Episode Purchase System
+
+### Purchase Price
+- **Price per Episode**: 0.1 (GCash currency)
+- **Payment Method**: Deduct from user's wallet balance
+
+### Purchase Flow
+1. User clicks unlock button OR trial period ends
+2. Purchase popup appears showing:
+   - Episode information
+   - Price (0.1)
+   - Current wallet balance
+3. User confirms purchase
+4. System checks wallet balance
+5. If sufficient: deduct amount, unlock episode, add to My Purchases
+6. If insufficient: show error message
+
+### Purchased Episode Storage
+- Stored in user's `purchases` array in database
+- Each purchase record contains:
+  - _id (unique purchase id)
+  - seriesId
+  - episodeId
+  - episodeNumber
+  - episodeTitle
+  - episodeThumbnail
+  - seriesName
+  - seriesCover
+  - purchasedAt (timestamp)
+  - price
+
+### Purchase State Synchronization
+After a successful purchase:
+1. Backend persists the purchase to the user's `purchases` array in database
+2. Backend returns the updated user object including `purchases`, `balance`, and `transactions`
+3. Frontend updates:
+   - `userStore.user` - for Player page purchase check
+   - `accountStore.user` - for Account page display
+   - `accountStore.myPurchases` - for My Purchases section
+   - `accountStore.balance` - for wallet display
+4. The lock icon immediately changes from gray stroke to orange fill (#F97316)
+5. The episode appears in the "My Purchases" section on the Account page
+
+### Purchase Check Logic
+To determine if an episode is purchased:
+1. Check the user's `purchases` array
+2. Match by both `seriesId` AND (`episodeId` OR `episodeNumber`)
+3. Using episodeNumber as fallback handles cases where episodeId is synthetic (e.g., `${seriesId}-ep1`)
+
 ## Confirmation Popups
 
-### Favorite Popup
+### Favorite Confirmation Modal
 - **Overlay**: Fixed, rgba(0, 0, 0, 0.7), z-index 1000
-- **Modal**: 
+- **Modal**:
   - Background: #1A1A1E
   - Border Radius: 16px
   - Padding: 32px
   - Max Width: 400px
   - Animation: fadeIn 0.2s, slideUp 0.3s
-- **Icon**: 64px circle, red tint background, heart icon
-- **Title**: "Add to Favorites?" - 20px, white
-- **Message**: 14px, gray, line-height 1.6
-- **Buttons**: Yes (blue), No (gray)
+- **Icon**: 48px heart emoji (❤️ for add, 💔 for remove)
+- **Title**:
+  - Adding: "Add to Favorites" - 20px, white
+  - Removing: "Remove from Favorites" - 20px, white
+- **Series Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Margin Bottom: 20px
+  - **Series Name**: 16px, font-weight 600, white
+  - **Episode Info**: 14px, gray (#9CA3AF)
+- **Message**:
+  - Adding: "Add this series to your favorites?"
+  - Removing: "Remove this series from your favorites?"
+  - Font Size: 14px, Color: #9CA3AF, Line Height: 1.6
+- **Don't Show Again Checkbox**:
+  - Display: Flex, centered, gap 8px
+  - Margin Bottom: 20px
+  - Cursor: Pointer
+  - User Select: None
+  - **Checkbox Input**:
+    - Size: 18px × 18px
+    - Accent Color: #3B82F6
+    - Cursor: Pointer
+  - **Label**: "Don't show again" - 14px, #9CA3AF
+- **Buttons**:
+  - Confirm (blue, full width) - triggers favorite action
+  - Cancel (gray, full width) - closes modal without action
+- **Persistence**:
+  - When "Don't show again" is checked and Confirm is clicked:
+    - Save preference to localStorage key: `hideFavoriteModal` = `'true'`
+  - On subsequent favorite button clicks:
+    - Check localStorage for `hideFavoriteModal`
+    - If `'true'`: directly perform add/remove action without showing modal
+    - If not set or `'false'`: show confirmation modal
+
+### Purchase Popup
+- **Overlay**: Fixed, rgba(0, 0, 0, 0.8), z-index 1000
+- **Modal**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Animation: fadeIn 0.2s, slideUp 0.3s
+- **Icon**: 64px lock emoji (🔓), horizontally flipped (transform: scaleX(-1))
+- **Title**: "Unlock Episode" - 20px, white
+- **Message**: "Unlock this episode to continue watching" - 14px, gray
+- **Episode Info Box**:
+  - Background: #242428
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Display: Flex column, gap 4px
+  - **Series Name** (first line): 16px, font-weight 600, white
+  - **Episode Name** (second line): 14px, font-weight 400, gray (#9CA3AF)
+    - Format: "EP XX" or "EP XX {Episode Title}"
+- **Price Display**:
+  - GCash logo (24px)
+  - Amount: "0.1" - 36px, bold, #3B82F6
+- **Balance Display**:
+  - Label: "Your balance:" - 14px, gray
+  - Amount: Current wallet balance - 16px, white
+- **Buttons**:
+  - Confirm Purchase (blue, full width)
+  - Cancel (gray, full width)
+- **Loading State**: Show spinner during purchase processing
+- **Error State**: Show red error message if purchase fails
+
+### Purchase Result Modal
+- **Overlay**: Fixed, rgba(0, 0, 0, 0.8), z-index 1000
+- **Modal**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 40px 32px
+  - Max Width: 400px
+  - Text Align: Center
+  - Animation: fadeIn 0.2s, slideUp 0.3s
+- **Result Icon**:
+  - Size: 64px × 64px
+  - Drop Shadow: 0 4px 12px rgba(0, 0, 0, 0.3)
+  - **Success**: Green circle (#22C55E) with white checkmark
+  - **Error**: Red circle (#EF4444) with white X
+- **Result Title**:
+  - Font Size: 22px
+  - Font Weight: 600
+  - **Success**: "Unlock Episode Successfully!" - color #22C55E
+  - **Error**: "Unlock Failed" - color #EF4444
+- **Result Message**:
+  - Font Size: 14px
+  - Color: #9CA3AF
+  - Line Height: 1.6
+  - Margin Bottom: 28px
+- **Result Button**:
+  - Width: 100%
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font Size: 16px
+  - Font Weight: 600
+  - Hover: scale(1.02)
+  - Active: scale(0.98)
+  - **Success Button**: Background #22C55E, hover #16A34A
+  - **Error Button**: Background #EF4444, hover #DC2626
+  - **Button Text**:
+    - Default: "OK"
+    - If insufficient balance error: "Go to Wallet" (navigates to /account?tab=wallet)
+
+### Toast Notifications
+- **Position**: Fixed, top 80px, right 24px
+- **Padding**: 14px 24px
+- **Border Radius**: 8px
+- **Animation**: slideIn from right
+- **Duration**: 3 seconds auto-dismiss
+- **Types**:
+  - **Success** (green #22C55E): "Episode unlocked successfully!"
+  - **Error** (red #EF4444): "Failed to unlock episode" or "Insufficient balance"
 
 ## Navigation Actions
 
@@ -352,11 +575,3 @@ Two sections identical to Home page:
 - **Series Card**: 140px width
 - **Section Title**: 20px
 - **View More Card**: 100px width, 60px circle
-
-## Color Palette
-
-| Element | Color |
-|---------|-------|
-| Progress Bar | rgba(255, 255, 255, 0.3) |
-| Controls Gradient | linear-gradient(transparent, rgba(0, 0, 0, 0.8)) |
-

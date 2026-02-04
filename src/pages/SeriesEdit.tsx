@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
@@ -14,7 +14,7 @@ import {
 } from '../stores/seriesEditStore'
 import {
   initializeSeriesEdit,
-  saveSeries,
+  saveSeriesWithConfirmation,
   handleImageChange,
   handleEpisodeTitleChange,
   handleEpisodeVideoChange,
@@ -42,6 +42,9 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
   const id = seriesId === 'new' ? undefined : seriesId
 
   const state = useSeriesEditStore()
+  
+  // Save confirmation modal state
+  const [showSaveModal, setShowSaveModal] = useState(false)
 
   // Initialize data (not in useEffect)
   const initKey = id || 'new'
@@ -61,11 +64,20 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
   }
 
   const handleSaveClick = () => {
-    saveSeries(id, t.seriesEdit as Record<string, string>, () => {
+    setShowSaveModal(true)
+  }
+
+  const handleSaveConfirm = () => {
+    setShowSaveModal(false)
+    saveSeriesWithConfirmation(id, t.seriesEdit as Record<string, string>, () => {
       // Clear from initialized set so it reinitializes next time
       initializedIds.delete(initKey)
       onSaveComplete()
     })
+  }
+
+  const handleSaveCancel = () => {
+    setShowSaveModal(false)
   }
 
   if (state.loading) {
@@ -88,6 +100,7 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
           value={state.formData.name}
           onChange={seriesEditStoreActions.setName}
           label={t.seriesEdit.name}
+          totalEpisodes={activeEpisodes.length}
         />
 
         <DescriptionField
@@ -143,6 +156,18 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
           title={t.seriesEdit.uploadProgress}
         />
       )}
+
+      {/* Save Confirmation Modal */}
+      {showSaveModal && (
+        <SaveConfirmationModal
+          title={(t.seriesEdit as Record<string, string>).confirmSaveTitle || 'Confirm Save'}
+          message={(t.seriesEdit as Record<string, string>).confirmSaveMessage || 'Are you sure you want to save this series?'}
+          confirmLabel={(t.seriesEdit as Record<string, string>).confirmSaveBtn || 'Save'}
+          cancelLabel={t.seriesEdit.cancel}
+          onConfirm={handleSaveConfirm}
+          onCancel={handleSaveCancel}
+        />
+      )}
     </div>
   )
 }
@@ -171,9 +196,10 @@ interface NameFieldProps {
   value: string
   onChange: (value: string) => void
   label: string
+  totalEpisodes: number
 }
 
-const NameField: React.FC<NameFieldProps> = ({ value, onChange, label }) => (
+const NameField: React.FC<NameFieldProps> = ({ value, onChange, label, totalEpisodes }) => (
   <div className="series-edit-field">
     <label className="series-edit-label">{label}</label>
     <input
@@ -182,6 +208,7 @@ const NameField: React.FC<NameFieldProps> = ({ value, onChange, label }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
+    <span className="series-edit-total-eps">Total EPs {String(totalEpisodes).padStart(2, '0')}</span>
   </div>
 )
 
@@ -366,6 +393,40 @@ const UploadProgressDialog: React.FC<UploadProgressDialogProps> = ({
       <p>
         {current} / {total}
       </p>
+    </div>
+  </div>
+)
+
+interface SaveConfirmationModalProps {
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const SaveConfirmationModal: React.FC<SaveConfirmationModalProps> = ({
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="save-modal-overlay" onClick={onCancel}>
+    <div className="save-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="save-modal-icon">💾</div>
+      <h2 className="save-modal-title">{title}</h2>
+      <p className="save-modal-message">{message}</p>
+      <div className="save-modal-buttons">
+        <button className="save-modal-btn save-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="save-modal-btn save-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
     </div>
   </div>
 )

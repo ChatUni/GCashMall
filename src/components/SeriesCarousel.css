@@ -1,0 +1,213 @@
+/* Series Section Container */
+.series-section {
+  margin-bottom: 50px;
+  padding: 0 60px;
+}
+
+.series-section.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #9CA3AF;
+}
+
+/* Section Header */
+.series-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Section Title */
+.series-section-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+/* Carousel Controls */
+.carousel-controls {
+  display: flex;
+  gap: 10px;
+}
+
+/* Arrow Button */
+.carousel-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1A1A1E;
+  border: 1px solid #2A2A2E;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.carousel-arrow:hover {
+  background: #2A2A2E;
+  border-color: #3B82F6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+
+/* Arrow Icon (CSS-based) */
+.carousel-arrow::before {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #FFFFFF;
+  border-bottom: none;
+  border-left: none;
+  transition: border-color 0.2s ease;
+}
+
+.carousel-arrow:hover::before {
+  border-color: #3B82F6;
+}
+
+.carousel-arrow-left::before {
+  transform: rotate(-135deg);
+  margin-left: 4px;
+}
+
+.carousel-arrow-right::before {
+  transform: rotate(45deg);
+  margin-right: 4px;
+}
+
+/* Series Carousel */
+.series-carousel {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 10px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.series-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* View More Card */
+.view-more-card {
+  flex-shrink: 0;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 50px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.view-more-card:hover {
+  transform: scale(1.05);
+}
+
+.view-more-card:hover .view-more-content {
+  background: #2A2A2E;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.view-more-card:hover .view-more-arrow {
+  color: #3B82F6;
+}
+
+.view-more-card:hover .view-more-text {
+  color: #3B82F6;
+}
+
+/* View More Content (Circle) */
+.view-more-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0px;
+  padding: 16px;
+  background: #1A1A1E;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* View More Arrow Icon */
+.view-more-arrow {
+  width: 40px;
+  height: 40px;
+  color: #9CA3AF;
+  transition: color 0.2s ease;
+}
+
+/* View More Text */
+.view-more-text {
+  font-size: 12px;
+  color: #9CA3AF;
+  text-align: center;
+  margin-top: 10px;
+  transition: color 0.2s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .series-section {
+    padding-top: 20px;
+  }
+  
+  .series-section-header {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .series-section {
+    padding: 24px 20px 0 20px;
+  }
+  
+  .series-section-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .series-section-title {
+    font-size: 20px;
+  }
+  
+  .carousel-controls {
+    margin-left: auto;
+  }
+  
+  .carousel-arrow {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .series-section {
+    padding: 0 15px;
+  }
+  
+  .view-more-card {
+    width: 100px;
+  }
+  
+  .view-more-content {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .view-more-arrow {
+    width: 32px;
+    height: 32px;
+  }
+}

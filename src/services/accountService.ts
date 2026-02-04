@@ -2,17 +2,21 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
-import { accountStoreActions, type ProfileFormState, type PasswordFormState } from '../stores/accountStore'
+import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse } from '../types'
+import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
 
 // Initialize account data
-export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
+export const initializeAccountData = async (
+  searchParams: URLSearchParams,
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
+) => {
   const code = searchParams.get('code')
   
   if (code) {
-    await handleGoogleCallback(code, setSearchParams)
+    await handleGoogleCallback(code, setSearchParams, navigate)
     return
   }
   
@@ -23,11 +27,20 @@ export const initializeAccountData = async (searchParams: URLSearchParams, setSe
 const handleOAuthCallback = async (
   code: string,
   oauthType: OAuthType,
-  setSearchParams: (params: Record<string, string>) => void
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
 ) => {
   accountStoreActions.setLoading(true)
   clearAuthData()
   accountStoreActions.setUser(null)
+  
+  // Get stored redirect path (set by LoginModal before OAuth redirect)
+  const storedRedirect = sessionStorage.getItem('oauth_redirect')
+  sessionStorage.removeItem('oauth_redirect') // Clean up
+  
+  // Track if we should redirect away from account page
+  let shouldRedirect = false
+  let redirectPath = ''
   
   try {
     const response = await apiPost<{ id: string; name: string; email: string; picture: string }>(
@@ -49,6 +62,11 @@ const handleOAuthCallback = async (
         if (loginResponse.success && loginResponse.data) {
           saveAuthData(loginResponse.data.token, loginResponse.data.user)
           accountStoreActions.initializeUserData(loginResponse.data.user)
+          // Mark for redirect if we have a stored path different from /account
+          if (storedRedirect && storedRedirect !== '/account' && navigate) {
+            shouldRedirect = true
+            redirectPath = storedRedirect
+          }
         } else {
           accountStoreActions.setShowLoginModal(true)
         }
@@ -65,6 +83,11 @@ const handleOAuthCallback = async (
         if (registerResponse.success && registerResponse.data) {
           saveAuthData(registerResponse.data.token, registerResponse.data.user)
           accountStoreActions.initializeUserData(registerResponse.data.user)
+          // Mark for redirect if we have a stored path different from /account
+          if (storedRedirect && storedRedirect !== '/account' && navigate) {
+            shouldRedirect = true
+            redirectPath = storedRedirect
+          }
         } else {
           accountStoreActions.setShowLoginModal(true)
         }
@@ -78,11 +101,20 @@ const handleOAuthCallback = async (
     setSearchParams({})
     accountStoreActions.setLoading(false)
   }
+  
+  // Navigate after cleanup is complete
+  if (shouldRedirect && navigate) {
+    navigate(redirectPath)
+  }
 }
 
 // Handle Google OAuth callback (legacy - wraps handleOAuthCallback)
-const handleGoogleCallback = async (code: string, setSearchParams: (params: Record<string, string>) => void) => {
-  return handleOAuthCallback(code, 'google', setSearchParams)
+const handleGoogleCallback = async (
+  code: string,
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
+) => {
+  return handleOAuthCallback(code, 'google', setSearchParams, navigate)
 }
 
 // Check login status
@@ -125,6 +157,7 @@ export const fetchAccountUserData = async () => {
 export const handleLogout = () => {
   clearAuthData()
   accountStoreActions.reset()
+  userStoreActions.logout() // Also clear userStore so purchase info is reset
 }
 
 // Validate profile form
@@ -533,14 +566,65 @@ export const removeFavorite = async (itemId: string) => {
 }
 
 // Top up
-export const topUp = async (amount: number) => {
+export const topUp = async (amount: number): Promise<{ success: boolean; error?: string }> => {
+  const referenceId = generateReferenceId()
+  
   try {
-    await apiPost('topUp', { amount })
-    accountStoreActions.addBalance(amount)
-    accountStoreActions.setShowTopUpPopup(false)
-    accountStoreActions.setSelectedTopUpAmount(null)
+    const response = await apiPostWithAuth<User>('topUp', { amount, referenceId })
+    
+    if (response.success && response.data) {
+      // Update user data from server response (includes new balance and transactions)
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      accountStoreActions.setShowTopUpPopup(false)
+      accountStoreActions.setSelectedTopUpAmount(null)
+      return { success: true }
+    }
+    
+    return { success: false, error: response.error || 'Failed to top up' }
   } catch (error) {
     console.error('Error topping up:', error)
+    return { success: false, error: 'Failed to top up' }
+  }
+}
+
+// Withdraw
+export const withdraw = async (amount: number): Promise<{ success: boolean; error?: string }> => {
+  const state = accountStoreActions.getState()
+  
+  // Check if user has sufficient balance (client-side check)
+  if (amount > state.balance) {
+    return { success: false, error: 'Insufficient balance' }
+  }
+  
+  const referenceId = generateReferenceId()
+  
+  accountStoreActions.setWithdrawing(true)
+  
+  try {
+    const response = await apiPostWithAuth<User>('withdraw', { amount, referenceId })
+    
+    if (response.success && response.data) {
+      // Update user data from server response (includes new balance and transactions)
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      accountStoreActions.setShowWithdrawPopup(false)
+      accountStoreActions.setSelectedWithdrawAmount(null)
+      return { success: true }
+    }
+    
+    return { success: false, error: response.error || 'Failed to withdraw' }
+  } catch (error) {
+    console.error('Error withdrawing:', error)
+    return { success: false, error: 'Failed to withdraw' }
+  } finally {
+    accountStoreActions.setWithdrawing(false)
   }
 }
 
@@ -565,6 +649,27 @@ const fileToDataUrl = (file: File): Promise<string> => {
   })
 }
 
+// Fetch my purchases list
+export const fetchMyPurchases = async (): Promise<{ success: boolean; error?: string }> => {
+  accountStoreActions.setMyPurchasesLoading(true)
+
+  try {
+    const response = await apiGetWithAuth<PurchaseItem[]>('myPurchases')
+
+    if (response.success && response.data) {
+      accountStoreActions.setMyPurchases(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to fetch my purchases' }
+  } catch (error) {
+    console.error('Error fetching my purchases:', error)
+    return { success: false, error: 'Failed to fetch my purchases' }
+  } finally {
+    accountStoreActions.setMyPurchasesLoading(false)
+  }
+}
+
 // Fetch my series list
 export const fetchMySeries = async (): Promise<{ success: boolean; error?: string }> => {
   accountStoreActions.setMySeriesLoading(true)
@@ -587,18 +692,12 @@ export const fetchMySeries = async (): Promise<{ success: boolean; error?: strin
 }
 
 // Shelve/unshelve series
-export const shelveSeries = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
-  const state = accountStoreActions.getState()
-  const series = state.mySeries.find((s) => s._id === seriesId)
-  const isShelved = series?.shelved
-  
-  const confirmMessage = isShelved
-    ? 'Are you sure you want to unshelve this series? It will be visible to users again.'
-    : 'Are you sure you want to shelve this series? It will be hidden from users.'
-  
-  const confirmed = window.confirm(confirmMessage)
-  if (!confirmed) {
-    return { success: false }
+// skipConfirm: if true, skip the confirmation dialog (used when confirmation is handled by the component)
+export const shelveSeries = async (seriesId: string, skipConfirm: boolean = false): Promise<{ success: boolean; error?: string }> => {
+  // skipConfirm is now always expected to be true since confirmation is handled by modals in the component
+  // Keeping the parameter for backward compatibility
+  if (!skipConfirm) {
+    // If somehow called without skipConfirm, just proceed (modals should handle confirmation)
   }
 
   try {
