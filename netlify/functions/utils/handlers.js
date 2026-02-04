@@ -290,21 +290,31 @@ const validateDeleteSeriesBody = (body) => {
 
 // New handlers for player and account features
 
+// Utility function to shuffle an array using Fisher-Yates algorithm
+const shuffleArray = (array) => {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 const getFeaturedSeries = async (params) => {
   try {
-    // Get the first series marked as featured, or just the first series
-    let featured = await get('series', { isFeatured: true }, {}, {}, 1)
+    // Get all series and pick a random one as featured
+    const allSeries = await get('series', {}, {}, {})
     
-    if (!featured || featured.length === 0) {
-      featured = await get('series', {}, {}, { createdAt: -1 }, 1)
-    }
-    
-    if (!featured || featured.length === 0) {
+    if (!allSeries || allSeries.length === 0) {
       return {
         success: true,
         data: null
       }
     }
+    
+    // Pick a random series
+    const randomIndex = Math.floor(Math.random() * allSeries.length)
+    const featured = [allSeries[randomIndex]]
     
     const populatedSeries = await populateSeriesGenres(featured)
     return {
@@ -318,9 +328,10 @@ const getFeaturedSeries = async (params) => {
 
 const getRecommendations = async (params) => {
   try {
-    // Get a random selection of series as recommendations
-    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const populatedSeries = await populateSeriesGenres(series)
+    // Get series and randomize the order
+    const series = await get('series', {}, {}, {}, 20)
+    const shuffledSeries = shuffleArray(series).slice(0, 10)
+    const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {
       success: true,
       data: populatedSeries
@@ -332,9 +343,10 @@ const getRecommendations = async (params) => {
 
 const getNewReleases = async (params) => {
   try {
-    // Get the most recently added series
-    const series = await get('series', {}, {}, { createdAt: -1 }, 10)
-    const populatedSeries = await populateSeriesGenres(series)
+    // Get series and randomize the order
+    const series = await get('series', {}, {}, {}, 20)
+    const shuffledSeries = shuffleArray(series).slice(0, 10)
+    const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {
       success: true,
       data: populatedSeries
