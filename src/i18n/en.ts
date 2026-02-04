@@ -8,6 +8,10 @@ export const en = {
     noHistory: "You haven't watched any series yet.",
     historyTitle: 'Watch History',
   },
+  bottomBar: {
+    about: 'About',
+    contact: 'Contact',
+  },
   languages: {
     en: 'English',
     zh: '中文',

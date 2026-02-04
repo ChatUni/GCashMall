@@ -8,6 +8,10 @@ export const zh = {
     noHistory: '您还没有观看任何剧集。',
     historyTitle: '观看历史',
   },
+  bottomBar: {
+    about: '关于我们',
+    contact: '联系我们',
+  },
   languages: {
     en: 'English',
     zh: '中文',
