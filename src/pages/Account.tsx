@@ -47,7 +47,7 @@ console.log(state)
   // Initialize data (not in useEffect)
   if (!accountInitialized) {
     accountInitialized = true
-    initializeAccountData(searchParams, (params) => setSearchParams(params))
+    initializeAccountData(searchParams, (params) => setSearchParams(params), navigate)
   }
 
   // Fetch user data when logged in (only once)

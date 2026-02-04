@@ -6,7 +6,8 @@ import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, useToastStore } from '../stores'
+import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, userStoreActions, useToastStore } from '../stores'
+import { accountStoreActions } from '../stores/accountStore'
 import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import {
@@ -362,6 +363,15 @@ const Player: React.FC = () => {
     setShowPurchasePopup(true)
   }
 
+  // Handle time limit reached - show login dialog if not logged in, otherwise show purchase popup
+  const handleTimeLimitReached = () => {
+    if (!isLoggedIn()) {
+      loginModalStoreActions.open()
+      return
+    }
+    setShowPurchasePopup(true)
+  }
+
   // Handle purchase confirmation
   const handlePurchaseConfirm = async () => {
     if (!id || !playerState.currentEpisode) return
@@ -451,16 +461,16 @@ const Player: React.FC = () => {
             showSpeedSelector={playerState.showSpeedSelector}
             isPurchased={isCurrentEpisodePurchased()}
             onPlayPause={() => handlePlayPause(videoRef, playerState.isPlaying)}
-            onTimeUpdate={() => handleTimeUpdate(videoRef, isCurrentEpisodePurchased(), () => setShowPurchasePopup(true))}
+            onTimeUpdate={() => handleTimeUpdate(videoRef, isCurrentEpisodePurchased(), handleTimeLimitReached)}
             onLoadedMetadata={() => handleLoadedMetadata(videoRef)}
-            onProgressChange={(time) => handleProgressChange(videoRef, time, isCurrentEpisodePurchased(), () => setShowPurchasePopup(true))}
+            onProgressChange={(time) => handleProgressChange(videoRef, time, isCurrentEpisodePurchased(), handleTimeLimitReached)}
             onVolumeToggle={() => handleVolumeToggle(videoRef, playerState.volume)}
             onSpeedChange={(speed) => handleSpeedChange(videoRef, speed)}
             onSpeedSelectorToggle={() => playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)}
             onFullscreen={() => handleFullscreen(videoRef)}
             onMouseMove={handleMouseMove}
             onMouseLeave={() => playerState.isPlaying && playerStoreActions.setShowControls(false)}
-            onTimeLimitReached={() => setShowPurchasePopup(true)}
+            onTimeLimitReached={handleTimeLimitReached}
           />
 
           <EpisodeMetadata
@@ -498,7 +508,14 @@ const Player: React.FC = () => {
       {loginModalState.isOpen && (
         <LoginModal
           onClose={loginModalStoreActions.close}
-          onLoginSuccess={loginModalStoreActions.close}
+          onLoginSuccess={(user) => {
+            // Update user store with new user data (including purchases)
+            userStoreActions.setUser(user)
+            userStoreActions.setLoading(false)
+            // Also update accountStore so Account page knows user is logged in
+            accountStoreActions.initializeUserData(user)
+            loginModalStoreActions.close()
+          }}
         />
       )}
 
@@ -743,9 +760,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Use ref to track purchased status so event handler always sees current value
   const isPurchasedRef = React.useRef(isPurchased)
   
-  // Keep ref in sync with prop
+  // Keep ref in sync with prop and enforce time limit if status changes to unpurchased
   React.useEffect(() => {
+    const wasUnpurchased = !isPurchasedRef.current
     isPurchasedRef.current = isPurchased
+    
+    // If user logged out (isPurchased changed from true to false),
+    // enforce time limit immediately if player is past TIME_LIMIT
+    if (!isPurchased && !wasUnpurchased && playerRef.current) {
+      try {
+        // Pause and seek back to before the time limit
+        playerRef.current.pause()
+        playerRef.current.setCurrentTime(0)
+      } catch {
+        // Player might not be ready
+      }
+    }
   }, [isPurchased])
 
   // Initialize Player.js for Bunny iframe

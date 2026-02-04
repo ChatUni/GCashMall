@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import {
   login,
@@ -7,6 +8,7 @@ import {
   saveAuthData,
   apiPost,
 } from '../utils/api'
+import { useLoginModalStore } from '../stores'
 import type { OAuthType, ResetPasswordResponse, User } from '../types'
 import './LoginModal.css'
 
@@ -19,6 +21,8 @@ type ModalMode = 'login' | 'signup' | 'reset'
 
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   const { t } = useLanguage()
+  const location = useLocation()
+  const loginModalState = useLoginModalStore()
   const [mode, setMode] = useState<ModalMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -210,7 +214,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     }
   }
 
-  const getOAuthRedirectUrl = () => `${window.location.origin}/account`
+  // Get OAuth redirect URL - use stored redirectPath or current location
+  const getOAuthRedirectUrl = () => {
+    // Store the redirect destination in sessionStorage so we can retrieve it after OAuth callback
+    const redirectTo = loginModalState.redirectPath || location.pathname + location.search
+    sessionStorage.setItem('oauth_redirect', redirectTo)
+    // OAuth callback always goes to /account which handles the OAuth flow
+    return `${window.location.origin}/account`
+  }
 
   const handleOAuthSignIn = (provider: OAuthType) => {
     const redirectUrl = getOAuthRedirectUrl()

@@ -8,11 +8,15 @@ import { validateEmail, validatePhone, validateBirthday, validatePassword, valid
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
 
 // Initialize account data
-export const initializeAccountData = async (searchParams: URLSearchParams, setSearchParams: (params: Record<string, string>) => void) => {
+export const initializeAccountData = async (
+  searchParams: URLSearchParams,
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
+) => {
   const code = searchParams.get('code')
   
   if (code) {
-    await handleGoogleCallback(code, setSearchParams)
+    await handleGoogleCallback(code, setSearchParams, navigate)
     return
   }
   
@@ -23,11 +27,20 @@ export const initializeAccountData = async (searchParams: URLSearchParams, setSe
 const handleOAuthCallback = async (
   code: string,
   oauthType: OAuthType,
-  setSearchParams: (params: Record<string, string>) => void
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
 ) => {
   accountStoreActions.setLoading(true)
   clearAuthData()
   accountStoreActions.setUser(null)
+  
+  // Get stored redirect path (set by LoginModal before OAuth redirect)
+  const storedRedirect = sessionStorage.getItem('oauth_redirect')
+  sessionStorage.removeItem('oauth_redirect') // Clean up
+  
+  // Track if we should redirect away from account page
+  let shouldRedirect = false
+  let redirectPath = ''
   
   try {
     const response = await apiPost<{ id: string; name: string; email: string; picture: string }>(
@@ -49,6 +62,11 @@ const handleOAuthCallback = async (
         if (loginResponse.success && loginResponse.data) {
           saveAuthData(loginResponse.data.token, loginResponse.data.user)
           accountStoreActions.initializeUserData(loginResponse.data.user)
+          // Mark for redirect if we have a stored path different from /account
+          if (storedRedirect && storedRedirect !== '/account' && navigate) {
+            shouldRedirect = true
+            redirectPath = storedRedirect
+          }
         } else {
           accountStoreActions.setShowLoginModal(true)
         }
@@ -65,6 +83,11 @@ const handleOAuthCallback = async (
         if (registerResponse.success && registerResponse.data) {
           saveAuthData(registerResponse.data.token, registerResponse.data.user)
           accountStoreActions.initializeUserData(registerResponse.data.user)
+          // Mark for redirect if we have a stored path different from /account
+          if (storedRedirect && storedRedirect !== '/account' && navigate) {
+            shouldRedirect = true
+            redirectPath = storedRedirect
+          }
         } else {
           accountStoreActions.setShowLoginModal(true)
         }
@@ -78,11 +101,20 @@ const handleOAuthCallback = async (
     setSearchParams({})
     accountStoreActions.setLoading(false)
   }
+  
+  // Navigate after cleanup is complete
+  if (shouldRedirect && navigate) {
+    navigate(redirectPath)
+  }
 }
 
 // Handle Google OAuth callback (legacy - wraps handleOAuthCallback)
-const handleGoogleCallback = async (code: string, setSearchParams: (params: Record<string, string>) => void) => {
-  return handleOAuthCallback(code, 'google', setSearchParams)
+const handleGoogleCallback = async (
+  code: string,
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
+) => {
+  return handleOAuthCallback(code, 'google', setSearchParams, navigate)
 }
 
 // Check login status
@@ -125,6 +157,7 @@ export const fetchAccountUserData = async () => {
 export const handleLogout = () => {
   clearAuthData()
   accountStoreActions.reset()
+  userStoreActions.logout() // Also clear userStore so purchase info is reset
 }
 
 // Validate profile form
