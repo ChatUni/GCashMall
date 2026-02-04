@@ -197,6 +197,10 @@ The contact icon (✉️) has a continuous bounce animation:
 
 ## Interactions
 
+### Page Load
+- **Scroll to Top**: When the page loads, the window automatically scrolls to the top (position 0, 0)
+- **Implementation**: useEffect hook with window.scrollTo(0, 0) on component mount
+
 ### Email Link Click
 - **Element**: Email address text (chatuni.ai@gmail.com)
 - **Link Type**: mailto link

@@ -260,6 +260,12 @@ The About page provides information about GCashTV, its mission, features, and ho
 - **Path**: /about
 - **Component**: About
 
+## Interactions
+
+### Page Load
+- **Scroll to Top**: When the page loads, the window automatically scrolls to the top (position 0, 0)
+- **Implementation**: useEffect hook with window.scrollTo(0, 0) on component mount
+
 ## Animations
 
 ### Pulse Animation

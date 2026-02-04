@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import { useLanguage } from '../context/LanguageContext'
@@ -7,6 +7,11 @@ import './About.css'
 const About: React.FC = () => {
   const { t } = useLanguage()
   const about = t.about as Record<string, string>
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   return (
     <div className="about-page">
