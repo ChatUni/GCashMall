@@ -21,7 +21,7 @@ const connectDB = async () => {
     let dbName = appName
     
     if (process.env.NODE_ENV === 'production') {
-      dbName = appName
+      dbName = `${appName}-dev`
     } else if (process.env.NODE_ENV === 'qa') {
       dbName = `${appName}-qa`
     } else {
