@@ -119,6 +119,7 @@ export const en = {
       withdrawSuccess: 'Withdrawal successful',
       withdrawFailed: 'Failed to withdraw',
       insufficientBalance: 'Insufficient balance',
+      withdrawAll: 'Withdraw All',
       // Transaction history table headers
       time: 'Time',
       type: 'Type',

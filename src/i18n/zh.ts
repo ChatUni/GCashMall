@@ -118,6 +118,7 @@ export const zh = {
       withdrawSuccess: '提现成功',
       withdrawFailed: '提现失败',
       insufficientBalance: '余额不足',
+      withdrawAll: '全部提现',
       // Transaction history table headers
       time: '时间',
       type: '类型',
