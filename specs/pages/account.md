@@ -758,7 +758,7 @@ Vertical
 - "Forget password?" link (align right)
 - "Login" button (primary blue)
 - "Or continue with" (center)
-- OAuth icons (center, Google, Facebook, Twitter, LinkedIn)
+- OAuth icons (center, Google)
 - "Don't have an account?" followed by the "Sign up" link
 
 ### Interaction

@@ -60,7 +60,7 @@ export interface Episode {
   episodeNumber: number
 }
 
-export type OAuthType = 'google' | 'facebook' | 'twitter' | 'linkedin'
+export type OAuthType = 'google'
 
 export type TransactionType = 'topup' | 'withdraw'
 export type TransactionStatus = 'success' | 'failed' | 'processing'
