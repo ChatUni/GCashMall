@@ -17,14 +17,8 @@
         <icon density="xhdpi" src="res/android/xhdpi.png" />
         <icon density="xxhdpi" src="res/android/xxhdpi.png" />
         <icon density="xxxhdpi" src="res/android/xxxhdpi.png" />
-        <splash density="land-hdpi" src="res/android/splash-land-hdpi.png" />
-        <splash density="land-ldpi" src="res/android/splash-land-ldpi.png" />
-        <splash density="land-mdpi" src="res/android/splash-land-mdpi.png" />
-        <splash density="land-xhdpi" src="res/android/splash-land-xhdpi.png" />
-        <splash density="port-hdpi" src="res/android/splash-port-hdpi.png" />
-        <splash density="port-ldpi" src="res/android/splash-port-ldpi.png" />
-        <splash density="port-mdpi" src="res/android/splash-port-mdpi.png" />
-        <splash density="port-xhdpi" src="res/android/splash-port-xhdpi.png" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/android/xhdpi.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
         <preference name="android-minSdkVersion" value="22" />
         <preference name="android-targetSdkVersion" value="33" />
     </platform>
