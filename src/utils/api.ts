@@ -4,8 +4,12 @@ import type {
   LoginRequest,
   RegisterRequest,
 } from '../types'
+import { isCordova } from './cordova'
 
 export const getApiBaseUrl = (): string => {
+  if (isCordova()) {
+    return 'https://gcashtv.netlify.app'
+  }
   if (import.meta.env.DEV) {
     return 'http://localhost:8888'
   }
