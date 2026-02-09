@@ -25,6 +25,8 @@ export const zh = {
       wallet: '钱包',
       myPurchases: '我的购买',
       mySeries: '我的剧集',
+      about: '关于',
+      contact: '联系我们',
       logout: '退出登录',
     },
     overview: {

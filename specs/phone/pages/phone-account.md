@@ -21,6 +21,65 @@ The Phone Account page provides user profile management, watch history, and sett
 1. Login Prompt
 2. App Information Links
 
+## Tab Navigation
+
+### Container
+- Horizontal flex layout
+- Horizontal scrollable (overflow-x: auto)
+- 16 pixel horizontal padding
+- 8 pixel gap between tabs
+- Bottom border: 1px solid rgba(255, 255, 255, 0.08)
+- Hidden scrollbar (scrollbar-width: none)
+
+### Tab Item
+- Vertical flex layout (icon above label)
+- 4 pixel gap between icon and label
+- Padding: 12 pixel vertical, 8 pixel horizontal
+- Fixed width: 70 pixel (min-width and flex-basis)
+- Transparent background
+- No border
+- Font size: 11 pixel
+- Color: Gray (#9CA3AF)
+- White-space: nowrap
+- Position: relative
+- Transition: color 0.2s ease
+
+### Tab Item Indicator (::after pseudo-element)
+- Position: absolute, bottom: 0, centered horizontally
+- Height: 2 pixel
+- Background: Blue (#3B82F6)
+- Width: 0 (default), expands on interaction
+- Transition: width 0.2s ease
+- Straight line indicator (no border-radius)
+
+### Tab Item (Hover)
+- Color: Light Blue (#60A5FA)
+- Indicator width: 40 pixel
+
+### Tab Item (Active/Pressed)
+- Color: Blue (#3B82F6)
+- Indicator width: 50 pixel
+
+### Tab Item (Selected)
+- Color: Blue (#3B82F6)
+- Indicator width: 50 pixel
+
+### Tab Icon
+- Font size: 20 pixel (emoji)
+
+### Available Tabs
+| Key | Icon | English | Chinese |
+|-----|------|---------|---------|
+| overview | 👤 | Overview | 概览 |
+| watchHistory | 📺 | Watch History | 观看历史 |
+| favorites | ❤️ | Favorites | 收藏夹 |
+| settings | ⚙️ | Settings | 设置 |
+| wallet | 💰 | Wallet | 钱包 |
+| myPurchases | 🛒 | My Purchases | 我的购买 |
+| mySeries | 🎬 | My Series | 我的剧集 |
+| about | ℹ️ | About | 关于 |
+| contact | ✉️ | Contact | 联系我们 |
+
 ## User Profile Header (Logged In)
 
 ### Container
@@ -224,6 +283,24 @@ Each field includes:
 ## My Series Section (Logged In)
 
 ### Container
+- Vertical flex layout
+- 16 pixel gap
+
+### Header
+- Horizontal flex layout with space-between
+- Title: 18 pixel font, 600 weight, white
+- "Add Series" button on right side (when series exist)
+
+### Add Series Button
+- Background: Blue (#3B82F6)
+- Color: White
+- Padding: 8 pixel vertical, 16 pixel horizontal
+- Border radius: 8 pixel
+- Font: 13 pixel, 500 weight
+- Hover: Darker blue (#2563EB)
+- Active: Even darker blue (#1D4ED8)
+
+### Series Grid
 - 3-column grid layout
 - 12 pixel gap
 
@@ -240,15 +317,29 @@ Each field includes:
 
 ### Action Buttons
 - Position: top-right of cover
-- Appears on tap/hold
+- Always visible (no hover on mobile)
 - 28 pixel circular buttons
 - Dark background with 70% opacity
-- Shelve/Unshelve icons (📥/📤)
+- Transition: background-color 0.2s, transform 0.2s
+- Active state: blue background (rgba(59, 130, 246, 0.9)), scale 1.1
+- Icons:
+  - Shelve: 📥 (when series is not shelved)
+  - Unshelve: 📤 (when series is shelved)
+  - Edit: ✏️
 
 ### Empty State
 - Film icon (🎬)
 - "No series yet" message
 - "Start creating your first series" subtext
+- "Add Series" button (same styling as header button)
+
+### Series Edit View
+- Shown when editingSeriesId is set
+- Header with title: "Add Series" (add mode) or "Edit Series" (edit mode)
+- Title: 20 pixel font, 600 weight, white
+- Uses SeriesEditContent component
+- Cancel: returns to series list
+- Save Complete: returns to series list and refreshes
 
 ### Shelve/Unshelve Confirmation Modal
 - Overlay: black with 80% opacity
@@ -260,6 +351,14 @@ Each field includes:
 - Buttons: vertical stack, 10 pixel gap
   - Confirm: blue background (#3B82F6), white text
   - Cancel: gray background (#2a2a2e), white text
+
+### Interactions
+- On load: fetch my series list via API
+- On card click: navigate to player page for that series
+- On Shelve button click: show Shelve Confirmation Modal
+- On Unshelve button click: show Unshelve Confirmation Modal
+- On Edit button click: show series edit view in edit mode
+- On Add Series button click: show series edit view in add mode
 
 ## Settings Section (Logged In)
 
@@ -423,30 +522,49 @@ Each field includes:
 
 ## Login Prompt (Logged Out)
 
+When the user is not logged in, the account page shows a login prompt instead of the account content.
+
 ### Container
-- Centered content
-- Generous vertical padding
+- Vertical flex layout, centered
+- Min-height: 60vh
+- Padding: 24 pixel
+- Text align: center
 
 ### Icon
-- Large user icon (64 pixels)
-- Blue color
+- User emoji (👤)
+- Font size: 64 pixel
+- Margin bottom: 24 pixel
+- Opacity: 0.8
 
 ### Title
-- "Sign In" heading
-- Bold, white, 20 pixel font
+- "Login" heading (from translations)
+- Font size: 24 pixel
+- Font weight: 600
+- Color: White (#FFFFFF)
+- Margin: 0 0 12px 0
 
-### Description
-- Explains benefits of signing in
-- Gray text
+### Message
+- "Please log in to access your account"
+- Font size: 14 pixel
+- Color: Gray (#9CA3AF)
+- Margin: 0 0 32px 0
+- Line height: 1.5
 
 ### Login Button
-- Blue background, white text
-- Rounded pill shape
-- "Sign In" label
+- Background: Blue (#3B82F6)
+- Color: White (#FFFFFF)
+- Border: none
+- Padding: 14 pixel vertical, 48 pixel horizontal
+- Border radius: 8 pixel
+- Font size: 16 pixel
+- Font weight: 600
+- Hover: Darker blue (#2563EB)
+- Active: Even darker blue (#1D4ED8)
 
-### Register Link
-- Blue text below button
-- Links to registration
+### Interaction
+- On Login Button click: Show LoginModal
+- On LoginModal close (without login): Navigate to home page
+- On LoginModal success: Initialize user data and show account content
 
 ## Interactions
 
@@ -459,8 +577,194 @@ Each field includes:
 | Login Button | Tap | Open login modal |
 | Sign Out | Tap | Confirm and log out |
 
+## About Section (Logged In)
+
+### Container
+- Vertical flex layout
+- 16 pixel gap between sections
+
+### Hero Section
+- Centered layout
+- 48 pixel vertical padding, 16 pixel horizontal padding
+- Minimum height: 180 pixel
+
+#### Logo
+- Image URL: https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
+- Size: 64x64 pixels
+- Animation: pulse (2s ease-in-out infinite)
+  - 0%, 100%: scale(1)
+  - 50%: scale(1.05)
+- 16 pixel bottom margin
+
+#### Title
+- Text: "GcashTV"
+- Font size: 28 pixel
+- Font weight: 700
+- Color: Gradient (135deg, #3B82F6 to #60A5FA)
+- 8 pixel bottom margin
+
+#### Tagline
+- Font size: 14 pixel
+- Color: Gray (#9CA3AF)
+- Line height: 1.6
+- Max width: 300 pixel
+
+### Mission Section
+- Card container: dark background (#121214), 12 pixel border radius, 20 pixel padding
+- Centered text
+- Icon: 🎯 (40 pixel)
+- Title: 18 pixel font, 600 weight, white
+- Text: 14 pixel font, gray (#D1D5DB), 1.8 line height
+
+### Features Section
+- Card container: same as Mission Section
+- Title: 18 pixel font, 600 weight, white, centered
+- Features grid: single column, 16 pixel gap
+
+#### Feature Item
+- Background: #1A1A1E
+- Border radius: 12 pixel
+- Padding: 16 pixel
+- Centered text
+- Icon: 32 pixel emoji
+- Title: 16 pixel font, 600 weight, white
+- Text: 13 pixel font, gray (#9CA3AF), 1.6 line height
+
+#### Features List
+| Icon | Title | Description |
+|------|-------|-------------|
+| 🎬 | Exclusive Content | Access a wide variety of exclusive series and movies you won't find anywhere else. |
+| 💰 | Easy Payments | Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere. |
+| 🌍 | Multi-Language Support | Enjoy content in multiple languages with our built-in language switching feature. |
+| 📱 | Watch Anywhere | Stream on any device - desktop, tablet, or mobile. Your entertainment, your way. |
+
+### How It Works Section
+- Card container: same as Mission Section
+- Title: 18 pixel font, 600 weight, white, centered
+- Steps container: single column, 12 pixel gap
+
+#### Step Item
+- Background: #1A1A1E
+- Border radius: 12 pixel
+- Padding: 16 pixel
+- Horizontal flex layout, 16 pixel gap
+- Left-aligned text
+
+#### Step Number
+- Size: 36x36 pixels
+- Background: Linear gradient (135deg, #3B82F6 to #1D4ED8)
+- Border radius: 50%
+- Font size: 16 pixel
+- Font weight: 700
+- Color: White
+
+#### Step Content
+- Title: 16 pixel font, 600 weight, white
+- Text: 13 pixel font, gray (#9CA3AF), 1.6 line height
+
+#### Steps List
+| Step | Title | Description |
+|------|-------|-------------|
+| 1 | Create an Account | Sign up for free using your email or social media accounts. It only takes a minute. |
+| 2 | Top Up Your Wallet | Add funds to your Gcash wallet to unlock premium episodes and content. |
+| 3 | Start Watching | Browse our library, unlock episodes, and enjoy unlimited streaming. |
+
+### Footer
+- Font size: 13 pixel
+- Color: Dark gray (#6B7280)
+- Centered text
+- 8 pixel top margin
+
+## Contact Section (Logged In)
+
+### Container
+- Vertical flex layout
+- 16 pixel gap between sections
+
+### Header Section
+- Centered layout
+- 48 pixel vertical padding, 16 pixel horizontal padding
+- Minimum height: 180 pixel
+
+#### Icon
+- Emoji: ✉️
+- Font size: 48 pixel (scaled 1.5x via transform)
+- Animation: bounce (2s ease-in-out infinite)
+  - 0%, 100%: translateY(0) scale(1.5)
+  - 50%: translateY(-10px) scale(1.5)
+- 20 pixel bottom margin
+
+#### Title
+- Text: "Contact Us"
+- Font size: 24 pixel
+- Font weight: 700
+- Color: White
+- 8 pixel bottom margin
+
+#### Subtitle
+- Text: "We'd love to hear from you"
+- Font size: 14 pixel
+- Color: Gray (#9CA3AF)
+
+### Contact Card
+- Background: #121214
+- Border radius: 12 pixel
+- Padding: 20 pixel
+- 20 pixel gap between elements
+
+#### Welcome Message
+- Font size: 16 pixel
+- Color: Light gray (#E5E7EB)
+- Line height: 1.8
+- Centered text
+
+#### Email Info Section
+- Background: #1A1A1E
+- Border radius: 12 pixel
+- Padding: 24 pixel vertical, 20 pixel horizontal
+- Minimum height: 140 pixel
+- Centered content (both horizontal and vertical)
+- 12 pixel gap between elements
+
+##### Icon Container
+- Size: 48x48 pixels
+- Background: Linear gradient (135deg, #3B82F6 to #1D4ED8)
+- Border radius: 12 pixel
+- Centered content
+- Icon: 📧 (24 pixel)
+
+##### Details
+- Vertical flex layout, centered
+- 4 pixel gap
+- Label: "Email Address", 13 pixel font, gray (#9CA3AF)
+- Value: "chatuni.ai@gmail.com", 16 pixel font, 600 weight, blue (#3B82F6)
+- Value hover: color #60A5FA, underline
+
+#### CTA Section
+- Centered layout
+- 12 pixel gap
+- CTA text: 13 pixel font, gray (#9CA3AF)
+- Send Email button:
+  - Full width
+  - Background: Linear gradient (135deg, #3B82F6 to #1D4ED8)
+  - Color: White
+  - Padding: 14 pixel vertical, 24 pixel horizontal
+  - Border radius: 12 pixel
+  - Font size: 16 pixel
+  - Font weight: 600
+  - Icon: ✉️ with 8 pixel gap
+  - Hover: translateY(-2px), box-shadow 0 8px 24px rgba(59, 130, 246, 0.4)
+  - Link: mailto:chatuni.ai@gmail.com
+
+### Footer
+- Font size: 13 pixel
+- Color: Dark gray (#6B7280)
+- Centered text
+- 8 pixel top margin
+- Text: "We typically respond within 24-48 hours."
+
 ## Internationalization
 
 ### Labels
-- English: "Overview", "Continue Watching", "See All", "Sign In", "Sign Out"
-- Chinese: "我的", "继续观看", "查看全部", "登录", "退出登录"
+- English: "Overview", "Continue Watching", "See All", "Sign In", "Sign Out", "About", "Contact"
+- Chinese: "我的", "继续观看", "查看全部", "登录", "退出登录", "关于", "联系我们"

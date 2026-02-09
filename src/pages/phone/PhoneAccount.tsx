@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
+import { SeriesEditContent } from '../SeriesEdit'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab } from '../../stores/accountStore'
 import {
@@ -22,6 +23,7 @@ import {
   fetchMyPurchases,
   fetchMySeries,
   shelveSeries,
+  setEditingSeries,
 } from '../../services/accountService'
 import { toastStoreActions, useToastStore } from '../../stores'
 import type { User, PurchaseItem, Series } from '../../types'
@@ -141,6 +143,28 @@ const PhoneAccount: React.FC = () => {
     return (
       <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview}>
         <div className="phone-account-loading">Loading...</div>
+      </PhoneLayout>
+    )
+  }
+
+  // Show login modal when not logged in
+  if (!state.isLoggedIn) {
+    return (
+      <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview || 'Account'}>
+        <div className="phone-account-login-prompt">
+          <div className="phone-login-icon">👤</div>
+          <h2 className="phone-login-title">{t.login.title || 'Login'}</h2>
+          <p className="phone-login-message">Please log in to access your account</p>
+          <button
+            className="phone-login-btn"
+            onClick={() => accountStoreActions.setShowLoginModal(true)}
+          >
+            {t.login.submit || 'Login'}
+          </button>
+        </div>
+        {state.showLoginModal && (
+          <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+        )}
       </PhoneLayout>
     )
   }
@@ -277,9 +301,18 @@ const PhoneAccount: React.FC = () => {
             <PhoneMySeriesSection
               series={state.mySeries}
               loading={state.mySeriesLoading}
+              editingSeriesId={state.editingSeriesId}
               onNavigate={navigate}
               t={t}
             />
+          )}
+
+          {state.activeTab === 'about' && (
+            <PhoneAboutSection t={t} />
+          )}
+
+          {state.activeTab === 'contact' && (
+            <PhoneContactSection t={t} />
           )}
         </div>
       </div>
@@ -1311,6 +1344,7 @@ const PhoneMyPurchasesSection: React.FC<PhoneMyPurchasesSectionProps> = ({
 interface PhoneMySeriesSectionProps {
   series: Series[]
   loading: boolean
+  editingSeriesId: string | null
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
@@ -1318,6 +1352,7 @@ interface PhoneMySeriesSectionProps {
 const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
   series,
   loading,
+  editingSeriesId,
   onNavigate,
   t,
 }) => {
@@ -1384,9 +1419,52 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
     setPendingUnshelveSeries(null)
   }
 
+  const handleEdit = (seriesItem: Series) => {
+    setEditingSeries(seriesItem)
+    accountStoreActions.setEditingSeriesId(seriesItem._id)
+  }
+
+  const handleAddSeries = () => {
+    setEditingSeries(null)
+    accountStoreActions.setEditingSeriesId('new')
+  }
+
+  const handleCancelEdit = () => {
+    accountStoreActions.setEditingSeriesId(null)
+    setEditingSeries(null)
+  }
+
+  const handleSaveComplete = () => {
+    accountStoreActions.setEditingSeriesId(null)
+    setEditingSeries(null)
+    // Refresh the series list
+    fetchMySeries()
+  }
+
   if (loading) {
     return (
       <div className="phone-loading">Loading...</div>
+    )
+  }
+
+  // Show SeriesEditContent when editing or adding
+  if (editingSeriesId) {
+    const isAddMode = editingSeriesId === 'new'
+    const sectionTitle = isAddMode
+      ? (mySeries.addSeriesTitle || 'Add Series')
+      : (mySeries.editSeriesTitle || 'Edit Series')
+    
+    return (
+      <div className="phone-my-series">
+        <div className="phone-series-edit-header">
+          <h2 className="phone-series-edit-title">{sectionTitle}</h2>
+        </div>
+        <SeriesEditContent
+          seriesId={editingSeriesId}
+          onCancel={handleCancelEdit}
+          onSaveComplete={handleSaveComplete}
+        />
+      </div>
     )
   }
 
@@ -1396,12 +1474,21 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
         <span className="phone-empty-icon">🎬</span>
         <p>{mySeries.emptyTitle || 'No series yet'}</p>
         <p className="phone-empty-subtext">{mySeries.emptySubtext || 'Start creating your first series'}</p>
+        <button className="phone-add-series-btn" onClick={handleAddSeries}>
+          {mySeries.addSeries || 'Add Series'}
+        </button>
       </div>
     )
   }
 
   return (
     <div className="phone-my-series">
+      <div className="phone-series-header">
+        <h2 className="phone-series-title">{mySeries.title || 'My Series'}</h2>
+        <button className="phone-add-series-btn" onClick={handleAddSeries}>
+          {mySeries.addSeries || 'Add Series'}
+        </button>
+      </div>
       <div className="phone-series-grid">
         {series.map((seriesItem) => (
           <div
@@ -1427,8 +1514,19 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
                     e.stopPropagation()
                     handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)
                   }}
+                  title={seriesItem.shelved ? (mySeries.unshelve || 'Unshelve') : (mySeries.shelve || 'Shelve')}
                 >
                   {seriesItem.shelved ? '📤' : '📥'}
+                </button>
+                <button
+                  className="phone-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEdit(seriesItem)
+                  }}
+                  title={mySeries.edit || 'Edit'}
+                >
+                  ✏️
                 </button>
               </div>
             </div>
@@ -1480,6 +1578,132 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// About Section Component
+interface PhoneAboutSectionProps {
+  t: Record<string, Record<string, unknown>>
+}
+
+const PhoneAboutSection: React.FC<PhoneAboutSectionProps> = ({ t }) => {
+  const about = (t.about || {}) as Record<string, string>
+
+  const features = [
+    { icon: '🎬', title: about.feature1Title || 'Exclusive Content', text: about.feature1Text || 'Access a wide variety of exclusive series and movies you won\'t find anywhere else.' },
+    { icon: '💰', title: about.feature2Title || 'Easy Payments', text: about.feature2Text || 'Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere.' },
+    { icon: '🌍', title: about.feature3Title || 'Multi-Language Support', text: about.feature3Text || 'Enjoy content in multiple languages with our built-in language switching feature.' },
+    { icon: '📱', title: about.feature4Title || 'Watch Anywhere', text: about.feature4Text || 'Stream on any device - desktop, tablet, or mobile. Your entertainment, your way.' },
+  ]
+
+  const steps = [
+    { number: 1, title: about.step1Title || 'Create an Account', text: about.step1Text || 'Sign up for free using your email or social media accounts. It only takes a minute.' },
+    { number: 2, title: about.step2Title || 'Top Up Your Wallet', text: about.step2Text || 'Add funds to your Gcash wallet to unlock premium episodes and content.' },
+    { number: 3, title: about.step3Title || 'Start Watching', text: about.step3Text || 'Browse our library, unlock episodes, and enjoy unlimited streaming.' },
+  ]
+
+  return (
+    <div className="phone-about-section">
+      {/* Hero Section */}
+      <div className="phone-about-hero">
+        <img
+          src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
+          alt="GcashTV Logo"
+          className="phone-about-logo"
+        />
+        <h1 className="phone-about-title">GcashTV</h1>
+        <p className="phone-about-tagline">{about.tagline || 'Your premium destination for streaming entertainment'}</p>
+      </div>
+
+      {/* Mission Section */}
+      <div className="phone-about-card">
+        <span className="phone-about-card-icon">🎯</span>
+        <h2 className="phone-about-card-title">{about.missionTitle || 'Our Mission'}</h2>
+        <p className="phone-about-card-text">{about.missionText || 'GcashTV is dedicated to bringing you the best streaming experience with a vast library of series and movies. We believe in making quality entertainment accessible to everyone, with seamless payment integration through Gcash.'}</p>
+      </div>
+
+      {/* Features Section */}
+      <div className="phone-about-card">
+        <h2 className="phone-about-card-title">{about.featuresTitle || 'Why Choose GcashTV'}</h2>
+        <div className="phone-about-features">
+          {features.map((feature, index) => (
+            <div key={index} className="phone-about-feature">
+              <span className="phone-about-feature-icon">{feature.icon}</span>
+              <h3 className="phone-about-feature-title">{feature.title}</h3>
+              <p className="phone-about-feature-text">{feature.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* How It Works Section */}
+      <div className="phone-about-card">
+        <h2 className="phone-about-card-title">{about.howItWorksTitle || 'How It Works'}</h2>
+        <div className="phone-about-steps">
+          {steps.map((step) => (
+            <div key={step.number} className="phone-about-step">
+              <span className="phone-about-step-number">{step.number}</span>
+              <div className="phone-about-step-content">
+                <h3 className="phone-about-step-title">{step.title}</h3>
+                <p className="phone-about-step-text">{step.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <p className="phone-about-footer">{about.footerText || 'Thank you for choosing GcashTV. Happy watching!'}</p>
+    </div>
+  )
+}
+
+// Contact Section Component
+interface PhoneContactSectionProps {
+  t: Record<string, Record<string, unknown>>
+}
+
+const PhoneContactSection: React.FC<PhoneContactSectionProps> = ({ t }) => {
+  const contact = (t.contact || {}) as Record<string, string>
+
+  return (
+    <div className="phone-contact-section">
+      {/* Header Section */}
+      <div className="phone-contact-header">
+        <span className="phone-contact-icon">✉️</span>
+        <h1 className="phone-contact-title">{contact.title || 'Contact Us'}</h1>
+        <p className="phone-contact-subtitle">{contact.subtitle || "We'd love to hear from you"}</p>
+      </div>
+
+      {/* Contact Card */}
+      <div className="phone-contact-card">
+        {/* Welcome Message */}
+        <p className="phone-contact-welcome">{contact.welcomeMessage || 'Your feedback and creative ideas are always welcome.'}</p>
+
+        {/* Contact Info */}
+        <div className="phone-contact-info">
+          <div className="phone-contact-info-icon">
+            <span>📧</span>
+          </div>
+          <div className="phone-contact-info-details">
+            <span className="phone-contact-info-label">{contact.emailLabel || 'Email Address'}</span>
+            <a href="mailto:chatuni.ai@gmail.com" className="phone-contact-info-value">chatuni.ai@gmail.com</a>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="phone-contact-cta">
+          <p className="phone-contact-cta-text">{contact.ctaText || 'Have questions or suggestions? Drop us a line!'}</p>
+          <a href="mailto:chatuni.ai@gmail.com" className="phone-contact-send-btn">
+            <span>✉️</span>
+            {contact.sendEmail || 'Send Email'}
+          </a>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <p className="phone-contact-footer">{contact.footerText || 'We typically respond within 24-48 hours.'}</p>
     </div>
   )
 }

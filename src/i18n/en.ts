@@ -25,6 +25,8 @@ export const en = {
       wallet: 'Wallet',
       myPurchases: 'My Purchases',
       mySeries: 'My Series',
+      about: 'About',
+      contact: 'Contact',
       logout: 'Logout',
     },
     overview: {
