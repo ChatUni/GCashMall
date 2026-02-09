@@ -2,71 +2,89 @@
 
 ## Overview
 
-The Phone Navigation Bar is a fixed bottom navigation component providing primary navigation for the mobile UI. It follows standard mobile app patterns for thumb-friendly access to main sections.
+The Phone Navigation Bar is a fixed bottom navigation component providing primary navigation for the mobile UI. It follows standard mobile app patterns for thumb-friendly access.
 
 ## Layout
 
-The navigation bar is a horizontal bar fixed at the bottom of the screen.
+### Container
+- **Position**: Fixed, bottom: 0, left: 0, right: 0
+- **Z-Index**: 100
+- **Height**: 64px (plus safe area inset on iOS)
+- **Background**: #0B0B0E
+- **Border Top**: 1px solid rgba(255, 255, 255, 0.1)
+- **Display**: Flex, space-around, center aligned
+- **Padding**: 0 16px
 
-### Dimensions
-- Height: 64 pixels (plus safe area on devices with home indicators)
-- Full width of the screen
-- Dark background matching the app theme
-- Subtle top border for visual separation
+## Navigation Items
 
-### Navigation Items
+### Item Container
+- **Display**: Flex column, centered
+- **Gap**: 4px
+- **Padding**: 8px 16px
+- **Min Width**: 64px
+- **Background**: Transparent
+- **Border**: None
+- **Cursor**: Pointer
+- **Transition**: color 0.2s ease
 
-The bar contains three equally-spaced navigation items:
+### Item Icon
+- **Size**: 24px × 24px
+- **Stroke Width**: 2
+- **Color**: Inherits from container
 
-**Home**
-- House icon
-- Label: "Home" (English) / "首页" (Chinese)
-- Navigates to the home page
-
-**Genre**
-- Grid icon (four squares)
-- Label: "Genre" (English) / "分类" (Chinese)
-- Navigates to the genre browsing page
-
-**Account**
-- Person icon
-- Label: "Overview" (English) / "我的" (Chinese)
-- Navigates to the account page
-
-### Item Layout
-
-Each navigation item displays:
-- Icon above the label
-- 24 pixel icon size
-- 11 pixel label text
-- Vertically centered in the bar
-- Minimum 64 pixel width for easy tapping
+### Item Label
+- **Font Size**: 11px
+- **Font Weight**: 500
+- **Color**: Inherits from container
 
 ## States
 
 ### Default State
-- Gray icon and label color
-- No background highlight
+- **Color**: #9CA3AF
 
 ### Active State
-- Blue icon and label color
-- Indicates the current page
-- Determined by matching the current URL path
+- **Color**: #3B82F6
 
-## Behavior
+## Navigation Items Configuration
 
-### Fixed Positioning
-The navigation bar stays fixed at the bottom while scrolling content.
+| Key | Path | Icon | Label (EN) | Label (ZH) |
+|-----|------|------|------------|------------|
+| home | `/` | House | Home | 首页 |
+| genre | `/genre` | Grid (2×2) | Genre | 分类 |
+| account | `/account` | Person | Overview | 我的 |
 
-### Safe Area Support
-On devices with home indicators (like iPhone), the bar extends into the safe area with proper padding.
+## Icons
 
-### Route Matching
-- Home is active only on the exact home path
-- Other items are active when the path starts with their route (allowing for sub-pages)
+### Home Icon
+- Circle with house shape
+- Door detail at bottom
 
-## Internationalization
+### Genre Icon
+- 4 squares in 2×2 grid
+- Equal spacing between squares
 
-Labels change based on the selected language:
-- English: Home, Genre, Overview
-- Chinese: 首页, 分类, 我的
+### Account Icon
+- Person silhouette
+- Circle head, body below
+
+## Safe Area Support
+
+On devices with home indicators (iPhone X and later):
+- **Padding Bottom**: env(safe-area-inset-bottom)
+- **Total Height**: calc(64px + env(safe-area-inset-bottom))
+
+## Route Matching
+
+| Path | Active Item |
+|------|-------------|
+| `/` | Home (exact match) |
+| `/genre`, `/genre/*` | Genre (starts with) |
+| `/account`, `/account/*` | Account (starts with) |
+
+## Interactions
+
+| Element | Action | Result |
+|---------|--------|--------|
+| Home | Tap | Navigate to `/` |
+| Genre | Tap | Navigate to `/genre` |
+| Account | Tap | Navigate to `/account` |

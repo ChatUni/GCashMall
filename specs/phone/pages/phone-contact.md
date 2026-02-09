@@ -7,192 +7,204 @@ The Phone Contact page provides a contact form and support information for users
 ## Page Structure
 
 ### Layout
-- Uses the standard phone layout
-- Back button and "Contact" title in header
+- PhoneLayout wrapper
+- Back button visible
+- Title: "Contact" / "联系我们"
 - No search icon
 - Bottom navigation visible
 
 ### Content Sections
 1. Contact Header
 2. Contact Form
-3. Alternative Contact Methods
+3. Alternative Contact
 4. FAQ Link
 
 ## Contact Header
 
 ### Container
-- Centered content
-- Generous padding
+- **Padding**: 24px 16px
+- **Text Align**: Center
 
 ### Icon
-- Mail or message icon
-- Blue color, 48 pixels
+- **Size**: 48px
+- **Color**: #3B82F6
+- **Margin Bottom**: 12px
 
 ### Title
-- "Get in Touch" heading
-- Bold, white, 20 pixel font
+- **Font Size**: 20px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin Bottom**: 8px
 
 ### Subtitle
-- "We'd love to hear from you"
-- Gray text, 14 pixel font
+- **Font Size**: 14px
+- **Color**: #9CA3AF
 
 ## Contact Form
 
 ### Container
-- Horizontal padding
-- Vertical spacing between fields
+- **Padding**: 0 16px 24px
+
+### Form Field
+- **Margin Bottom**: 16px
+
+### Label
+- **Font Size**: 14px
+- **Font Weight**: 500
+- **Color**: #FFFFFF
+- **Margin Bottom**: 8px
+
+### Input
+- **Width**: 100%
+- **Height**: 48px
+- **Background**: #1A1A1A
+- **Border**: 1px solid rgba(255, 255, 255, 0.1)
+- **Border Radius**: 8px
+- **Padding**: 0 16px
+- **Font Size**: 16px
+- **Color**: #FFFFFF
+- **Focus Border**: #3B82F6
+
+### Textarea
+- **Width**: 100%
+- **Min Height**: 120px
+- **Background**: #1A1A1A
+- **Border**: 1px solid rgba(255, 255, 255, 0.1)
+- **Border Radius**: 8px
+- **Padding**: 12px 16px
+- **Font Size**: 16px
+- **Color**: #FFFFFF
+- **Resize**: Vertical
 
 ### Form Fields
+| Field | Type | Required |
+|-------|------|----------|
+| Name | text | Yes |
+| Email | email | Yes |
+| Subject | select | Yes |
+| Message | textarea | Yes |
 
-**Name Field**
-- Label: "Name"
-- Text input
-- Required field
-- Placeholder: "Your name"
-
-**Email Field**
-- Label: "Email"
-- Email input type
-- Required field
-- Placeholder: "Your email"
-- Validates email format
-
-**Subject Field**
-- Label: "Subject"
-- Dropdown selector
-- Required field
-- Options: General Inquiry, Technical Support, Billing Question, Feedback, Other
-
-**Message Field**
-- Label: "Message"
-- Multi-line text area
-- Required field
-- Placeholder: "Your message"
-- Minimum 120 pixel height
-
-### Input Styling
-- Full width
-- 48 pixel height (text inputs)
-- Dark gray background
-- Subtle border, blue when focused
-- 16 pixel font (prevents iOS zoom)
-- White text
-- Rounded corners
+### Subject Options
+| Value | Label (EN) | Label (ZH) |
+|-------|------------|------------|
+| general | General Inquiry | 一般咨询 |
+| technical | Technical Support | 技术支持 |
+| billing | Billing Question | 账单问题 |
+| feedback | Feedback | 意见反馈 |
+| other | Other | 其他 |
 
 ### Submit Button
-- Full width
-- Blue background, white text
-- "Send Message" label
-- Bold, 16 pixel font
-- Rounded pill shape
-- Disabled state when form invalid
+- **Width**: 100%
+- **Height**: 48px
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Border Radius**: 24px
+- **Margin Top**: 8px
+- **Disabled**: Opacity 0.5
 
-### Validation
-- Required field indicators
-- Error messages below fields
-- Red color for errors
+### Validation Error
+- **Font Size**: 12px
+- **Color**: #EF4444
+- **Margin Top**: 4px
 
-## Alternative Contact Methods
+## Alternative Contact
 
 ### Container
-- Rounded card background
-- Horizontal margin
+- **Padding**: 24px 16px
+- **Background**: #121214
+- **Margin**: 0 16px
+- **Border Radius**: 12px
 
 ### Section Title
-- "Other Ways to Reach Us"
-- Bold, white, 16 pixel font
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin Bottom**: 16px
+
+### Contact Method
+- **Display**: Flex
+- **Gap**: 12px
+- **Padding**: 12px 0
+- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
+
+### Method Icon
+- **Size**: 20px
+- **Color**: #3B82F6
+
+### Method Label
+- **Font Size**: 13px
+- **Color**: #9CA3AF
+
+### Method Value
+- **Font Size**: 15px
+- **Color**: #FFFFFF
 
 ### Contact Methods
-Each method shows:
-- Icon on left (blue)
-- Label and value stacked
-- Label in gray, value in white
-
-**Email**
-- Mail icon
-- Label: "Email"
-- Value: support@gcashtv.com
-
-**Phone**
-- Phone icon
-- Label: "Phone"
-- Value: Contact number
-
-**Hours**
-- Clock icon
-- Label: "Hours"
-- Value: Business hours
+| Icon | Label (EN) | Label (ZH) | Value |
+|------|------------|------------|-------|
+| Mail | Email | 邮箱 | support@gcashtv.com |
+| Phone | Phone | 电话 | +1 (555) 123-4567 |
+| Clock | Hours | 工作时间 | Mon-Fri, 9AM-6PM |
 
 ## FAQ Link
 
 ### Container
-- Centered text
-- Padding above and below
+- **Padding**: 24px 16px
+- **Text Align**: Center
 
 ### Link
-- Blue text
-- "Check our FAQ for quick answers"
-- Tapping navigates to FAQ page
+- **Font Size**: 15px
+- **Color**: #3B82F6
 
 ## Success State
 
-After successful submission:
-
 ### Container
-- Centered content
-- Generous padding
+- **Display**: Flex column, centered
+- **Padding**: 48px 16px
 
 ### Icon
-- Green checkmark circle
-- 64 pixels
+- **Size**: 64px
+- **Color**: #10B981
 
 ### Title
-- "Message Sent!"
-- Bold, white, 20 pixel font
+- **Font Size**: 20px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin**: 16px 0 8px
 
 ### Message
-- "We'll get back to you soon"
-- Gray text
+- **Font Size**: 14px
+- **Color**: #9CA3AF
+- **Margin Bottom**: 24px
 
 ### Button
-- "Back to Home" button
-- Blue background
-- Navigates to home page
-
-## Form Submission
-
-### Process
-1. Validate all required fields
-2. Show loading state on button
-3. Submit form data to server
-4. Show success or error state
-
-### Loading State
-- Button shows "Sending..."
-- Button disabled during submission
-
-### Error Handling
-- Shows error message if submission fails
-- Allows retry
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Padding**: 12px 32px
+- **Border Radius**: 20px
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
-| Back Button | Tap | Return to previous page |
-| Input Field | Tap | Focus and show keyboard |
-| Subject | Tap | Open dropdown selector |
-| Submit | Tap | Validate and submit form |
-| Email Link | Tap | Open email app |
-| Phone Link | Tap | Open phone dialer |
-| FAQ Link | Tap | Navigate to FAQ |
+| Back | Tap | Return to previous |
+| Input | Focus | Show keyboard |
+| Submit | Tap | Validate and submit |
+| Email | Tap | Open email app |
+| Phone | Tap | Open dialer |
+| FAQ | Tap | Navigate to FAQ |
 
 ## Internationalization
 
-### Labels
-- English: "Contact", "Get in Touch", "Name", "Email", "Subject", "Message", "Send Message", "Message Sent!"
-- Chinese: "联系我们", "联系我们", "姓名", "邮箱", "主题", "留言", "发送消息", "发送成功！"
-
-### Subject Options
-- English: General Inquiry, Technical Support, Billing Question, Feedback, Other
-- Chinese: 一般咨询, 技术支持, 账单问题, 意见反馈, 其他
+| Key | English | Chinese |
+|-----|---------|---------|
+| contact | Contact | 联系我们 |
+| getInTouch | Get in Touch | 联系我们 |
+| name | Name | 姓名 |
+| email | Email | 邮箱 |
+| subject | Subject | 主题 |
+| message | Message | 留言 |
+| send | Send Message | 发送消息 |
+| successTitle | Message Sent! | 发送成功！ |

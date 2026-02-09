@@ -6,73 +6,87 @@ The Phone Header is a sticky top navigation component for the mobile UI. It prov
 
 ## Layout
 
-The header is a horizontal bar fixed at the top of the screen with three sections: left, center, and right.
-
-### Dimensions
-- Height: 56 pixels (plus safe area on devices with notches)
-- Full width of the screen
-- Dark background matching the app theme
-- Subtle bottom border for visual separation
+### Container
+- **Position**: Sticky, top: 0
+- **Z-Index**: 100
+- **Height**: 56px (plus safe area inset on iOS)
+- **Background**: #0B0B0E
+- **Padding**: 0 16px
+- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
+- **Display**: Flex, space-between, center aligned
 
 ### Left Section
-
-The left section shows either the app logo or a back button:
-
-**Logo (Default)**
-- Displays the GCashTV logo image
-- Height of 32 pixels
-- Tapping navigates to the home page
-
-**Back Button (When enabled)**
-- Circular button with left-pointing arrow icon
-- 40 pixels in size
-- Tapping returns to the previous page or executes a custom action
+- **Display**: Flex, center aligned
+- **Min Width**: 48px
 
 ### Center Section
-
-The center section optionally displays a page title:
-- Only shown when a title is provided
-- 18 pixel font, bold weight
-- White text color
-- Centered in the available space
-- Long titles are truncated with ellipsis
+- **Flex**: 1
+- **Text Align**: Center
+- **Padding**: 0 12px
 
 ### Right Section
+- **Display**: Flex, center aligned
+- **Min Width**: 48px
+- **Justify Content**: flex-end
+- **Gap**: 8px
 
-The right section contains the search button and optional custom actions:
+## Logo (Default Left State)
 
-**Search Button**
-- Circular button with magnifying glass icon
-- 48 pixels in size with 38 pixel icon
-- White icon color
-- Tapping navigates to the search page
-- Can be hidden on pages where search is not needed
+- **Height**: 32px
+- **Width**: Auto
+- **Cursor**: Pointer
+- **Click Action**: Navigate to `/`
 
-**Custom Actions**
-- Additional buttons can be added before the search button
-- Used for page-specific actions like share or settings
+## Back Button (Alternative Left State)
 
-## Behavior
+- **Size**: 40px × 40px
+- **Background**: Transparent
+- **Border**: None
+- **Border Radius**: 50%
+- **Color**: #FFFFFF
+- **Icon Size**: 24px
+- **Active State**: Background rgba(255, 255, 255, 0.1)
+- **Click Action**: Navigate back or custom handler
 
-### Sticky Positioning
-The header stays fixed at the top while scrolling content.
+## Page Title
 
-### Safe Area Support
-On devices with notches (like iPhone), the header extends into the safe area with proper padding.
+- **Font Size**: 18px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **White Space**: nowrap
+- **Overflow**: Hidden
+- **Text Overflow**: ellipsis
 
-### Visual Feedback
-Buttons show a subtle background highlight when pressed.
+## Search Button
+
+- **Size**: 48px × 48px
+- **Background**: Transparent
+- **Border**: None
+- **Border Radius**: 50%
+- **Color**: #FFFFFF
+- **Icon Size**: 38px
+- **Active State**: Background rgba(255, 255, 255, 0.1)
+- **Click Action**: Navigate to `/search`
+
+## Safe Area Support
+
+On devices with notches (iPhone X and later):
+- **Padding Top**: env(safe-area-inset-top)
+- **Total Height**: calc(56px + env(safe-area-inset-top))
 
 ## Usage Variations
 
-### Home Page
-Shows logo on left, search on right, no title.
+| Page Type | Left | Center | Right |
+|-----------|------|--------|-------|
+| Home | Logo | - | Search |
+| Detail | Back | Title | Search |
+| Search | Back | "Search" | - |
+| Custom | Back | Title | Custom + Search |
 
-### Detail Pages
-Shows back button on left, page title in center, search on right.
+## Interactions
 
-### Search Page
-Shows back button on left, "Search" title in center, no search button.
-
-### Custom Pages
-Can include additional action buttons on the right side.
+| Element | Action | Result |
+|---------|--------|--------|
+| Logo | Tap | Navigate to home |
+| Back Button | Tap | Go back or custom action |
+| Search Button | Tap | Navigate to search |

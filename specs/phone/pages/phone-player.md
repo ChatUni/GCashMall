@@ -7,156 +7,159 @@ The Phone Player page provides a mobile-optimized video playback experience with
 ## Page Structure
 
 ### Layout
-- Uses the standard phone layout
-- Back button and series title in header
+- PhoneLayout wrapper
+- Back button visible
+- Title: Series title
 - Search icon visible
 - Bottom navigation visible (hidden in fullscreen)
 
 ### Content Sections
 1. Video Player
-2. Series Information
+2. Series Info
 3. Episode List
 4. Related Series
 
-## Video Player Section
+## Video Player
 
 ### Container
-- Full width of screen
-- 16:9 aspect ratio
-- Black background
+- **Width**: 100%
+- **Aspect Ratio**: 16:9
+- **Background**: #000000
+- **Position**: Relative
 
-### Video Display
-- Fills container
-- Maintains aspect ratio
-- Native playback controls
+### Video Element
+- **Width**: 100%
+- **Height**: 100%
+- **Object Fit**: Contain
 
 ### Fullscreen Button
-- Positioned in bottom-right corner
-- Semi-transparent dark background
-- Expand icon
-- Tapping enters fullscreen mode
+- **Position**: Absolute, bottom: 12px, right: 12px
+- **Size**: 40px × 40px
+- **Background**: rgba(0, 0, 0, 0.5)
+- **Border Radius**: 8px
+- **Icon Size**: 20px
 
 ### Loading State
-- Centered loading spinner
+- Centered spinner
 - Black background
 
-### Error State
-- Error message displayed
-- Retry button available
-
-## Series Information Section
+## Series Info
 
 ### Container
-- Below video player
-- Horizontal padding
-- Subtle bottom border
+- **Padding**: 16px
+- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
 
 ### Title
-- 18 pixel font, bold
-- White text
-- Full series title
+- **Font Size**: 18px
+- **Font Weight**: 700
+- **Color**: #FFFFFF
+- **Margin Bottom**: 8px
 
-### Meta Information
-- Horizontal row of details
-- Gray text, smaller font
-- Includes: episode count, view count, release year
+### Meta Info
+- **Display**: Flex, wrap
+- **Gap**: 12px
+- **Font Size**: 13px
+- **Color**: #9CA3AF
+- **Margin Bottom**: 12px
 
 ### Tags
-- Horizontal row of tag pills
-- Dark gray background
-- Gray text
-- Tapping a tag navigates to genre
+- **Display**: Flex, wrap
+- **Gap**: 8px
+- **Margin Bottom**: 12px
+
+### Tag
+- **Background**: #2A2A2E
+- **Color**: #9CA3AF
+- **Font Size**: 12px
+- **Padding**: 4px 12px
+- **Border Radius**: 12px
 
 ### Description
-- Gray text, readable line height
-- Expandable with "Show more" / "Show less"
-- Default shows 3 lines
+- **Font Size**: 14px
+- **Color**: #9CA3AF
+- **Line Height**: 1.6
+- **Default Lines**: 3
+- **Expandable**: Show more/less
 
-## Episode List Section
+## Episode List
 
 ### Section Header
-- "Episodes" title
-- 16 pixel font, bold
-- White text
+- **Padding**: 16px
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
 
 ### Episode Grid
-- 5 columns of episode buttons
-- 8 pixel gap between buttons
-- Horizontal padding
+- **Display**: Grid
+- **Grid Template**: repeat(5, 1fr)
+- **Gap**: 8px
+- **Padding**: 0 16px 16px
 
 ### Episode Button
-- Square shape
-- Episode number displayed
-- Different colors for states:
-  - Default: Dark gray background, white text
-  - Current: Blue background, white text
-  - Watched: Dark gray background, gray text
-  - Locked: Dark gray background, lock icon
+- **Aspect Ratio**: 1:1
+- **Border Radius**: 8px
+- **Font Size**: 14px
+- **Font Weight**: 500
+- **Display**: Flex, centered
 
-### Locked Episodes
-- Shows lock icon instead of number
-- Tapping shows purchase dialog
+### Episode States
+| State | Background | Color |
+|-------|------------|-------|
+| Default | #1A1A1A | #FFFFFF |
+| Current | #3B82F6 | #FFFFFF |
+| Watched | #1A1A1A | #9CA3AF |
+| Locked | #1A1A1A | #4B5563 + lock icon |
 
-## Related Series Section
+## Related Series
 
-### Section Header
-- "Related" title
-- 16 pixel font, bold
+### Section Title
+- **Padding**: 0 16px
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+- **Margin Bottom**: 12px
 
 ### Carousel
-- Horizontal scrolling series cards
-- Shows series with similar tags
-
-## Video Playback
-
-### Controls
-- Play/pause
-- Progress bar with seek
-- Volume (where supported)
-- Fullscreen toggle
-
-### Progress Tracking
-- Saves position every 10 seconds
-- Resumes from last position on return
-
-### Watch History
-- Records watched episodes
-- Stores series, episode, timestamp, progress
+- PhoneSeriesCarousel component
+- Related by tags
 
 ## Fullscreen Mode
 
 ### Behavior
-- Landscape orientation preferred
-- Hides header and navigation
-- Video fills entire screen
+- Landscape preferred
+- Hide header and nav
+- Full viewport video
 - Tap to show/hide controls
 
 ### Exit Methods
-- Tap exit/minimize button
-- Press device back button
-- Rotate to portrait orientation
+- Exit button
+- Back button
+- Rotate to portrait
 
-## URL Structure
+## Watch History
 
-### Route Format
-- Includes series ID
-- Optionally includes episode number
-- Defaults to episode 1 or last watched
+### Storage Key
+- gcashtv-watch-history
+
+### Progress Tracking
+- Save every 10 seconds
+- Resume from last position
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
 | Video | Tap | Toggle play/pause |
-| Fullscreen | Tap | Enter fullscreen mode |
-| Episode Button | Tap | Switch to that episode |
-| Tag | Tap | Navigate to genre with tag |
-| Related Card | Tap | Navigate to that series |
-| Back | Tap | Return to previous page |
-| Show More | Tap | Expand description |
+| Fullscreen | Tap | Enter fullscreen |
+| Episode | Tap | Switch episode |
+| Tag | Tap | Navigate to genre |
+| Related | Tap | Navigate to series |
 
 ## Internationalization
 
-### Labels
-- English: "Episodes", "Episode", "Related", "Show more", "Show less"
-- Chinese: "剧集", "第X集", "相关推荐", "展开", "收起"
+| Key | English | Chinese |
+|-----|---------|---------|
+| episodes | Episodes | 剧集 |
+| related | Related | 相关推荐 |
+| showMore | Show more | 展开 |
+| showLess | Show less | 收起 |

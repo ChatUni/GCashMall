@@ -2,99 +2,109 @@
 
 ## Overview
 
-The Phone Home page is the main landing page for the mobile UI, featuring a hero banner showcasing featured content and horizontal carousels of recommended series.
+The Phone Home page is the main landing page for the mobile UI, featuring a hero banner and horizontal carousels of recommended content.
 
 ## Page Structure
 
 ### Layout
-- Uses the standard phone layout
-- Logo and search icon in header
+- PhoneLayout wrapper
+- No back button
+- Search icon visible
 - Bottom navigation visible
-- Vertically scrolling content
 
 ### Content Sections
-1. Hero Banner (featured series)
+1. Hero Banner
 2. "You Might Like" Carousel
 3. "New Releases" Carousel
 
 ## Hero Banner
 
 ### Container
-- Full width of the screen
-- 16:9 aspect ratio
-- Positioned at the top of content
+- **Width**: 100%
+- **Aspect Ratio**: 16:9
+- **Position**: Relative
+- **Margin Bottom**: 24px
 
 ### Background Image
-- Featured series poster as background
-- Covers entire container
-- Centered positioning
+- **Width**: 100%
+- **Height**: 100%
+- **Object Fit**: Cover
+- **Object Position**: Center
 
 ### Gradient Overlay
-- Dark gradient from bottom to top
-- Allows text to be readable over image
-- Covers bottom 60% of banner
+- **Position**: Absolute, bottom: 0
+- **Width**: 100%
+- **Height**: 60%
+- **Background**: linear-gradient(transparent, rgba(11, 11, 14, 0.9))
 
 ### Content Overlay
-- Positioned at bottom of banner
-- Contains title, tags, and play button
-- Horizontal padding for content
+- **Position**: Absolute, bottom: 0
+- **Width**: 100%
+- **Padding**: 16px
 
 ### Hero Title
-- 20 pixel font, bold weight
-- White text color
-- Maximum 2 lines, truncated if longer
+- **Font Size**: 20px
+- **Font Weight**: 700
+- **Color**: #FFFFFF
+- **Margin Bottom**: 8px
+- **Line Clamp**: 2
 
 ### Hero Tags
-- Horizontal row of tag pills
-- Semi-transparent white background
-- White text, small font
-- Wraps to multiple lines if needed
+- **Display**: Flex, wrap
+- **Gap**: 6px
+- **Margin Bottom**: 12px
+
+### Hero Tag
+- **Background**: rgba(255, 255, 255, 0.2)
+- **Color**: #FFFFFF
+- **Font Size**: 11px
+- **Padding**: 4px 10px
+- **Border Radius**: 12px
 
 ### Play Button
-- Blue background with white text
-- Play icon followed by "Play" text
-- Rounded pill shape
-- Prominent size for easy tapping
+- **Display**: Inline-flex, centered
+- **Gap**: 6px
+- **Background**: #3B82F6
+- **Color**: #FFFFFF
+- **Font Size**: 14px
+- **Font Weight**: 600
+- **Padding**: 10px 24px
+- **Border Radius**: 20px
+- **Icon Size**: 16px
 
 ## Series Carousels
 
 ### "You Might Like" Section
-- Title: "You Might Like" (English) / "猜你喜欢" (Chinese)
-- Shows recommended series based on viewing history
-- Horizontal scrolling carousel of series cards
+- **Title**: "You Might Like" / "猜你喜欢"
+- **Data**: Recommended series
 
 ### "New Releases" Section
-- Title: "New Releases" (English) / "最新上线" (Chinese)
-- Shows recently added series
-- Horizontal scrolling carousel of series cards
+- **Title**: "New Releases" / "最新上线"
+- **Data**: Recently added series
 
 ## Data Loading
 
-### Initial Load
-- Fetches featured series for hero banner
-- Fetches recommended series list
-- Fetches new releases list
-
 ### Loading State
-- Shows loading indicator or skeleton UI
-- Centered in content area
+- Centered spinner or skeleton
+- Full content area
 
 ### Error State
-- Shows error message
-- Provides retry option
+- Error message
+- Retry button
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
 | Hero Banner | Tap | Navigate to featured series |
-| Play Button | Tap | Navigate to featured series player |
-| Hero Tag | Tap | Navigate to genre with that tag |
-| Series Card | Tap | Navigate to series player |
-| Search Icon | Tap | Navigate to search page |
+| Play Button | Tap | Navigate to player |
+| Hero Tag | Tap | Navigate to genre with tag |
+| Series Card | Tap | Navigate to player |
 
 ## Internationalization
 
-### Section Titles
-- English: "You Might Like", "New Releases", "Play"
-- Chinese: "猜你喜欢", "最新上线", "播放"
+| Key | English | Chinese |
+|-----|---------|---------|
+| youMightLike | You Might Like | 猜你喜欢 |
+| newReleases | New Releases | 最新上线 |
+| play | Play | 播放 |
