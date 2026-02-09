@@ -1,0 +1,70 @@
+/* Phone Series Carousel */
+.phone-carousel {
+  padding: 20px 0;
+}
+
+.phone-carousel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 16px;
+}
+
+.phone-carousel-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 16px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.phone-carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skeleton Loading */
+.phone-card-skeleton {
+  flex-shrink: 0;
+  width: 120px;
+}
+
+.phone-card-skeleton-image {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.phone-card-skeleton-title {
+  width: 80%;
+  height: 14px;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.phone-card-skeleton-tag {
+  width: 50%;
+  height: 12px;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

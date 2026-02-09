@@ -1,0 +1,142 @@
+/* Phone Genre Page */
+.phone-genre {
+  padding: 16px;
+}
+
+/* Genre Pills */
+.phone-genre-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.phone-genre-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.phone-genre-pill {
+  flex-shrink: 0;
+  background: #1a1a1e;
+  color: #9CA3AF;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-genre-pill:active {
+  opacity: 0.8;
+}
+
+.phone-genre-pill.active {
+  background: #3B82F6;
+  color: #ffffff;
+}
+
+/* Genre Header */
+.phone-genre-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.phone-genre-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.phone-genre-count {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+/* Series Grid */
+.phone-genre-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Skeleton Loading */
+.phone-genre-skeleton {
+  width: 100%;
+}
+
+.phone-genre-skeleton-image {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.phone-genre-skeleton-title {
+  width: 80%;
+  height: 14px;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.phone-genre-skeleton-tag {
+  width: 50%;
+  height: 12px;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Empty State */
+.phone-genre-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.phone-genre-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.phone-genre-empty p {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 360px) {
+  .phone-genre-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

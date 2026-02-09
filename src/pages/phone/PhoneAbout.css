@@ -1,0 +1,63 @@
+/* Phone About Page */
+.phone-about {
+  padding: 24px 16px;
+}
+
+.phone-about-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.phone-about-logo img {
+  width: 80px;
+  height: 80px;
+}
+
+.phone-about-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+.phone-about-content {
+  color: #9CA3AF;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.phone-about-content > p {
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+.phone-about-section {
+  margin-bottom: 24px;
+}
+
+.phone-about-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.phone-about-section p {
+  margin: 0;
+}
+
+.phone-about-features {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.phone-about-features li {
+  margin-bottom: 8px;
+}
+
+.phone-about-version {
+  color: #3B82F6;
+  font-weight: 500;
+}

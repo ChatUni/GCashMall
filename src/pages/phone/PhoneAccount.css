@@ -1,0 +1,509 @@
+/* Phone Account Page */
+.phone-account {
+  padding-bottom: 20px;
+}
+
+.phone-account-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: #9CA3AF;
+}
+
+/* Account Header */
+.phone-account-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  background: linear-gradient(180deg, #1a1a1e 0%, #0B0B0E 100%);
+}
+
+.phone-account-avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #242428;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.phone-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-avatar-emoji {
+  font-size: 36px;
+}
+
+.phone-avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: #3B82F6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.phone-account-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.phone-account-email {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin: 0;
+}
+
+/* Tab Navigation */
+.phone-account-tabs {
+  display: flex;
+  overflow-x: auto;
+  padding: 0 16px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  scrollbar-width: none;
+}
+
+.phone-account-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.phone-account-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-account-tab.active {
+  color: #3B82F6;
+  border-bottom-color: #3B82F6;
+}
+
+.phone-tab-icon {
+  font-size: 20px;
+}
+
+/* Content Area */
+.phone-account-content {
+  padding: 16px;
+}
+
+/* Overview Section */
+.phone-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phone-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phone-form-group label {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.phone-form-group input,
+.phone-form-group select {
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 8px;
+  padding: 12px;
+  color: #ffffff;
+  font-size: 15px;
+  outline: none;
+}
+
+.phone-form-group input:focus,
+.phone-form-group select:focus {
+  border-color: #3B82F6;
+}
+
+.phone-form-group input.error {
+  border-color: #ef4444;
+}
+
+.phone-field-error {
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.phone-save-btn {
+  background: #3B82F6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.phone-save-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Empty State */
+.phone-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.phone-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.phone-empty-state p {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin: 0 0 20px 0;
+}
+
+.phone-explore-btn {
+  background: #3B82F6;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* History Section */
+.phone-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phone-clear-btn {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid #2a2a2e;
+  color: #9CA3AF;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.phone-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.phone-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #1a1a1e;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.phone-history-cover {
+  position: relative;
+  width: 60px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.phone-history-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-history-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #242428;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.phone-history-ep {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.phone-history-name {
+  flex: 1;
+  font-size: 14px;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.phone-remove-btn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Favorites Section */
+.phone-favorites-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phone-favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.phone-favorite-item {
+  cursor: pointer;
+}
+
+.phone-favorite-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.phone-favorite-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-favorite-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #242428;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.phone-favorite-cover .phone-remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.phone-favorite-name {
+  font-size: 13px;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Settings Section */
+.phone-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phone-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #1a1a1e;
+  border-radius: 8px;
+}
+
+.phone-setting-label {
+  font-size: 15px;
+  color: #ffffff;
+}
+
+.phone-setting-select {
+  background: #242428;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.phone-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+/* Wallet Section */
+.phone-wallet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.phone-wallet-balance {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.phone-balance-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.phone-balance-amount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.phone-balance-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.phone-wallet-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.phone-wallet-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.phone-amount-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a1e;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-amount-btn:active {
+  background: #242428;
+}
+
+.phone-amount-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.phone-amount-btn span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Toast */
+.phone-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  z-index: 1100;
+}
+
+.phone-toast-success {
+  background: #22c55e;
+}
+
+.phone-toast-error {
+  background: #ef4444;
+}
+
+.phone-toast-info {
+  background: #3B82F6;
+}
