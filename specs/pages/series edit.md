@@ -45,7 +45,9 @@ Vertical
 
 #### Interaction
 
-- on Cancel click: confirm, then discard changes and go back
+- on Cancel click: show Cancel Confirmation Modal
+  - if cancel ("Keep Editing"), close modal and stay on page
+  - if confirm ("Discard Changes"), discard changes and go back
 - if episode list is empty, add a new video upload component automatically with title "EP 01"
 - Add Episode button disabled when the last video upload component doesn't have a video
 - on Add Episode click: add a new video upload component to the end of the episode list, default title "EP {number of episodes in the list + 1}"
@@ -114,3 +116,49 @@ A styled modal dialog that appears when the user clicks the Save button, matchin
 - Click overlay to cancel (close modal)
 - Click Cancel button to close modal
 - Click Save button to proceed with save operation
+
+### Cancel Confirmation Modal
+
+A styled modal dialog that appears when the user clicks the Cancel button, matching the styling of the Save Confirmation Modal.
+
+#### Layout
+
+- **Overlay**: Fixed position, black 80% opacity background
+- **Modal Container**:
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Width: 90%
+  - Text Align: center
+  - Animation: slideUp 0.3s ease
+
+#### Content
+
+- **Icon**: ⚠️ (48px, margin-bottom 16px)
+- **Title**: "Discard Changes?" - White (#FFFFFF), 24px, font-weight 600
+- **Message**: "Are you sure you want to cancel? Any unsaved changes will be lost." - Gray (#9CA3AF), 14px, line-height 1.6
+
+#### Buttons
+
+- **Container**: Flex column, gap 12px
+- **Discard Changes Button**:
+  - Background: Orange/Amber (#F59E0B)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 600
+  - Hover: Darker orange (#D97706)
+- **Keep Editing Button**:
+  - Background: Gray (#2A2A2E)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 24px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 500
+  - Hover: Lighter gray (#3A3A3E)
+
+#### Interaction
+
+- Click overlay to close modal (stay on page)
+- Click "Keep Editing" button to close modal (stay on page)
+- Click "Discard Changes" button to discard changes and go back

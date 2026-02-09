@@ -1,7 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
+import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDelete, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId } from '../stores/accountStore'
 import { userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
@@ -119,27 +119,37 @@ const handleGoogleCallback = async (
 
 // Check login status
 export const checkLoginStatus = async (): Promise<boolean> => {
-  if (isLoggedIn()) {
-    const storedUser = getStoredUser()
-    if (storedUser) {
-      accountStoreActions.initializeUserData(storedUser)
-      accountStoreActions.setLoading(false)
-      return true
-    }
+  // Only check login status if there's a token in localStorage
+  if (!isLoggedIn()) {
+    // No token - user is not logged in
+    // Don't show login modal automatically - let the UI handle it
+    accountStoreActions.setLoading(false)
+    return false
   }
 
+  // Token exists - try to get stored user first
+  const storedUser = getStoredUser()
+  if (storedUser) {
+    accountStoreActions.initializeUserData(storedUser)
+    accountStoreActions.setLoading(false)
+    return true
+  }
+
+  // Token exists but no stored user - try to fetch from server
   try {
-    const response = await apiGet<User>('user')
+    const response = await apiGetWithAuth<User>('user')
     if (response.success && response.data) {
       accountStoreActions.initializeUserData(response.data)
       accountStoreActions.setLoading(false)
       return true
     }
   } catch {
-    // User not logged in
+    // Failed to fetch user
   }
 
-  accountStoreActions.setShowLoginModal(true)
+  // Token exists but couldn't get user - clear auth data
+  // Don't show login modal automatically - let the UI handle it
+  clearAuthData()
   accountStoreActions.setLoading(false)
   return false
 }
@@ -713,6 +723,24 @@ export const shelveSeries = async (seriesId: string, skipConfirm: boolean = fals
   } catch (error) {
     console.error('Error shelving/unshelving series:', error)
     return { success: false, error: 'Failed to update series' }
+  }
+}
+
+// Delete series
+export const deleteSeries = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await apiDelete<{ success: boolean }>('series', { id: seriesId })
+
+    if (response.success) {
+      // Remove the series from the list
+      accountStoreActions.removeSeriesFromList(seriesId)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to delete series' }
+  } catch (error) {
+    console.error('Error deleting series:', error)
+    return { success: false, error: 'Failed to delete series' }
   }
 }
 

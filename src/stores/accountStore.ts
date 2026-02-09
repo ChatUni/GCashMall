@@ -239,6 +239,11 @@ export const accountStoreActions = {
         s._id === updatedSeries._id ? updatedSeries : s,
       ),
     })),
+  removeSeriesFromList: (seriesId: string) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      mySeries: prev.mySeries.filter((s) => s._id !== seriesId),
+    })),
   
   // Profile form
   setProfileForm: (profileForm: ProfileFormState) => 

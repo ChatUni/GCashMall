@@ -23,6 +23,7 @@ import {
   fetchMyPurchases,
   fetchMySeries,
   shelveSeries,
+  deleteSeries,
   setEditingSeries,
 } from '../../services/accountService'
 import { toastStoreActions, useToastStore } from '../../stores'
@@ -75,6 +76,11 @@ const PhoneAccount: React.FC = () => {
   }
 
   const onLogout = () => {
+    // Reset initialization flags before logout so next visit will re-initialize
+    accountInitialized = false
+    userDataFetched = false
+    myPurchasesFetched = false
+    mySeriesFetched = false
     handleLogout()
     navigate('/')
   }
@@ -139,15 +145,8 @@ const PhoneAccount: React.FC = () => {
     }
   }
 
-  if (state.loading) {
-    return (
-      <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview}>
-        <div className="phone-account-loading">Loading...</div>
-      </PhoneLayout>
-    )
-  }
-
-  // Show login modal when not logged in
+  // Show login prompt when not logged in
+  // Check this FIRST before loading check - if not logged in, show login prompt regardless of loading state
   if (!state.isLoggedIn) {
     return (
       <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview || 'Account'}>
@@ -165,6 +164,14 @@ const PhoneAccount: React.FC = () => {
         {state.showLoginModal && (
           <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
         )}
+      </PhoneLayout>
+    )
+  }
+
+  if (state.loading) {
+    return (
+      <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview}>
+        <div className="phone-account-loading">Loading...</div>
       </PhoneLayout>
     )
   }
@@ -1367,6 +1374,11 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
   const [showUnshelveModal, setShowUnshelveModal] = React.useState(false)
   const [pendingUnshelveSeriesId, setPendingUnshelveSeriesId] = React.useState<string | null>(null)
   const [pendingUnshelveSeries, setPendingUnshelveSeries] = React.useState<Series | null>(null)
+  
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
+  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
+  const [pendingDeleteSeries, setPendingDeleteSeries] = React.useState<Series | null>(null)
 
   const handleShelve = async (seriesId: string, isShelved: boolean, seriesItem: Series) => {
     if (isShelved) {
@@ -1417,6 +1429,33 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
     setShowUnshelveModal(false)
     setPendingUnshelveSeriesId(null)
     setPendingUnshelveSeries(null)
+  }
+
+  const handleDelete = (seriesItem: Series) => {
+    setPendingDeleteSeriesId(seriesItem._id)
+    setPendingDeleteSeries(seriesItem)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDeleteSeriesId) return
+    
+    const result = await deleteSeries(pendingDeleteSeriesId)
+    if (result.success) {
+      toastStoreActions.show('Series deleted successfully', 'success')
+    } else if (result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+    
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeries(null)
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeries(null)
   }
 
   const handleEdit = (seriesItem: Series) => {
@@ -1489,48 +1528,61 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
           {mySeries.addSeries || 'Add Series'}
         </button>
       </div>
-      <div className="phone-series-grid">
+      <div className="phone-series-list">
         {series.map((seriesItem) => (
           <div
             key={seriesItem._id}
-            className={`phone-series-card ${seriesItem.shelved ? 'shelved' : ''}`}
+            className={`phone-series-item ${seriesItem.shelved ? 'shelved' : ''}`}
+            onClick={() => onNavigate(`/player/${seriesItem._id}`)}
           >
-            <div
-              className="phone-series-cover"
-              onClick={() => onNavigate(`/player/${seriesItem._id}`)}
-            >
+            <div className="phone-series-item-cover">
               {seriesItem.cover ? (
                 <img src={seriesItem.cover} alt={seriesItem.name} />
               ) : (
-                <div className="phone-series-placeholder">🎬</div>
+                <div className="phone-series-item-placeholder">🎬</div>
               )}
               {seriesItem.shelved && (
-                <span className="phone-shelved-badge">{mySeries.shelved || 'Shelved'}</span>
+                <span className="phone-series-item-badge">{mySeries.shelved || 'Shelved'}</span>
               )}
-              <div className="phone-series-actions">
-                <button
-                  className="phone-action-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)
-                  }}
-                  title={seriesItem.shelved ? (mySeries.unshelve || 'Unshelve') : (mySeries.shelve || 'Shelve')}
-                >
-                  {seriesItem.shelved ? '📤' : '📥'}
-                </button>
-                <button
-                  className="phone-action-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleEdit(seriesItem)
-                  }}
-                  title={mySeries.edit || 'Edit'}
-                >
-                  ✏️
-                </button>
-              </div>
             </div>
-            <span className="phone-series-name">{seriesItem.name}</span>
+            <div className="phone-series-item-info">
+              <span className="phone-series-item-name">{seriesItem.name}</span>
+              <span className="phone-series-item-tags">
+                {seriesItem.tags?.slice(0, 2).join(' • ') || 'No tags'}
+              </span>
+            </div>
+            <div className="phone-series-item-actions">
+              <button
+                className="phone-series-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)
+                }}
+                title={seriesItem.shelved ? (mySeries.unshelve || 'Unshelve') : (mySeries.shelve || 'Shelve')}
+              >
+                {seriesItem.shelved ? '📤' : '📥'}
+              </button>
+              <button
+                className="phone-series-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleEdit(seriesItem)
+                }}
+                title={mySeries.edit || 'Edit'}
+              >
+                ✏️
+              </button>
+              <button
+                className="phone-series-action-btn phone-series-action-btn-delete"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDelete(seriesItem)
+                }}
+                title={mySeries.delete || 'Delete'}
+              >
+                🗑️
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -1572,6 +1624,28 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
                 {mySeries.unshelve || 'Unshelve'}
               </button>
               <button className="phone-modal-cancel" onClick={handleUnshelveCancel}>
+                {mySeries.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && pendingDeleteSeries && (
+        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+          <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="phone-modal-icon">🗑️</span>
+            <h3 className="phone-modal-title">{mySeries.deleteConfirmTitle || 'Confirm Delete'}</h3>
+            <div className="phone-modal-series">{pendingDeleteSeries.name || 'Untitled Series'}</div>
+            <p className="phone-modal-message">
+              {mySeries.deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}
+            </p>
+            <div className="phone-modal-buttons">
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+                {mySeries.delete || 'Delete'}
+              </button>
+              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
                 {mySeries.cancel || 'Cancel'}
               </button>
             </div>

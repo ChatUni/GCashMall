@@ -300,32 +300,77 @@ Each field includes:
 - Hover: Darker blue (#2563EB)
 - Active: Even darker blue (#1D4ED8)
 
-### Series Grid
-- 3-column grid layout
-- 12 pixel gap
+### Series List
+- Vertical flex layout (list mode, similar to Watch History)
+- 12 pixel gap between items
 
-### Series Card
-- Cover: 2:3 aspect ratio, 8 pixel border radius
-- Series name: 13 pixel font, white, 2 line clamp
+### Series Item
+- Horizontal flex layout
+- 12 pixel gap between elements
+- 12 pixel padding
+- Background: Dark (#1A1A1E)
+- Border radius: 8 pixel
+- Cursor: pointer
 - Shelved state: 70% opacity
+
+### Series Item Cover
+- Width: 60 pixel
+- Height: 80 pixel
+- Border radius: 6 pixel
+- Flex shrink: 0
+
+### Series Item Placeholder
+- Background: #242428
+- Centered film emoji (🎬)
+- Font size: 24 pixel
 
 ### Shelved Badge
 - Position: top-left of cover
 - Background: red with 90% opacity
-- Text: 10 pixel font, 600 weight, white
-- Padding: 3x6 pixels
+- Text: 8 pixel font, 600 weight, white
+- Padding: 2x4 pixels
+- Border radius: 3 pixel
+
+### Series Item Info
+- Flex: 1 (takes remaining space)
+- Vertical flex layout
+- 4 pixel gap
+
+### Series Item Name
+- Font size: 14 pixel
+- Font weight: 500
+- Color: White
+- 2 line clamp with ellipsis
+
+### Series Item Tags
+- Font size: 12 pixel
+- Color: Gray (#9CA3AF)
+- 1 line clamp with ellipsis
+- Shows first 2 tags separated by bullet
 
 ### Action Buttons
-- Position: top-right of cover
-- Always visible (no hover on mobile)
-- 28 pixel circular buttons
-- Dark background with 70% opacity
-- Transition: background-color 0.2s, transform 0.2s
-- Active state: blue background (rgba(59, 130, 246, 0.9)), scale 1.1
+- Horizontal flex layout on right side
+- 8 pixel gap between buttons
+- Flex shrink: 0
+- 36x36 pixel circular buttons (perfect circle)
+  - Width: 36 pixel
+  - Height: 36 pixel
+  - Min-width: 36 pixel
+  - Min-height: 36 pixel
+  - Aspect ratio: 1:1
+  - Border radius: 50%
+  - Padding: 0
+  - Flex shrink: 0
+- Default Background: Blue with 20% opacity (rgba(59, 130, 246, 0.2))
+- Delete Button Background: Red with 20% opacity (rgba(239, 68, 68, 0.2))
+- Font size: 16 pixel
+- Hover: 40% opacity (blue for default, red for delete)
+- Active: Scale 0.95
 - Icons:
   - Shelve: 📥 (when series is not shelved)
   - Unshelve: 📤 (when series is shelved)
   - Edit: ✏️
+  - Delete: 🗑️
 
 ### Empty State
 - Film icon (🎬)
@@ -337,8 +382,8 @@ Each field includes:
 - Shown when editingSeriesId is set
 - Header with title: "Add Series" (add mode) or "Edit Series" (edit mode)
 - Title: 20 pixel font, 600 weight, white
-- Uses SeriesEditContent component
-- Cancel: returns to series list
+- Uses SeriesEditContent component (which includes its own Cancel Confirmation Modal)
+- Cancel: SeriesEditContent shows its own confirmation modal with warning icon (⚠️)
 - Save Complete: returns to series list and refreshes
 
 ### Shelve/Unshelve Confirmation Modal
@@ -352,13 +397,44 @@ Each field includes:
   - Confirm: blue background (#3B82F6), white text
   - Cancel: gray background (#2a2a2e), white text
 
+### Delete Confirmation Modal
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 48 pixel emoji (🗑️)
+- Title: 20 pixel font, 600 weight, white ("Confirm Delete")
+- Series name box: dark background (#242428), 8 pixel border radius
+- Message: 14 pixel font, gray, 1.5 line height (warning about permanent deletion)
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm: red background (#ef4444), white text
+    - Hover: darker red (#dc2626)
+    - Active: even darker red (#b91c1c)
+  - Cancel: gray background (#2a2a2e), white text
+
+### Cancel Edit Confirmation Modal
+- Shown when clicking Cancel in Add Series or Edit Series view
+- Handled by SeriesEditContent component (shared with desktop)
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 48 pixel emoji (⚠️)
+- Title: 20 pixel font, 600 weight, white ("Discard Changes?")
+- Message: 14 pixel font, gray, 1.5 line height ("Are you sure you want to cancel? Any unsaved changes will be lost.")
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm ("Discard Changes"): orange/amber background (#f59e0b), white text
+    - Hover: darker orange (#d97706)
+  - Cancel ("Keep Editing"): gray background (#2a2a2e), white text
+
 ### Interactions
 - On load: fetch my series list via API
 - On card click: navigate to player page for that series
 - On Shelve button click: show Shelve Confirmation Modal
 - On Unshelve button click: show Unshelve Confirmation Modal
 - On Edit button click: show series edit view in edit mode
+- On Delete button click: show Delete Confirmation Modal
+- On Delete confirm: call delete API, remove series from list, show success toast
 - On Add Series button click: show series edit view in add mode
+- On Cancel button click (in edit view): SeriesEditContent shows its own confirmation modal
+- On Cancel confirm: return to series list
+- On Cancel cancel: stay in edit view
 
 ## Settings Section (Logged In)
 
@@ -564,7 +640,30 @@ When the user is not logged in, the account page shows a login prompt instead of
 ### Interaction
 - On Login Button click: Show LoginModal
 - On LoginModal close (without login): Navigate to home page
-- On LoginModal success: Initialize user data and show account content
+- On LoginModal success: Initialize user data, fetch account data, and show account content
+
+### State Management
+- Login prompt is shown when `isLoggedIn` is `false` (checked before loading state)
+- No automatic login modal popup - user must click the Login button
+- After successful login, data fetch flags are reset and account data is re-fetched
+
+## Logout Flow
+
+### Trigger
+- User clicks "Sign Out" button in Settings tab
+
+### Process
+1. Reset all initialization flags (accountInitialized, userDataFetched, etc.)
+2. Clear authentication data from localStorage (token and user)
+3. Reset account store to initial state
+4. Navigate to home page
+
+### Post-Logout Behavior
+- When user navigates back to Account page:
+  - `checkLoginStatus` is called
+  - No token found → `isLoggedIn` set to `false`, `loading` set to `false`
+  - Login prompt is displayed
+  - User can click Login button to show LoginModal
 
 ## Interactions
 
