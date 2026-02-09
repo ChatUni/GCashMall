@@ -110,6 +110,7 @@ export const zh = {
       confirm: '确认',
       cancel: '取消',
       topUpSuccess: '充值成功',
+      topUpFailed: '充值失败',
       withdraw: '提现',
       withdrawDescription: '选择要从钱包提取的金额',
       selectWithdrawAmount: '选择提现金额',
@@ -129,6 +130,16 @@ export const zh = {
       statusSuccess: '成功',
       statusFailed: '失败',
       statusProcessing: '处理中',
+      // Transaction filter
+      filterAll: '全部',
+      purchase: '购买',
+      // Custom amount
+      custom: '自定义',
+      customTopUp: '自定义充值',
+      customWithdraw: '自定义提现',
+      enterTopUpAmount: '输入要添加的金额',
+      enterWithdrawAmount: '输入要提取的金额',
+      invalidAmount: '请输入有效金额',
     },
     myPurchases: {
       title: '我的购买',

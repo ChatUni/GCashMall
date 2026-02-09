@@ -16,6 +16,7 @@ const PhoneGenre: React.FC = () => {
   const [series, setSeries] = useState<Series[]>([])
   const [loading, setLoading] = useState(true)
   const [activeGenre, setActiveGenre] = useState<string>('all')
+  const [showFilterModal, setShowFilterModal] = useState(false)
 
   // Get category from URL query params
   useEffect(() => {
@@ -58,7 +59,8 @@ const PhoneGenre: React.FC = () => {
     fetchSeries()
   }, [activeGenre, genres])
 
-  const handleGenreClick = (genreName: string) => {
+  const handleGenreSelect = (genreName: string) => {
+    setShowFilterModal(false)
     if (genreName === 'all') {
       navigate('/genre')
     } else {
@@ -76,32 +78,71 @@ const PhoneGenre: React.FC = () => {
   return (
     <PhoneLayout showHeader={true} title={t.topBar.genre}>
       <div className="phone-genre">
-        {/* Genre Pills */}
-        <div className="phone-genre-pills">
-          <button
-            className={`phone-genre-pill ${activeGenre === 'all' ? 'active' : ''}`}
-            onClick={() => handleGenreClick('all')}
+        {/* Filter Button */}
+        <div className="phone-genre-filter-bar">
+          <button 
+            className="phone-genre-filter-button"
+            onClick={() => setShowFilterModal(true)}
           >
-            {t.series.allGenres}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <span>{getActiveGenreName()}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
-          {genres.map((genre) => (
-            <button
-              key={genre._id}
-              className={`phone-genre-pill ${activeGenre === genre.name ? 'active' : ''}`}
-              onClick={() => handleGenreClick(genre.name)}
-            >
-              {genre.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Results Header */}
-        <div className="phone-genre-header">
-          <h2 className="phone-genre-title">{getActiveGenreName()}</h2>
           <span className="phone-genre-count">
             {t.series.resultsCount.replace('{count}', String(series.length))}
           </span>
         </div>
+
+        {/* Filter Modal */}
+        {showFilterModal && (
+          <div className="phone-genre-modal-overlay" onClick={() => setShowFilterModal(false)}>
+            <div className="phone-genre-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="phone-genre-modal-header">
+                <h3>Select Category</h3>
+                <button 
+                  className="phone-genre-modal-close"
+                  onClick={() => setShowFilterModal(false)}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <div className="phone-genre-modal-list">
+                <button
+                  className={`phone-genre-modal-item ${activeGenre === 'all' ? 'active' : ''}`}
+                  onClick={() => handleGenreSelect('all')}
+                >
+                  <span>{t.series.allGenres}</span>
+                  {activeGenre === 'all' && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+                {genres.map((genre) => (
+                  <button
+                    key={genre._id}
+                    className={`phone-genre-modal-item ${activeGenre === genre.name ? 'active' : ''}`}
+                    onClick={() => handleGenreSelect(genre.name)}
+                  >
+                    <span>{genre.name}</span>
+                    {activeGenre === genre.name && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Series Grid */}
         {loading ? (

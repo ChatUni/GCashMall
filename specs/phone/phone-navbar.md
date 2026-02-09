@@ -30,7 +30,7 @@ The bar contains three equally-spaced navigation items:
 
 **Account**
 - Person icon
-- Label: "Overview" (English) / "我的" (Chinese)
+- Label: "Account" (English) / "我的" (Chinese)
 - Navigates to the account page
 
 ### Item Layout
@@ -68,5 +68,5 @@ On devices with home indicators (like iPhone), the bar extends into the safe are
 ## Internationalization
 
 Labels change based on the selected language:
-- English: Home, Genre, Overview
+- English: Home, Genre, Account
 - Chinese: 首页, 分类, 我的

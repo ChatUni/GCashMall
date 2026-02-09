@@ -3,63 +3,155 @@
   padding: 16px;
 }
 
-/* Genre Pills */
-.phone-genre-pills {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.phone-genre-pills::-webkit-scrollbar {
-  display: none;
-}
-
-.phone-genre-pill {
-  flex-shrink: 0;
-  background: #1a1a1e;
-  color: #9CA3AF;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.phone-genre-pill:active {
-  opacity: 0.8;
-}
-
-.phone-genre-pill.active {
-  background: #3B82F6;
-  color: #ffffff;
-}
-
-/* Genre Header */
-.phone-genre-header {
+/* Filter Bar */
+.phone-genre-filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
 
-.phone-genre-title {
+.phone-genre-filter-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a1e;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-genre-filter-button:active {
+  background: #242428;
+}
+
+.phone-genre-filter-button svg:first-child {
+  color: #3B82F6;
+}
+
+.phone-genre-filter-button svg:last-child {
+  color: #9CA3AF;
+}
+
+.phone-genre-count {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+/* Filter Modal Overlay */
+.phone-genre-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Filter Modal */
+.phone-genre-modal {
+  width: 100%;
+  max-height: 70vh;
+  background: #121214;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.phone-genre-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.phone-genre-modal-header h3 {
   font-size: 18px;
   font-weight: 600;
   color: #ffffff;
   margin: 0;
 }
 
-.phone-genre-count {
-  font-size: 13px;
+.phone-genre-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
   color: #9CA3AF;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.phone-genre-modal-close:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.phone-genre-modal-list {
+  max-height: calc(70vh - 70px);
+  overflow-y: auto;
+  padding: 8px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.phone-genre-modal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-genre-modal-item:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.phone-genre-modal-item.active {
+  color: #3B82F6;
+}
+
+.phone-genre-modal-item.active svg {
+  color: #3B82F6;
 }
 
 /* Series Grid */
@@ -138,5 +230,12 @@
 @media (max-width: 360px) {
   .phone-genre-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Safe area for modal */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .phone-genre-modal {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

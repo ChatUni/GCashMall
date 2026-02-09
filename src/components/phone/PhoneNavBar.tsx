@@ -84,7 +84,7 @@ const PhoneNavBar: React.FC = () => {
     const labels: Record<string, string> = {
       home: t.topBar?.home || 'Home',
       genre: t.topBar?.genre || 'Genre',
-      account: (t.account?.nav as Record<string, string>)?.overview || 'Account',
+      account: 'Account',
     }
     return labels[key] || key
   }

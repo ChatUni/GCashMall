@@ -2,118 +2,189 @@
 
 ## Overview
 
-The Phone Genre page displays series organized by categories in a grid layout with horizontal category filtering tabs.
+The Phone Genre page displays series organized by categories in a grid layout with a filter button that opens a bottom sheet modal for category selection.
 
 ## Page Structure
 
 ### Layout
-- Uses the standard phone layout
-- Logo and search icon in header
-- Bottom navigation visible
-- Vertically scrolling content
+- **Wrapper**: PhoneLayout component
+- **Header**: Logo on left, search icon on right
+- **Navigation**: Bottom navigation visible
+- **Scroll**: Vertical scrolling content
 
 ### Content Sections
-1. Category Filter Tabs (sticky)
+1. Filter Bar (with filter button)
 2. Series Grid
 
-## Category Filter
+## Filter Bar
 
 ### Container
-- Sticky position below header
-- Dark background matching app theme
-- Subtle bottom border
-- Horizontal scrolling for many categories
+- **Display**: Flex, space-between, center aligned
+- **Margin Bottom**: 16px
 
-### Scroll Area
-- Horizontal scrolling tab row
-- Tabs arranged left to right
-- Padding at start and end
-- Scrollbar hidden
+### Filter Button
+- **Display**: Flex, center aligned
+- **Gap**: 8px
+- **Background**: #1A1A1A
+- **Color**: #FFFFFF
+- **Font Size**: 14px
+- **Font Weight**: 500
+- **Padding**: 10px 16px
+- **Border Radius**: 8px
+- **Border**: 1px solid rgba(255, 255, 255, 0.1)
 
-### Category Tab
-- Pill-shaped buttons
-- Dark gray background (default)
-- Blue background (active/selected)
-- Gray text (default)
-- White text (active)
-- 13 pixel font, medium weight
-- Horizontal padding for comfortable tapping
-- No line breaks (single line)
+### Filter Button Icons
+- **Filter Icon**: 18px, color #3B82F6
+- **Chevron Icon**: 16px, color #9CA3AF
 
-### Available Categories
-- All (shows everything)
-- Romance
-- Action
-- Comedy
-- Drama
-- Thriller
-- Fantasy
-- And other genre tags from the database
+### Results Count
+- **Font Size**: 13px
+- **Color**: #9CA3AF
+
+## Filter Modal (Bottom Sheet)
+
+### Overlay
+- **Position**: Fixed, full screen
+- **Background**: rgba(0, 0, 0, 0.6)
+- **Z-Index**: 200
+- **Display**: Flex, align-items: flex-end
+- **Animation**: fadeIn 0.2s ease
+
+### Modal Container
+- **Width**: 100%
+- **Max Height**: 70vh
+- **Background**: #121214
+- **Border Radius**: 16px 16px 0 0
+- **Animation**: slideUp 0.3s ease
+
+### Modal Header
+- **Display**: Flex, space-between, center aligned
+- **Padding**: 16px 20px
+- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.1)
+
+### Modal Title
+- **Font Size**: 18px
+- **Font Weight**: 600
+- **Color**: #FFFFFF
+
+### Close Button
+- **Size**: 36px × 36px
+- **Background**: Transparent
+- **Border Radius**: 50%
+- **Icon Size**: 24px
+- **Color**: #9CA3AF
+
+### Modal List
+- **Max Height**: calc(70vh - 70px)
+- **Overflow-Y**: Auto
+- **Padding**: 8px 0
+
+### Modal Item
+- **Display**: Flex, space-between, center aligned
+- **Width**: 100%
+- **Padding**: 14px 20px
+- **Background**: Transparent
+- **Color**: #FFFFFF
+- **Font Size**: 15px
+
+### Modal Item (Active)
+- **Color**: #3B82F6
+- **Checkmark Icon**: 20px, color #3B82F6
 
 ## Series Grid
 
 ### Container
-- Fills remaining space below filter
-- Horizontal padding matching app style
-- Vertical padding for spacing
+- **Display**: Grid
+- **Gap**: 12px
+- **Padding**: 0 (already in page padding)
 
-### Grid Layout
-- 2 columns on smaller phones (375 pixels or less)
-- 3 columns on larger phones
-- 12 pixel gap between cards
-- Cards fill available width in their column
+### Grid Template (≤360px)
+- **Columns**: 2
+- **Template**: repeat(2, 1fr)
 
-### Grid Items
-- Uses Phone Series Card component
-- Responsive width based on column count
-- Maintains 2:3 aspect ratio for posters
+### Grid Template (>360px)
+- **Columns**: 3
+- **Template**: repeat(3, 1fr)
+
+## Categories
+
+| Key | English | Chinese |
+|-----|---------|---------|
+| all | All | 全部 |
+| romance | Romance | 爱情 |
+| action | Action | 动作 |
+| comedy | Comedy | 喜剧 |
+| drama | Drama | 剧情 |
+| thriller | Thriller | 惊悚 |
+| fantasy | Fantasy | 奇幻 |
 
 ## URL Parameters
 
-### Category Parameter
-- URL can include category filter
-- Example: Navigating from a tag sets the category
-- Default shows "All" if no parameter
+### Query: category
+- **Example**: `/genre?category=romance`
+- **Default**: "all"
 
 ## Data Loading
 
-### Initial Load
-- Fetches all available categories
-- Fetches series for selected category
-
-### Category Change
-- Updates URL parameter
-- Fetches series for new category
-- Scrolls content to top
-
 ### Loading State
-- Shows skeleton grid while loading
-- Category tabs remain visible and interactive
+- **Display**: Skeleton grid (6 items)
+- **Filter Bar**: Visible and interactive
 
 ### Empty State
-- Shows "No series found" message
-- Suggests trying a different category
+- **Display**: Centered message with icon
+- **Icon**: 🎬 (48px, 50% opacity)
+- **Text**: "No series found"
+- **Color**: #9CA3AF
 
-## Infinite Scroll (Optional)
+## Skeleton Loading
 
-- Loads more series as user scrolls down
-- Shows loading indicator at bottom
-- Stops when all series are loaded
+### Skeleton Image
+- **Aspect Ratio**: 2:3
+- **Background**: Shimmer animation
+- **Border Radius**: 8px
+
+### Skeleton Title
+- **Width**: 80%
+- **Height**: 14px
+- **Border Radius**: 4px
+
+### Skeleton Tag
+- **Width**: 50%
+- **Height**: 12px
+- **Border Radius**: 4px
+
+## Animations
+
+### Shimmer
+- **Duration**: 1.5s infinite
+- **Background**: linear-gradient sweep
+
+### Modal Fade In
+- **Duration**: 0.2s ease
+- **From**: opacity 0
+- **To**: opacity 1
+
+### Modal Slide Up
+- **Duration**: 0.3s ease
+- **From**: translateY(100%)
+- **To**: translateY(0)
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
-| Category Tab | Tap | Filter series by that category |
-| Series Card | Tap | Navigate to series player |
-| Scroll | Swipe up/down | Browse through series |
-| Search Icon | Tap | Navigate to search page |
+| Filter Button | Tap | Open filter modal |
+| Modal Overlay | Tap | Close modal |
+| Close Button | Tap | Close modal |
+| Category Item | Tap | Select category, close modal, update URL |
+| Series Card | Tap | Navigate to `/player/{seriesId}` |
+| Search Icon | Tap | Navigate to `/search` |
 
 ## Internationalization
 
-### Labels
-- English: "Genre", "All", "No series found"
-- Chinese: "分类", "全部", "暂无内容"
-
-### Category Names
-Categories are translated based on the selected language.
+| Key | English | Chinese |
+|-----|---------|---------|
+| genre | Genre | 分类 |
+| allGenres | All | 全部 |
+| noSeries | No series found | 暂无内容 |
+| resultsCount | {count} results | {count} 个结果 |
