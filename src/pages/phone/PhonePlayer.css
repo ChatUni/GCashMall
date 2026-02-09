@@ -109,6 +109,11 @@
   transition: background-color 0.2s ease;
 }
 
+.phone-action-btn.phone-action-btn-large {
+  width: 48px;
+  height: 48px;
+}
+
 .phone-action-btn:active {
   background: rgba(255, 255, 255, 0.1);
 }
@@ -117,8 +122,12 @@
   color: #ef4444;
 }
 
-.phone-action-btn.unlock {
-  color: #3B82F6;
+.phone-action-btn.locked {
+  color: #9CA3AF;
+}
+
+.phone-action-btn.unlocked {
+  color: #F97316;
 }
 
 /* Tags */
@@ -275,6 +284,10 @@
   margin-bottom: 12px;
 }
 
+.phone-popup-icon.phone-favorite-icon {
+  font-size: 48px;
+}
+
 .phone-popup-title {
   font-size: 18px;
   font-weight: 600;
@@ -370,6 +383,29 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
+}
+
+/* Favorite Modal Checkbox */
+.phone-favorite-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.phone-favorite-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3B82F6;
+  cursor: pointer;
+}
+
+.phone-favorite-checkbox span {
+  font-size: 14px;
+  color: #9CA3AF;
 }
 
 /* Result Modal */

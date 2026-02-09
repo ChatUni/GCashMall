@@ -11,20 +11,38 @@ The Phone Series Carousel is a horizontal scrolling component for displaying ser
 - Bottom margin for spacing between sections
 
 ### Section Header
-- Horizontal layout with title on left
-- Optional "See All" link on right
-- Horizontal padding matching content
-- Small bottom margin before cards
+- Horizontal layout with title on left, "More" button on right
+- Horizontal padding: 22px left, 16px right
+- 16px bottom margin before cards
+- Flexbox with space-between alignment
 
 ### Section Title
-- 18 pixel font, bold weight
-- White text color
+- 18 pixel font, bold weight (600)
+- White text color (#ffffff)
+- No margin
 - Describes the content category
 
-### See All Link (Optional)
-- Blue text color
-- 14 pixel font
-- Tapping shows full list of series
+### More Button
+- 32x32 pixel circular button
+- Chevron right icon (20x20 pixels)
+- Gray icon color (#9CA3AF) in default state
+- Transparent background in default state
+- 50% border-radius for perfect circle
+- Flexbox centered content
+
+#### More Button Hover State
+- White icon color (#ffffff)
+- Subtle background: rgba(255, 255, 255, 0.08)
+- Circular frame: inset box-shadow 1px rgba(255, 255, 255, 0.3)
+
+#### More Button Active/Click State
+- White icon color (#ffffff)
+- Visible background: rgba(255, 255, 255, 0.15)
+- Circular frame: inset box-shadow 1px rgba(255, 255, 255, 0.4)
+
+#### More Button Interaction
+- Tapping navigates to full series list for that category
+- Uses `onMoreClick` callback prop if provided
 
 ### Scroll Container
 - Horizontal scrolling area

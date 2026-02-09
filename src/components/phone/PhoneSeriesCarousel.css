@@ -3,22 +3,64 @@
   padding: 20px 0;
 }
 
+.phone-carousel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 22px;
+  margin-bottom: 16px;
+}
+
 .phone-carousel-title {
   font-size: 18px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 16px 16px;
+  margin: 0;
+}
+
+.phone-carousel-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  aspect-ratio: 1;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.phone-carousel-more:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.phone-carousel-more:active {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  color: #ffffff;
 }
 
 .phone-carousel-scroll {
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  padding: 0 16px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Use padding-inline for horizontal scroll padding */
+  padding-inline-start: 22px;
+  padding-inline-end: 16px;
 }
 
 .phone-carousel-scroll::-webkit-scrollbar {

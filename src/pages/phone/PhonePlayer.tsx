@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
@@ -11,6 +11,8 @@ import { isLoggedIn } from '../../utils/api'
 import { getIframeUrl, findEpisodeByNumber, getEpisodeRanges, filterEpisodesByRange } from '../../utils/playerHelpers'
 import type { Episode, WatchListItem } from '../../types'
 import './PhonePlayer.css'
+
+const HIDE_FAVORITE_MODAL_KEY = 'hideFavoriteModal'
 
 // Track the currently loaded series ID
 let currentLoadedSeriesId: string | null = null
@@ -69,12 +71,15 @@ const PhonePlayer: React.FC = () => {
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  const [showPurchasePopup, setShowPurchasePopup] = React.useState(false)
-  const [isPurchasing, setIsPurchasing] = React.useState(false)
-  const [showResultModal, setShowResultModal] = React.useState(false)
-  const [resultModalType, setResultModalType] = React.useState<'success' | 'error'>('success')
-  const [resultModalMessage, setResultModalMessage] = React.useState('')
-  const [showEpisodeList, setShowEpisodeList] = React.useState(false)
+  const [showPurchasePopup, setShowPurchasePopup] = useState(false)
+  const [isPurchasing, setIsPurchasing] = useState(false)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
+  const [resultModalMessage, setResultModalMessage] = useState('')
+  const [showEpisodeList, setShowEpisodeList] = useState(false)
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false)
+  const [favoriteModalAction, setFavoriteModalAction] = useState<'add' | 'remove'>('add')
+  const [dontShowFavoriteAgain, setDontShowFavoriteAgain] = useState(false)
 
   // Initialize data
   if (id) {
@@ -138,15 +143,31 @@ const PhonePlayer: React.FC = () => {
     )
   }
 
-  const handleFavoriteToggle = async () => {
+  const handleFavoriteClick = () => {
     if (!isLoggedIn()) {
       loginModalStoreActions.open()
       return
     }
     if (!id) return
 
+    const isFavorited = isSeriesFavorited(id)
+    const hideFavoriteModal = localStorage.getItem(HIDE_FAVORITE_MODAL_KEY) === 'true'
+
+    if (hideFavoriteModal) {
+      // Directly perform action without showing modal
+      performFavoriteAction(isFavorited)
+    } else {
+      // Show confirmation modal
+      setFavoriteModalAction(isFavorited ? 'remove' : 'add')
+      setShowFavoriteModal(true)
+    }
+  }
+
+  const performFavoriteAction = async (isFavorited: boolean) => {
+    if (!id) return
+
     try {
-      if (isSeriesFavorited(id)) {
+      if (isFavorited) {
         await removeFromFavorites(id)
       } else {
         await addToFavorites(id)
@@ -154,6 +175,25 @@ const PhonePlayer: React.FC = () => {
     } catch (error) {
       console.error('Failed to toggle favorite:', error)
     }
+  }
+
+  const handleFavoriteConfirm = async () => {
+    if (!id) return
+
+    // Save preference if checkbox is checked
+    if (dontShowFavoriteAgain) {
+      localStorage.setItem(HIDE_FAVORITE_MODAL_KEY, 'true')
+    }
+
+    const isFavorited = isSeriesFavorited(id)
+    await performFavoriteAction(isFavorited)
+    setShowFavoriteModal(false)
+    setDontShowFavoriteAgain(false)
+  }
+
+  const handleFavoriteCancel = () => {
+    setShowFavoriteModal(false)
+    setDontShowFavoriteAgain(false)
   }
 
   const handleUnlockClick = () => {
@@ -261,10 +301,10 @@ const PhonePlayer: React.FC = () => {
             </div>
             <div className="phone-player-actions">
               <button
-                className={`phone-action-btn ${id && isSeriesFavorited(id) ? 'active' : ''}`}
-                onClick={handleFavoriteToggle}
+                className={`phone-action-btn phone-action-btn-large ${id && isSeriesFavorited(id) ? 'active' : ''}`}
+                onClick={handleFavoriteClick}
               >
-                <svg viewBox="0 0 24 24" width="24" height="24">
+                <svg viewBox="0 0 24 24" width="32" height="32">
                   <path
                     fill={id && isSeriesFavorited(id) ? '#ef4444' : 'none'}
                     stroke={id && isSeriesFavorited(id) ? '#ef4444' : 'currentColor'}
@@ -273,18 +313,19 @@ const PhonePlayer: React.FC = () => {
                   />
                 </svg>
               </button>
-              {!isCurrentEpisodePurchased() && (
-                <button className="phone-action-btn unlock" onClick={handleUnlockClick}>
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
-                    />
-                  </svg>
-                </button>
-              )}
+              <button
+                className={`phone-action-btn phone-action-btn-large ${isCurrentEpisodePurchased() ? 'unlocked' : 'locked'}`}
+                onClick={!isCurrentEpisodePurchased() ? handleUnlockClick : undefined}
+              >
+                <svg viewBox="0 0 24 24" width="32" height="32">
+                  <path
+                    fill={isCurrentEpisodePurchased() ? '#F97316' : 'none'}
+                    stroke={isCurrentEpisodePurchased() ? '#F97316' : 'currentColor'}
+                    strokeWidth="2"
+                    d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -418,6 +459,48 @@ const PhonePlayer: React.FC = () => {
               </button>
               <button className="phone-btn-cancel" onClick={() => setShowPurchasePopup(false)} disabled={isPurchasing}>
                 {t.player.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Confirmation Modal */}
+      {showFavoriteModal && (
+        <div className="phone-popup-overlay" onClick={handleFavoriteCancel}>
+          <div className="phone-popup-modal phone-favorite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="phone-popup-icon phone-favorite-icon">
+              {favoriteModalAction === 'add' ? '❤️' : '💔'}
+            </div>
+            <h2 className="phone-popup-title">
+              {favoriteModalAction === 'add' ? 'Add to Favorites' : 'Remove from Favorites'}
+            </h2>
+            <div className="phone-popup-episode-info">
+              <span className="phone-popup-series">{playerState.series?.name}</span>
+              <span className="phone-popup-ep">
+                EP {playerState.currentEpisode?.episodeNumber.toString().padStart(2, '0')}
+                {playerState.currentEpisode?.title ? ` - ${playerState.currentEpisode.title}` : ''}
+              </span>
+            </div>
+            <p className="phone-popup-message">
+              {favoriteModalAction === 'add'
+                ? 'Add this series to your favorites?'
+                : 'Remove this series from your favorites?'}
+            </p>
+            <label className="phone-favorite-checkbox">
+              <input
+                type="checkbox"
+                checked={dontShowFavoriteAgain}
+                onChange={(e) => setDontShowFavoriteAgain(e.target.checked)}
+              />
+              <span>Don't show again</span>
+            </label>
+            <div className="phone-popup-buttons">
+              <button className="phone-btn-confirm" onClick={handleFavoriteConfirm}>
+                {favoriteModalAction === 'add' ? 'Add to Favorites' : 'Remove'}
+              </button>
+              <button className="phone-btn-cancel" onClick={handleFavoriteCancel}>
+                Cancel
               </button>
             </div>
           </div>
