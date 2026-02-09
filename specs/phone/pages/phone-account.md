@@ -2,220 +2,142 @@
 
 ## Overview
 
-The Phone Account page provides user profile management, watch history, and settings for the mobile UI.
+The Phone Account page provides user profile management, watch history, and settings for the mobile UI. Shows different content based on login status.
 
 ## Page Structure
 
 ### Layout
-- PhoneLayout wrapper
-- No back button
-- Title: "Overview" / "我的"
-- Search icon visible
+- Uses the standard phone layout
+- Logo and search icon in header (or "Overview" title)
 - Bottom navigation visible
 
-### Content (Logged In)
+### Content When Logged In
 1. User Profile Header
 2. Quick Actions
 3. Continue Watching
 4. Settings Menu
 
-### Content (Logged Out)
+### Content When Logged Out
 1. Login Prompt
-2. App Info Links
+2. App Information Links
 
-## User Profile Header
+## User Profile Header (Logged In)
 
 ### Container
-- **Padding**: 24px 16px
-- **Display**: Flex, center aligned
-- **Gap**: 16px
+- Horizontal layout
+- Subtle background gradient
+- Generous padding
 
 ### Avatar
-- **Size**: 64px × 64px
-- **Border Radius**: 50%
-- **Border**: 2px solid #3B82F6
-- **Object Fit**: Cover
+- 64 pixel circular image
+- Blue border
+- User's profile picture or default icon
 
-### User Info
-- **Flex**: 1
-
-### Nickname
-- **Font Size**: 18px
-- **Font Weight**: 600
-- **Color**: #FFFFFF
-- **Margin Bottom**: 4px
-
-### Email
-- **Font Size**: 13px
-- **Color**: #9CA3AF
+### User Information
+- Nickname in bold, white, 18 pixel font
+- Email or ID in gray, smaller font
 
 ### Edit Button
-- **Size**: 40px × 40px
-- **Background**: rgba(255, 255, 255, 0.1)
-- **Border Radius**: 50%
-- **Icon Size**: 20px
+- Circular button on right
+- Pencil icon
+- Tapping opens profile editor
 
-## Quick Actions
+## Quick Actions (Logged In)
 
 ### Container
-- **Display**: Grid
-- **Grid Template**: repeat(4, 1fr)
-- **Gap**: 16px
-- **Padding**: 16px
-- **Background**: #121214
-- **Margin**: 0 16px
-- **Border Radius**: 12px
+- 4-column grid
+- Rounded card background
+- Horizontal margin
 
-### Action Item
-- **Display**: Flex column, centered
-- **Gap**: 8px
+### Action Items
+Each action shows:
+- Icon above (32 pixels, blue)
+- Label below (12 pixels, gray)
 
-### Action Icon
-- **Size**: 32px × 32px
-- **Color**: #3B82F6
+### Available Actions
+- History: View watch history
+- Favorites: View saved series
+- Downloads: View offline content
+- Settings: Open settings
 
-### Action Label
-- **Font Size**: 12px
-- **Color**: #9CA3AF
-
-### Actions
-| Icon | Label (EN) | Label (ZH) |
-|------|------------|------------|
-| Clock | History | 观看历史 |
-| Heart | Favorites | 我的收藏 |
-| Download | Downloads | 我的下载 |
-| Gear | Settings | 设置 |
-
-## Continue Watching
+## Continue Watching Section (Logged In)
 
 ### Section Header
-- **Display**: Flex, space-between
-- **Padding**: 16px
+- "Continue Watching" title
+- "See All" link on right
 
-### Title
-- **Font Size**: 16px
-- **Font Weight**: 600
-- **Color**: #FFFFFF
-
-### See All
-- **Font Size**: 14px
-- **Color**: #3B82F6
-
-### History Item
-- **Display**: Flex
-- **Gap**: 12px
-- **Padding**: 12px 16px
-- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
-
-### Thumbnail
-- **Size**: 100px × 60px
-- **Border Radius**: 6px
-- **Position**: Relative
+### History Items
+- Vertical list of recent watches
+- Each item shows:
+  - Thumbnail with progress bar
+  - Series title
+  - Episode information
+  - Time since watched
 
 ### Progress Bar
-- **Position**: Absolute, bottom: 0
-- **Height**: 3px
-- **Background**: #3B82F6
+- Blue bar on thumbnail
+- Width indicates watch progress percentage
 
-### Item Title
-- **Font Size**: 14px
-- **Font Weight**: 500
-- **Color**: #FFFFFF
+## Settings Menu (Logged In)
 
-### Item Episode
-- **Font Size**: 12px
-- **Color**: #9CA3AF
-
-## Settings Menu
-
-### Section Container
-- **Background**: #121214
-- **Margin**: 16px
-- **Border Radius**: 12px
-
-### Menu Item
-- **Display**: Flex, space-between, center aligned
-- **Padding**: 16px
-- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
-
-### Item Icon
-- **Size**: 20px
-- **Color**: #9CA3AF
-
-### Item Label
-- **Font Size**: 15px
-- **Color**: #FFFFFF
-
-### Item Value
-- **Font Size**: 14px
-- **Color**: #9CA3AF
-
-### Item Arrow
-- **Size**: 16px
-- **Color**: #6B7280
+### Container
+- Rounded card sections
+- Horizontal margin
 
 ### Menu Items
-| Icon | Label (EN) | Label (ZH) | Type |
-|------|------------|------------|------|
-| Globe | Language | 语言 | Selector |
-| Bell | Notifications | 通知 | Toggle |
-| Shield | Privacy | 隐私 | Link |
-| Info | About | 关于 | Link |
-| Mail | Contact | 联系我们 | Link |
-| Logout | Sign Out | 退出登录 | Action |
+Each item shows:
+- Icon on left (gray)
+- Label text (white)
+- Current value or arrow on right (gray)
+
+### Available Settings
+- Language: Shows current language, opens selector
+- Notifications: Toggle switch
+- Privacy: Opens privacy settings
+- About: Opens about page
+- Contact: Opens contact page
+- Sign Out: Logs out user (with confirmation)
 
 ## Login Prompt (Logged Out)
 
 ### Container
-- **Display**: Flex column, centered
-- **Padding**: 48px 16px
-- **Text Align**: Center
+- Centered content
+- Generous vertical padding
 
 ### Icon
-- **Size**: 64px
-- **Color**: #3B82F6
+- Large user icon (64 pixels)
+- Blue color
 
 ### Title
-- **Font Size**: 20px
-- **Font Weight**: 600
-- **Color**: #FFFFFF
-- **Margin Bottom**: 8px
+- "Sign In" heading
+- Bold, white, 20 pixel font
 
 ### Description
-- **Font Size**: 14px
-- **Color**: #9CA3AF
-- **Margin Bottom**: 24px
+- Explains benefits of signing in
+- Gray text
 
 ### Login Button
-- **Background**: #3B82F6
-- **Color**: #FFFFFF
-- **Font Size**: 16px
-- **Font Weight**: 600
-- **Padding**: 14px 48px
-- **Border Radius**: 24px
+- Blue background, white text
+- Rounded pill shape
+- "Sign In" label
 
 ### Register Link
-- **Font Size**: 14px
-- **Color**: #3B82F6
-- **Margin Top**: 16px
+- Blue text below button
+- Links to registration
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
 | Edit Profile | Tap | Open profile editor |
-| Quick Action | Tap | Navigate to section |
+| Quick Action | Tap | Navigate to that section |
 | History Item | Tap | Resume watching |
-| Menu Item | Tap | Execute action |
+| Settings Item | Tap | Open setting or toggle |
 | Login Button | Tap | Open login modal |
-| Sign Out | Tap | Confirm and logout |
+| Sign Out | Tap | Confirm and log out |
 
 ## Internationalization
 
-| Key | English | Chinese |
-|-----|---------|---------|
-| overview | Overview | 我的 |
-| continueWatching | Continue Watching | 继续观看 |
-| seeAll | See All | 查看全部 |
-| signIn | Sign In | 登录 |
-| signOut | Sign Out | 退出登录 |
+### Labels
+- English: "Overview", "Continue Watching", "See All", "Sign In", "Sign Out"
+- Chinese: "我的", "继续观看", "查看全部", "登录", "退出登录"

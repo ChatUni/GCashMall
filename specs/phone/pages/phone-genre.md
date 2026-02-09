@@ -7,98 +7,113 @@ The Phone Genre page displays series organized by categories in a grid layout wi
 ## Page Structure
 
 ### Layout
-- PhoneLayout wrapper
-- No back button
-- Search icon visible
+- Uses the standard phone layout
+- Logo and search icon in header
 - Bottom navigation visible
+- Vertically scrolling content
 
 ### Content Sections
-1. Category Filter (sticky)
+1. Category Filter Tabs (sticky)
 2. Series Grid
 
 ## Category Filter
 
 ### Container
-- **Position**: Sticky, top: 56px (below header)
-- **Background**: #0B0B0E
-- **Padding**: 12px 0
-- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
-- **Z-Index**: 50
+- Sticky position below header
+- Dark background matching app theme
+- Subtle bottom border
+- Horizontal scrolling for many categories
 
-### Scroll Container
-- **Display**: Flex
-- **Gap**: 8px
-- **Overflow-X**: Auto
-- **Padding**: 0 16px
-- **Scrollbar**: Hidden
+### Scroll Area
+- Horizontal scrolling tab row
+- Tabs arranged left to right
+- Padding at start and end
+- Scrollbar hidden
 
 ### Category Tab
-- **Background**: #1A1A1A (default), #3B82F6 (active)
-- **Color**: #9CA3AF (default), #FFFFFF (active)
-- **Font Size**: 13px
-- **Font Weight**: 500
-- **Padding**: 8px 16px
-- **Border Radius**: 16px
-- **White Space**: nowrap
-- **Cursor**: Pointer
-- **Transition**: all 0.2s ease
+- Pill-shaped buttons
+- Dark gray background (default)
+- Blue background (active/selected)
+- Gray text (default)
+- White text (active)
+- 13 pixel font, medium weight
+- Horizontal padding for comfortable tapping
+- No line breaks (single line)
+
+### Available Categories
+- All (shows everything)
+- Romance
+- Action
+- Comedy
+- Drama
+- Thriller
+- Fantasy
+- And other genre tags from the database
 
 ## Series Grid
 
 ### Container
-- **Display**: Grid
-- **Gap**: 12px
-- **Padding**: 16px
+- Fills remaining space below filter
+- Horizontal padding matching app style
+- Vertical padding for spacing
 
-### Grid Template
-- **≤375px**: repeat(2, 1fr)
-- **>375px**: repeat(3, 1fr)
+### Grid Layout
+- 2 columns on smaller phones (375 pixels or less)
+- 3 columns on larger phones
+- 12 pixel gap between cards
+- Cards fill available width in their column
 
-## Categories
-
-| Key | English | Chinese |
-|-----|---------|---------|
-| all | All | 全部 |
-| romance | Romance | 爱情 |
-| action | Action | 动作 |
-| comedy | Comedy | 喜剧 |
-| drama | Drama | 剧情 |
-| thriller | Thriller | 惊悚 |
-| fantasy | Fantasy | 奇幻 |
+### Grid Items
+- Uses Phone Series Card component
+- Responsive width based on column count
+- Maintains 2:3 aspect ratio for posters
 
 ## URL Parameters
 
-### Query: category
-- **Example**: `/genre?category=romance`
-- **Default**: "all"
+### Category Parameter
+- URL can include category filter
+- Example: Navigating from a tag sets the category
+- Default shows "All" if no parameter
 
 ## Data Loading
 
+### Initial Load
+- Fetches all available categories
+- Fetches series for selected category
+
+### Category Change
+- Updates URL parameter
+- Fetches series for new category
+- Scrolls content to top
+
 ### Loading State
-- Skeleton grid
-- Category tabs visible
+- Shows skeleton grid while loading
+- Category tabs remain visible and interactive
 
 ### Empty State
-- "No series found" message
-- Suggest different category
+- Shows "No series found" message
+- Suggests trying a different category
 
-## Infinite Scroll
+## Infinite Scroll (Optional)
 
-- Load more on scroll
-- Loading indicator at bottom
-- Stop when all loaded
+- Loads more series as user scrolls down
+- Shows loading indicator at bottom
+- Stops when all series are loaded
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
-| Category Tab | Tap | Filter by category |
-| Series Card | Tap | Navigate to player |
+| Category Tab | Tap | Filter series by that category |
+| Series Card | Tap | Navigate to series player |
+| Scroll | Swipe up/down | Browse through series |
+| Search Icon | Tap | Navigate to search page |
 
 ## Internationalization
 
-| Key | English | Chinese |
-|-----|---------|---------|
-| genre | Genre | 分类 |
-| all | All | 全部 |
-| noResults | No series found | 暂无内容 |
+### Labels
+- English: "Genre", "All", "No series found"
+- Chinese: "分类", "全部", "暂无内容"
+
+### Category Names
+Categories are translated based on the selected language.

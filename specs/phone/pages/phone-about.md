@@ -7,14 +7,13 @@ The Phone About page displays information about the GCashTV application, includi
 ## Page Structure
 
 ### Layout
-- PhoneLayout wrapper
-- Back button visible
-- Title: "About" / "关于我们"
+- Uses the standard phone layout
+- Back button and "About" title in header
 - No search icon
 - Bottom navigation visible
 
 ### Content Sections
-1. App Logo & Version
+1. App Logo and Version
 2. About Description
 3. Features List
 4. Legal Links
@@ -23,124 +22,99 @@ The Phone About page displays information about the GCashTV application, includi
 ## App Logo Section
 
 ### Container
-- **Display**: Flex column, centered
-- **Padding**: 32px 16px
+- Centered content
+- Generous vertical padding
+- Optional subtle background
 
 ### Logo
-- **Height**: 64px
-- **Margin Bottom**: 12px
+- GCashTV logo image
+- 64 pixel height
 
 ### App Name
-- **Font Size**: 24px
-- **Font Weight**: 700
-- **Color**: #FFFFFF
-- **Margin Bottom**: 4px
+- "GCashTV" text
+- Bold, white, 24 pixel font
 
 ### Version
-- **Font Size**: 14px
-- **Color**: #9CA3AF
+- Version number
+- Gray text, 14 pixel font
 
 ## About Description
 
 ### Container
-- **Padding**: 0 16px 24px
-- **Text Align**: Center
+- Centered text
+- Horizontal padding
 
 ### Text
-- **Font Size**: 15px
-- **Color**: #9CA3AF
-- **Line Height**: 1.7
+- Brief description of the app
+- Gray text, readable line height
+- Explains what GCashTV offers
 
 ## Features Section
 
 ### Container
-- **Padding**: 16px
-- **Background**: #121214
-- **Margin**: 0 16px
-- **Border Radius**: 12px
+- Rounded card background
+- Horizontal margin
 
 ### Section Title
-- **Font Size**: 16px
-- **Font Weight**: 600
-- **Color**: #FFFFFF
-- **Margin Bottom**: 16px
+- "Features" heading
+- Bold, white, 16 pixel font
 
-### Feature Item
-- **Display**: Flex
-- **Gap**: 12px
-- **Padding**: 12px 0
-- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
+### Feature Items
+Each feature shows:
+- Icon on left (blue, 24 pixels)
+- Description text (white, 14 pixels)
+- Subtle border between items
 
-### Feature Icon
-- **Size**: 24px
-- **Color**: #3B82F6
+### Listed Features
+- HD Video Streaming
+- Multi-language Support
+- Watch History Sync
+- Offline Downloads
+- Secure and Private
 
-### Feature Text
-- **Font Size**: 14px
-- **Color**: #FFFFFF
-
-### Features
-| Icon | Feature (EN) | Feature (ZH) |
-|------|--------------|--------------|
-| Play | HD Video Streaming | 高清视频播放 |
-| Globe | Multi-language Support | 多语言支持 |
-| Clock | Watch History Sync | 观看历史同步 |
-| Download | Offline Downloads | 离线下载 |
-| Shield | Secure & Private | 安全隐私保护 |
-
-## Legal Links
+## Legal Links Section
 
 ### Container
-- **Padding**: 24px 16px
-- **Display**: Flex column
-- **Gap**: 12px
+- Vertical list of links
+- Horizontal padding
 
-### Link Item
-- **Display**: Flex, space-between, center aligned
-- **Padding**: 16px
-- **Background**: #121214
-- **Border Radius**: 8px
+### Link Items
+Each link shows:
+- Link text on left (white)
+- Arrow icon on right (gray)
+- Rounded background
+- Tappable full width
 
-### Link Text
-- **Font Size**: 15px
-- **Color**: #FFFFFF
-
-### Link Arrow
-- **Size**: 16px
-- **Color**: #6B7280
-
-### Links
-| Label (EN) | Label (ZH) | Path |
-|------------|------------|------|
-| Terms of Service | 服务条款 | /terms |
-| Privacy Policy | 隐私政策 | /privacy |
-| Open Source Licenses | 开源许可 | /licenses |
+### Available Links
+- Terms of Service
+- Privacy Policy
+- Open Source Licenses
 
 ## Copyright Footer
 
 ### Container
-- **Padding**: 24px 16px
-- **Text Align**: Center
+- Centered at bottom
+- Padding above and below
 
 ### Text
-- **Font Size**: 12px
-- **Color**: #6B7280
-- **Content**: © 2024 GCashTV. All rights reserved.
+- Copyright notice
+- Gray text, small font
+- Example: "© 2024 GCashTV. All rights reserved."
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
-| Back | Tap | Return to previous |
-| Legal Link | Tap | Navigate to page |
+| Back Button | Tap | Return to previous page |
+| Terms of Service | Tap | Open terms page |
+| Privacy Policy | Tap | Open privacy page |
+| Licenses | Tap | Open licenses page |
 
 ## Internationalization
 
-| Key | English | Chinese |
-|-----|---------|---------|
-| about | About | 关于我们 |
-| version | Version | 版本 |
-| features | Features | 功能特点 |
-| termsOfService | Terms of Service | 服务条款 |
-| privacyPolicy | Privacy Policy | 隐私政策 |
-| licenses | Open Source Licenses | 开源许可 |
+### Labels
+- English: "About", "Version", "Features", "Terms of Service", "Privacy Policy", "Open Source Licenses"
+- Chinese: "关于我们", "版本", "功能特点", "服务条款", "隐私政策", "开源许可"
+
+### Feature Descriptions
+Feature text is translated based on selected language.

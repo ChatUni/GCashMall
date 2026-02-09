@@ -2,88 +2,64 @@
 
 ## Overview
 
-The Phone Series Card is a compact card component optimized for mobile displays, showing series poster, title, and optional tag.
+The Phone Series Card is a compact card component optimized for mobile displays, showing a series poster, title, and optional tag. Used in carousels and grid layouts throughout the phone UI.
 
 ## Layout
 
 ### Card Container
-- **Width**: 140px (carousel) or responsive (grid)
-- **Cursor**: Pointer
-- **Transition**: transform 0.2s ease
-
-### Poster Container
-- **Aspect Ratio**: 2:3
-- **Border Radius**: 8px
-- **Overflow**: Hidden
-- **Background**: #1A1A1A
-- **Position**: Relative
+- Fixed width of 140 pixels when used in carousels
+- Responsive width when used in grids
+- Tappable with visual feedback
 
 ### Poster Image
-- **Width**: 100%
-- **Height**: 100%
-- **Object Fit**: Cover
-- **Loading**: Lazy
+- Portrait orientation with 2:3 aspect ratio
+- Rounded corners (8 pixels)
+- Fills the container width
+- Images load lazily for performance
+- Dark placeholder shown while loading
 
-### Tag Badge
-- **Position**: Absolute, top: 8px, left: 8px
-- **Background**: rgba(0, 0, 0, 0.7)
-- **Color**: #FFFFFF
-- **Font Size**: 10px
-- **Padding**: 4px 8px
-- **Border Radius**: 4px
-- **Max Width**: 80%
-- **Overflow**: Hidden
-- **Text Overflow**: ellipsis
-- **White Space**: nowrap
+### Tag Badge (Optional)
+- Positioned in the top-left corner of the poster
+- Semi-transparent dark background
+- White text, small font size (10 pixels)
+- Shows the first tag of the series
+- Truncated with ellipsis if too long
 
 ### Title
-- **Font Size**: 13px
-- **Font Weight**: 500
-- **Color**: #FFFFFF
-- **Margin Top**: 8px
-- **Line Height**: 1.3
-- **Display**: -webkit-box
-- **-webkit-line-clamp**: 2
-- **Overflow**: Hidden
+- Displayed below the poster
+- White text, 13 pixel font
+- Medium font weight
+- Limited to 2 lines maximum
+- Truncated with ellipsis if longer
+- Small gap between poster and title
 
 ## States
 
 ### Default State
-- Normal appearance
+Normal appearance with no visual changes.
 
 ### Pressed State
-- **Transform**: scale(0.98)
+Slight scale reduction (98%) to provide tactile feedback when tapped.
 
-## Grid Layout
+## Behavior
 
-### Container
-- **Display**: Grid
-- **Gap**: 12px
-- **Padding**: 16px
+### Tap Action
+Tapping the card navigates to the series player page.
 
-### Responsive Columns
-| Screen Width | Columns |
-|--------------|---------|
-| ≤375px | 2 |
-| >375px | 3 |
+### Image Loading
+- Shows dark placeholder initially
+- Image fades in when loaded
+- Handles missing images gracefully
 
-### Grid Template
-- **≤375px**: repeat(2, 1fr)
-- **>375px**: repeat(3, 1fr)
+## Usage Contexts
 
-## Carousel Layout
+### In Carousels
+- Fixed 140 pixel width
+- Horizontal scrolling with other cards
+- 12 pixel gap between cards
 
-### Card Width
-- **Fixed**: 140px
-- **Flex Shrink**: 0
-
-### Gap
-- **Between Cards**: 12px
-
-## Interactions
-
-| Action | Result |
-|--------|--------|
-| Tap | Navigate to player |
-| Press | Scale to 98% |
-| Release | Return to 100% |
+### In Grids
+- Responsive width based on grid columns
+- 2 columns on smaller phones (375 pixels or less)
+- 3 columns on larger phones
+- 12 pixel gap between cards

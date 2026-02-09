@@ -7,138 +7,125 @@ The Phone Search page provides a dedicated search interface for finding series b
 ## Page Structure
 
 ### Layout
-- PhoneLayout wrapper
-- Back button visible
-- Title: "Search"
-- No search icon in header
+- Uses the standard phone layout
+- Back button and "Search" title in header
+- No search icon in header (search is on page)
 - Bottom navigation visible
 
 ### Content Sections
 1. Search Input (sticky)
-2. Recent Searches / Search Results
+2. Recent Searches (when input empty)
+3. Search Results (when searching)
 
 ## Search Input
 
 ### Container
-- **Padding**: 16px
-- **Position**: Sticky, top: 56px
-- **Background**: #0B0B0E
-- **Z-Index**: 50
-
-### Input Wrapper
-- **Display**: Flex
-- **Background**: #1A1A1A
-- **Border Radius**: 24px
-- **Height**: 48px
-- **Border**: 1px solid rgba(255, 255, 255, 0.1)
-- **Focus**: Border #3B82F6
-
-### Search Icon
-- **Size**: 20px
-- **Color**: #9CA3AF
-- **Margin**: 0 12px
+- Sticky position below header
+- Dark background
+- Horizontal padding
 
 ### Input Field
-- **Flex**: 1
-- **Background**: Transparent
-- **Border**: None
-- **Font Size**: 16px
-- **Color**: #FFFFFF
-- **Placeholder Color**: #9CA3AF
+- Full width rounded rectangle
+- Dark gray background
+- Subtle border, blue when focused
+- 48 pixel height for easy tapping
+- 16 pixel font (prevents zoom on iOS)
+
+### Search Icon
+- Positioned inside input on left
+- Gray color
+- 20 pixel size
+
+### Input Text
+- White text color
+- Placeholder: "Search series..." / "搜索剧集..."
 
 ### Clear Button
-- **Size**: 20px
-- **Color**: #9CA3AF
-- **Margin Right**: 12px
-- **Display**: When input has value
+- Appears when input has text
+- Positioned inside input on right
+- Gray X icon
+- Tapping clears the input
 
 ## Recent Searches
 
+### Display Condition
+- Shown when search input is empty
+- Shown before any search is performed
+
 ### Section Header
-- **Display**: Flex, space-between
-- **Padding**: 0 16px
-- **Margin Bottom**: 12px
-
-### Title
-- **Font Size**: 16px
-- **Font Weight**: 600
-- **Color**: #FFFFFF
-
-### Clear All
-- **Font Size**: 14px
-- **Color**: #3B82F6
+- "Recent Searches" title on left
+- "Clear All" link on right (blue text)
 
 ### Recent Item
-- **Display**: Flex, center aligned
-- **Gap**: 12px
-- **Padding**: 12px 16px
-- **Border Bottom**: 1px solid rgba(255, 255, 255, 0.05)
+- Clock icon on left (gray)
+- Search term text in middle (white)
+- Delete X button on right (gray)
+- Subtle bottom border between items
 
-### Item Icon
-- **Size**: 16px
-- **Color**: #9CA3AF
-
-### Item Text
-- **Font Size**: 14px
-- **Color**: #FFFFFF
-- **Flex**: 1
-
-### Item Delete
-- **Size**: 16px
-- **Color**: #9CA3AF
+### Behavior
+- Tapping an item performs that search
+- Tapping delete removes just that item
+- Tapping "Clear All" removes all history
+- Maximum 10 recent searches stored
 
 ## Search Results
 
+### Display Condition
+- Shown when search query exists
+- Shown after search is performed
+
 ### Results Header
-- **Padding**: 16px
-- **Font Size**: 14px
-- **Color**: #9CA3AF
+- Shows count and query
+- Example: "12 results for 'romance'"
+- Gray text, smaller font
 
 ### Results Grid
-- **Display**: Grid
-- **Grid Template**: repeat(3, 1fr)
-- **Gap**: 12px
-- **Padding**: 0 16px 16px
+- Same layout as Genre page grid
+- 2-3 columns based on screen width
+- 12 pixel gap between cards
 
-### No Results
-- **Display**: Flex column, centered
-- **Padding**: 48px 16px
-- **Icon Size**: 48px, opacity 0.3
-- **Text Color**: #9CA3AF
+### No Results State
+- Centered in content area
+- Large search icon (faded)
+- "No results found" message
+- "Try different keywords" suggestion
 
 ## Search Behavior
 
 ### Trigger
-- Debounced: 300ms delay
-- Or keyboard submit
+- Automatic search after typing stops (300ms delay)
+- Or immediate search on keyboard submit
 
-### Storage
-- **Key**: gcashtv-recent-searches
-- **Max Items**: 10
+### Results
+- Searches series titles and tags
+- Returns matching series
+
+### History Storage
+- Saves successful searches locally
+- Maximum 10 items
+- Most recent first
 
 ## URL Parameters
 
-### Query: q
-- **Example**: `/search?q=romance`
-- Pre-fills input
+### Query Parameter
+- URL includes search query
+- Allows sharing search links
+- Pre-fills input when navigating with query
 
 ## Interactions
 
 | Element | Action | Result |
 |---------|--------|--------|
-| Input | Type | Debounced search |
-| Clear | Tap | Clear input |
-| Recent Item | Tap | Perform search |
-| Delete | Tap | Remove from history |
-| Clear All | Tap | Clear all history |
+| Back Button | Tap | Return to previous page |
+| Search Input | Type | Perform debounced search |
+| Clear Button | Tap | Clear input text |
+| Recent Item | Tap | Perform that search |
+| Recent Delete | Tap | Remove from history |
+| Clear All | Tap | Remove all history |
 | Series Card | Tap | Navigate to player |
 
 ## Internationalization
 
-| Key | English | Chinese |
-|-----|---------|---------|
-| search | Search | 搜索 |
-| searchPlaceholder | Search series... | 搜索剧集... |
-| recentSearches | Recent Searches | 最近搜索 |
-| clearAll | Clear All | 清除全部 |
-| noResults | No results found | 未找到结果 |
+### Labels
+- English: "Search", "Search series...", "Recent Searches", "Clear All", "No results found", "Try different keywords"
+- Chinese: "搜索", "搜索剧集...", "最近搜索", "清除全部", "未找到结果", "试试其他关键词"
