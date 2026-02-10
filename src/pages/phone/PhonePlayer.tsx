@@ -4,9 +4,9 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
 import LoginModal from '../../components/LoginModal'
 import { useLanguage } from '../../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, userStoreActions, useRecommendationsStore, useToastStore } from '../../stores'
+import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, userStoreActions, useRecommendationsStore, useNewReleasesStore, useToastStore } from '../../stores'
 import { accountStoreActions } from '../../stores/accountStore'
-import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased, fetchRecommendations } from '../../services/dataService'
+import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased, fetchRecommendations, fetchNewReleases } from '../../services/dataService'
 import { isLoggedIn } from '../../utils/api'
 import { getIframeUrl, findEpisodeByNumber, getEpisodeRanges, filterEpisodesByRange } from '../../utils/playerHelpers'
 import type { Episode, WatchListItem } from '../../types'
@@ -18,6 +18,7 @@ const HIDE_FAVORITE_MODAL_KEY = 'hideFavoriteModal'
 let currentLoadedSeriesId: string | null = null
 let watchListUpdatedForSeriesId: string | null = null
 let recommendationsFetched = false
+let newReleasesFetched = false
 
 const initializePlayerData = (seriesId: string) => {
   if (currentLoadedSeriesId !== seriesId) {
@@ -29,6 +30,10 @@ const initializePlayerData = (seriesId: string) => {
   if (!recommendationsFetched) {
     recommendationsFetched = true
     fetchRecommendations()
+  }
+  if (!newReleasesFetched) {
+    newReleasesFetched = true
+    fetchNewReleases()
   }
 }
 
@@ -67,6 +72,7 @@ const PhonePlayer: React.FC = () => {
   const loginModalState = useLoginModalStore()
   const userState = useUserStore()
   const { series: recommendations } = useRecommendationsStore()
+  const { series: newReleases } = useNewReleasesStore()
   const toastState = useToastStore()
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -451,6 +457,13 @@ const PhonePlayer: React.FC = () => {
         <PhoneSeriesCarousel
           title={t.home.youMightLike}
           series={recommendations}
+          excludeSeriesId={id}
+        />
+
+        {/* New Releases */}
+        <PhoneSeriesCarousel
+          title={t.home.newReleases}
+          series={newReleases}
           excludeSeriesId={id}
         />
       </div>

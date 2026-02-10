@@ -210,6 +210,10 @@ export const en = {
     youMightLike: 'You Might Like',
     newReleases: 'New Releases',
     viewMore: 'View More',
+    like: 'Like',
+    share: 'Share',
+    watch: 'Watch',
+    comments: 'Comments',
   },
   player: {
     episodes: 'Episodes',

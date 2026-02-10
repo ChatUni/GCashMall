@@ -12,7 +12,7 @@ The Phone Series Carousel is a horizontal scrolling component for displaying ser
 
 ### Section Header
 - Horizontal layout with title on left, "More" button on right
-- Horizontal padding: 22px left, 16px right
+- Horizontal padding: 20px left, 8px right
 - 16px bottom margin before cards
 - Flexbox with space-between alignment
 
@@ -48,8 +48,10 @@ The Phone Series Carousel is a horizontal scrolling component for displaying ser
 - Horizontal scrolling area
 - Cards arranged in a row
 - 12 pixel gap between cards
-- Horizontal padding at start and end
+- First card has 20px left margin for edge spacing
+- Pseudo-element (::after) with 8px width for right edge spacing
 - Scrollbar hidden for clean appearance
+- scroll-padding-left: 20px for proper snap alignment
 
 ## Scroll Behavior
 
@@ -71,7 +73,8 @@ Hidden on all platforms for cleaner mobile appearance.
 
 ### Card Spacing
 - 12 pixel gap between cards
-- 16 pixel padding at carousel edges
+- 20 pixel left margin on first card
+- 8 pixel right spacing via pseudo-element
 
 ## Content States
 

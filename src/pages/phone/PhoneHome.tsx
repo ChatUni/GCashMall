@@ -1,10 +1,10 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import PhoneLayout from '../../layouts/PhoneLayout'
-import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
-import { useLanguage } from '../../context/LanguageContext'
-import { useFeaturedStore, useRecommendationsStore, useNewReleasesStore } from '../../stores'
-import { fetchFeaturedSeries, fetchRecommendations, fetchNewReleases } from '../../services/dataService'
+import React, { useRef, useEffect, useCallback } from 'react'
+import { useVideoFeedStore, useLoginModalStore, loginModalStoreActions, userStoreActions } from '../../stores'
+import { accountStoreActions } from '../../stores/accountStore'
+import { fetchVideoFeed, loadMoreVideos } from '../../services/dataService'
+import VideoCard from '../../components/phone/VideoCard'
+import LoginModal from '../../components/LoginModal'
+import PhoneNavBar from '../../components/phone/PhoneNavBar'
 import './PhoneHome.css'
 
 // Initialize data fetch outside component
@@ -12,104 +12,140 @@ let dataFetched = false
 const initializeData = () => {
   if (!dataFetched) {
     dataFetched = true
-    fetchFeaturedSeries()
-    fetchRecommendations()
-    fetchNewReleases()
+    fetchVideoFeed(1)
   }
 }
 
 const PhoneHome: React.FC = () => {
-  const { series: featuredSeries, loading: featuredLoading } = useFeaturedStore()
-  const { series: recommendations, loading: recommendationsLoading } = useRecommendationsStore()
-  const { series: newReleases, loading: newReleasesLoading } = useNewReleasesStore()
-  const navigate = useNavigate()
-  const { t } = useLanguage()
+  const { videos, currentIndex, loading, hasMore } = useVideoFeedStore()
+  const loginModalState = useLoginModalStore()
+  
+  const containerRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
 
   // Initialize data on first render
   initializeData()
 
-  const handleFeaturedClick = () => {
-    if (featuredSeries?._id) {
-      navigate(`/player/${featuredSeries._id}`)
+  // Handle scroll to detect current video
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return
+    
+    const container = containerRef.current
+    const scrollTop = container.scrollTop
+    const cardHeight = container.clientHeight
+    const newIndex = Math.round(scrollTop / cardHeight)
+    
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < videos.length) {
+      // Update current index in store
+      import('../../stores').then(({ videoFeedStoreActions }) => {
+        videoFeedStoreActions.setCurrentIndex(newIndex)
+      })
     }
+    
+    // Load more when approaching end
+    if (newIndex >= videos.length - 3 && hasMore && !loading) {
+      loadMoreVideos()
+    }
+  }, [currentIndex, videos.length, hasMore, loading])
+
+  // Set up scroll listener
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+
+  // Set up intersection observer for video visibility
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const index = parseInt(entry.target.getAttribute('data-index') || '0', 10)
+            import('../../stores').then(({ videoFeedStoreActions }) => {
+              videoFeedStoreActions.setCurrentIndex(index)
+            })
+          }
+        })
+      },
+      {
+        root: containerRef.current,
+        threshold: 0.5,
+      }
+    )
+
+    // Observe all video cards
+    const cards = containerRef.current?.querySelectorAll('.video-card')
+    cards?.forEach((card) => observerRef.current?.observe(card))
+
+    return () => observerRef.current?.disconnect()
+  }, [videos])
+
+  if (loading && videos.length === 0) {
+    return (
+      <div className="phone-home-feed">
+        <div className="phone-home-loading">
+          <div className="phone-home-spinner" />
+        </div>
+        <PhoneNavBar />
+      </div>
+    )
   }
 
-  const handleTagClick = (tag: string) => {
-    navigate(`/genre?category=${encodeURIComponent(tag)}`)
+  if (!loading && videos.length === 0) {
+    return (
+      <div className="phone-home-feed">
+        <div className="phone-home-empty">
+          <p>No videos available</p>
+          <button onClick={() => fetchVideoFeed(1)}>Refresh</button>
+        </div>
+        <PhoneNavBar />
+      </div>
+    )
   }
 
   return (
-    <PhoneLayout showHeader={true} title={t.topBar.home}>
-      <div className="phone-home">
-        {/* Featured Hero Section */}
-        {featuredLoading ? (
-          <div className="phone-hero-loading">
-            <div className="phone-hero-skeleton" />
+    <div className="phone-home-feed">
+      <div className="phone-home-container" ref={containerRef}>
+        {videos.map((series, index) => (
+          <VideoCard
+            key={series._id}
+            series={series}
+            isActive={index === currentIndex}
+            index={index}
+          />
+        ))}
+        
+        {/* Loading indicator at bottom */}
+        {loading && videos.length > 0 && (
+          <div className="phone-home-loading-more">
+            <div className="phone-home-spinner-small" />
           </div>
-        ) : featuredSeries ? (
-          <section className="phone-hero" onClick={handleFeaturedClick}>
-            <div className="phone-hero-image-container">
-              <img
-                src={featuredSeries.cover}
-                alt={featuredSeries.name}
-                className="phone-hero-image"
-              />
-              <div className="phone-hero-gradient" />
-            </div>
-            <div className="phone-hero-content">
-              <h1 className="phone-hero-title">{featuredSeries.name}</h1>
-              <div className="phone-hero-tags">
-                {featuredSeries.tags?.slice(0, 3).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="phone-hero-tag"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleTagClick(tag)
-                    }}
-                  >
-                    {tag}
-                  </span>
-                ))}
-                {featuredSeries.genre?.slice(0, 2).map((genre) => (
-                  <span
-                    key={genre._id}
-                    className="phone-hero-tag"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleTagClick(genre.name)
-                    }}
-                  >
-                    {genre.name}
-                  </span>
-                ))}
-              </div>
-              <p className="phone-hero-description">{featuredSeries.description}</p>
-              <button className="phone-hero-play-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
-                {t.home.play}
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        {/* Recommendations Section */}
-        <PhoneSeriesCarousel
-          title={t.home.youMightLike}
-          series={recommendations}
-          loading={recommendationsLoading}
-        />
-
-        {/* New Releases Section */}
-        <PhoneSeriesCarousel
-          title={t.home.newReleases}
-          series={newReleases}
-          loading={newReleasesLoading}
-        />
+        )}
       </div>
-    </PhoneLayout>
+      
+      {/* Bottom Navigation */}
+      <PhoneNavBar />
+      
+      {/* Login Modal */}
+      {loginModalState.isOpen && (
+        <LoginModal
+          onClose={loginModalStoreActions.close}
+          onLoginSuccess={(user) => {
+            userStoreActions.setUser(user)
+            userStoreActions.setLoading(false)
+            accountStoreActions.initializeUserData(user)
+            loginModalStoreActions.close()
+          }}
+        />
+      )}
+    </div>
   )
 }
 

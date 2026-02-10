@@ -209,6 +209,10 @@ export const zh = {
     youMightLike: '猜你喜欢',
     newReleases: '新上线',
     viewMore: '查看更多',
+    like: '喜欢',
+    share: '分享',
+    watch: '观看',
+    comments: '评论',
   },
   player: {
     episodes: '剧集',

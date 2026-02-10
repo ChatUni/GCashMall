@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 0 22px;
+  padding: 0 8px 0 20px;
   margin-bottom: 16px;
 }
 
@@ -58,9 +58,21 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* Use padding-inline for horizontal scroll padding */
-  padding-inline-start: 22px;
-  padding-inline-end: 16px;
+  /* Ensure padding is included in scroll area */
+  scroll-padding-left: 20px;
+}
+
+/* Use margin on first child for reliable left spacing */
+.phone-carousel-scroll > *:first-child {
+  margin-left: 20px;
+}
+
+/* Use pseudo-element for reliable right spacing in horizontal scroll */
+.phone-carousel-scroll::after {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  min-width: 8px;
 }
 
 .phone-carousel-scroll::-webkit-scrollbar {
@@ -110,3 +122,4 @@
     background-position: -200% 0;
   }
 }
+

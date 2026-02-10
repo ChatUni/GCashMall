@@ -16,7 +16,8 @@ The Phone Player page provides a mobile-optimized video playback experience with
 1. Video Player
 2. Series Information
 3. Episode List
-4. Related Series
+4. You Might Like
+5. New Releases
 
 ## Video Player Section
 
@@ -139,15 +140,27 @@ The Phone Player page provides a mobile-optimized video playback experience with
 - Shows lock icon instead of number
 - Tapping shows purchase dialog
 
-## Related Series Section
+## You Might Like Section
 
 ### Section Header
-- "Related" title
+- "You Might Like" title (English) / "猜你喜欢" (Chinese)
 - 16 pixel font, bold
 
 ### Carousel
 - Horizontal scrolling series cards
-- Shows series with similar tags
+- Shows recommended series based on viewing history
+- Excludes current series from display
+
+## New Releases Section
+
+### Section Header
+- "New Releases" title (English) / "最新上线" (Chinese)
+- 16 pixel font, bold
+
+### Carousel
+- Horizontal scrolling series cards
+- Shows recently added series
+- Excludes current series from display
 
 ## Video Playback
 
@@ -293,7 +306,7 @@ The Phone Player page provides a mobile-optimized video playback experience with
 | Episode Toggle | Tap | Expand/collapse episode list |
 | Episode Button | Tap | Switch to that episode (list stays expanded) |
 | Tag | Tap | Navigate to genre with tag |
-| Related Card | Tap | Navigate to that series |
+| Series Card | Tap | Navigate to that series |
 | Back | Tap | Return to previous page |
 | Show More | Tap | Expand description |
 | Favorite Button | Tap | Show Favorite Confirmation Modal (or toggle directly if "Don't show again" was checked) |
@@ -302,5 +315,5 @@ The Phone Player page provides a mobile-optimized video playback experience with
 ## Internationalization
 
 ### Labels
-- English: "Episodes", "Episode", "Related", "Show more", "Show less"
-- Chinese: "剧集", "第X集", "相关推荐", "展开", "收起"
+- English: "Episodes", "Episode", "You Might Like", "New Releases", "Show more", "Show less"
+- Chinese: "剧集", "第X集", "猜你喜欢", "最新上线", "展开", "收起"
