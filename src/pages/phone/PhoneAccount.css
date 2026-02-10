@@ -256,6 +256,9 @@
 
 .phone-password-input input {
   padding-right: 48px;
+  height: auto;
+  min-height: 44px;
+  max-height: 44px;
 }
 
 .phone-password-toggle {
@@ -284,6 +287,12 @@
 .phone-field-error {
   font-size: 12px;
   color: #ef4444;
+}
+
+.phone-password-hint {
+  font-size: 12px;
+  color: #9CA3AF;
+  line-height: 1.4;
 }
 
 .phone-save-btn {
@@ -1701,6 +1710,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 0 0 auto;
+  height: auto;
 }
 
 .phone-contact-header {
@@ -1709,10 +1720,9 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 48px 16px;
+  padding: 59px 16px 16px 16px;
   width: 100%;
   box-sizing: border-box;
-  min-height: 180px;
 }
 
 .phone-contact-icon {
@@ -1753,6 +1763,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 0 0 auto;
+  height: auto;
 }
 
 .phone-contact-welcome {
@@ -1771,8 +1783,10 @@
   gap: 12px;
   background: #1A1A1E;
   border-radius: 12px;
-  padding: 24px 20px;
-  min-height: 140px;
+  padding: 20px;
+  height: auto;
+  min-height: auto;
+  flex: 0 0 auto;
 }
 
 .phone-contact-info-icon {

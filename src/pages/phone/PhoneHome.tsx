@@ -39,7 +39,7 @@ const PhoneHome: React.FC = () => {
   }
 
   return (
-    <PhoneLayout showHeader={true}>
+    <PhoneLayout showHeader={true} title={t.topBar.home}>
       <div className="phone-home">
         {/* Featured Hero Section */}
         {featuredLoading ? (

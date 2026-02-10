@@ -387,10 +387,10 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'overview', icon: '👤' },
   { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },
-  { key: 'settings', icon: '⚙️' },
-  { key: 'wallet', icon: '💰' },
   { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
+  { key: 'wallet', icon: '💰' },
+  { key: 'settings', icon: '⚙️' },
   { key: 'about', icon: 'ℹ️' },
   { key: 'contact', icon: '✉️' },
 ]

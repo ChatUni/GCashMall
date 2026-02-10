@@ -455,6 +455,11 @@ export const clearWatchHistory = async (): Promise<{ success: boolean; error?: s
     return { success: false }
   }
 
+  return clearWatchHistoryNoConfirm()
+}
+
+// Clear watch history without confirmation (for custom modal UIs)
+export const clearWatchHistoryNoConfirm = async (): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await apiPostWithAuth<User>('clearWatchHistory', {})
     if (response.success && response.data) {
@@ -482,6 +487,11 @@ export const removeFromWatchList = async (seriesId: string): Promise<{ success: 
     return { success: false }
   }
 
+  return removeFromWatchListNoConfirm(seriesId)
+}
+
+// Remove item from watch list without confirmation (for custom modal UIs)
+export const removeFromWatchListNoConfirm = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await apiPostWithAuth<User>('removeFromWatchList', { seriesId })
     if (response.success && response.data) {
@@ -510,6 +520,11 @@ export const removeFromFavorites = async (seriesId: string): Promise<{ success: 
     return { success: false }
   }
 
+  return removeFromFavoritesNoConfirm(seriesId)
+}
+
+// Remove from favorites without confirmation (for custom modal UIs)
+export const removeFromFavoritesNoConfirm = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await apiPostWithAuth<User>('removeFromFavorites', { seriesId })
     if (response.success && response.data) {
@@ -548,6 +563,11 @@ export const clearFavorites = async (): Promise<{ success: boolean; error?: stri
     return { success: false }
   }
 
+  return clearFavoritesNoConfirm()
+}
+
+// Clear all favorites without confirmation (for custom modal UIs)
+export const clearFavoritesNoConfirm = async (): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await apiPostWithAuth<User>('clearFavorites', {})
     if (response.success && response.data) {

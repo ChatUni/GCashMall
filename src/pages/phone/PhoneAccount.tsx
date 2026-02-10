@@ -13,10 +13,10 @@ import {
   changePassword,
   setPassword,
   uploadAvatar,
-  clearWatchHistory,
-  removeFromWatchList,
-  removeFromFavorites,
-  clearFavorites,
+  clearWatchHistoryNoConfirm,
+  removeFromWatchListNoConfirm,
+  removeFromFavoritesNoConfirm,
+  clearFavoritesNoConfirm,
   topUp,
   withdraw,
   hasProfileChanges,
@@ -184,7 +184,7 @@ const PhoneAccount: React.FC = () => {
   return (
     <PhoneLayout showHeader={true} title={getTabTitle()}>
       <div className="phone-account">
-        {/* User Profile Header */}
+        {/* User Profile Header - Only visible for overview tab */}
         {state.activeTab === 'overview' && (
           <div className="phone-account-header">
             <div className="phone-account-avatar">
@@ -251,8 +251,8 @@ const PhoneAccount: React.FC = () => {
           {state.activeTab === 'watchHistory' && (
             <PhoneWatchHistorySection
               items={state.user?.watchList || []}
-              onClearHistory={clearWatchHistory}
-              onRemoveItem={removeFromWatchList}
+              onClearHistory={clearWatchHistoryNoConfirm}
+              onRemoveItem={removeFromWatchListNoConfirm}
               onNavigate={navigate}
               t={t}
             />
@@ -261,8 +261,8 @@ const PhoneAccount: React.FC = () => {
           {state.activeTab === 'favorites' && (
             <PhoneFavoritesSection
               items={state.user?.favorites || []}
-              onClearFavorites={clearFavorites}
-              onRemoveItem={removeFromFavorites}
+              onClearFavorites={clearFavoritesNoConfirm}
+              onRemoveItem={removeFromFavoritesNoConfirm}
               onNavigate={navigate}
               t={t}
             />
@@ -536,7 +536,11 @@ const PhoneOverviewSection: React.FC<PhoneOverviewSectionProps> = ({
               )}
             </button>
           </div>
-          {passwordErrors.newPasswordError && <span className="phone-field-error">{passwordErrors.newPasswordError}</span>}
+          {passwordErrors.newPasswordError ? (
+            <span className="phone-field-error">{passwordErrors.newPasswordError}</span>
+          ) : (
+            <span className="phone-password-hint">{overview.passwordRequirements || 'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character'}</span>
+          )}
         </div>
 
         <div className="phone-form-group">
@@ -601,11 +605,52 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
   t,
 }) => {
   const watchHistory = t.account.watchHistory as Record<string, string>
+  
+  // Modal states
+  const [showClearModal, setShowClearModal] = React.useState(false)
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
+  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
+  const [pendingDeleteSeriesName, setPendingDeleteSeriesName] = React.useState<string>('')
 
   // Sort items by updatedAt descending (most recent first)
   const sortedItems = [...items].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )
+
+  const handleClearClick = () => {
+    setShowClearModal(true)
+  }
+
+  const handleClearConfirm = async () => {
+    await onClearHistory()
+    setShowClearModal(false)
+  }
+
+  const handleClearCancel = () => {
+    setShowClearModal(false)
+  }
+
+  const handleDeleteClick = (seriesId: string, seriesName: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setPendingDeleteSeriesId(seriesId)
+    setPendingDeleteSeriesName(seriesName)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (pendingDeleteSeriesId) {
+      await onRemoveItem(pendingDeleteSeriesId)
+    }
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeriesName('')
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeriesName('')
+  }
 
   if (sortedItems.length === 0) {
     return (
@@ -621,7 +666,7 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
 
   return (
     <div className="phone-history-section">
-      <button className="phone-clear-btn" onClick={onClearHistory}>
+      <button className="phone-clear-btn" onClick={handleClearClick}>
         {watchHistory.clearHistory}
       </button>
       <div className="phone-history-list">
@@ -631,13 +676,55 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
             seriesId={item.seriesId}
             episodeNumber={item.episodeNumber}
             onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
-            onRemove={(e) => {
-              e.stopPropagation()
-              onRemoveItem(item.seriesId)
-            }}
+            onRemove={(e, seriesName) => handleDeleteClick(item.seriesId, seriesName, e)}
           />
         ))}
       </div>
+
+      {/* Clear History Confirmation Modal */}
+      {showClearModal && (
+        <div className="phone-modal-overlay" onClick={handleClearCancel}>
+          <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="phone-modal-icon">🗑️</span>
+            <h3 className="phone-modal-title">{watchHistory.clearConfirmTitle || 'Clear Watch History'}</h3>
+            <p className="phone-modal-message">
+              {watchHistory.clearConfirmMessage || 'Are you sure you want to clear all watch history? This action cannot be undone.'}
+            </p>
+            <div className="phone-modal-buttons">
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleClearConfirm}>
+                {watchHistory.clearHistory || 'Clear History'}
+              </button>
+              <button className="phone-modal-cancel" onClick={handleClearCancel}>
+                {watchHistory.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Item Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+          <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="phone-modal-icon">🗑️</span>
+            <h3 className="phone-modal-title">{watchHistory.deleteConfirmTitle || 'Remove from History'}</h3>
+            {pendingDeleteSeriesName && (
+              <div className="phone-modal-series">{pendingDeleteSeriesName}</div>
+            )}
+            <p className="phone-modal-message">
+              {watchHistory.deleteConfirmMessage || 'Are you sure you want to remove this item from your watch history?'}
+            </p>
+            <div className="phone-modal-buttons">
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+                {watchHistory.remove || 'Remove'}
+              </button>
+              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
+                {watchHistory.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -647,7 +734,7 @@ interface PhoneHistoryCardProps {
   seriesId: string
   episodeNumber: number
   onClick: () => void
-  onRemove: (e: React.MouseEvent) => void
+  onRemove: (e: React.MouseEvent, seriesName: string) => void
 }
 
 const PhoneHistoryCard: React.FC<PhoneHistoryCardProps> = ({
@@ -674,6 +761,10 @@ const PhoneHistoryCard: React.FC<PhoneHistoryCardProps> = ({
     fetchSeries()
   }, [seriesId])
 
+  const handleRemove = (e: React.MouseEvent) => {
+    onRemove(e, series?.name || `Series ${seriesId}`)
+  }
+
   return (
     <div className="phone-history-item" onClick={onClick}>
       <div className="phone-history-cover">
@@ -685,7 +776,7 @@ const PhoneHistoryCard: React.FC<PhoneHistoryCardProps> = ({
         <span className="phone-history-ep">EP {episodeNumber}</span>
       </div>
       <span className="phone-history-name">{series?.name || `Series ${seriesId}`}</span>
-      <button className="phone-remove-btn" onClick={onRemove}>
+      <button className="phone-remove-btn" onClick={handleRemove}>
         ✕
       </button>
     </div>
@@ -708,11 +799,52 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
   t,
 }) => {
   const favorites = t.account.favorites as Record<string, string>
+  
+  // Modal states
+  const [showClearModal, setShowClearModal] = React.useState(false)
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
+  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
+  const [pendingDeleteSeriesName, setPendingDeleteSeriesName] = React.useState<string>('')
 
   // Sort items by addedAt descending (most recent first)
   const sortedItems = [...items].sort(
     (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
   )
+
+  const handleClearClick = () => {
+    setShowClearModal(true)
+  }
+
+  const handleClearConfirm = async () => {
+    await onClearFavorites()
+    setShowClearModal(false)
+  }
+
+  const handleClearCancel = () => {
+    setShowClearModal(false)
+  }
+
+  const handleDeleteClick = (seriesId: string, seriesName: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setPendingDeleteSeriesId(seriesId)
+    setPendingDeleteSeriesName(seriesName)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (pendingDeleteSeriesId) {
+      await onRemoveItem(pendingDeleteSeriesId)
+    }
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeriesName('')
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setPendingDeleteSeriesId(null)
+    setPendingDeleteSeriesName('')
+  }
 
   if (sortedItems.length === 0) {
     return (
@@ -728,7 +860,7 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
 
   return (
     <div className="phone-favorites-section">
-      <button className="phone-clear-btn" onClick={onClearFavorites}>
+      <button className="phone-clear-btn" onClick={handleClearClick}>
         {favorites.clearFavorites || 'Clear Favorites'}
       </button>
       <div className="phone-favorites-list">
@@ -748,16 +880,58 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
             <span className="phone-favorite-name">{item.seriesName}</span>
             <button
               className="phone-remove-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemoveItem(item.seriesId)
-              }}
+              onClick={(e) => handleDeleteClick(item.seriesId, item.seriesName, e)}
             >
               ✕
             </button>
           </div>
         ))}
       </div>
+
+      {/* Clear Favorites Confirmation Modal */}
+      {showClearModal && (
+        <div className="phone-modal-overlay" onClick={handleClearCancel}>
+          <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="phone-modal-icon">🗑️</span>
+            <h3 className="phone-modal-title">{favorites.clearConfirmTitle || 'Clear Favorites'}</h3>
+            <p className="phone-modal-message">
+              {favorites.clearConfirmMessage || 'Are you sure you want to clear all favorites? This action cannot be undone.'}
+            </p>
+            <div className="phone-modal-buttons">
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleClearConfirm}>
+                {favorites.clearFavorites || 'Clear Favorites'}
+              </button>
+              <button className="phone-modal-cancel" onClick={handleClearCancel}>
+                {favorites.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Item Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+          <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="phone-modal-icon">🗑️</span>
+            <h3 className="phone-modal-title">{favorites.deleteConfirmTitle || 'Remove from Favorites'}</h3>
+            {pendingDeleteSeriesName && (
+              <div className="phone-modal-series">{pendingDeleteSeriesName}</div>
+            )}
+            <p className="phone-modal-message">
+              {favorites.deleteConfirmMessage || 'Are you sure you want to remove this item from your favorites?'}
+            </p>
+            <div className="phone-modal-buttons">
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+                {favorites.remove || 'Remove'}
+              </button>
+              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
+                {favorites.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

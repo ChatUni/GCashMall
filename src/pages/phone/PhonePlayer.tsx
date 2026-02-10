@@ -76,10 +76,13 @@ const PhonePlayer: React.FC = () => {
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
-  const [showEpisodeList, setShowEpisodeList] = useState(false)
+  const [showEpisodeList, setShowEpisodeList] = useState(true)
   const [showFavoriteModal, setShowFavoriteModal] = useState(false)
   const [favoriteModalAction, setFavoriteModalAction] = useState<'add' | 'remove'>('add')
   const [dontShowFavoriteAgain, setDontShowFavoriteAgain] = useState(false)
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+  const [showExpandButton, setShowExpandButton] = useState(false)
+  const descriptionRef = useRef<HTMLParagraphElement>(null)
 
   // Initialize data
   if (id) {
@@ -116,7 +119,6 @@ const PhonePlayer: React.FC = () => {
   const handleEpisodeClick = (episode: Episode) => {
     playerStoreActions.setCurrentEpisode(episode)
     navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
-    setShowEpisodeList(false)
     if (id) {
       handleWatchListUpdate(id, episode.episodeNumber)
     }
@@ -248,6 +250,25 @@ const PhonePlayer: React.FC = () => {
   const filteredEpisodes = filterEpisodesByRange(playerState.episodes, playerState.episodeRange)
   const ranges = getEpisodeRanges(playerState.episodes.length)
 
+  // Check if description is truncated and needs expand button
+  useEffect(() => {
+    const checkTruncation = () => {
+      if (descriptionRef.current) {
+        const element = descriptionRef.current
+        // Check if text is truncated by comparing scrollHeight with clientHeight
+        const isTruncated = element.scrollHeight > element.clientHeight
+        setShowExpandButton(isTruncated)
+      }
+    }
+    
+    // Reset expanded state when episode/series changes
+    setIsDescriptionExpanded(false)
+    
+    // Small delay to ensure content is rendered
+    const timer = setTimeout(checkTruncation, 100)
+    return () => clearTimeout(timer)
+  }, [playerState.currentEpisode, playerState.series])
+
   if (playerState.loading) {
     return (
       <PhoneLayout showHeader={true} showBackButton={true} title="">
@@ -270,7 +291,7 @@ const PhonePlayer: React.FC = () => {
         {/* Video Player */}
         <div className="phone-video-container">
           <button className="phone-player-back" onClick={() => navigate(-1)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
@@ -344,9 +365,25 @@ const PhonePlayer: React.FC = () => {
           </div>
 
           {/* Description */}
-          <p className="phone-player-description">
-            {playerState.currentEpisode?.description || playerState.series.description}
-          </p>
+          <div className="phone-player-description-container">
+            <p
+              ref={descriptionRef}
+              className={`phone-player-description ${isDescriptionExpanded ? 'expanded' : ''}`}
+            >
+              {playerState.currentEpisode?.description || playerState.series.description}
+            </p>
+            {showExpandButton && (
+              <button
+                className={`phone-player-expand-btn ${isDescriptionExpanded ? 'expanded' : ''}`}
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              >
+                {isDescriptionExpanded ? ((t.player as unknown as Record<string, string>).collapse || 'Show Less') : ((t.player as unknown as Record<string, string>).expand || 'Show More')}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6,9 12,15 18,9" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Episode List Toggle */}

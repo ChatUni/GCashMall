@@ -234,6 +234,8 @@ export const zh = {
     removeFromFavoritesMessage: '从收藏夹中移除此剧集？',
     dontShowAgain: '不再提醒',
     confirm: '确认',
+    expand: '展开',
+    collapse: '收起',
     purchaseDialog: {
       title: '需要购买',
       message: '您需要购买此集才能继续观看。费用为 {cost} GCash。',

@@ -8,7 +8,7 @@ The Phone Home page is the main landing page for the mobile UI, featuring a hero
 
 ### Layout
 - Uses the standard phone layout
-- Logo and search icon in header
+- Header shows logo on left, "Home" title in center, search icon on right
 - Bottom navigation visible
 - Vertically scrolling content
 

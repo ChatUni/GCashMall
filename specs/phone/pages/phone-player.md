@@ -25,6 +25,17 @@ The Phone Player page provides a mobile-optimized video playback experience with
 - 16:9 aspect ratio
 - Black background
 
+### Back Button
+- Position: absolute, top-left corner (16px from top and left)
+- Size: 44x44 pixels, circular (border-radius 50%)
+- Background: semi-transparent black (rgba(0, 0, 0, 0.5))
+- Icon: Left arrow SVG, 28x28 pixels, white color (#ffffff), stroke-width 2.5
+- Z-index: 10 (above video)
+- Hover state: Arrow turns blue (#3B82F6)
+- Active state: Scale 0.95, arrow turns darker blue (#2563EB)
+- Transition: 0.2s ease for color and transform
+- On tap: Navigate back to previous page
+
 ### Video Display
 - Fills container
 - Maintains aspect ratio
@@ -103,23 +114,26 @@ The Phone Player page provides a mobile-optimized video playback experience with
 ## Episode List Section
 
 ### Section Header
-- "Episodes" title
+- "Episodes (count)" title with episode count
 - 16 pixel font, bold
 - White text
+- Collapsible toggle with arrow icon
+- **Default state: Expanded** (episodes visible by default)
 
 ### Episode Grid
 - 5 columns of episode buttons
 - 8 pixel gap between buttons
 - Horizontal padding
+- **Stays expanded when clicking an episode** (does not collapse)
 
 ### Episode Button
-- Square shape
-- Episode number displayed
-- Different colors for states:
-  - Default: Dark gray background, white text
-  - Current: Blue background, white text
-  - Watched: Dark gray background, gray text
-  - Locked: Dark gray background, lock icon
+- Small rectangular shape with rounded corners (6px border-radius)
+- Episode number displayed (e.g., "01", "02")
+- Dark gray background (#1a1a1e)
+- Different text colors for states:
+  - Default (unselected): White text (#ffffff)
+  - Current (selected): Blue text (#3B82F6)
+  - Purchased: Shows green checkmark indicator
 
 ### Locked Episodes
 - Shows lock icon instead of number
@@ -276,7 +290,8 @@ The Phone Player page provides a mobile-optimized video playback experience with
 |---------|--------|--------|
 | Video | Tap | Toggle play/pause |
 | Fullscreen | Tap | Enter fullscreen mode |
-| Episode Button | Tap | Switch to that episode |
+| Episode Toggle | Tap | Expand/collapse episode list |
+| Episode Button | Tap | Switch to that episode (list stays expanded) |
 | Tag | Tap | Navigate to genre with tag |
 | Related Card | Tap | Navigate to that series |
 | Back | Tap | Return to previous page |

@@ -73,14 +73,16 @@ The Phone Account page provides user profile management, watch history, and sett
 | overview | 👤 | Overview | 概览 |
 | watchHistory | 📺 | Watch History | 观看历史 |
 | favorites | ❤️ | Favorites | 收藏夹 |
-| settings | ⚙️ | Settings | 设置 |
-| wallet | 💰 | Wallet | 钱包 |
 | myPurchases | 🛒 | My Purchases | 我的购买 |
 | mySeries | 🎬 | My Series | 我的剧集 |
+| wallet | 💰 | Wallet | 钱包 |
+| settings | ⚙️ | Settings | 设置 |
 | about | ℹ️ | About | 关于 |
 | contact | ✉️ | Contact | 联系我们 |
 
 ## User Profile Header (Logged In)
+
+**Note:** The user profile header is only visible when the Overview tab is selected.
 
 ### Container
 - Vertical centered layout
@@ -155,6 +157,29 @@ Each action shows:
 - Blue bar on thumbnail
 - Width indicates watch progress percentage
 
+### Clear History Confirmation Modal
+- Triggered when clicking "Clear History" button
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 🗑️ (48 pixel)
+- Title: "Clear Watch History" (20 pixel font, 600 weight, white)
+- Message: "Are you sure you want to clear all watch history? This action cannot be undone." (14 pixel font, gray, 1.5 line height)
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm: red background (#ef4444), white text
+  - Cancel: gray background (#2a2a2e), white text
+
+### Delete Item Confirmation Modal
+- Triggered when clicking remove (X) button on individual history item
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 🗑️ (48 pixel)
+- Title: "Remove from History" (20 pixel font, 600 weight, white)
+- Series name box: dark background (#242428), 8 pixel border radius (shows series name)
+- Message: "Are you sure you want to remove this item from your watch history?" (14 pixel font, gray, 1.5 line height)
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm: red background (#ef4444), white text
+  - Cancel: gray background (#2a2a2e), white text
+
 ## Password Section (Logged In - Overview Tab)
 
 ### Container
@@ -176,8 +201,8 @@ Each field includes:
 
 ### Field Types
 - Current Password (only shown if user has password)
-- New Password
-- Confirm Password
+- New Password (with password requirements hint)
+- Confirm Password (error message only, no hint)
 
 ### Password Input
 - Dark background (#242428)
@@ -185,6 +210,7 @@ Each field includes:
 - 8 pixel border radius
 - 12 pixel padding
 - 48 pixel right padding to accommodate toggle button
+- Fixed height: 44 pixel (min-height and max-height)
 
 ### Password Visibility Toggle
 - Positioned absolute on right side of input
@@ -195,6 +221,18 @@ Each field includes:
 - Icon states:
   - Password hidden: Crossed-out eye icon (eye with diagonal line)
   - Password visible: Open eye icon (eye with pupil circle)
+
+### Password Requirements Hint
+- Displayed below New Password field when no error
+- Text: "Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character"
+- Font size: 12 pixel
+- Color: Gray (#9CA3AF)
+- Line height: 1.4
+- When error exists: shows red error message instead of gray hint
+
+### Confirm Password Error
+- Only shows red error message when validation fails
+- No gray hint displayed (unlike New Password field)
 
 ### Submit Button
 - Blue background (#3B82F6)
@@ -273,7 +311,30 @@ Each field includes:
 
 ### Interactions
 - On item click: navigate to player with series
-- On remove button click: call remove from favorites API
+- On remove button click: show Delete Item Confirmation Modal
+
+### Clear Favorites Confirmation Modal
+- Triggered when clicking "Clear Favorites" button
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 🗑️ (48 pixel)
+- Title: "Clear Favorites" (20 pixel font, 600 weight, white)
+- Message: "Are you sure you want to clear all favorites? This action cannot be undone." (14 pixel font, gray, 1.5 line height)
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm: red background (#ef4444), white text
+  - Cancel: gray background (#2a2a2e), white text
+
+### Delete Favorite Item Confirmation Modal
+- Triggered when clicking remove (X) button on individual favorite item
+- Overlay: black with 80% opacity
+- Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
+- Icon: 🗑️ (48 pixel)
+- Title: "Remove from Favorites" (20 pixel font, 600 weight, white)
+- Series name box: dark background (#242428), 8 pixel border radius (shows series name)
+- Message: "Are you sure you want to remove this item from your favorites?" (14 pixel font, gray, 1.5 line height)
+- Buttons: vertical stack, 10 pixel gap
+  - Confirm: red background (#ef4444), white text
+  - Cancel: gray background (#2a2a2e), white text
 
 ### Empty State
 - Heart icon (❤️)
@@ -782,8 +843,7 @@ When the user is not logged in, the account page shows a login prompt instead of
 
 ### Header Section
 - Centered layout
-- 48 pixel vertical padding, 16 pixel horizontal padding
-- Minimum height: 180 pixel
+- Padding: 59 pixel top, 16 pixel horizontal, 16 pixel bottom
 
 #### Icon
 - Emoji: ✉️
@@ -820,8 +880,7 @@ When the user is not logged in, the account page shows a login prompt instead of
 #### Email Info Section
 - Background: #1A1A1E
 - Border radius: 12 pixel
-- Padding: 24 pixel vertical, 20 pixel horizontal
-- Minimum height: 140 pixel
+- Padding: 26 pixel
 - Centered content (both horizontal and vertical)
 - 12 pixel gap between elements
 

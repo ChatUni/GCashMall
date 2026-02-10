@@ -30,13 +30,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   color: #ffffff;
   cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.phone-player-back:hover {
+  color: #3B82F6;
+}
+
+.phone-player-back:active {
+  transform: scale(0.95);
+  color: #2563EB;
 }
 
 .phone-video-iframe {
@@ -147,6 +157,10 @@
 }
 
 /* Description */
+.phone-player-description-container {
+  position: relative;
+}
+
 .phone-player-description {
   font-size: 13px;
   color: #9CA3AF;
@@ -156,6 +170,35 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.phone-player-description.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.phone-player-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 0 0 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-player-expand-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.phone-player-expand-btn.expanded svg {
+  transform: rotate(180deg);
 }
 
 /* Episode Toggle */
@@ -228,13 +271,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
+  padding: 10px 8px;
   background: #1a1a1e;
   border: none;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 6px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -243,8 +283,14 @@
   opacity: 0.8;
 }
 
-.phone-episode-item.active {
-  background: #3B82F6;
+.phone-episode-grid .phone-episode-number {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.phone-episode-grid .phone-episode-item.active .phone-episode-number {
+  color: #3B82F6;
 }
 
 .phone-episode-purchased {

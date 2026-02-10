@@ -235,6 +235,8 @@ export const en = {
     removeFromFavoritesMessage: 'Remove this series from your favorites?',
     dontShowAgain: "Don't show again",
     confirm: 'Confirm',
+    expand: 'Show More',
+    collapse: 'Show Less',
     purchaseDialog: {
       title: 'Purchase Required',
       message: 'You must purchase the episode in order to continue watching. It will cost {cost} GCash.',
