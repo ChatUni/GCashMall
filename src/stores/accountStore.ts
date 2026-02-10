@@ -382,8 +382,19 @@ export const accountStoreActions = {
   getState: accountStore.getState,
 }
 
-// Nav items config
+// Nav items config for desktop (without about/contact - those are separate pages)
 export const navItems: { key: AccountTab; icon: string }[] = [
+  { key: 'overview', icon: '👤' },
+  { key: 'watchHistory', icon: '📺' },
+  { key: 'favorites', icon: '❤️' },
+  { key: 'myPurchases', icon: '🛒' },
+  { key: 'mySeries', icon: '🎬' },
+  { key: 'wallet', icon: '💰' },
+  { key: 'settings', icon: '⚙️' },
+]
+
+// Nav items config for phone (includes about/contact as tabs)
+export const phoneNavItems: { key: AccountTab; icon: string }[] = [
   { key: 'overview', icon: '👤' },
   { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },

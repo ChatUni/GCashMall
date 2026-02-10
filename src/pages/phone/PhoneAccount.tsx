@@ -4,7 +4,7 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import { SeriesEditContent } from '../SeriesEdit'
 import { useLanguage } from '../../context/LanguageContext'
-import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab } from '../../stores/accountStore'
+import { useAccountStore, accountStoreActions, phoneNavItems, walletAmounts, type AccountTab } from '../../stores/accountStore'
 import {
   initializeAccountData,
   fetchAccountUserData,
@@ -66,7 +66,7 @@ const PhoneAccount: React.FC = () => {
   }
 
   const tabFromUrl = searchParams.get('tab')
-  if (tabFromUrl && navItems.some((item) => item.key === tabFromUrl) && state.activeTab !== tabFromUrl) {
+  if (tabFromUrl && phoneNavItems.some((item) => item.key === tabFromUrl) && state.activeTab !== tabFromUrl) {
     accountStoreActions.setActiveTab(tabFromUrl as AccountTab)
   }
 
@@ -213,7 +213,7 @@ const PhoneAccount: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="phone-account-tabs">
-          {navItems.map((item) => (
+          {phoneNavItems.map((item) => (
             <button
               key={item.key}
               className={`phone-account-tab ${state.activeTab === item.key ? 'active' : ''}`}

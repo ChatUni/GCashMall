@@ -68,6 +68,9 @@ The Phone Account page provides user profile management, watch history, and sett
 - Font size: 20 pixel (emoji)
 
 ### Available Tabs
+
+**Note:** The phone Account page includes "About" and "Contact" as tabs, unlike the desktop version where these are separate pages accessible from the TopBar. This provides a more integrated mobile experience.
+
 | Key | Icon | English | Chinese |
 |-----|------|---------|---------|
 | overview | 👤 | Overview | 概览 |
