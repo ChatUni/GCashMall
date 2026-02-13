@@ -97,14 +97,24 @@ The Phone Genre page displays series organized by categories in a grid layout wi
 - **Display**: Grid
 - **Gap**: 12px
 - **Padding**: 0 (already in page padding)
+- **Align Items**: start (ensures cards align at top of each row)
 
-### Grid Template (≤360px)
-- **Columns**: 2
-- **Template**: repeat(2, 1fr)
+### Grid Card Overrides
+- **Width**: 100% (fills grid cell)
+- **Min Width**: 0 (allows proper shrinking)
 
 ### Grid Template (>360px)
 - **Columns**: 3
 - **Template**: repeat(3, 1fr)
+
+### Grid Template (240px - 360px)
+- **Columns**: 2
+- **Template**: repeat(2, 1fr)
+
+### Grid Template (≤240px)
+- **Columns**: 1
+- **Template**: 1fr
+- **Card Max Width**: 150px (prevents cards from being too wide)
 
 ## Categories
 
