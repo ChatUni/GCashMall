@@ -159,11 +159,13 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  align-items: start;
 }
 
 /* Override PhoneSeriesCard fixed width inside genre grid */
 .phone-genre-grid .phone-series-card {
   width: 100%;
+  min-width: 0;
 }
 
 /* Skeleton Loading */
@@ -235,6 +237,16 @@
 @media (max-width: 360px) {
   .phone-genre-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 240px) {
+  .phone-genre-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .phone-genre-grid .phone-series-card {
+    max-width: 150px;
   }
 }
 
