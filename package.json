@@ -15,7 +15,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "netlify dev",
-    "postinstall": "node scripts/cordova-android-jdk-fix.js",
     "cordova:prepare": "npm run build && npx cordova prepare android",
     "cordova:build": "npm run build && npx cordova build android && cp platforms/android/app/build/outputs/apk/debug/app-debug.apk /Volumes/i13/",
     "cordova:build:release": "npm run build && npx cordova build android --release && cp platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk /Volumes/i13/",
