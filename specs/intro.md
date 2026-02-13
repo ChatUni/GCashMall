@@ -8,3 +8,5 @@ Follow the pages/API specs under the specs folder and generate the corresponding
 - data models
 - API calls
 - seed data in db
+
+This app supports Android, use Apache Cordova to package the app. 

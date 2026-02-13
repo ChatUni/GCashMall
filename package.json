@@ -3,12 +3,24 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "cordova": {
+    "platforms": [
+      "android"
+    ],
+    "plugins": {}
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "netlify dev"
+    "start": "netlify dev",
+    "postinstall": "node scripts/cordova-android-jdk-fix.js",
+    "cordova:prepare": "npm run build && npx cordova prepare android",
+    "cordova:build": "npm run build && npx cordova build android && cp platforms/android/app/build/outputs/apk/debug/app-debug.apk /Volumes/i13/",
+    "cordova:build:release": "npm run build && npx cordova build android --release && cp platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk /Volumes/i13/",
+    "cordova:run": "npm run build && npx cordova run android",
+    "cordova:emulate": "npm run build && npx cordova emulate android"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -27,11 +39,14 @@
     "@types/react-dom": "^19.2.3",
     "@types/youtube": "^0.1.2",
     "@vitejs/plugin-react": "^5.1.1",
+    "cordova": "^13.0.0",
+    "cordova-android": "^14.0.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "netlify-cli": "^23.12.2",
+    "sharp": "^0.34.5",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

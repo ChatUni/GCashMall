@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.gcashmall.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>GCashMall</name>
+    <description>GCashMall - Online Store App</description>
+    <author email="support@gcashmall.com" href="https://gcashmall.com">GCashMall Team</author>
+    <content src="index.html" />
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <platform name="android">
+        <allow-intent href="market:*" />
+        <icon density="ldpi" src="res/android/ldpi.png" />
+        <icon density="mdpi" src="res/android/mdpi.png" />
+        <icon density="hdpi" src="res/android/hdpi.png" />
+        <icon density="xhdpi" src="res/android/xhdpi.png" />
+        <icon density="xxhdpi" src="res/android/xxhdpi.png" />
+        <icon density="xxxhdpi" src="res/android/xxxhdpi.png" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/android/xhdpi.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
+        <preference name="android-minSdkVersion" value="22" />
+        <preference name="android-targetSdkVersion" value="34" />
+        <preference name="android-compileSdkVersion" value="35" />
+        <preference name="AndroidInsecureFileModeEnabled" value="true" />
+        <preference name="Scheme" value="http" />
+        <preference name="Hostname" value="localhost" />
+        <preference name="MixedContentMode" value="0" />
+        <resource-file src="res/android/network_security_config.xml" target="app/src/main/res/xml/network_security_config.xml" />
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:networkSecurityConfig="@xml/network_security_config" android:usesCleartextTraffic="true" />
+        </edit-config>
+    </platform>
+    <platform name="ios">
+        <allow-intent href="itms:*" />
+        <allow-intent href="itms-apps:*" />
+        <preference name="WKWebViewOnly" value="true" />
+        <preference name="scheme" value="app" />
+        <preference name="hostname" value="localhost" />
+        <allow-navigation href="*" />
+        <edit-config file="*-Info.plist" mode="merge" target="NSAppTransportSecurity">
+            <dict>
+                <key>NSAllowsArbitraryLoads</key>
+                <true />
+                <key>NSAllowsArbitraryLoadsInWebContent</key>
+                <true />
+                <key>NSAllowsLocalNetworking</key>
+                <true />
+            </dict>
+        </edit-config>
+    </platform>
+    <preference name="DisallowOverscroll" value="true" />
+    <preference name="Orientation" value="default" />
+    <preference name="BackupWebStorage" value="none" />
+    <preference name="SplashScreenDelay" value="3000" />
+    <preference name="AutoHideSplashScreen" value="true" />
+    <preference name="FadeSplashScreen" value="true" />
+    <preference name="FadeSplashScreenDuration" value="500" />
+    <preference name="ShowSplashScreenSpinner" value="false" />
+</widget>
