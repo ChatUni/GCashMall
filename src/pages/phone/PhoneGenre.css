@@ -161,6 +161,11 @@
   gap: 12px;
 }
 
+/* Override PhoneSeriesCard fixed width inside genre grid */
+.phone-genre-grid .phone-series-card {
+  width: 100%;
+}
+
 /* Skeleton Loading */
 .phone-genre-skeleton {
   width: 100%;
