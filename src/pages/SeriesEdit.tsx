@@ -45,6 +45,9 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
   
   // Save confirmation modal state
   const [showSaveModal, setShowSaveModal] = useState(false)
+  
+  // Cancel confirmation modal state
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   // Initialize data (not in useEffect)
   const initKey = id || 'new'
@@ -55,12 +58,18 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
   }
 
   const handleCancelClick = () => {
-    const confirmed = window.confirm(t.seriesEdit.confirmCancel)
-    if (confirmed) {
-      // Clear from initialized set so it reinitializes next time
-      initializedIds.delete(initKey)
-      onCancel()
-    }
+    setShowCancelModal(true)
+  }
+
+  const handleCancelConfirm = () => {
+    setShowCancelModal(false)
+    // Clear from initialized set so it reinitializes next time
+    initializedIds.delete(initKey)
+    onCancel()
+  }
+
+  const handleCancelCancel = () => {
+    setShowCancelModal(false)
   }
 
   const handleSaveClick = () => {
@@ -166,6 +175,18 @@ export const SeriesEditContent: React.FC<SeriesEditContentProps> = ({
           cancelLabel={t.seriesEdit.cancel}
           onConfirm={handleSaveConfirm}
           onCancel={handleSaveCancel}
+        />
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && (
+        <CancelConfirmationModal
+          title={(t.seriesEdit as Record<string, string>).confirmCancelTitle || 'Discard Changes?'}
+          message={(t.seriesEdit as Record<string, string>).confirmCancelMessage || 'Are you sure you want to cancel? Any unsaved changes will be lost.'}
+          confirmLabel={(t.seriesEdit as Record<string, string>).discardChanges || 'Discard Changes'}
+          cancelLabel={(t.seriesEdit as Record<string, string>).keepEditing || 'Keep Editing'}
+          onConfirm={handleCancelConfirm}
+          onCancel={handleCancelCancel}
         />
       )}
     </div>
@@ -421,6 +442,40 @@ const SaveConfirmationModal: React.FC<SaveConfirmationModalProps> = ({
       <p className="save-modal-message">{message}</p>
       <div className="save-modal-buttons">
         <button className="save-modal-btn save-modal-btn-confirm" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+        <button className="save-modal-btn save-modal-btn-cancel" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+interface CancelConfirmationModalProps {
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const CancelConfirmationModal: React.FC<CancelConfirmationModalProps> = ({
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}) => (
+  <div className="save-modal-overlay" onClick={onCancel}>
+    <div className="save-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="save-modal-icon">⚠️</div>
+      <h2 className="save-modal-title">{title}</h2>
+      <p className="save-modal-message">{message}</p>
+      <div className="save-modal-buttons">
+        <button className="save-modal-btn save-modal-btn-warning" onClick={onConfirm}>
           {confirmLabel}
         </button>
         <button className="save-modal-btn save-modal-btn-cancel" onClick={onCancel}>

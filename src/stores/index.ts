@@ -267,3 +267,47 @@ export const toastStoreActions = {
   hide: () => toastStore.setState((prev) => ({ ...prev, isVisible: false })),
   getState: toastStore.getState,
 }
+
+// Video Feed store (for TikTok-style home page)
+interface VideoFeedState {
+  videos: Series[]
+  currentIndex: number
+  loading: boolean
+  hasMore: boolean
+  page: number
+  isMuted: boolean
+}
+
+const videoFeedStore = createStore<VideoFeedState>({
+  videos: [],
+  currentIndex: 0,
+  loading: true,
+  hasMore: true,
+  page: 1,
+  isMuted: true,
+})
+
+export const useVideoFeedStore = () => {
+  const state = useSyncExternalStore(videoFeedStore.subscribe, videoFeedStore.getState)
+  return state
+}
+
+export const videoFeedStoreActions = {
+  setVideos: (videos: Series[]) => videoFeedStore.setState((prev) => ({ ...prev, videos })),
+  appendVideos: (videos: Series[]) => videoFeedStore.setState((prev) => ({ ...prev, videos: [...prev.videos, ...videos] })),
+  setCurrentIndex: (currentIndex: number) => videoFeedStore.setState((prev) => ({ ...prev, currentIndex })),
+  setLoading: (loading: boolean) => videoFeedStore.setState((prev) => ({ ...prev, loading })),
+  setHasMore: (hasMore: boolean) => videoFeedStore.setState((prev) => ({ ...prev, hasMore })),
+  setPage: (page: number) => videoFeedStore.setState((prev) => ({ ...prev, page })),
+  setIsMuted: (isMuted: boolean) => videoFeedStore.setState((prev) => ({ ...prev, isMuted })),
+  toggleMute: () => videoFeedStore.setState((prev) => ({ ...prev, isMuted: !prev.isMuted })),
+  reset: () => videoFeedStore.setState({
+    videos: [],
+    currentIndex: 0,
+    loading: true,
+    hasMore: true,
+    page: 1,
+    isMuted: true,
+  }),
+  getState: videoFeedStore.getState,
+}

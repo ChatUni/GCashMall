@@ -1,0 +1,29 @@
+/* Phone Layout Container */
+.phone-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #0B0B0E;
+  position: relative;
+}
+
+/* Phone Content Area */
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 70px; /* Space for bottom nav */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area support for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .phone-layout {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .phone-content {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+}

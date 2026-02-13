@@ -9,6 +9,7 @@ import {
   playerStoreActions,
   userStoreActions,
   toastStoreActions,
+  videoFeedStoreActions,
 } from '../stores'
 import { accountStoreActions } from '../stores/accountStore'
 import type { Series, WatchHistoryItem, FavoriteItem, Genre, User } from '../types'
@@ -42,6 +43,44 @@ export const fetchNewReleases = async () => {
     newReleasesStoreActions.setSeries(data.data)
   }
   newReleasesStoreActions.setLoading(false)
+}
+
+// Video feed for TikTok-style home page
+export const fetchVideoFeed = async (page: number = 1, limit: number = 10) => {
+  videoFeedStoreActions.setLoading(true)
+  try {
+    // Use recommendations API for video feed (can be replaced with dedicated endpoint)
+    const data = await apiGet<Series[]>('recommendations', { page, limit })
+    if (data.success && data.data) {
+      // Filter series that have videoId for preview
+      const videosWithPreview = data.data.filter(series => series.videoId || (series.episodes && series.episodes.length > 0))
+      
+      if (page === 1) {
+        videoFeedStoreActions.setVideos(videosWithPreview)
+      } else {
+        videoFeedStoreActions.appendVideos(videosWithPreview)
+      }
+      
+      // Check if there are more videos to load
+      videoFeedStoreActions.setHasMore(videosWithPreview.length >= limit)
+      videoFeedStoreActions.setPage(page)
+    } else {
+      videoFeedStoreActions.setHasMore(false)
+    }
+  } catch (error) {
+    console.error('Error fetching video feed:', error)
+    videoFeedStoreActions.setHasMore(false)
+  } finally {
+    videoFeedStoreActions.setLoading(false)
+  }
+}
+
+// Load more videos for infinite scroll
+export const loadMoreVideos = async () => {
+  const state = videoFeedStoreActions.getState()
+  if (!state.loading && state.hasMore) {
+    await fetchVideoFeed(state.page + 1)
+  }
 }
 
 // Player data

@@ -1,0 +1,147 @@
+/* Phone Contact Page */
+.phone-contact {
+  padding: 24px 16px;
+}
+
+.phone-contact-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.phone-contact-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.phone-contact-subtitle {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin: 0;
+}
+
+/* Contact Form */
+.phone-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.phone-contact-form .phone-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phone-contact-form label {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.phone-contact-form input,
+.phone-contact-form textarea {
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 8px;
+  padding: 12px;
+  color: #ffffff;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+}
+
+.phone-contact-form input:focus,
+.phone-contact-form textarea:focus {
+  border-color: #3B82F6;
+}
+
+.phone-contact-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.phone-submit-btn {
+  background: #3B82F6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.phone-submit-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Contact Info */
+.phone-contact-info {
+  background: #1a1a1e;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.phone-contact-info h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.phone-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.phone-contact-item:last-child {
+  border-bottom: none;
+}
+
+.phone-contact-icon {
+  font-size: 24px;
+}
+
+.phone-contact-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phone-contact-label {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.phone-contact-value {
+  font-size: 14px;
+  color: #ffffff;
+}
+
+/* Toast */
+.phone-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  z-index: 1100;
+}
+
+.phone-toast-success {
+  background: #22c55e;
+}
+
+.phone-toast-error {
+  background: #ef4444;
+}

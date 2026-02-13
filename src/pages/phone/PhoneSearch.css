@@ -1,0 +1,190 @@
+/* Phone Search Page */
+.phone-search {
+  min-height: 100%;
+}
+
+/* Search Header */
+.phone-search-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #0B0B0E;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.phone-search-input-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #1a1a1e;
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 44px;
+}
+
+.phone-search-icon {
+  color: #9CA3AF;
+  flex-shrink: 0;
+}
+
+.phone-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 16px;
+  padding: 0 12px;
+  height: 100%;
+}
+
+.phone-search-input::placeholder {
+  color: #9CA3AF;
+}
+
+.phone-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  padding: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-search-cancel {
+  background: transparent;
+  border: none;
+  color: #3B82F6;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Suggestions */
+.phone-search-suggestions {
+  padding: 8px 0;
+}
+
+.phone-search-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-search-suggestion:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.phone-suggestion-icon {
+  color: #9CA3AF;
+  flex-shrink: 0;
+}
+
+.phone-suggestion-title {
+  flex: 1;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.phone-suggestion-tag {
+  font-size: 12px;
+  color: #9CA3AF;
+  background: #242428;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Search Results */
+.phone-search-results {
+  padding: 16px;
+}
+
+.phone-search-results-header {
+  margin-bottom: 16px;
+}
+
+.phone-search-results-count {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.phone-search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Skeleton Loading */
+.phone-search-skeleton {
+  width: 100%;
+}
+
+.phone-search-skeleton-image {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.phone-search-skeleton-title {
+  width: 80%;
+  height: 14px;
+  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Empty States */
+.phone-search-empty,
+.phone-search-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.phone-search-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.phone-search-empty p,
+.phone-search-empty-state p {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 360px) {
+  .phone-search-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

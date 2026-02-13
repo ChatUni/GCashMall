@@ -38,7 +38,7 @@ const createStore = <T>(initialState: T) => {
   return { getState, setState, subscribe }
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'about' | 'contact'
 
 export interface ProfileFormState {
   nickname: string
@@ -239,6 +239,11 @@ export const accountStoreActions = {
         s._id === updatedSeries._id ? updatedSeries : s,
       ),
     })),
+  removeSeriesFromList: (seriesId: string) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      mySeries: prev.mySeries.filter((s) => s._id !== seriesId),
+    })),
   
   // Profile form
   setProfileForm: (profileForm: ProfileFormState) => 
@@ -377,15 +382,28 @@ export const accountStoreActions = {
   getState: accountStore.getState,
 }
 
-// Nav items config
+// Nav items config for desktop (without about/contact - those are separate pages)
 export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'overview', icon: '👤' },
   { key: 'watchHistory', icon: '📺' },
   { key: 'favorites', icon: '❤️' },
-  { key: 'settings', icon: '⚙️' },
-  { key: 'wallet', icon: '💰' },
   { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
+  { key: 'wallet', icon: '💰' },
+  { key: 'settings', icon: '⚙️' },
+]
+
+// Nav items config for phone (includes about/contact as tabs)
+export const phoneNavItems: { key: AccountTab; icon: string }[] = [
+  { key: 'overview', icon: '👤' },
+  { key: 'watchHistory', icon: '📺' },
+  { key: 'favorites', icon: '❤️' },
+  { key: 'myPurchases', icon: '🛒' },
+  { key: 'mySeries', icon: '🎬' },
+  { key: 'wallet', icon: '💰' },
+  { key: 'settings', icon: '⚙️' },
+  { key: 'about', icon: 'ℹ️' },
+  { key: 'contact', icon: '✉️' },
 ]
 
 export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]

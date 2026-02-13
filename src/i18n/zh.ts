@@ -25,6 +25,8 @@ export const zh = {
       wallet: '钱包',
       myPurchases: '我的购买',
       mySeries: '我的剧集',
+      about: '关于',
+      contact: '联系我们',
       logout: '退出登录',
     },
     overview: {
@@ -110,6 +112,7 @@ export const zh = {
       confirm: '确认',
       cancel: '取消',
       topUpSuccess: '充值成功',
+      topUpFailed: '充值失败',
       withdraw: '提现',
       withdrawDescription: '选择要从钱包提取的金额',
       selectWithdrawAmount: '选择提现金额',
@@ -129,6 +132,16 @@ export const zh = {
       statusSuccess: '成功',
       statusFailed: '失败',
       statusProcessing: '处理中',
+      // Transaction filter
+      filterAll: '全部',
+      purchase: '购买',
+      // Custom amount
+      custom: '自定义',
+      customTopUp: '自定义充值',
+      customWithdraw: '自定义提现',
+      enterTopUpAmount: '输入要添加的金额',
+      enterWithdrawAmount: '输入要提取的金额',
+      invalidAmount: '请输入有效金额',
     },
     myPurchases: {
       title: '我的购买',
@@ -196,6 +209,10 @@ export const zh = {
     youMightLike: '猜你喜欢',
     newReleases: '新上线',
     viewMore: '查看更多',
+    like: '喜欢',
+    share: '分享',
+    watch: '观看',
+    comments: '评论',
   },
   player: {
     episodes: '剧集',
@@ -221,6 +238,8 @@ export const zh = {
     removeFromFavoritesMessage: '从收藏夹中移除此剧集？',
     dontShowAgain: '不再提醒',
     confirm: '确认',
+    expand: '展开',
+    collapse: '收起',
     purchaseDialog: {
       title: '需要购买',
       message: '您需要购买此集才能继续观看。费用为 {cost} GCash。',

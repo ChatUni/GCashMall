@@ -25,6 +25,8 @@ export const en = {
       wallet: 'Wallet',
       myPurchases: 'My Purchases',
       mySeries: 'My Series',
+      about: 'About',
+      contact: 'Contact',
       logout: 'Logout',
     },
     overview: {
@@ -111,6 +113,7 @@ export const en = {
       confirm: 'Confirm',
       cancel: 'Cancel',
       topUpSuccess: 'Top up successful',
+      topUpFailed: 'Failed to top up',
       withdraw: 'Withdraw',
       withdrawDescription: 'Select an amount to withdraw from your wallet',
       selectWithdrawAmount: 'Select Withdrawal Amount',
@@ -130,6 +133,16 @@ export const en = {
       statusSuccess: 'Success',
       statusFailed: 'Failed',
       statusProcessing: 'Processing',
+      // Transaction filter
+      filterAll: 'All',
+      purchase: 'Purchase',
+      // Custom amount
+      custom: 'Custom',
+      customTopUp: 'Custom Top Up',
+      customWithdraw: 'Custom Withdrawal',
+      enterTopUpAmount: 'Enter the amount to add',
+      enterWithdrawAmount: 'Enter the amount to withdraw',
+      invalidAmount: 'Please enter a valid amount',
     },
     myPurchases: {
       title: 'My Purchases',
@@ -197,6 +210,10 @@ export const en = {
     youMightLike: 'You Might Like',
     newReleases: 'New Releases',
     viewMore: 'View More',
+    like: 'Like',
+    share: 'Share',
+    watch: 'Watch',
+    comments: 'Comments',
   },
   player: {
     episodes: 'Episodes',
@@ -222,6 +239,8 @@ export const en = {
     removeFromFavoritesMessage: 'Remove this series from your favorites?',
     dontShowAgain: "Don't show again",
     confirm: 'Confirm',
+    expand: 'Show More',
+    collapse: 'Show Less',
     purchaseDialog: {
       title: 'Purchase Required',
       message: 'You must purchase the episode in order to continue watching. It will cost {cost} GCash.',

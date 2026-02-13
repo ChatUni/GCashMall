@@ -42,15 +42,18 @@ The Account page is a comprehensive user profile and settings management interfa
 - **Border**: Bottom border 1px solid #242428, margin-bottom 16px
 
 ### Navigation Items
+
+**Note:** The desktop Account page does NOT include "About" and "Contact" tabs. These are available as separate pages accessible from the TopBar navigation. The phone version includes these as tabs within the Account page.
+
 | Key | Icon | Label |
 |-----|------|-------|
 | overview | 👤 | Overview |
 | watchHistory | 📺 | Watch History |
 | favorites | ❤️ | Favorites |
-| settings | ⚙️ | Settings |
-| wallet | 💰 | Wallet |
 | myPurchases | 🛒 | My Purchases |
 | mySeries | 🎬 | My Series |
+| wallet | 💰 | Wallet |
+| settings | ⚙️ | Settings |
 
 ### Navigation Styling
 - **Item Padding**: 13px 14px

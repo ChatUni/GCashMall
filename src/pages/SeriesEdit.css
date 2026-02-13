@@ -356,6 +356,15 @@
   background-color: #3a3a3e;
 }
 
+.save-modal-btn-warning {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.save-modal-btn-warning:hover {
+  background-color: #d97706;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
