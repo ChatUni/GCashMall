@@ -328,8 +328,14 @@ const getFeaturedSeries = async (params) => {
 
 const getRecommendations = async (params) => {
   try {
-    // Get series and randomize the order
-    const series = await get('series', {}, {}, {}, 20)
+    // Get series with episodes only (either episodes array or videoId)
+    const filter = {
+      $or: [
+        { 'episodes.0': { $exists: true } },
+        { videoId: { $exists: true, $nin: [null, ''] } }
+      ]
+    }
+    const series = await get('series', filter, {}, {}, 20)
     const shuffledSeries = shuffleArray(series).slice(0, 10)
     const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {

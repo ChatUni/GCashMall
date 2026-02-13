@@ -19,26 +19,32 @@ const VideoCard: React.FC<VideoCardProps> = ({ series, isActive, index }) => {
   const { isMuted } = useVideoFeedStore()
   const userState = useUserStore()
   
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const [showPlayIcon, setShowPlayIcon] = useState(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [showHeartAnimation, setShowHeartAnimation] = useState(false)
   const lastTapTime = useRef<number>(0)
+  const [isPaused, setIsPaused] = useState(false)
 
-  // Get video URL - prefer series videoId, fallback to first episode
-  const getVideoUrl = () => {
-    const libraryId = import.meta.env.VITE_BUNNY_LIBRARY_ID
+  // Get video ID - prefer series videoId, fallback to first episode
+  const getVideoId = () => {
     if (series.videoId) {
-      return `https://iframe.mediadelivery.net/embed/${libraryId}/${series.videoId}?autoplay=false&loop=true&muted=${isMuted}&preload=true`
+      return series.videoId
     }
     if (series.episodes && series.episodes.length > 0 && series.episodes[0].videoId) {
-      return `https://iframe.mediadelivery.net/embed/${libraryId}/${series.episodes[0].videoId}?autoplay=false&loop=true&muted=${isMuted}&preload=true`
+      return series.episodes[0].videoId
     }
     return null
   }
 
-  const videoUrl = getVideoUrl()
+  const videoId = getVideoId()
+  const libraryId = import.meta.env.VITE_BUNNY_LIBRARY_ID
+  
+  // Build video URL with autoplay based on isActive state and not manually paused
+  const shouldAutoplay = isActive && !isPaused
+  const videoUrl = videoId 
+    ? `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=${shouldAutoplay}&loop=true&muted=${isMuted}&preload=true`
+    : null
 
   // Check if series is favorited
   const isFavorited = () => {
@@ -46,29 +52,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ series, isActive, index }) => {
     return userState.user.favorites.some(fav => String(fav.seriesId) === String(series._id))
   }
 
-  // Handle video play/pause based on active state
+  // Reset pause state when video becomes active (swipe to this video)
   useEffect(() => {
-    if (videoRef.current) {
-      if (isActive) {
-        videoRef.current.play().catch(() => {
-          // Autoplay might be blocked
-          setIsPlaying(false)
-        })
-        setIsPlaying(true)
-      } else {
-        videoRef.current.pause()
-        videoRef.current.currentTime = 0
-        setIsPlaying(false)
-      }
+    if (isActive) {
+      setIsPaused(false)
     }
   }, [isActive])
-
-  // Handle mute state changes
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted
-    }
-  }, [isMuted])
 
   // Handle tap to pause/play
   const handleVideoTap = () => {
@@ -93,16 +82,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ series, isActive, index }) => {
   }
 
   const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-        setIsPlaying(false)
-        setShowPlayIcon(true)
-        setTimeout(() => setShowPlayIcon(false), 1000)
-      } else {
-        videoRef.current.play()
-        setIsPlaying(true)
-      }
+    if (isPaused) {
+      setIsPaused(false)
+    } else {
+      setIsPaused(true)
+      setShowPlayIcon(true)
+      setTimeout(() => setShowPlayIcon(false), 1000)
     }
   }
 
@@ -208,6 +193,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ series, isActive, index }) => {
       <div className="video-card-player" onClick={handleVideoTap}>
         {videoUrl ? (
           <iframe
+            ref={iframeRef}
             src={videoUrl}
             className="video-card-iframe"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
