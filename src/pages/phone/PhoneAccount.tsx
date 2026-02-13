@@ -229,7 +229,6 @@ const PhoneAccount: React.FC = () => {
         <div className="phone-account-content">
           {state.activeTab === 'overview' && (
             <PhoneOverviewSection
-              user={state.user}
               hasPassword={state.user?.hasPassword ?? true}
               profileForm={state.profileForm}
               profileErrors={state.profileErrors}
@@ -238,12 +237,9 @@ const PhoneAccount: React.FC = () => {
               passwordForm={state.passwordForm}
               passwordErrors={state.passwordErrors}
               passwordChanging={state.passwordChanging}
-              avatarUploading={state.avatarUploading}
-              avatarError={state.avatarError}
               onSaveProfile={onSaveProfile}
               onChangePassword={onChangePassword}
               onSetPassword={onSetPassword}
-              onAvatarUpload={onAvatarUpload}
               t={t}
             />
           )}
@@ -340,7 +336,6 @@ const PhoneAccount: React.FC = () => {
 // Sub-components
 
 interface PhoneOverviewSectionProps {
-  user: { avatar?: string | null; hasPassword?: boolean } | null
   hasPassword: boolean
   profileForm: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
   profileErrors: { emailError: string; phoneError: string; birthdayError: string }
@@ -349,17 +344,13 @@ interface PhoneOverviewSectionProps {
   passwordForm: { currentPassword: string; newPassword: string; confirmPassword: string }
   passwordErrors: { currentPasswordError: string; newPasswordError: string; confirmPasswordError: string }
   passwordChanging: boolean
-  avatarUploading: boolean
-  avatarError: string
   onSaveProfile: () => void
   onChangePassword: () => void
   onSetPassword: () => void
-  onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   t: Record<string, Record<string, unknown>>
 }
 
 const PhoneOverviewSection: React.FC<PhoneOverviewSectionProps> = ({
-  user,
   hasPassword,
   profileForm,
   profileErrors,
@@ -368,12 +359,9 @@ const PhoneOverviewSection: React.FC<PhoneOverviewSectionProps> = ({
   passwordForm,
   passwordErrors,
   passwordChanging,
-  avatarUploading,
-  avatarError,
   onSaveProfile,
   onChangePassword,
   onSetPassword,
-  onAvatarUpload,
   t,
 }) => {
   const overview = t.account.overview as Record<string, string>

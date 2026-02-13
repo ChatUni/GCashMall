@@ -59,7 +59,6 @@ const handleWatchListUpdate = async (seriesId: string, episodeNumber: number) =>
   }
 }
 
-const TIME_LIMIT = 3
 const EPISODE_PRICE = 0.1
 
 const PhonePlayer: React.FC = () => {

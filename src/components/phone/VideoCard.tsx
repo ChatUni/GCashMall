@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
-import { useVideoFeedStore, useUserStore, useLoginModalStore, loginModalStoreActions, videoFeedStoreActions } from '../../stores'
+import { useVideoFeedStore, useUserStore, loginModalStoreActions, videoFeedStoreActions } from '../../stores'
 import { addToFavorites, removeFromFavorites } from '../../services/dataService'
 import { isLoggedIn } from '../../utils/api'
 import type { Series } from '../../types'
