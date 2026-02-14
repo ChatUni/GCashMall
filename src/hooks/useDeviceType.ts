@@ -33,16 +33,34 @@ const detectDeviceType = (): DeviceType => {
   const isMobileUA = isMobileUserAgent()
   const hasTouch = hasTouchCapability()
   
+  // Debug: Log all detection info
+  console.log('[DeviceDetect]', {
+    width,
+    isMobileUA,
+    hasTouch,
+    userAgent: navigator.userAgent,
+    PHONE_MAX_WIDTH,
+    TABLET_MAX_WIDTH
+  })
+  
   // Primary: use viewport width (works with DevTools device emulation)
-  if (width <= PHONE_MAX_WIDTH) return 'phone'
-  if (width <= TABLET_MAX_WIDTH) return 'tablet'
+  if (width <= PHONE_MAX_WIDTH) {
+    console.log('[DeviceDetect] Returning phone (width <= PHONE_MAX_WIDTH)')
+    return 'phone'
+  }
+  if (width <= TABLET_MAX_WIDTH) {
+    console.log('[DeviceDetect] Returning tablet (width <= TABLET_MAX_WIDTH)')
+    return 'tablet'
+  }
   
   // Secondary: if UA indicates mobile and has touch, treat as phone even with larger width
   // This handles cases where mobile browsers request desktop site
   if (isMobileUA && hasTouch && width <= 1280) {
+    console.log('[DeviceDetect] Returning phone (mobile UA + touch + width <= 1280)')
     return 'phone'
   }
   
+  console.log('[DeviceDetect] Returning desktop (fallback)')
   return 'desktop'
 }
 
