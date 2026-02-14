@@ -5,7 +5,7 @@ export type DeviceType = 'phone' | 'tablet' | 'desktop'
 const PHONE_MAX_WIDTH = 768
 const TABLET_MAX_WIDTH = 1024
 
-// Check if user agent indicates a mobile device
+// Check if user agent indicates a mobile device (phone or tablet)
 const isMobileUserAgent = (): boolean => {
   if (typeof navigator === 'undefined') return false
   const userAgent = navigator.userAgent || navigator.vendor || ''
@@ -13,12 +13,10 @@ const isMobileUserAgent = (): boolean => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(userAgent)
 }
 
-// Check if user agent indicates a tablet device
-const isTabletUserAgent = (): boolean => {
-  if (typeof navigator === 'undefined') return false
-  const userAgent = navigator.userAgent || navigator.vendor || ''
-  // iPads and Android tablets
-  return /iPad|Android(?!.*Mobile)/i.test(userAgent)
+// Check if the device has touch capability
+const hasTouchCapability = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0
 }
 
 export const getDeviceType = (width: number): DeviceType => {
@@ -27,43 +25,63 @@ export const getDeviceType = (width: number): DeviceType => {
   return 'desktop'
 }
 
-// Determine device type combining width and user agent detection
-const detectDeviceType = (width: number): DeviceType => {
+// Determine device type - primarily use viewport width
+const detectDeviceType = (): DeviceType => {
+  if (typeof window === 'undefined') return 'desktop'
+  
+  const width = window.innerWidth
   const isMobileUA = isMobileUserAgent()
-  const isTabletUA = isTabletUserAgent()
+  const hasTouch = hasTouchCapability()
   
-  // If user agent indicates mobile/tablet, prioritize that detection
-  // This helps when browser is in "desktop mode" but user is on a phone
-  if (isMobileUA && !isTabletUA) {
-    // User agent says mobile, use phone version regardless of width
-    // unless width is very large (e.g., desktop browser with mobile UA spoofing)
-    if (width <= 1024) return 'phone'
+  // Primary: use viewport width (works with DevTools device emulation)
+  if (width <= PHONE_MAX_WIDTH) return 'phone'
+  if (width <= TABLET_MAX_WIDTH) return 'tablet'
+  
+  // Secondary: if UA indicates mobile and has touch, treat as phone even with larger width
+  // This handles cases where mobile browsers request desktop site
+  if (isMobileUA && hasTouch && width <= 1280) {
+    return 'phone'
   }
   
-  if (isTabletUA) {
-    // User agent says tablet
-    if (width <= TABLET_MAX_WIDTH) return 'tablet'
-    return 'tablet' // Still show tablet version even if width is larger
-  }
-  
-  // Fall back to width-based detection
-  return getDeviceType(width)
+  return 'desktop'
 }
 
 export const useDeviceType = (): DeviceType => {
-  const [deviceType, setDeviceType] = useState<DeviceType>(() =>
-    detectDeviceType(typeof window !== 'undefined' ? window.innerWidth : 1200)
-  )
-
-  useEffect(() => {
-    const handleResize = () => {
-      setDeviceType(detectDeviceType(window.innerWidth))
+  // Initialize with detected value immediately (works on client)
+  const [deviceType, setDeviceType] = useState<DeviceType>(() => {
+    // This runs on initial render - on client, window is available
+    if (typeof window !== 'undefined') {
+      return detectDeviceType()
     }
-
+    return 'desktop' // SSR fallback
+  })
+  
+  useEffect(() => {
+    // Re-detect after mount to ensure correctness (handles any edge cases)
+    const currentType = detectDeviceType()
+    setDeviceType(currentType)
+    
+    // Debug logging to help diagnose issues
+    console.log('useDeviceType: width=', window.innerWidth, 'detected=', currentType, 'ua=', navigator.userAgent.substring(0, 50))
+    
+    // Handle resize events
+    const handleResize = () => {
+      const newType = detectDeviceType()
+      console.log('useDeviceType resize: width=', window.innerWidth, 'detected=', newType)
+      setDeviceType(newType)
+    }
+    
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    
+    // Also listen for orientation change (important for mobile)
+    window.addEventListener('orientationchange', handleResize)
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+    }
   }, [])
-
+  
   return deviceType
 }
 
