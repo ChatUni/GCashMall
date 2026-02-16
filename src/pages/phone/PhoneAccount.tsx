@@ -35,6 +35,7 @@ let accountInitialized = false
 let userDataFetched = false
 let myPurchasesFetched = false
 let mySeriesFetched = false
+let lastProcessedCode: string | null = null
 
 const PhoneAccount: React.FC = () => {
   const { t, language, setLanguage } = useLanguage()
@@ -44,9 +45,18 @@ const PhoneAccount: React.FC = () => {
   const state = useAccountStore()
   const toastState = useToastStore()
 
+  // Check if there's an OAuth code to process
+  const code = searchParams.get('code')
+
   // Initialize data
-  if (!accountInitialized) {
+  // If there's a code that hasn't been processed yet, we need to run initialization
+  // even if accountInitialized is true (user came back from OAuth redirect)
+  const hasNewCode = code && code !== lastProcessedCode
+  if (!accountInitialized || hasNewCode) {
     accountInitialized = true
+    if (code) {
+      lastProcessedCode = code
+    }
     initializeAccountData(searchParams, (params) => setSearchParams(params), navigate)
   }
 
@@ -145,8 +155,17 @@ const PhoneAccount: React.FC = () => {
     }
   }
 
-  // Show login prompt when not logged in
-  // Check this FIRST before loading check - if not logged in, show login prompt regardless of loading state
+  // Check loading FIRST - during OAuth callback processing, show loading state
+  // not the login prompt (since isLoggedIn will be false until OAuth completes)
+  if (state.loading) {
+    return (
+      <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview}>
+        <div className="phone-account-loading">Loading...</div>
+      </PhoneLayout>
+    )
+  }
+
+  // Show login prompt when not logged in (only after loading is complete)
   if (!state.isLoggedIn) {
     return (
       <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview || 'Account'}>
@@ -164,14 +183,6 @@ const PhoneAccount: React.FC = () => {
         {state.showLoginModal && (
           <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
         )}
-      </PhoneLayout>
-    )
-  }
-
-  if (state.loading) {
-    return (
-      <PhoneLayout showHeader={true} title={(t.account.nav as Record<string, string>).overview}>
-        <div className="phone-account-loading">Loading...</div>
       </PhoneLayout>
     )
   }

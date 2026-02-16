@@ -1,4 +1,7 @@
 /* Phone Account Page */
+/* Import shared phone styles */
+@import './phone-common.css';
+
 .phone-account {
   padding-bottom: 20px;
 }
@@ -309,28 +312,6 @@
 
 .phone-save-btn:disabled {
   opacity: 0.5;
-}
-
-/* Empty State */
-.phone-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.phone-empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.phone-empty-state p {
-  font-size: 14px;
-  color: #9CA3AF;
-  margin: 0 0 20px 0;
 }
 
 .phone-explore-btn {
@@ -979,139 +960,6 @@
   color: #eab308;
 }
 
-/* Wallet Popup */
-.phone-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1200;
-  padding: 20px;
-}
-
-.phone-popup-modal {
-  background: #1a1a1e;
-  border-radius: 16px;
-  padding: 24px;
-  width: 100%;
-  max-width: 320px;
-  text-align: center;
-}
-
-.phone-popup-logo {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
-}
-
-.phone-popup-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #3B82F6;
-  margin: 0 0 8px 0;
-}
-
-.phone-popup-message {
-  font-size: 14px;
-  color: #9CA3AF;
-  margin: 0 0 16px 0;
-}
-
-.phone-popup-amount {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 36px;
-  font-weight: 700;
-  color: #3B82F6;
-  margin-bottom: 24px;
-}
-
-.phone-popup-amount-logo {
-  width: 32px;
-  height: 32px;
-}
-
-.phone-popup-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.phone-popup-confirm {
-  background: #3B82F6;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.phone-popup-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.phone-popup-cancel {
-  background: #2a2a2e;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.phone-popup-cancel:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Toast */
-.phone-toast {
-  position: fixed;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #ffffff;
-  z-index: 1100;
-}
-
-.phone-toast-success {
-  background: #22c55e;
-}
-
-.phone-toast-error {
-  background: #ef4444;
-}
-
-.phone-toast-info {
-  background: #3B82F6;
-}
-
-/* Loading State */
-.phone-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: #9CA3AF;
-  font-size: 14px;
-}
-
 /* My Purchases Section */
 .phone-purchases {
   display: flex;
@@ -1184,7 +1032,8 @@
   cursor: pointer;
 }
 
-.phone-episode-thumbnail {
+/* Episode Thumbnail (Account page - 16:9 landscape) */
+.phone-account .phone-episode-thumbnail {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -1193,7 +1042,7 @@
   margin-bottom: 6px;
 }
 
-.phone-episode-thumbnail img {
+.phone-account .phone-episode-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1422,117 +1271,6 @@
 
 .phone-series-action-btn-delete:hover {
   background: rgba(239, 68, 68, 0.4);
-}
-
-/* Modal */
-.phone-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1200;
-  padding: 20px;
-}
-
-.phone-modal {
-  background: #1a1a1e;
-  border-radius: 16px;
-  padding: 24px;
-  max-width: 320px;
-  width: 100%;
-  text-align: center;
-}
-
-.phone-modal-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 16px;
-}
-
-.phone-modal-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 12px 0;
-}
-
-.phone-modal-series {
-  background: #242428;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 12px;
-}
-
-.phone-modal-message {
-  font-size: 14px;
-  color: #9CA3AF;
-  line-height: 1.5;
-  margin: 0 0 20px 0;
-}
-
-.phone-modal-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.phone-modal-confirm {
-  background: #3B82F6;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.phone-modal-cancel {
-  background: #2a2a2e;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 500;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* Delete modal confirm button - red background */
-.phone-modal-confirm-delete {
-  background: #ef4444;
-}
-
-.phone-modal-confirm-delete:hover {
-  background: #dc2626;
-}
-
-.phone-modal-confirm-delete:active {
-  background: #b91c1c;
-}
-
-/* Warning modal confirm button - orange/amber background */
-.phone-modal-confirm-warning {
-  background: #f59e0b;
-}
-
-.phone-modal-confirm-warning:hover {
-  background: #d97706;
-}
-
-.phone-modal-confirm-warning:active {
-  background: #b45309;
-}
-
-.phone-empty-subtext {
-  font-size: 13px;
-  color: #6B7280;
-  margin: 0;
 }
 
 /* About Section Styles */

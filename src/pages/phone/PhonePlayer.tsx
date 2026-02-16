@@ -6,6 +6,7 @@ import LoginModal from '../../components/LoginModal'
 import { useLanguage } from '../../context/LanguageContext'
 import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, userStoreActions, useRecommendationsStore, useNewReleasesStore, useToastStore } from '../../stores'
 import { accountStoreActions } from '../../stores/accountStore'
+import { initializePlayerJsWithTrialLimit, updatePlayerJsPurchaseStatus, handleTimeLimitReached } from '../../stores/playerStore'
 import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased, fetchRecommendations, fetchNewReleases } from '../../services/dataService'
 import { isLoggedIn } from '../../utils/api'
 import { getIframeUrl, findEpisodeByNumber, getEpisodeRanges, filterEpisodesByRange } from '../../utils/playerHelpers'
@@ -87,6 +88,7 @@ const PhonePlayer: React.FC = () => {
   const [dontShowFavoriteAgain, setDontShowFavoriteAgain] = useState(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [showExpandButton, setShowExpandButton] = useState(false)
+  const [iframeLoaded, setIframeLoaded] = useState(false)
   const descriptionRef = useRef<HTMLParagraphElement>(null)
 
   // Initialize data
@@ -132,22 +134,6 @@ const PhonePlayer: React.FC = () => {
   const isSeriesFavorited = (seriesId: string): boolean => {
     if (!userState.user?.favorites || userState.user.favorites.length === 0) return false
     return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
-  }
-
-  const isUserSeriesOwner = (): boolean => {
-    if (!playerState.series?.uploaderId || !userState.user?._id) return false
-    return String(playerState.series.uploaderId) === String(userState.user._id)
-  }
-
-  const isCurrentEpisodePurchased = (): boolean => {
-    if (!playerState.currentEpisode || !id) return false
-    if (isUserSeriesOwner()) return true
-    return isEpisodePurchased(
-      id,
-      playerState.currentEpisode._id,
-      userState.user?.purchases,
-      playerState.currentEpisode.episodeNumber,
-    )
   }
 
   const handleFavoriteClick = () => {
@@ -274,6 +260,56 @@ const PhonePlayer: React.FC = () => {
     return () => clearTimeout(timer)
   }, [playerState.currentEpisode, playerState.series])
 
+  // Get current values for Player.js trial limit
+  const currentVideoId = playerState.currentEpisode?.videoId
+  const seriesUploaderId = playerState.series?.uploaderId
+  const userId = userState.user?._id
+  const userPurchases = userState.user?.purchases
+  
+  // Single function to check if an episode is purchased - used for both current and list
+  const checkEpisodePurchased = (episodeId: string, episodeNumber: number): boolean => {
+    if (!id) return false
+    // Series owner can watch all episodes
+    if (seriesUploaderId && userId && String(seriesUploaderId) === String(userId)) return true
+    // Check if episode is in user's purchases
+    return isEpisodePurchased(id, episodeId, userPurchases, episodeNumber)
+  }
+  
+  // Check if current episode is purchased
+  const isCurrentPurchased = playerState.currentEpisode
+    ? checkEpisodePurchased(playerState.currentEpisode._id, playerState.currentEpisode.episodeNumber)
+    : false
+
+  // Reset iframeLoaded when video changes (iframe will remount due to key change)
+  useEffect(() => {
+    setIframeLoaded(false)
+  }, [currentVideoId, userId])
+
+  // Handler for iframe load - only initialize Player.js after iframe is loaded
+  const handleIframeLoad = () => {
+    setIframeLoaded(true)
+  }
+
+  // Initialize Player.js with trial limit enforcement - only after iframe is loaded
+  useEffect(() => {
+    if (!currentVideoId || !iframeLoaded) return
+
+    const cleanup = initializePlayerJsWithTrialLimit(
+      iframeRef,
+      currentVideoId,
+      isCurrentPurchased,
+      () => handleTimeLimitReached(setShowPurchasePopup),
+    )
+
+    return cleanup
+  }, [currentVideoId, isCurrentPurchased, iframeLoaded])
+
+  // Update Player.js purchase status when it changes
+  useEffect(() => {
+    if (!iframeLoaded) return
+    updatePlayerJsPurchaseStatus(currentVideoId, isCurrentPurchased)
+  }, [isCurrentPurchased, currentVideoId, iframeLoaded])
+
   if (playerState.loading) {
     return (
       <PhoneLayout showHeader={true} showBackButton={true} title="">
@@ -303,12 +339,14 @@ const PhonePlayer: React.FC = () => {
           
           {playerState.currentEpisode?.videoId ? (
             <iframe
+              key={`${playerState.currentEpisode.videoId}-${userId || 'anon'}`}
               ref={iframeRef}
               src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, playerState.currentEpisode.videoId)}
               loading="lazy"
               className="phone-video-iframe"
               allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
+              onLoad={handleIframeLoad}
             />
           ) : (
             <div className="phone-video-placeholder">No video available</div>
@@ -340,13 +378,13 @@ const PhonePlayer: React.FC = () => {
                 </svg>
               </button>
               <button
-                className={`phone-action-btn phone-action-btn-large ${isCurrentEpisodePurchased() ? 'unlocked' : 'locked'}`}
-                onClick={!isCurrentEpisodePurchased() ? handleUnlockClick : undefined}
+                className={`phone-action-btn phone-action-btn-large ${isCurrentPurchased ? 'unlocked' : 'locked'}`}
+                onClick={!isCurrentPurchased ? handleUnlockClick : undefined}
               >
                 <svg viewBox="0 0 24 24" width="32" height="32">
                   <path
-                    fill={isCurrentEpisodePurchased() ? '#F97316' : 'none'}
-                    stroke={isCurrentEpisodePurchased() ? '#F97316' : 'currentColor'}
+                    fill={isCurrentPurchased ? '#F97316' : 'none'}
+                    stroke={isCurrentPurchased ? '#F97316' : 'currentColor'}
                     strokeWidth="2"
                     d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
                   />
@@ -433,20 +471,28 @@ const PhonePlayer: React.FC = () => {
             {/* Episode Grid */}
             <div className="phone-episode-grid">
               {filteredEpisodes.map((episode) => (
-                <button
+                <div
                   key={episode.episodeNumber}
-                  className={`phone-episode-item ${
+                  className={`phone-episode-thumbnail ${
                     playerState.currentEpisode?.episodeNumber === episode.episodeNumber ? 'active' : ''
                   }`}
                   onClick={() => handleEpisodeClick(episode)}
                 >
-                  <span className="phone-episode-number">
-                    {episode.episodeNumber.toString().padStart(2, '0')}
+                  <img
+                    src={`https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`}
+                    alt={`Episode ${episode.episodeNumber}`}
+                    className="phone-episode-thumb-img"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = playerState.series?.cover || '/placeholder.jpg'
+                    }}
+                  />
+                  <span className="phone-episode-badge">
+                    EP {episode.episodeNumber.toString().padStart(2, '0')}
                   </span>
-                  {isEpisodePurchased(id || '', episode._id, userState.user?.purchases, episode.episodeNumber) && (
-                    <span className="phone-episode-purchased">✓</span>
+                  {checkEpisodePurchased(episode._id, episode.episodeNumber) && (
+                    <span className="phone-episode-ribbon" />
                   )}
-                </button>
+                </div>
               ))}
             </div>
           </div>

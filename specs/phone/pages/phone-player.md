@@ -2,7 +2,21 @@
 
 ## Overview
 
-The Phone Player page provides a mobile-optimized video playback experience with series information, episode selection, and related content.
+The Phone Player page provides a mobile-optimized video playback experience with series information, episode selection, and related content. This page shares core behavior with the desktop Player page - see [`player.md`](../../pages/player.md) for shared specifications.
+
+## Shared Specifications
+
+This page shares core functionality with the [desktop Player page](../../pages/player.md). The following sections are identical and are not repeated here:
+- **Video Playing Restriction** - Time limit (3 seconds) for unpurchased episodes
+- **Trial Viewing System** - Trial logic, state tracking, TIME_LIMIT constant (configurable, default 3 seconds)
+- **Episode Purchase System** - Purchase price (0.1 GCash), purchase flow, purchased episode storage
+- **Purchase State Synchronization** - Backend persistence, frontend store updates
+- **Purchase Check Logic** - Matching by seriesId AND (episodeId OR episodeNumber)
+- **Purchase Dialog behavior** - Purchase flow, validation, API calls
+
+Refer to [`player.md`](../../pages/player.md) for full details on these systems.
+
+This document focuses on mobile-specific UI/UX differences.
 
 ## Page Structure
 
@@ -41,6 +55,13 @@ The Phone Player page provides a mobile-optimized video playback experience with
 - Fills container
 - Maintains aspect ratio
 - Native playback controls
+- Video URL: `https://player.mediadelivery.net/embed/{BUNNY_LIBRARY_ID}/{videoId of the episode}`
+
+### On Load Behavior
+- Find the last watched episode in the series from user's watch list
+- Default to first episode if not found in watch list
+- If series not in watch list, call the add to watch list API with current series and first episode
+- Use the Bunny Stream Playback Control API to capture time updates from the iframe
 
 ### Fullscreen Button
 - Positioned in bottom-right corner
@@ -122,23 +143,37 @@ The Phone Player page provides a mobile-optimized video playback experience with
 - **Default state: Expanded** (episodes visible by default)
 
 ### Episode Grid
-- 5 columns of episode buttons
-- 8 pixel gap between buttons
+- 5 columns of episode thumbnails
+- 8 pixel gap between thumbnails
 - Horizontal padding
 - **Stays expanded when clicking an episode** (does not collapse)
 
-### Episode Button
-- Small rectangular shape with rounded corners (6px border-radius)
-- Episode number displayed (e.g., "01", "02")
-- Dark gray background (#1a1a1e)
-- Different text colors for states:
-  - Default (unselected): White text (#ffffff)
-  - Current (selected): Blue text (#3B82F6)
-  - Purchased: Shows green checkmark indicator
+### Episode Thumbnail
+- **Aspect Ratio**: 2:3
+- **Border Radius**: 6px
+- **Overflow**: Hidden
+- **Cursor**: Pointer
 
-### Locked Episodes
-- Shows lock icon instead of number
-- Tapping shows purchase dialog
+#### Thumbnail Image
+- Default: `https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/thumbnail.jpg`
+- On hover/press: `https://vz-918d4e7e-1fb.b-cdn.net/{videoId}/preview.webp`
+
+#### Episode States
+- **Default (unselected)**: No border
+- **Current (selected)**: 2px blue border (#3B82F6)
+- **Purchased**: Shows top-right green ribbon indicator
+
+#### Episode Number Badge
+- **Position**: Absolute bottom-left
+- **Background**: rgba(0, 0, 0, 0.7)
+- **Color**: #FFFFFF
+- **Font Size**: 10px
+- **Padding**: 2px 6px
+- **Border Radius**: 4px
+- **Format**: "EP XX"
+
+#### Interaction
+- On tap: play the episode and call the add to watch list API with current series and current episode
 
 ## You Might Like Section
 
@@ -194,9 +229,8 @@ The Phone Player page provides a mobile-optimized video playback experience with
 ## URL Structure
 
 ### Route Format
-- Includes series ID
-- Optionally includes episode number
-- Defaults to episode 1 or last watched
+- `/player/:seriesId` - View series starting at episode 1 (or last watched)
+- `/player/:seriesId/:episodeId` - View specific episode
 
 ## Confirmation Modals
 
@@ -302,11 +336,12 @@ The Phone Player page provides a mobile-optimized video playback experience with
 | Element | Action | Result |
 |---------|--------|--------|
 | Video | Tap | Toggle play/pause |
+| Video (at time limit) | Auto | Pause video, show purchase popup (if episode not purchased) |
 | Fullscreen | Tap | Enter fullscreen mode |
 | Episode Toggle | Tap | Expand/collapse episode list |
-| Episode Button | Tap | Switch to that episode (list stays expanded) |
-| Tag | Tap | Navigate to genre with tag |
-| Series Card | Tap | Navigate to that series |
+| Episode Thumbnail | Tap | Switch to that episode, call add to watch list API (list stays expanded) |
+| Tag | Tap | Navigate to `/genre?category={tag}` |
+| Series Card | Tap | Navigate to `/player/{seriesId}` |
 | Back | Tap | Return to previous page |
 | Show More | Tap | Expand description |
 | Favorite Button | Tap | Show Favorite Confirmation Modal (or toggle directly if "Don't show again" was checked) |

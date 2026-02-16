@@ -1,4 +1,7 @@
 /* Phone Player Page */
+/* Import shared phone styles */
+@import './phone-common.css';
+
 .phone-player {
   background: #0B0B0E;
 }
@@ -266,6 +269,73 @@
   gap: 8px;
 }
 
+/* Episode Thumbnail Styles */
+.phone-episode-thumbnail {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  background: #1a1a1e;
+}
+
+.phone-episode-thumbnail:active {
+  transform: scale(0.98);
+}
+
+.phone-episode-thumbnail.active {
+  border-color: #3B82F6;
+}
+
+.phone-episode-thumb-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.phone-episode-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Green ribbon for purchased episodes */
+.phone-episode-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 24px 24px 0;
+  border-color: transparent #22c55e transparent transparent;
+}
+
+.phone-episode-ribbon::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: -20px;
+  font-size: 8px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+/* Legacy episode item styles - keep for backward compatibility */
 .phone-episode-item {
   position: relative;
   display: flex;
@@ -299,237 +369,4 @@
   right: 2px;
   font-size: 10px;
   color: #22c55e;
-}
-
-/* Popup Styles */
-.phone-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.phone-popup-modal {
-  background: #1a1a1e;
-  border-radius: 16px;
-  padding: 24px;
-  width: 100%;
-  max-width: 320px;
-  text-align: center;
-}
-
-.phone-popup-icon {
-  font-size: 40px;
-  margin-bottom: 12px;
-}
-
-.phone-popup-icon.phone-favorite-icon {
-  font-size: 48px;
-}
-
-.phone-popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 8px 0;
-}
-
-.phone-popup-message {
-  font-size: 13px;
-  color: #9CA3AF;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-}
-
-.phone-popup-episode-info {
-  background: #242428;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.phone-popup-series {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 4px;
-}
-
-.phone-popup-ep {
-  font-size: 12px;
-  color: #9CA3AF;
-}
-
-.phone-popup-price {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #3B82F6;
-  margin-bottom: 8px;
-}
-
-.phone-popup-logo {
-  width: 24px;
-  height: 24px;
-}
-
-.phone-popup-balance {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #9CA3AF;
-  margin-bottom: 20px;
-}
-
-.phone-popup-balance-logo {
-  width: 14px;
-  height: 14px;
-}
-
-.phone-popup-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.phone-btn-confirm {
-  background: #3B82F6;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.phone-btn-confirm:disabled {
-  opacity: 0.6;
-}
-
-.phone-btn-cancel {
-  background: #2a2a2e;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 500;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* Favorite Modal Checkbox */
-.phone-favorite-checkbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.phone-favorite-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #3B82F6;
-  cursor: pointer;
-}
-
-.phone-favorite-checkbox span {
-  font-size: 14px;
-  color: #9CA3AF;
-}
-
-/* Result Modal */
-.phone-result-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  margin: 0 auto 16px;
-}
-
-.phone-result-success .phone-result-icon {
-  background: #22c55e;
-  color: #ffffff;
-}
-
-.phone-result-error .phone-result-icon {
-  background: #ef4444;
-  color: #ffffff;
-}
-
-.phone-btn-result {
-  width: 100%;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.phone-btn-result.success {
-  background: #22c55e;
-  color: #ffffff;
-}
-
-.phone-btn-result.error {
-  background: #ef4444;
-  color: #ffffff;
-}
-
-/* Toast */
-.phone-toast {
-  position: fixed;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #ffffff;
-  z-index: 1100;
-  animation: toastSlideIn 0.3s ease;
-}
-
-.phone-toast-success {
-  background: #22c55e;
-}
-
-.phone-toast-error {
-  background: #ef4444;
-}
-
-.phone-toast-info {
-  background: #3B82F6;
-}
-
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
 }

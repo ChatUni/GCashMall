@@ -9,6 +9,8 @@ import { playerStoreActions as basePlayerStoreActions, loginModalStoreActions } 
 
 // Constants
 export const EPISODE_COST = 1
+// Trial time limit in seconds - users can watch this much before purchase is required
+// To change the trial duration, update this value and the corresponding value in specs/pages/player.md
 export const TIME_LIMIT = 3
 
 // Module-level tracking variables
@@ -346,3 +348,150 @@ export const playerStoreActions = {
 
 // Re-export usePlayerStore from index.ts
 export { usePlayerStore } from './index'
+
+// ======================
+// Trial Limit / Player.js Integration
+// ======================
+
+// State tracking for Player.js instances
+interface PlayerJsState {
+  player: PlayerJsPlayer | null
+  isPurchasedRef: { current: boolean }
+  dialogShownRef: { current: boolean }
+  cleanup: () => void
+}
+
+// Map to track player instances by videoId
+const playerInstances = new Map<string, PlayerJsState>()
+
+/**
+ * Initialize Player.js for a Bunny Stream iframe with trial limit enforcement.
+ * This function handles:
+ * - Loading the Player.js script if not already loaded
+ * - Creating the Player.js instance
+ * - Listening for time updates
+ * - Enforcing trial time limit for unpurchased episodes
+ *
+ * @param iframeRef - Ref to the iframe element
+ * @param videoId - The video ID for tracking
+ * @param isPurchased - Whether the current episode is purchased
+ * @param onTimeLimitReached - Callback when user hits the trial limit
+ * @returns Cleanup function to call on unmount/episode change
+ */
+export const initializePlayerJsWithTrialLimit = (
+  iframeRef: React.RefObject<HTMLIFrameElement | null>,
+  videoId: string | undefined,
+  isPurchased: boolean,
+  onTimeLimitReached: () => void,
+): (() => void) => {
+  if (!videoId || !iframeRef.current) {
+    return () => {}
+  }
+
+  // Create refs to track current state
+  const isPurchasedRef = { current: isPurchased }
+  const dialogShownRef = { current: false }
+
+  const initPlayer = () => {
+    const windowWithPlayerJs = window as WindowWithPlayerJs
+    if (!windowWithPlayerJs.playerjs || !iframeRef.current) return
+
+    try {
+      const player = new windowWithPlayerJs.playerjs.Player(iframeRef.current)
+
+      // Store the instance
+      const state: PlayerJsState = {
+        player,
+        isPurchasedRef,
+        dialogShownRef,
+        cleanup: () => {
+          playerInstances.delete(videoId)
+        },
+      }
+      playerInstances.set(videoId, state)
+
+      player.on('ready', () => {
+        // Listen for time updates
+        player.on('timeupdate', (data) => {
+          if (!data || typeof (data as TimeUpdateData).seconds !== 'number') return
+          const currentSeconds = (data as TimeUpdateData).seconds
+
+          // Enforce trial time limit if episode is not purchased
+          // Use ref to get current purchased status (not stale closure value)
+          if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
+            player.pause()
+            player.setCurrentTime(TIME_LIMIT - 0.1) // Set slightly before limit to prevent immediate re-trigger
+            if (!dialogShownRef.current) {
+              dialogShownRef.current = true
+              onTimeLimitReached()
+              // Reset the flag after a short delay to allow showing again if needed
+              setTimeout(() => {
+                dialogShownRef.current = false
+              }, 500)
+            }
+          }
+        })
+      })
+    } catch (error) {
+      console.error('Failed to initialize Player.js:', error)
+    }
+  }
+
+  // Load Player.js script if not already loaded
+  const windowWithPlayerJs = window as WindowWithPlayerJs
+  if (windowWithPlayerJs.playerjs) {
+    initPlayer()
+  } else {
+    const script = document.createElement('script')
+    script.src = 'https://cdn.embed.ly/player-0.1.0.min.js'
+    script.onload = initPlayer
+    document.head.appendChild(script)
+  }
+
+  // Return cleanup function
+  return () => {
+    const state = playerInstances.get(videoId)
+    if (state) {
+      state.cleanup()
+    }
+  }
+}
+
+/**
+ * Update the purchased status for a Player.js instance.
+ * Call this when the purchase status changes (e.g., after successful purchase or user login/logout).
+ *
+ * @param videoId - The video ID
+ * @param isPurchased - The new purchased status
+ */
+export const updatePlayerJsPurchaseStatus = (videoId: string | undefined, isPurchased: boolean): void => {
+  if (!videoId) return
+  
+  const state = playerInstances.get(videoId)
+  if (state) {
+    const wasUnpurchased = !state.isPurchasedRef.current
+    state.isPurchasedRef.current = isPurchased
+    
+    // If user logged out (isPurchased changed from true to false),
+    // enforce time limit immediately by pausing and seeking to start
+    if (!isPurchased && !wasUnpurchased && state.player) {
+      try {
+        state.player.pause()
+        state.player.setCurrentTime(0)
+      } catch {
+        // Player might not be ready
+      }
+    }
+  }
+}
+
+/**
+ * Handle time limit reached - show login dialog if not logged in, otherwise show purchase popup
+ */
+export const handleTimeLimitReached = (setShowPurchasePopup: (show: boolean) => void): void => {
+  if (!isLoggedIn()) {
+    loginModalStoreActions.open()
+    return
+  }
+  setShowPurchasePopup(true)
+}

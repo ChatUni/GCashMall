@@ -1,0 +1,423 @@
+/* ============================================
+   Phone Common Styles
+   Shared styles for phone pages (popup, toast, buttons, etc.)
+   ============================================ */
+
+/* ============================================
+   Popup Overlay & Modal
+   ============================================ */
+.phone-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+}
+
+.phone-popup-modal {
+  background: #1a1a1e;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.phone-popup-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.phone-popup-icon.phone-favorite-icon {
+  font-size: 48px;
+}
+
+.phone-popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.phone-popup-message {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.phone-popup-episode-info {
+  background: #242428;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.phone-popup-series {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.phone-popup-ep {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.phone-popup-price {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #3B82F6;
+  margin-bottom: 8px;
+}
+
+.phone-popup-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.phone-popup-balance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #9CA3AF;
+  margin-bottom: 20px;
+}
+
+.phone-popup-balance-logo {
+  width: 14px;
+  height: 14px;
+}
+
+.phone-popup-amount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 36px;
+  font-weight: 700;
+  color: #3B82F6;
+  margin-bottom: 24px;
+}
+
+.phone-popup-amount-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.phone-popup-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================
+   Popup Buttons (used in both pages)
+   ============================================ */
+.phone-btn-confirm,
+.phone-popup-confirm {
+  background: #3B82F6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.phone-btn-confirm:disabled,
+.phone-popup-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.phone-btn-cancel,
+.phone-popup-cancel {
+  background: #2a2a2e;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.phone-btn-cancel:disabled,
+.phone-popup-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Favorite Modal Checkbox
+   ============================================ */
+.phone-favorite-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.phone-favorite-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3B82F6;
+  cursor: pointer;
+}
+
+.phone-favorite-checkbox span {
+  font-size: 14px;
+  color: #9CA3AF;
+}
+
+/* ============================================
+   Result Modal
+   ============================================ */
+.phone-result-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 16px;
+}
+
+.phone-result-success .phone-result-icon {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.phone-result-error .phone-result-icon {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.phone-btn-result {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.phone-btn-result.success {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.phone-btn-result.error {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* ============================================
+   Toast Notifications
+   ============================================ */
+.phone-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  z-index: 1100;
+  animation: phoneToastSlideIn 0.3s ease;
+}
+
+.phone-toast-success {
+  background: #22c55e;
+}
+
+.phone-toast-error {
+  background: #ef4444;
+}
+
+.phone-toast-info {
+  background: #3B82F6;
+}
+
+@keyframes phoneToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+.phone-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.phone-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.phone-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.phone-empty-state p {
+  font-size: 14px;
+  color: #9CA3AF;
+  margin: 0 0 20px 0;
+}
+
+.phone-empty-subtext {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* ============================================
+   Modal (Generic)
+   ============================================ */
+.phone-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+}
+
+.phone-modal {
+  background: #1a1a1e;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+}
+
+.phone-modal-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.phone-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.phone-modal-series {
+  background: #242428;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.phone-modal-message {
+  font-size: 14px;
+  color: #9CA3AF;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.phone-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.phone-modal-confirm {
+  background: #3B82F6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.phone-modal-cancel {
+  background: #2a2a2e;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Delete modal confirm button - red background */
+.phone-modal-confirm-delete {
+  background: #ef4444;
+}
+
+.phone-modal-confirm-delete:hover {
+  background: #dc2626;
+}
+
+.phone-modal-confirm-delete:active {
+  background: #b91c1c;
+}
+
+/* Warning modal confirm button - orange/amber background */
+.phone-modal-confirm-warning {
+  background: #f59e0b;
+}
+
+.phone-modal-confirm-warning:hover {
+  background: #d97706;
+}
+
+.phone-modal-confirm-warning:active {
+  background: #b45309;
+}

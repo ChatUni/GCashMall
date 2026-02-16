@@ -197,15 +197,15 @@ export const useAccountStore = () => {
 
 export const accountStoreActions = {
   // Tab
-  setActiveTab: (activeTab: AccountTab) => 
+  setActiveTab: (activeTab: AccountTab) =>
     accountStore.setState((prev) => ({ ...prev, activeTab })),
   
   // User/Auth
-  setUser: (user: User | null) => 
+  setUser: (user: User | null) =>
     accountStore.setState((prev) => ({ ...prev, user, isLoggedIn: !!user })),
-  setLoading: (loading: boolean) => 
+  setLoading: (loading: boolean) =>
     accountStore.setState((prev) => ({ ...prev, loading })),
-  setShowLoginModal: (showLoginModal: boolean) => 
+  setShowLoginModal: (showLoginModal: boolean) =>
     accountStore.setState((prev) => ({ ...prev, showLoginModal })),
   
   // Data
@@ -368,6 +368,7 @@ export const accountStoreActions = {
       user,
       isLoggedIn: true,
       loading: false,
+      showLoginModal: false, // Close login modal on successful login
       profileForm: profileData,
       originalProfile: profileData,
       balance: user.balance || 0,

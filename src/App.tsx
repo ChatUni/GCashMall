@@ -1,5 +1,6 @@
-import { HashRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom'
 import { useDeviceType } from './hooks/useDeviceType'
+import { isCordova } from './utils/cordova'
 
 // Desktop Pages
 import Home from './pages/Home'
@@ -26,6 +27,10 @@ import PhoneContact from './pages/phone/PhoneContact'
 
 import { LanguageProvider } from './context/LanguageContext'
 import './App.css'
+
+// Use HashRouter for Cordova (file:// protocol doesn't support BrowserRouter)
+// Use BrowserRouter for web (needed for OAuth redirects with query params)
+const Router = isCordova() ? HashRouter : BrowserRouter
 
 // Responsive component that renders different versions based on device type
 interface ResponsiveRouteProps {

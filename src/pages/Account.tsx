@@ -35,6 +35,7 @@ let accountInitialized = false
 let userDataFetched = false
 let myPurchasesFetched = false
 let mySeriesFetched = false
+let lastProcessedCode: string | null = null
 
 const Account: React.FC = () => {
   const { t, language, setLanguage } = useLanguage()
@@ -43,10 +44,19 @@ const Account: React.FC = () => {
   
   const state = useAccountStore()
   const toastState = useToastStore()
-console.log(state)
+
+  // Check if there's an OAuth code to process
+  const code = searchParams.get('code')
+  
   // Initialize data (not in useEffect)
-  if (!accountInitialized) {
+  // If there's a code that hasn't been processed yet, we need to run initialization
+  // even if accountInitialized is true (user came back from OAuth redirect)
+  const hasNewCode = code && code !== lastProcessedCode
+  if (!accountInitialized || hasNewCode) {
     accountInitialized = true
+    if (code) {
+      lastProcessedCode = code
+    }
     initializeAccountData(searchParams, (params) => setSearchParams(params), navigate)
   }
 
