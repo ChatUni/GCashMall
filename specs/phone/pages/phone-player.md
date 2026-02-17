@@ -110,9 +110,8 @@ This document focuses on mobile-specific UI/UX differences.
 
 #### Lock/Unlock Button
 - Lock icon (SVG, 32x32)
-- Always visible (shows purchase status)
 - Locked state (not purchased): gray stroke (#9CA3AF), no fill
-- Unlocked state (purchased): orange fill and stroke (#F97316)
+- Unlocked state (purchased): hide the lock
 - On click (when locked):
   - If not logged in: show login modal
   - If logged in: show purchase popup

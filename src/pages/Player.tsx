@@ -5,162 +5,46 @@ import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
+import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../components/PlayerModals'
 import { useLanguage } from '../context/LanguageContext'
-import { usePlayerStore, useLoginModalStore, useUserStore, playerStoreActions, loginModalStoreActions, userStoreActions, useToastStore } from '../stores'
+import {
+  usePlayerStore,
+  useLoginModalStore,
+  useUserStore,
+  playerStoreActions,
+  loginModalStoreActions,
+  userStoreActions,
+  useToastStore,
+} from '../stores'
+import {
+  usePlayerPageStore,
+  playerPageStoreActions,
+  checkSeriesFavorited,
+  checkIsSeriesOwner,
+  isCurrentEpisodePurchased,
+  getFilteredEpisodes,
+  getEpisodeRangeOptions,
+  handlePlayPause,
+  handleTimeUpdate,
+  handleLoadedMetadata,
+  handleProgressChange,
+  handleVolumeToggle,
+  handleSpeedChange,
+  handleFullscreen,
+  initializePlayerJsWithTrialLimit,
+  updatePlayerJsPurchaseStatus,
+} from '../stores/playerStore'
 import { accountStoreActions } from '../stores/accountStore'
-import { fetchPlayerData, addToWatchList, addToFavorites, removeFromFavorites, purchaseEpisode, isEpisodePurchased } from '../services/dataService'
-import { isLoggedIn } from '../utils/api'
+import { isEpisodePurchased } from '../services/dataService'
 import {
   formatTime,
   getEpisodeThumbnailUrl,
-  getEpisodeRanges,
-  filterEpisodesByRange,
-  findEpisodeByNumber,
   buildEpisodeTitle,
   getIframeUrl,
   playbackSpeeds,
 } from '../utils/playerHelpers'
-import type { Episode, WatchListItem } from '../types'
+import type { Episode } from '../types'
 import './Player.css'
-
-// Track the currently loaded series ID to detect changes
-let currentLoadedSeriesId: string | null = null
-// Track if watch list has been updated on load for current series
-let watchListUpdatedForSeriesId: string | null = null
-
-const initializePlayerData = (seriesId: string) => {
-  if (currentLoadedSeriesId !== seriesId) {
-    currentLoadedSeriesId = seriesId
-    watchListUpdatedForSeriesId = null // Reset watch list tracking for new series
-    playerStoreActions.reset()
-    fetchPlayerData(seriesId)
-  }
-}
-
-// Find last watched episode for series from user's watch list
-const findLastWatchedEpisode = (
-  seriesId: string,
-  watchList: WatchListItem[] | undefined,
-  episodes: Episode[],
-): Episode | null => {
-  if (!watchList || watchList.length === 0) return null
-
-  const watchListItem = watchList.find((item) => String(item.seriesId) === String(seriesId))
-  if (watchListItem) {
-    return findEpisodeByNumber(episodes, watchListItem.episodeNumber) || null
-  }
-  return null
-}
-
-// Handle adding to watch list on load or episode change
-const handleWatchListUpdate = async (seriesId: string, episodeNumber: number) => {
-  if (!isLoggedIn()) return
-
-  try {
-    await addToWatchList(seriesId, episodeNumber)
-  } catch (error) {
-    console.error('Failed to update watch list:', error)
-  }
-}
-
-// Event handlers (pure functions)
-const handlePlayPause = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  isPlaying: boolean,
-) => {
-  if (videoRef.current) {
-    if (isPlaying) {
-      videoRef.current.pause()
-    } else {
-      videoRef.current.play()
-    }
-    playerStoreActions.setIsPlaying(!isPlaying)
-  }
-}
-
-const handleTimeUpdate = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  isPurchased: boolean,
-  onTimeLimitReached: () => void,
-) => {
-  if (videoRef.current) {
-    const currentTime = videoRef.current.currentTime
-    playerStoreActions.setCurrentTime(currentTime)
-    
-    // Enforce trial time limit if episode is not purchased
-    if (!isPurchased && currentTime >= TIME_LIMIT) {
-      videoRef.current.pause()
-      playerStoreActions.setIsPlaying(false)
-      onTimeLimitReached()
-    }
-  }
-}
-
-const handleLoadedMetadata = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
-  if (videoRef.current) {
-    playerStoreActions.setDuration(videoRef.current.duration)
-  }
-}
-
-const handleProgressChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  time: number,
-  isPurchased: boolean,
-  onTimeLimitReached: () => void,
-) => {
-  if (videoRef.current) {
-    // Enforce trial time limit if episode is not purchased and user tries to seek past limit
-    if (!isPurchased && time >= TIME_LIMIT) {
-      videoRef.current.currentTime = TIME_LIMIT
-      videoRef.current.pause()
-      playerStoreActions.setCurrentTime(TIME_LIMIT)
-      playerStoreActions.setIsPlaying(false)
-      onTimeLimitReached()
-      return
-    }
-    videoRef.current.currentTime = time
-    playerStoreActions.setCurrentTime(time)
-  }
-}
-
-const handleVolumeToggle = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  currentVolume: number,
-) => {
-  if (videoRef.current) {
-    const newVolume = currentVolume === 0 ? 1 : 0
-    videoRef.current.volume = newVolume
-    playerStoreActions.setVolume(newVolume)
-  }
-}
-
-const handleSpeedChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  speed: number,
-) => {
-  if (videoRef.current) {
-    videoRef.current.playbackRate = speed
-    playerStoreActions.setPlaybackSpeed(speed)
-    playerStoreActions.setShowSpeedSelector(false)
-  }
-}
-
-const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
-  if (videoRef.current) {
-    if (document.fullscreenElement) {
-      document.exitFullscreen()
-    } else {
-      videoRef.current.requestFullscreen()
-    }
-  }
-}
-
-// Configurable constants
-// Trial time limit in seconds - users can watch this much before purchase is required
-// To change the trial duration, update this value and the corresponding value in specs/pages/player.md
-const TIME_LIMIT = 3
-// Episode price in GCash
-const EPISODE_PRICE = 0.1
 
 const Player: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -168,7 +52,9 @@ const Player: React.FC = () => {
   const navigate = useNavigate()
   const { t } = useLanguage()
 
+  // Subscribe to stores
   const playerState = usePlayerStore()
+  const playerPageState = usePlayerPageStore()
   const loginModalState = useLoginModalStore()
   const userState = useUserStore()
   const toastState = useToastStore()
@@ -176,68 +62,24 @@ const Player: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Purchase popup state
-  const [showPurchasePopup, setShowPurchasePopup] = React.useState(false)
-  const [isPurchasing, setIsPurchasing] = React.useState(false)
-  
-  // Result modal state
-  const [showResultModal, setShowResultModal] = React.useState(false)
-  const [resultModalType, setResultModalType] = React.useState<'success' | 'error'>('success')
-  const [resultModalMessage, setResultModalMessage] = React.useState('')
-  
-  // Favorite confirmation modal state
-  const [showFavoriteModal, setShowFavoriteModal] = React.useState(false)
-  const [favoriteModalDontShowAgain, setFavoriteModalDontShowAgain] = React.useState(false)
-  const [pendingFavoriteAction, setPendingFavoriteAction] = React.useState<'add' | 'remove' | null>(null)
-
-  // Initialize data on first render
+  // Initialize data
   if (id) {
-    initializePlayerData(id)
+    playerPageStoreActions.initialize(id)
   }
 
-  // Handle episode selection from URL or watch list
+  // Episode selection logic
   const episodeNumberFromUrl = searchParams.get('episode')
-  
-  // Determine which episode to show based on priority:
-  // 1. URL parameter (explicit selection)
-  // 2. Last watched from user's watch list
-  // 3. First episode (default)
-  if (
-    playerState.episodes.length > 0 &&
-    !playerState.loading &&
-    id
-  ) {
-    // If URL has episode parameter, use it
-    if (
-      episodeNumberFromUrl &&
-      (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== parseInt(episodeNumberFromUrl, 10))
-    ) {
-      const episode = findEpisodeByNumber(playerState.episodes, parseInt(episodeNumberFromUrl, 10))
-      if (episode) {
-        playerStoreActions.setCurrentEpisode(episode)
-      }
-    }
-    // Otherwise, if no current episode set, find from watch list or use first episode
-    else if (!playerState.currentEpisode) {
-      const lastWatchedEpisode = findLastWatchedEpisode(id, userState.user?.watchList, playerState.episodes)
-      if (lastWatchedEpisode) {
-        playerStoreActions.setCurrentEpisode(lastWatchedEpisode)
-      } else if (playerState.episodes.length > 0) {
-        playerStoreActions.setCurrentEpisode(playerState.episodes[0])
-      }
-    }
-
-    // Auto-add to watch list on load (only once per series)
-    if (
-      watchListUpdatedForSeriesId !== id &&
-      playerState.currentEpisode &&
-      isLoggedIn()
-    ) {
-      watchListUpdatedForSeriesId = id
-      handleWatchListUpdate(id, playerState.currentEpisode.episodeNumber)
-    }
+  if (playerState.episodes.length > 0 && !playerState.loading && id) {
+    playerPageStoreActions.selectEpisodeFromUrlOrWatchList(episodeNumberFromUrl)
   }
 
+  // Derived state from store
+  const isOwner = checkIsSeriesOwner()
+  const isFavorited = checkSeriesFavorited(id)
+  const isPurchased = isCurrentEpisodePurchased()
+  const filteredEpisodes = getFilteredEpisodes()
+
+  // Event handlers
   const handleMouseMove = () => {
     playerStoreActions.setShowControls(true)
     if (controlsTimeoutRef.current) {
@@ -250,171 +92,11 @@ const Player: React.FC = () => {
     }, 3000)
   }
 
-  const handleEpisodeClick = (episode: Episode) => {
-    playerStoreActions.setCurrentEpisode(episode)
-    navigate(`/player/${id}?episode=${episode.episodeNumber}`, { replace: true })
-    // Update watch list when user clicks on an episode
-    if (id) {
-      handleWatchListUpdate(id, episode.episodeNumber)
-    }
-  }
-
   const handleTagClick = (tag: string) => {
     navigate(`/series?genre=${encodeURIComponent(tag)}`)
   }
 
-  // Check if current series is in favorites
-  const isSeriesFavorited = (seriesId: string): boolean => {
-    if (!userState.user?.favorites || userState.user.favorites.length === 0) return false
-    return userState.user.favorites.some((item) => String(item.seriesId) === String(seriesId))
-  }
-
-  // Check if user is the owner of the series (uploader)
-  const isUserSeriesOwner = (): boolean => {
-    if (!playerState.series?.uploaderId || !userState.user?._id) return false
-    return String(playerState.series.uploaderId) === String(userState.user._id)
-  }
-
-  // Check if current episode is purchased or user is the uploader
-  // If user is the uploader, TIME_LIMIT should not apply
-  const isCurrentEpisodePurchased = (): boolean => {
-    if (!playerState.currentEpisode || !id) return false
-    // Series owner can watch without restriction
-    if (isUserSeriesOwner()) return true
-    return isEpisodePurchased(
-      id,
-      playerState.currentEpisode._id,
-      userState.user?.purchases,
-      playerState.currentEpisode.episodeNumber,
-    )
-  }
-
-  // Check if favorite modal should be shown (based on localStorage)
-  const shouldShowFavoriteModal = (): boolean => {
-    const dontShowAgain = localStorage.getItem('hideFavoriteModal')
-    return dontShowAgain !== 'true'
-  }
-
-  const handleFavoriteToggle = async () => {
-    if (!isLoggedIn()) {
-      loginModalStoreActions.open()
-      return
-    }
-
-    if (!id) return
-
-    const willAdd = !isSeriesFavorited(id)
-    
-    // If "don't show again" is set, directly perform the action
-    if (!shouldShowFavoriteModal()) {
-      try {
-        if (willAdd) {
-          await addToFavorites(id)
-        } else {
-          await removeFromFavorites(id)
-        }
-      } catch (error) {
-        console.error('Failed to toggle favorite:', error)
-      }
-      return
-    }
-
-    // Show confirmation modal
-    setPendingFavoriteAction(willAdd ? 'add' : 'remove')
-    setFavoriteModalDontShowAgain(false)
-    setShowFavoriteModal(true)
-  }
-
-  // Confirm favorite action from modal
-  const handleFavoriteConfirm = async () => {
-    if (!id || !pendingFavoriteAction) return
-
-    // Save "don't show again" preference
-    if (favoriteModalDontShowAgain) {
-      localStorage.setItem('hideFavoriteModal', 'true')
-    }
-
-    try {
-      if (pendingFavoriteAction === 'add') {
-        await addToFavorites(id)
-      } else {
-        await removeFromFavorites(id)
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-    }
-
-    setShowFavoriteModal(false)
-    setPendingFavoriteAction(null)
-  }
-
-  // Cancel favorite action
-  const handleFavoriteCancel = () => {
-    setShowFavoriteModal(false)
-    setPendingFavoriteAction(null)
-  }
-
-  // Handle unlock button click
-  const handleUnlockClick = () => {
-    if (!isLoggedIn()) {
-      loginModalStoreActions.open()
-      return
-    }
-    setShowPurchasePopup(true)
-  }
-
-  // Handle time limit reached - show login dialog if not logged in, otherwise show purchase popup
-  const handleTimeLimitReached = () => {
-    if (!isLoggedIn()) {
-      loginModalStoreActions.open()
-      return
-    }
-    setShowPurchasePopup(true)
-  }
-
-  // Handle purchase confirmation
-  const handlePurchaseConfirm = async () => {
-    if (!id || !playerState.currentEpisode) return
-
-    // Check if user has enough balance
-    const userBalance = userState.user?.balance || 0
-    if (userBalance < EPISODE_PRICE) {
-      setShowPurchasePopup(false)
-      setResultModalType('error')
-      setResultModalMessage(t.player.insufficientBalance)
-      setShowResultModal(true)
-      return
-    }
-
-    setIsPurchasing(true)
-    try {
-      const result = await purchaseEpisode(
-        id,
-        playerState.currentEpisode._id,
-        playerState.currentEpisode.episodeNumber,
-        EPISODE_PRICE,
-      )
-      setShowPurchasePopup(false)
-      if (result.success) {
-        setResultModalType('success')
-        setResultModalMessage(t.player.purchaseSuccess)
-        setShowResultModal(true)
-      } else {
-        setResultModalType('error')
-        setResultModalMessage(result.error || t.player.purchaseFailed)
-        setShowResultModal(true)
-      }
-    } catch (error) {
-      console.error('Failed to purchase episode:', error)
-      setShowPurchasePopup(false)
-      setResultModalType('error')
-      setResultModalMessage(t.player.purchaseFailed)
-      setShowResultModal(true)
-    } finally {
-      setIsPurchasing(false)
-    }
-  }
-
+  // Loading state
   if (playerState.loading) {
     return (
       <div className="player-page">
@@ -425,6 +107,7 @@ const Player: React.FC = () => {
     )
   }
 
+  // Error state
   if (!playerState.series) {
     return (
       <div className="player-page">
@@ -434,8 +117,6 @@ const Player: React.FC = () => {
       </div>
     )
   }
-
-  const filteredEpisodes = filterEpisodesByRange(playerState.episodes, playerState.episodeRange)
 
   return (
     <div className="player-page">
@@ -459,30 +140,38 @@ const Player: React.FC = () => {
             volume={playerState.volume}
             playbackSpeed={playerState.playbackSpeed}
             showSpeedSelector={playerState.showSpeedSelector}
-            isPurchased={isCurrentEpisodePurchased()}
+            isPurchased={isPurchased}
             onPlayPause={() => handlePlayPause(videoRef, playerState.isPlaying)}
-            onTimeUpdate={() => handleTimeUpdate(videoRef, isCurrentEpisodePurchased(), handleTimeLimitReached)}
+            onTimeUpdate={() =>
+              handleTimeUpdate(videoRef, isPurchased, playerPageStoreActions.handleTimeLimitReached)
+            }
             onLoadedMetadata={() => handleLoadedMetadata(videoRef)}
-            onProgressChange={(time) => handleProgressChange(videoRef, time, isCurrentEpisodePurchased(), handleTimeLimitReached)}
+            onProgressChange={(time) =>
+              handleProgressChange(videoRef, time, isPurchased, playerPageStoreActions.handleTimeLimitReached)
+            }
             onVolumeToggle={() => handleVolumeToggle(videoRef, playerState.volume)}
             onSpeedChange={(speed) => handleSpeedChange(videoRef, speed)}
-            onSpeedSelectorToggle={() => playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)}
+            onSpeedSelectorToggle={() =>
+              playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)
+            }
             onFullscreen={() => handleFullscreen(videoRef)}
             onMouseMove={handleMouseMove}
-            onMouseLeave={() => playerState.isPlaying && playerStoreActions.setShowControls(false)}
-            onTimeLimitReached={handleTimeLimitReached}
+            onMouseLeave={() =>
+              playerState.isPlaying && playerStoreActions.setShowControls(false)
+            }
+            onTimeLimitReached={playerPageStoreActions.handleTimeLimitReached}
           />
 
           <EpisodeMetadata
             series={playerState.series}
             currentEpisode={playerState.currentEpisode}
             selectedLanguage={playerState.selectedLanguage}
-            isFavorited={id ? isSeriesFavorited(id) : false}
-            isEpisodePurchased={isCurrentEpisodePurchased()}
+            isFavorited={isFavorited}
+            isEpisodePurchased={isPurchased}
             onLanguageChange={playerStoreActions.setSelectedLanguage}
             onTagClick={handleTagClick}
-            onFavoriteToggle={handleFavoriteToggle}
-            onUnlockClick={handleUnlockClick}
+            onFavoriteToggle={playerPageStoreActions.handleFavoriteToggle}
+            onUnlockClick={playerPageStoreActions.handleUnlockClick}
           />
         </div>
 
@@ -492,8 +181,9 @@ const Player: React.FC = () => {
           currentEpisode={playerState.currentEpisode}
           episodeRange={playerState.episodeRange}
           title={t.player.episodes}
-          isEpisodePurchased={(episode) => id ? isEpisodePurchased(id, episode._id, userState.user?.purchases, episode.episodeNumber) : false}
-          onEpisodeClick={handleEpisodeClick}
+          seriesId={id || ''}
+          isSeriesOwner={isOwner}
+          onEpisodeClick={(episode) => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
           onRangeSelect={playerStoreActions.setEpisodeRange}
         />
       </main>
@@ -505,14 +195,13 @@ const Player: React.FC = () => {
 
       <BottomBar />
 
+      {/* Login Modal */}
       {loginModalState.isOpen && (
         <LoginModal
           onClose={loginModalStoreActions.close}
           onLoginSuccess={(user) => {
-            // Update user store with new user data (including purchases)
             userStoreActions.setUser(user)
             userStoreActions.setLoading(false)
-            // Also update accountStore so Account page knows user is logged in
             accountStoreActions.initializeUserData(user)
             loginModalStoreActions.close()
           }}
@@ -520,157 +209,58 @@ const Player: React.FC = () => {
       )}
 
       {/* Purchase Popup */}
-      {showPurchasePopup && playerState.currentEpisode && (
-        <div className="popup-overlay" onClick={() => setShowPurchasePopup(false)}>
-          <div className="popup-modal purchase-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-icon">🔓</div>
-            <h2 className="popup-title">
-              {t.player.unlockEpisode}
-            </h2>
-            <p className="popup-message">
-              {t.player.unlockMessage}
-            </p>
-            <div className="popup-episode-info">
-              <span className="popup-series-name">{playerState.series?.name || ''}</span>
-              <span className="popup-episode-name">
-                EP {playerState.currentEpisode.episodeNumber.toString().padStart(2, '0')}{playerState.currentEpisode.title ? ` ${playerState.currentEpisode.title}` : ''}
-              </span>
-            </div>
-            <div className="popup-price">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-price-logo" />
-              <span>{EPISODE_PRICE.toFixed(2)}</span>
-            </div>
-            <div className="popup-balance">
-              {t.player.yourBalance}:
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-balance-logo" />
-              <span>{(userState.user?.balance || 0).toFixed(2)}</span>
-            </div>
-            <div className="popup-buttons">
-              <button
-                className="btn-confirm"
-                onClick={handlePurchaseConfirm}
-                disabled={isPurchasing}
-              >
-                {isPurchasing ? '...' : t.player.confirmPurchase}
-              </button>
-              <button
-                className="btn-cancel"
-                onClick={() => setShowPurchasePopup(false)}
-                disabled={isPurchasing}
-              >
-                {t.player.cancel}
-              </button>
-            </div>
-          </div>
-        </div>
+      {playerPageState.showPurchasePopup && playerState.currentEpisode && (
+        <PurchasePopup
+          seriesName={playerState.series?.name || ''}
+          episodeNumber={playerState.currentEpisode.episodeNumber}
+          episodeTitle={playerState.currentEpisode.title}
+          userBalance={userState.user?.balance || 0}
+          isPurchasing={playerPageState.isPurchasing}
+          onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t)}
+          onCancel={playerPageStoreActions.hidePurchasePopup}
+          t={t.player}
+        />
       )}
 
       {/* Result Modal */}
-      {showResultModal && (
-        <div className="popup-overlay" onClick={() => setShowResultModal(false)}>
-          <div className={`popup-modal result-modal result-${resultModalType}`} onClick={(e) => e.stopPropagation()}>
-            <div className="result-icon">
-              {resultModalType === 'success' ? (
-                <svg viewBox="0 0 24 24" width="64" height="64">
-                  <circle cx="12" cy="12" r="11" fill="#22c55e" />
-                  <path
-                    d="M7 12l3 3 7-7"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="64" height="64">
-                  <circle cx="12" cy="12" r="11" fill="#ef4444" />
-                  <path
-                    d="M8 8l8 8M16 8l-8 8"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <h2 className="result-title">
-              {resultModalType === 'success'
-                ? t.player.unlockSuccess
-                : t.player.unlockFailed}
-            </h2>
-            <p className="result-message">{resultModalMessage}</p>
-            <button
-              className={`btn-result ${resultModalType === 'success' ? 'btn-result-success' : 'btn-result-error'}`}
-              onClick={() => {
-                setShowResultModal(false)
-                if (resultModalType === 'error' && resultModalMessage.includes('balance')) {
-                  navigate('/account?tab=wallet')
-                }
-              }}
-            >
-              {resultModalType === 'error' && resultModalMessage.includes('balance')
-                ? t.player.goToWallet
-                : 'OK'}
-            </button>
-          </div>
-        </div>
+      {playerPageState.showResultModal && (
+        <ResultModal
+          type={playerPageState.resultModalType}
+          title={
+            playerPageState.resultModalType === 'success'
+              ? t.player.unlockSuccess
+              : t.player.unlockFailed
+          }
+          message={playerPageState.resultModalMessage}
+          buttonText={
+            playerPageState.resultModalType === 'error' &&
+            playerPageState.resultModalMessage.includes('balance')
+              ? t.player.goToWallet
+              : 'OK'
+          }
+          onClose={() => playerPageStoreActions.handleResultModalClose(navigate)}
+        />
       )}
 
-      {/* Favorite Confirmation Modal */}
-      {showFavoriteModal && (
-        <div className="popup-overlay" onClick={handleFavoriteCancel}>
-          <div className="popup-modal favorite-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-icon">
-              {pendingFavoriteAction === 'add' ? '❤️' : '💔'}
-            </div>
-            <h2 className="popup-title">
-              {pendingFavoriteAction === 'add'
-                ? t.player.addToFavoritesTitle
-                : t.player.removeFromFavoritesTitle}
-            </h2>
-            <p className="popup-message">
-              {pendingFavoriteAction === 'add'
-                ? t.player.addToFavoritesMessage
-                : t.player.removeFromFavoritesMessage}
-            </p>
-            <div className="popup-series-info">
-              <span className="popup-series-name">{playerState.series?.name || ''}</span>
-            </div>
-            <label className="dont-show-again">
-              <input
-                type="checkbox"
-                checked={favoriteModalDontShowAgain}
-                onChange={(e) => setFavoriteModalDontShowAgain(e.target.checked)}
-              />
-              <span>{t.player.dontShowAgain}</span>
-            </label>
-            <div className="popup-buttons">
-              <button
-                className="btn-confirm"
-                onClick={handleFavoriteConfirm}
-              >
-                {t.player.confirm}
-              </button>
-              <button
-                className="btn-cancel"
-                onClick={handleFavoriteCancel}
-              >
-                {t.player.cancel}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Favorite Modal */}
+      {playerPageState.showFavoriteModal && (
+        <FavoriteModal
+          action={playerPageState.pendingFavoriteAction || 'add'}
+          seriesName={playerState.series?.name || ''}
+          dontShowAgain={playerPageState.favoriteModalDontShowAgain}
+          onDontShowAgainChange={playerPageStoreActions.setFavoriteModalDontShowAgain}
+          onConfirm={playerPageStoreActions.handleFavoriteConfirm}
+          onCancel={playerPageStoreActions.hideFavoriteModal}
+          t={t.player}
+        />
       )}
 
-      {/* Toast Notification */}
-      {toastState.isVisible && (
-        <div className={`toast-notification toast-${toastState.type}`}>
-          {toastState.message}
-        </div>
-      )}
+      {/* Toast */}
+      <Toast
+        message={toastState.message}
+        type={toastState.type}
+        isVisible={toastState.isVisible}
+      />
     </div>
   )
 }
@@ -717,19 +307,6 @@ interface VideoPlayerProps {
   onTimeLimitReached: () => void
 }
 
-// Bunny Player.js interface
-interface PlayerJsPlayer {
-  on(event: string, callback: (data?: { seconds?: number }) => void): void
-  pause(): void
-  setCurrentTime(time: number): void
-}
-
-interface WindowWithPlayerJs extends Window {
-  playerjs?: {
-    Player: new (iframe: HTMLIFrameElement) => PlayerJsPlayer
-  }
-}
-
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   episode,
   videoRef,
@@ -754,84 +331,34 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onTimeLimitReached,
 }) => {
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const playerRef = React.useRef<PlayerJsPlayer | null>(null)
-  // Track if dialog is currently shown to prevent rapid re-triggering
-  const dialogShownRef = React.useRef(false)
-  // Use ref to track purchased status so event handler always sees current value
-  const isPurchasedRef = React.useRef(isPurchased)
-  
-  // Keep ref in sync with prop and enforce time limit if status changes to unpurchased
+  const [iframeLoaded, setIframeLoaded] = React.useState(false)
+
+  const currentVideoId = episode?.videoId
+
+  // Reset iframe loaded state when video changes
   React.useEffect(() => {
-    const wasUnpurchased = !isPurchasedRef.current
-    isPurchasedRef.current = isPurchased
-    
-    // If user logged out (isPurchased changed from true to false),
-    // enforce time limit immediately if player is past TIME_LIMIT
-    if (!isPurchased && !wasUnpurchased && playerRef.current) {
-      try {
-        // Pause and seek back to before the time limit
-        playerRef.current.pause()
-        playerRef.current.setCurrentTime(0)
-      } catch {
-        // Player might not be ready
-      }
-    }
-  }, [isPurchased])
+    setIframeLoaded(false)
+  }, [currentVideoId])
 
-  // Initialize Player.js for Bunny iframe
+  // Initialize Player.js with trial limit enforcement
   React.useEffect(() => {
-    if (!episode?.videoId || !iframeRef.current) return
+    if (!currentVideoId || !iframeLoaded) return
 
-    const initPlayer = () => {
-      const windowWithPlayerJs = window as WindowWithPlayerJs
-      if (!windowWithPlayerJs.playerjs || !iframeRef.current) return
+    const cleanup = initializePlayerJsWithTrialLimit(
+      iframeRef,
+      currentVideoId,
+      isPurchased,
+      onTimeLimitReached,
+    )
 
-      try {
-        const player = new windowWithPlayerJs.playerjs.Player(iframeRef.current)
-        playerRef.current = player
+    return cleanup
+  }, [currentVideoId, isPurchased, iframeLoaded, onTimeLimitReached])
 
-        player.on('ready', () => {
-          // Listen for time updates
-          player.on('timeupdate', (data) => {
-            if (!data?.seconds) return
-            const currentSeconds = data.seconds
-
-            // Enforce trial time limit if episode is not purchased
-            // Use ref to get current purchased status (not stale closure value)
-            if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
-              player.pause()
-              player.setCurrentTime(TIME_LIMIT - 0.1) // Set slightly before limit to prevent immediate re-trigger
-              if (!dialogShownRef.current) {
-                dialogShownRef.current = true
-                onTimeLimitReached()
-                // Reset the flag after a short delay to allow showing again if needed
-                setTimeout(() => {
-                  dialogShownRef.current = false
-                }, 500)
-              }
-            }
-          })
-        })
-      } catch (error) {
-        console.error('Failed to initialize Player.js:', error)
-      }
-    }
-
-    // Load Player.js script if not already loaded
-    const windowWithPlayerJs = window as WindowWithPlayerJs
-    if (windowWithPlayerJs.playerjs) {
-      initPlayer()
-    } else {
-      const script = document.createElement('script')
-      script.src = 'https://cdn.embed.ly/player-0.1.0.min.js'
-      script.onload = initPlayer
-      document.head.appendChild(script)
-    }
-
-    return () => {
-      playerRef.current = null
-    }
-  }, [episode?.videoId, onTimeLimitReached])
+  // Update purchase status when it changes
+  React.useEffect(() => {
+    if (!iframeLoaded) return
+    updatePlayerJsPurchaseStatus(currentVideoId, isPurchased)
+  }, [isPurchased, currentVideoId, iframeLoaded])
 
   return (
     <div className="video-player">
@@ -845,52 +372,53 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           style={{ border: 'none', width: '100%', height: '100%' }}
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
+          onLoad={() => setIframeLoaded(true)}
         />
-    ) : (
-      <div
-        className="video-player-native"
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-      >
-        <video
-          ref={videoRef}
-          src={episode.videoUrl}
-          poster={episode.thumbnail}
-          onTimeUpdate={onTimeUpdate}
-          onLoadedMetadata={onLoadedMetadata}
-          onClick={onPlayPause}
-        />
-
-        <div className={`player-controls ${showControls ? 'visible' : ''}`}>
-          <PlayPauseButton isPlaying={isPlaying} onClick={onPlayPause} />
-
-          <input
-            type="range"
-            className="progress-bar"
-            min="0"
-            max={duration}
-            value={currentTime}
-            onChange={(e) => onProgressChange(parseFloat(e.target.value))}
+      ) : (
+        <div
+          className="video-player-native"
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
+        >
+          <video
+            ref={videoRef}
+            src={episode.videoUrl}
+            poster={episode.thumbnail}
+            onTimeUpdate={onTimeUpdate}
+            onLoadedMetadata={onLoadedMetadata}
+            onClick={onPlayPause}
           />
 
-          <span className="time-display">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
+          <div className={`player-controls ${showControls ? 'visible' : ''}`}>
+            <PlayPauseButton isPlaying={isPlaying} onClick={onPlayPause} />
 
-          <VolumeButton volume={volume} onClick={onVolumeToggle} />
+            <input
+              type="range"
+              className="progress-bar"
+              min="0"
+              max={duration}
+              value={currentTime}
+              onChange={(e) => onProgressChange(parseFloat(e.target.value))}
+            />
 
-          <SpeedSelector
-            currentSpeed={playbackSpeed}
-            showSelector={showSpeedSelector}
-            onToggle={onSpeedSelectorToggle}
-            onSpeedSelect={onSpeedChange}
-          />
+            <span className="time-display">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
 
-          <FullscreenButton onClick={onFullscreen} />
+            <VolumeButton volume={volume} onClick={onVolumeToggle} />
+
+            <SpeedSelector
+              currentSpeed={playbackSpeed}
+              showSelector={showSpeedSelector}
+              onToggle={onSpeedSelectorToggle}
+              onSpeedSelect={onSpeedChange}
+            />
+
+            <FullscreenButton onClick={onFullscreen} />
+          </div>
         </div>
-      </div>
-    )}
-  </div>
+      )}
+    </div>
   )
 }
 
@@ -979,7 +507,13 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({ onClick }) => (
 )
 
 interface EpisodeMetadataProps {
-  series: { name: string; tags?: string[]; genre?: { _id: string; name: string }[]; description: string; languages?: string[] }
+  series: {
+    name: string
+    tags?: string[]
+    genre?: { _id: string; name: string }[]
+    description: string
+    languages?: string[]
+  }
   currentEpisode: Episode | null
   selectedLanguage: string
   isFavorited: boolean
@@ -1003,7 +537,9 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
 }) => (
   <div className="episode-metadata">
     <h1 className="episode-title">
-      {currentEpisode ? buildEpisodeTitle(series.name, currentEpisode.episodeNumber) : series.name}
+      {currentEpisode
+        ? buildEpisodeTitle(series.name, currentEpisode.episodeNumber)
+        : series.name}
     </h1>
 
     <div className="metadata-row">
@@ -1041,11 +577,7 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
         </button>
 
         {!isEpisodePurchased && (
-          <button
-            className="unlock-button"
-            onClick={onUnlockClick}
-            title="Unlock episode"
-          >
+          <button className="unlock-button" onClick={onUnlockClick} title="Unlock episode">
             <svg viewBox="0 0 24 24" width="24" height="24">
               <path
                 fill="none"
@@ -1066,13 +598,19 @@ const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
         </span>
       ))}
       {series.genre?.map((genre) => (
-        <span key={genre._id} className="episode-tag" onClick={() => onTagClick(genre.name)}>
+        <span
+          key={genre._id}
+          className="episode-tag"
+          onClick={() => onTagClick(genre.name)}
+        >
           {genre.name}
         </span>
       ))}
     </div>
 
-    <p className="episode-description">{currentEpisode?.description || series.description}</p>
+    <p className="episode-description">
+      {currentEpisode?.description || series.description}
+    </p>
   </div>
 )
 
@@ -1083,7 +621,12 @@ interface EpisodeItemProps {
   onClick: () => void
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, isPurchased, onClick }) => {
+const EpisodeItem: React.FC<EpisodeItemProps> = ({
+  episode,
+  isActive,
+  isPurchased,
+  onClick,
+}) => {
   const [isHovered, setIsHovered] = React.useState(false)
 
   return (
@@ -1094,10 +637,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, isActive, isPurchase
       onMouseLeave={() => setIsHovered(false)}
     >
       {isPurchased && <div className="purchased-ribbon" />}
-      <img
-        src={getEpisodeThumbnailUrl(episode, isHovered)}
-        alt={episode.title}
-      />
+      <img src={getEpisodeThumbnailUrl(episode, isHovered)} alt={episode.title} />
       <span className="episode-number">
         EP {episode.episodeNumber.toString().padStart(2, '0')}
       </span>
@@ -1111,7 +651,8 @@ interface EpisodeSidebarProps {
   currentEpisode: Episode | null
   episodeRange: [number, number]
   title: string
-  isEpisodePurchased: (episode: Episode) => boolean
+  seriesId: string
+  isSeriesOwner: boolean
   onEpisodeClick: (episode: Episode) => void
   onRangeSelect: (range: [number, number]) => void
 }
@@ -1122,11 +663,21 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
   currentEpisode,
   episodeRange,
   title,
-  isEpisodePurchased,
+  seriesId,
+  isSeriesOwner,
   onEpisodeClick,
   onRangeSelect,
 }) => {
-  const ranges = getEpisodeRanges(allEpisodes.length)
+  const userState = useUserStore()
+  const purchases = userState.user?.purchases
+
+  const ranges = getEpisodeRangeOptions()
+
+  const checkPurchased = (episode: Episode): boolean => {
+    if (!seriesId) return false
+    if (isSeriesOwner) return true
+    return isEpisodePurchased(seriesId, episode._id, purchases, episode.episodeNumber)
+  }
 
   return (
     <aside className="episode-sidebar">
@@ -1151,8 +702,11 @@ const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
           <EpisodeItem
             key={episode.episodeNumber}
             episode={episode}
-            isActive={currentEpisode !== null && currentEpisode.episodeNumber === episode.episodeNumber}
-            isPurchased={isEpisodePurchased(episode)}
+            isActive={
+              currentEpisode !== null &&
+              currentEpisode.episodeNumber === episode.episodeNumber
+            }
+            isPurchased={checkPurchased(episode)}
             onClick={() => onEpisodeClick(episode)}
           />
         ))}

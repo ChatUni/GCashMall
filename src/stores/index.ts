@@ -311,3 +311,7 @@ export const videoFeedStoreActions = {
   }),
   getState: videoFeedStore.getState,
 }
+
+// Export getters for external access
+export const getPlayerStore = playerStore.getState
+export const getUserStore = userStore.getState
