@@ -4,38 +4,72 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import { SeriesEditContent } from '../SeriesEdit'
 import { useLanguage } from '../../context/LanguageContext'
-import { useAccountStore, accountStoreActions, phoneNavItems, walletAmounts, type AccountTab } from '../../stores/accountStore'
 import {
-  initializeAccountData,
-  fetchAccountUserData,
-  handleLogout,
-  saveProfile,
-  changePassword,
-  setPassword,
-  uploadAvatar,
-  clearWatchHistoryNoConfirm,
-  removeFromWatchListNoConfirm,
-  removeFromFavoritesNoConfirm,
-  clearFavoritesNoConfirm,
-  topUp,
-  withdraw,
+  useAccountStore,
+  accountStoreActions,
+  phoneNavItems,
+  walletAmounts,
+  type AccountTab,
+  type Transaction,
+  getCombinedTransactions,
+  getFilteredTransactions,
+  formatTransactionDate,
+  getStatusClass,
   hasProfileChanges,
-  fetchMyPurchases,
-  fetchMySeries,
-  shelveSeries,
-  deleteSeries,
-  setEditingSeries,
+  groupPurchasesBySeries,
+  getSortedWatchHistoryItems,
+  getSortedFavoritesItems,
+} from '../../stores/accountStore'
+import {
+  initializeAccountPage,
+  syncTabFromUrl,
+  handleTabClick,
+  handleLogoutAndNavigate,
+  handleLoginClose,
+  handleLoginSuccess,
+  handleSaveProfile,
+  handleChangePassword,
+  handleSetPassword,
+  handleAvatarUpload,
+  handleTopUpClick,
+  handleWithdrawClick,
+  handleConfirmTopUp,
+  handleConfirmWithdraw,
+  closeTopUpPopup,
+  closeWithdrawPopup,
+  handleCustomAmountClick,
+  handleCustomAmountConfirm,
+  closeCustomAmountPopup,
+  openClearHistoryModal,
+  confirmClearHistory,
+  cancelClearHistory,
+  openDeleteHistoryItemModal,
+  confirmDeleteHistoryItem,
+  cancelDeleteHistoryItem,
+  openClearFavoritesModal,
+  confirmClearFavorites,
+  cancelClearFavorites,
+  openDeleteFavoriteItemModal,
+  confirmDeleteFavoriteItem,
+  cancelDeleteFavoriteItem,
+  handleShelveClick,
+  confirmShelve,
+  cancelShelve,
+  confirmUnshelve,
+  cancelUnshelve,
+  openDeleteSeriesModal,
+  confirmDeleteSeries,
+  cancelDeleteSeries,
+  handleEditSeries,
+  handleAddSeries,
+  handleCancelEdit,
+  handleSaveComplete,
+  getStatusText,
+  getPhoneTabTitle,
 } from '../../services/accountService'
-import { toastStoreActions, useToastStore } from '../../stores'
+import { useToastStore } from '../../stores'
 import type { User, PurchaseItem, Series } from '../../types'
 import './PhoneAccount.css'
-
-// Track initialization
-let accountInitialized = false
-let userDataFetched = false
-let myPurchasesFetched = false
-let mySeriesFetched = false
-let lastProcessedCode: string | null = null
 
 const PhoneAccount: React.FC = () => {
   const { t, language, setLanguage } = useLanguage()
@@ -45,115 +79,30 @@ const PhoneAccount: React.FC = () => {
   const state = useAccountStore()
   const toastState = useToastStore()
 
-  // Check if there's an OAuth code to process
-  const code = searchParams.get('code')
+  // Initialize data using shared service function
+  initializeAccountPage(searchParams, (params) => setSearchParams(params), navigate)
 
-  // Initialize data
-  // If there's a code that hasn't been processed yet, we need to run initialization
-  // even if accountInitialized is true (user came back from OAuth redirect)
-  const hasNewCode = code && code !== lastProcessedCode
-  if (!accountInitialized || hasNewCode) {
-    accountInitialized = true
-    if (code) {
-      lastProcessedCode = code
-    }
-    initializeAccountData(searchParams, (params) => setSearchParams(params), navigate)
+  // Sync tab from URL (phone version includes about/contact tabs)
+  syncTabFromUrl(searchParams, true)
+
+  // Event handlers using shared service functions
+  const onTabClick = (tab: AccountTab) => {
+    handleTabClick(tab, (params) => setSearchParams(params))
   }
 
-  if (state.isLoggedIn && !userDataFetched) {
-    userDataFetched = true
-    fetchAccountUserData()
-  }
+  const onLogout = () => handleLogoutAndNavigate(navigate)
 
-  if (state.isLoggedIn && !myPurchasesFetched) {
-    myPurchasesFetched = true
-    fetchMyPurchases()
-  }
+  const onLoginClose = () => handleLoginClose(navigate)
 
-  if (state.isLoggedIn && !mySeriesFetched) {
-    mySeriesFetched = true
-    fetchMySeries()
-  }
+  const onLoginSuccess = async (user: User) => handleLoginSuccess(user)
 
-  const tabFromUrl = searchParams.get('tab')
-  if (tabFromUrl && phoneNavItems.some((item) => item.key === tabFromUrl) && state.activeTab !== tabFromUrl) {
-    accountStoreActions.setActiveTab(tabFromUrl as AccountTab)
-  }
+  const onSaveProfile = () => handleSaveProfile(t.account)
 
-  const handleTabClick = (tab: AccountTab) => {
-    accountStoreActions.setActiveTab(tab)
-    setSearchParams({ tab })
-  }
+  const onChangePassword = () => handleChangePassword(t.account)
 
-  const onLogout = () => {
-    // Reset initialization flags before logout so next visit will re-initialize
-    accountInitialized = false
-    userDataFetched = false
-    myPurchasesFetched = false
-    mySeriesFetched = false
-    handleLogout()
-    navigate('/')
-  }
+  const onSetPassword = () => handleSetPassword(t.account)
 
-  const handleLoginClose = () => {
-    accountStoreActions.setShowLoginModal(false)
-    if (!state.isLoggedIn) {
-      navigate('/')
-    }
-  }
-
-  const handleLoginSuccess = async (user: User) => {
-    accountStoreActions.initializeUserData(user)
-    userDataFetched = false
-    myPurchasesFetched = false
-    mySeriesFetched = false
-    await fetchAccountUserData()
-    userDataFetched = true
-    await fetchMyPurchases()
-    myPurchasesFetched = true
-    await fetchMySeries()
-    mySeriesFetched = true
-    accountStoreActions.setShowLoginModal(false)
-  }
-
-  const onSaveProfile = async () => {
-    const result = await saveProfile(state.profileForm, t.account.overview)
-    if (result.success) {
-      toastStoreActions.show(t.account.overview.saveSuccess || 'Profile updated successfully', 'success')
-    } else if (result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-  }
-
-  const onChangePassword = async () => {
-    const result = await changePassword(state.passwordForm, t.account.overview)
-    if (result.success) {
-      toastStoreActions.show(t.account.overview.passwordChangeSuccess || 'Password changed successfully', 'success')
-    } else if (result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-  }
-
-  const onSetPassword = async () => {
-    const result = await setPassword(state.passwordForm, t.account.overview)
-    if (result.success) {
-      toastStoreActions.show(t.account.overview.passwordChangeSuccess || 'Password set successfully', 'success')
-    } else if (result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-  }
-
-  const onAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const result = await uploadAvatar(file, t.account.overview)
-    if (result.success) {
-      toastStoreActions.show(t.account.overview.avatarUpdateSuccess || 'Avatar updated successfully', 'success')
-    } else if (result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-  }
+  const onAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => handleAvatarUpload(e, t.account)
 
   // Check loading FIRST - during OAuth callback processing, show loading state
   // not the login prompt (since isLoggedIn will be false until OAuth completes)
@@ -181,19 +130,16 @@ const PhoneAccount: React.FC = () => {
           </button>
         </div>
         {state.showLoginModal && (
-          <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+          <LoginModal onClose={onLoginClose} onLoginSuccess={onLoginSuccess} />
         )}
       </PhoneLayout>
     )
   }
 
-  const getTabTitle = (): string => {
-    const nav = t.account.nav as Record<string, string>
-    return nav[state.activeTab] || 'Account'
-  }
+  const tabTitle = getPhoneTabTitle(t.account)
 
   return (
-    <PhoneLayout showHeader={true} title={getTabTitle()}>
+    <PhoneLayout showHeader={true} title={tabTitle}>
       <div className="phone-account">
         {/* User Profile Header - Only visible for overview tab */}
         {state.activeTab === 'overview' && (
@@ -228,7 +174,7 @@ const PhoneAccount: React.FC = () => {
             <button
               key={item.key}
               className={`phone-account-tab ${state.activeTab === item.key ? 'active' : ''}`}
-              onClick={() => handleTabClick(item.key)}
+              onClick={() => onTabClick(item.key)}
             >
               <span className="phone-tab-icon">{item.icon}</span>
               <span className="phone-tab-label">{(t.account.nav as Record<string, string>)[item.key]}</span>
@@ -258,8 +204,9 @@ const PhoneAccount: React.FC = () => {
           {state.activeTab === 'watchHistory' && (
             <PhoneWatchHistorySection
               items={state.user?.watchList || []}
-              onClearHistory={clearWatchHistoryNoConfirm}
-              onRemoveItem={removeFromWatchListNoConfirm}
+              showClearModal={state.showClearHistoryModal}
+              showDeleteModal={state.showDeleteHistoryItemModal}
+              pendingDeleteSeriesName={state.pendingDeleteHistorySeriesName}
               onNavigate={navigate}
               t={t}
             />
@@ -268,8 +215,9 @@ const PhoneAccount: React.FC = () => {
           {state.activeTab === 'favorites' && (
             <PhoneFavoritesSection
               items={state.user?.favorites || []}
-              onClearFavorites={clearFavoritesNoConfirm}
-              onRemoveItem={removeFromFavoritesNoConfirm}
+              showClearModal={state.showClearFavoritesModal}
+              showDeleteModal={state.showDeleteFavoriteItemModal}
+              pendingDeleteSeriesName={state.pendingDeleteFavoriteSeriesName}
               onNavigate={navigate}
               t={t}
             />
@@ -298,6 +246,9 @@ const PhoneAccount: React.FC = () => {
               withdrawing={state.withdrawing}
               transactions={state.transactions}
               purchases={state.myPurchases}
+              transactionFilter={state.transactionFilter}
+              showCustomAmountPopup={state.showCustomAmountPopup}
+              customAmountInput={state.customAmountInput}
               t={t}
             />
           )}
@@ -316,6 +267,12 @@ const PhoneAccount: React.FC = () => {
               series={state.mySeries}
               loading={state.mySeriesLoading}
               editingSeriesId={state.editingSeriesId}
+              showShelveModal={state.showShelveModal}
+              pendingShelveSeries={state.pendingShelveSeries}
+              showUnshelveModal={state.showUnshelveModal}
+              pendingUnshelveSeries={state.pendingUnshelveSeries}
+              showDeleteModal={state.showDeleteSeriesModal}
+              pendingDeleteSeries={state.pendingDeleteSeries}
               onNavigate={navigate}
               t={t}
             />
@@ -332,7 +289,7 @@ const PhoneAccount: React.FC = () => {
       </div>
 
       {state.showLoginModal && (
-        <LoginModal onClose={handleLoginClose} onLoginSuccess={handleLoginSuccess} />
+        <LoginModal onClose={onLoginClose} onLoginSuccess={onLoginSuccess} />
       )}
 
       {toastState.isVisible && (
@@ -590,66 +547,25 @@ const PhoneOverviewSection: React.FC<PhoneOverviewSectionProps> = ({
 
 interface PhoneWatchHistorySectionProps {
   items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]
-  onClearHistory: () => Promise<{ success: boolean; error?: string }>
-  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
+  showClearModal: boolean
+  showDeleteModal: boolean
+  pendingDeleteSeriesName: string
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
 
 const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
   items,
-  onClearHistory,
-  onRemoveItem,
+  showClearModal,
+  showDeleteModal,
+  pendingDeleteSeriesName,
   onNavigate,
   t,
 }) => {
   const watchHistory = t.account.watchHistory as Record<string, string>
   
-  // Modal states
-  const [showClearModal, setShowClearModal] = React.useState(false)
-  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
-  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
-  const [pendingDeleteSeriesName, setPendingDeleteSeriesName] = React.useState<string>('')
-
-  // Sort items by updatedAt descending (most recent first)
-  const sortedItems = [...items].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  )
-
-  const handleClearClick = () => {
-    setShowClearModal(true)
-  }
-
-  const handleClearConfirm = async () => {
-    await onClearHistory()
-    setShowClearModal(false)
-  }
-
-  const handleClearCancel = () => {
-    setShowClearModal(false)
-  }
-
-  const handleDeleteClick = (seriesId: string, seriesName: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setPendingDeleteSeriesId(seriesId)
-    setPendingDeleteSeriesName(seriesName)
-    setShowDeleteModal(true)
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (pendingDeleteSeriesId) {
-      await onRemoveItem(pendingDeleteSeriesId)
-    }
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeriesName('')
-  }
-
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeriesName('')
-  }
+  // Sort items using shared helper
+  const sortedItems = getSortedWatchHistoryItems(items)
 
   if (sortedItems.length === 0) {
     return (
@@ -665,7 +581,7 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
 
   return (
     <div className="phone-history-section">
-      <button className="phone-clear-btn" onClick={handleClearClick}>
+      <button className="phone-clear-btn" onClick={openClearHistoryModal}>
         {watchHistory.clearHistory}
       </button>
       <div className="phone-history-list">
@@ -675,14 +591,17 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
             seriesId={item.seriesId}
             episodeNumber={item.episodeNumber}
             onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
-            onRemove={(e, seriesName) => handleDeleteClick(item.seriesId, seriesName, e)}
+            onRemove={(e, seriesName) => {
+              e.stopPropagation()
+              openDeleteHistoryItemModal(item.seriesId, seriesName)
+            }}
           />
         ))}
       </div>
 
       {/* Clear History Confirmation Modal */}
       {showClearModal && (
-        <div className="phone-modal-overlay" onClick={handleClearCancel}>
+        <div className="phone-modal-overlay" onClick={cancelClearHistory}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">🗑️</span>
             <h3 className="phone-modal-title">{watchHistory.clearConfirmTitle || 'Clear Watch History'}</h3>
@@ -690,10 +609,10 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
               {watchHistory.clearConfirmMessage || 'Are you sure you want to clear all watch history? This action cannot be undone.'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleClearConfirm}>
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmClearHistory}>
                 {watchHistory.clearHistory || 'Clear History'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleClearCancel}>
+              <button className="phone-modal-cancel" onClick={cancelClearHistory}>
                 {watchHistory.cancel || 'Cancel'}
               </button>
             </div>
@@ -703,7 +622,7 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
 
       {/* Delete Item Confirmation Modal */}
       {showDeleteModal && (
-        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+        <div className="phone-modal-overlay" onClick={cancelDeleteHistoryItem}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">🗑️</span>
             <h3 className="phone-modal-title">{watchHistory.deleteConfirmTitle || 'Remove from History'}</h3>
@@ -714,10 +633,10 @@ const PhoneWatchHistorySection: React.FC<PhoneWatchHistorySectionProps> = ({
               {watchHistory.deleteConfirmMessage || 'Are you sure you want to remove this item from your watch history?'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteHistoryItem}>
                 {watchHistory.remove || 'Remove'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
+              <button className="phone-modal-cancel" onClick={cancelDeleteHistoryItem}>
                 {watchHistory.cancel || 'Cancel'}
               </button>
             </div>
@@ -784,66 +703,25 @@ const PhoneHistoryCard: React.FC<PhoneHistoryCardProps> = ({
 
 interface PhoneFavoritesSectionProps {
   items: { seriesId: string; seriesName: string; seriesCover: string; seriesTags?: string[]; addedAt: Date }[]
-  onClearFavorites: () => Promise<{ success: boolean; error?: string }>
-  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
+  showClearModal: boolean
+  showDeleteModal: boolean
+  pendingDeleteSeriesName: string
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
 
 const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
   items,
-  onClearFavorites,
-  onRemoveItem,
+  showClearModal,
+  showDeleteModal,
+  pendingDeleteSeriesName,
   onNavigate,
   t,
 }) => {
   const favorites = t.account.favorites as Record<string, string>
   
-  // Modal states
-  const [showClearModal, setShowClearModal] = React.useState(false)
-  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
-  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
-  const [pendingDeleteSeriesName, setPendingDeleteSeriesName] = React.useState<string>('')
-
-  // Sort items by addedAt descending (most recent first)
-  const sortedItems = [...items].sort(
-    (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
-  )
-
-  const handleClearClick = () => {
-    setShowClearModal(true)
-  }
-
-  const handleClearConfirm = async () => {
-    await onClearFavorites()
-    setShowClearModal(false)
-  }
-
-  const handleClearCancel = () => {
-    setShowClearModal(false)
-  }
-
-  const handleDeleteClick = (seriesId: string, seriesName: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setPendingDeleteSeriesId(seriesId)
-    setPendingDeleteSeriesName(seriesName)
-    setShowDeleteModal(true)
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (pendingDeleteSeriesId) {
-      await onRemoveItem(pendingDeleteSeriesId)
-    }
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeriesName('')
-  }
-
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeriesName('')
-  }
+  // Sort items using shared helper
+  const sortedItems = getSortedFavoritesItems(items)
 
   if (sortedItems.length === 0) {
     return (
@@ -859,7 +737,7 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
 
   return (
     <div className="phone-favorites-section">
-      <button className="phone-clear-btn" onClick={handleClearClick}>
+      <button className="phone-clear-btn" onClick={openClearFavoritesModal}>
         {favorites.clearFavorites || 'Clear Favorites'}
       </button>
       <div className="phone-favorites-list">
@@ -879,7 +757,10 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
             <span className="phone-favorite-name">{item.seriesName}</span>
             <button
               className="phone-remove-btn"
-              onClick={(e) => handleDeleteClick(item.seriesId, item.seriesName, e)}
+              onClick={(e) => {
+                e.stopPropagation()
+                openDeleteFavoriteItemModal(item.seriesId, item.seriesName)
+              }}
             >
               ✕
             </button>
@@ -889,7 +770,7 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
 
       {/* Clear Favorites Confirmation Modal */}
       {showClearModal && (
-        <div className="phone-modal-overlay" onClick={handleClearCancel}>
+        <div className="phone-modal-overlay" onClick={cancelClearFavorites}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">🗑️</span>
             <h3 className="phone-modal-title">{favorites.clearConfirmTitle || 'Clear Favorites'}</h3>
@@ -897,10 +778,10 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
               {favorites.clearConfirmMessage || 'Are you sure you want to clear all favorites? This action cannot be undone.'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleClearConfirm}>
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmClearFavorites}>
                 {favorites.clearFavorites || 'Clear Favorites'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleClearCancel}>
+              <button className="phone-modal-cancel" onClick={cancelClearFavorites}>
                 {favorites.cancel || 'Cancel'}
               </button>
             </div>
@@ -910,7 +791,7 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
 
       {/* Delete Item Confirmation Modal */}
       {showDeleteModal && (
-        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+        <div className="phone-modal-overlay" onClick={cancelDeleteFavoriteItem}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">🗑️</span>
             <h3 className="phone-modal-title">{favorites.deleteConfirmTitle || 'Remove from Favorites'}</h3>
@@ -921,10 +802,10 @@ const PhoneFavoritesSection: React.FC<PhoneFavoritesSectionProps> = ({
               {favorites.deleteConfirmMessage || 'Are you sure you want to remove this item from your favorites?'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteFavoriteItem}>
                 {favorites.remove || 'Remove'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
+              <button className="phone-modal-cancel" onClick={cancelDeleteFavoriteItem}>
                 {favorites.cancel || 'Cancel'}
               </button>
             </div>
@@ -1025,8 +906,11 @@ interface PhoneWalletSectionProps {
   showWithdrawPopup: boolean
   selectedWithdrawAmount: number | null
   withdrawing: boolean
-  transactions: { id: string; type: 'topup' | 'withdraw'; amount: number; status: string; referenceId: string; createdAt: Date }[]
+  transactions: Transaction[]
   purchases: PurchaseItem[]
+  transactionFilter: 'all' | 'topup' | 'withdraw' | 'purchase'
+  showCustomAmountPopup: boolean
+  customAmountInput: string
   t: Record<string, Record<string, unknown>>
 }
 
@@ -1040,160 +924,26 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
   withdrawing,
   transactions,
   purchases,
+  transactionFilter,
+  showCustomAmountPopup,
+  customAmountInput,
   t,
 }) => {
   const wallet = t.account.wallet as Record<string, string>
 
-  const handleTopUpClick = (amount: number) => {
-    accountStoreActions.setSelectedTopUpAmount(amount)
-    accountStoreActions.setShowTopUpPopup(true)
-  }
+  const onTopUpClick = (amount: number) => handleTopUpClick(amount)
 
-  const handleWithdrawClick = (amount: number) => {
-    if (amount > balance) {
-      toastStoreActions.show(wallet.insufficientBalance || 'Insufficient balance', 'error')
-      return
-    }
-    accountStoreActions.setSelectedWithdrawAmount(amount)
-    accountStoreActions.setShowWithdrawPopup(true)
-  }
+  const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t.account)
 
-  const handleConfirmTopUp = async () => {
-    if (selectedTopUpAmount) {
-      const result = await topUp(selectedTopUpAmount)
-      if (result.success) {
-        toastStoreActions.show(wallet.topUpSuccess || 'Top up successful', 'success')
-      } else {
-        toastStoreActions.show(result.error || wallet.topUpFailed || 'Failed to top up', 'error')
-      }
-    }
-  }
+  const onConfirmTopUp = () => handleConfirmTopUp(t.account)
 
-  const handleConfirmWithdraw = async () => {
-    if (selectedWithdrawAmount) {
-      const result = await withdraw(selectedWithdrawAmount)
-      if (result.success) {
-        toastStoreActions.show(wallet.withdrawSuccess || 'Withdrawal successful', 'success')
-      } else {
-        toastStoreActions.show(result.error || wallet.withdrawFailed || 'Failed to withdraw', 'error')
-      }
-    }
-  }
+  const onConfirmWithdraw = () => handleConfirmWithdraw(t.account)
 
-  const handleCloseTopUpPopup = () => {
-    accountStoreActions.setShowTopUpPopup(false)
-    accountStoreActions.setSelectedTopUpAmount(null)
-  }
+  const onCustomAmountConfirm = () => handleCustomAmountConfirm(t.account)
 
-  const handleCloseWithdrawPopup = () => {
-    accountStoreActions.setShowWithdrawPopup(false)
-    accountStoreActions.setSelectedWithdrawAmount(null)
-  }
-
-  // Format date for display
-  const formatDate = (date: Date) => {
-    const d = new Date(date)
-    return d.toLocaleDateString()
-  }
-
-  // Get status display class
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'status-success'
-      case 'failed':
-        return 'status-failed'
-      case 'processing':
-        return 'status-processing'
-      default:
-        return ''
-    }
-  }
-
-  // Get status display text
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'success':
-        return wallet.statusSuccess || 'Success'
-      case 'failed':
-        return wallet.statusFailed || 'Failed'
-      case 'processing':
-        return wallet.statusProcessing || 'Processing'
-      default:
-        return status
-    }
-  }
-
-  // Transaction filter state
-  const [transactionFilter, setTransactionFilter] = React.useState<'all' | 'topup' | 'withdraw' | 'purchase'>('all')
-
-  // Custom amount state
-  const [showCustomAmountPopup, setShowCustomAmountPopup] = React.useState(false)
-  const [customAmountInput, setCustomAmountInput] = React.useState('')
-
-  const handleCustomAmountClick = () => {
-    setCustomAmountInput('')
-    setShowCustomAmountPopup(true)
-  }
-
-  const handleCustomAmountConfirm = () => {
-    const amount = parseFloat(customAmountInput)
-    if (isNaN(amount) || amount <= 0) {
-      toastStoreActions.show(wallet.invalidAmount || 'Please enter a valid amount', 'error')
-      return
-    }
-    if (walletTab === 'withdraw' && amount > balance) {
-      toastStoreActions.show(wallet.insufficientBalance || 'Insufficient balance', 'error')
-      return
-    }
-    setShowCustomAmountPopup(false)
-    if (walletTab === 'topup') {
-      handleTopUpClick(amount)
-    } else {
-      handleWithdrawClick(amount)
-    }
-  }
-
-  const handleCloseCustomAmountPopup = () => {
-    setShowCustomAmountPopup(false)
-    setCustomAmountInput('')
-  }
-
-  // Combine transactions and purchases into a single list
-  type CombinedTransaction = {
-    id: string
-    type: 'topup' | 'withdraw' | 'purchase'
-    amount: number
-    status: string
-    referenceId: string
-    createdAt: Date
-    purchase?: PurchaseItem
-  }
-
-  const combinedTransactions: CombinedTransaction[] = [
-    ...transactions.map((t) => ({
-      id: t.id,
-      type: t.type as 'topup' | 'withdraw',
-      amount: t.amount,
-      status: t.status,
-      referenceId: t.referenceId,
-      createdAt: t.createdAt,
-    })),
-    ...purchases.map((p) => ({
-      id: p._id,
-      type: 'purchase' as const,
-      amount: p.price,
-      status: p.status || 'success',
-      referenceId: p.referenceId || '-',
-      createdAt: new Date(p.purchasedAt),
-      purchase: p,
-    })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-  // Filter transactions based on selected filter
-  const filteredTransactions = transactionFilter === 'all'
-    ? combinedTransactions
-    : combinedTransactions.filter((t) => t.type === transactionFilter)
+  // Use shared helpers for combined transactions
+  const combinedTransactions = getCombinedTransactions(transactions, purchases)
+  const filteredTransactions = getFilteredTransactions(combinedTransactions, transactionFilter)
 
   return (
     <div className="phone-wallet">
@@ -1232,7 +982,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
           </h3>
           <button
             className={`phone-withdraw-all-btn ${walletTab === 'topup' || balance <= 0 ? 'invisible' : ''}`}
-            onClick={() => handleWithdrawClick(parseFloat(balance.toFixed(2)))}
+            onClick={() => onWithdrawClick(parseFloat(balance.toFixed(2)))}
             disabled={walletTab === 'topup' || balance <= 0}
           >
             {wallet.withdrawAll || 'Withdraw All'}
@@ -1243,7 +993,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
             <button
               key={amount}
               className={`phone-amount-btn ${walletTab === 'withdraw' && amount > balance ? 'disabled' : ''}`}
-              onClick={() => walletTab === 'topup' ? handleTopUpClick(amount) : handleWithdrawClick(amount)}
+              onClick={() => walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
               disabled={walletTab === 'withdraw' && amount > balance}
             >
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="phone-amount-logo" />
@@ -1268,7 +1018,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
           <select
             className="phone-transaction-filter"
             value={transactionFilter}
-            onChange={(e) => setTransactionFilter(e.target.value as 'all' | 'topup' | 'withdraw' | 'purchase')}
+            onChange={(e) => accountStoreActions.setTransactionFilter(e.target.value as 'all' | 'topup' | 'withdraw' | 'purchase')}
           >
             <option value="all">{wallet.filterAll || 'All'}</option>
             <option value="topup">{wallet.topUp || 'Top Up'}</option>
@@ -1296,14 +1046,14 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
                         transaction.type === 'topup' ? (wallet.topUp || 'Top Up') : (wallet.withdraw || 'Withdraw')
                       )}
                     </div>
-                    <span className="phone-transaction-date">{formatDate(transaction.createdAt)}</span>
+                    <span className="phone-transaction-date">{formatTransactionDate(transaction.createdAt)}</span>
                   </div>
                   <div className="phone-transaction-amount-status">
                     <span className={`phone-transaction-amount amount-${transaction.type}`}>
                       {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
                     </span>
                     <span className={`phone-transaction-status ${getStatusClass(transaction.status)}`}>
-                      {getStatusText(transaction.status)}
+                      {getStatusText(transaction.status, t.account)}
                     </span>
                   </div>
                 </div>
@@ -1318,7 +1068,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
 
       {/* Top Up Confirmation Popup */}
       {showTopUpPopup && selectedTopUpAmount && (
-        <div className="phone-popup-overlay" onClick={handleCloseTopUpPopup}>
+        <div className="phone-popup-overlay" onClick={closeTopUpPopup}>
           <div className="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="phone-popup-logo" />
             <h3 className="phone-popup-title">{wallet.confirmTopUp || 'Confirm Top Up'}</h3>
@@ -1328,10 +1078,10 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
               <span>{selectedTopUpAmount}</span>
             </div>
             <div className="phone-popup-buttons">
-              <button className="phone-popup-confirm" onClick={handleConfirmTopUp}>
+              <button className="phone-popup-confirm" onClick={onConfirmTopUp}>
                 {wallet.confirm || 'Confirm'}
               </button>
-              <button className="phone-popup-cancel" onClick={handleCloseTopUpPopup}>
+              <button className="phone-popup-cancel" onClick={closeTopUpPopup}>
                 {wallet.cancel || 'Cancel'}
               </button>
             </div>
@@ -1341,7 +1091,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
 
       {/* Withdraw Confirmation Popup */}
       {showWithdrawPopup && selectedWithdrawAmount && (
-        <div className="phone-popup-overlay" onClick={handleCloseWithdrawPopup}>
+        <div className="phone-popup-overlay" onClick={closeWithdrawPopup}>
           <div className="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="phone-popup-logo" />
             <h3 className="phone-popup-title">{wallet.confirmWithdraw || 'Confirm Withdrawal'}</h3>
@@ -1353,14 +1103,14 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
             <div className="phone-popup-buttons">
               <button
                 className="phone-popup-confirm"
-                onClick={handleConfirmWithdraw}
+                onClick={onConfirmWithdraw}
                 disabled={withdrawing}
               >
                 {withdrawing ? '...' : (wallet.confirm || 'Confirm')}
               </button>
               <button
                 className="phone-popup-cancel"
-                onClick={handleCloseWithdrawPopup}
+                onClick={closeWithdrawPopup}
                 disabled={withdrawing}
               >
                 {wallet.cancel || 'Cancel'}
@@ -1372,7 +1122,7 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
 
       {/* Custom Amount Popup */}
       {showCustomAmountPopup && (
-        <div className="phone-popup-overlay" onClick={handleCloseCustomAmountPopup}>
+        <div className="phone-popup-overlay" onClick={closeCustomAmountPopup}>
           <div className="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="phone-popup-logo" />
             <h3 className="phone-popup-title">
@@ -1391,17 +1141,17 @@ const PhoneWalletSection: React.FC<PhoneWalletSectionProps> = ({
                 type="number"
                 className="phone-custom-amount-input"
                 value={customAmountInput}
-                onChange={(e) => setCustomAmountInput(e.target.value)}
+                onChange={(e) => accountStoreActions.setCustomAmountInput(e.target.value)}
                 placeholder="0.00"
                 min="0"
                 step="0.01"
               />
             </div>
             <div className="phone-popup-buttons">
-              <button className="phone-popup-confirm" onClick={handleCustomAmountConfirm}>
+              <button className="phone-popup-confirm" onClick={onCustomAmountConfirm}>
                 {wallet.confirm || 'Confirm'}
               </button>
-              <button className="phone-popup-cancel" onClick={handleCloseCustomAmountPopup}>
+              <button className="phone-popup-cancel" onClick={closeCustomAmountPopup}>
                 {wallet.cancel || 'Cancel'}
               </button>
             </div>
@@ -1434,21 +1184,8 @@ const PhoneMyPurchasesSection: React.FC<PhoneMyPurchasesSectionProps> = ({
     )
   }
 
-  // Group purchases by series
-  const purchasesBySeries = purchases.reduce((acc, purchase) => {
-    if (!acc[purchase.seriesId]) {
-      acc[purchase.seriesId] = {
-        seriesId: purchase.seriesId,
-        seriesName: purchase.seriesName,
-        seriesCover: purchase.seriesCover,
-        episodes: [],
-      }
-    }
-    acc[purchase.seriesId].episodes.push(purchase)
-    return acc
-  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[] }>)
-
-  const seriesList = Object.values(purchasesBySeries)
+  // Group purchases by series using shared helper
+  const seriesList = groupPurchasesBySeries(purchases)
 
   if (seriesList.length === 0) {
     return (
@@ -1525,6 +1262,12 @@ interface PhoneMySeriesSectionProps {
   series: Series[]
   loading: boolean
   editingSeriesId: string | null
+  showShelveModal: boolean
+  pendingShelveSeries: Series | null
+  showUnshelveModal: boolean
+  pendingUnshelveSeries: Series | null
+  showDeleteModal: boolean
+  pendingDeleteSeries: Series | null
   onNavigate: (path: string) => void
   t: Record<string, Record<string, unknown>>
 }
@@ -1533,125 +1276,16 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
   series,
   loading,
   editingSeriesId,
+  showShelveModal,
+  pendingShelveSeries,
+  showUnshelveModal,
+  pendingUnshelveSeries,
+  showDeleteModal,
+  pendingDeleteSeries,
   onNavigate,
   t,
 }) => {
   const mySeries = (t.account.mySeries || {}) as Record<string, string>
-  
-  // Shelve confirmation modal state
-  const [showShelveModal, setShowShelveModal] = React.useState(false)
-  const [pendingShelveSeriesId, setPendingShelveSeriesId] = React.useState<string | null>(null)
-  const [pendingShelveSeries, setPendingShelveSeries] = React.useState<Series | null>(null)
-  
-  // Unshelve confirmation modal state
-  const [showUnshelveModal, setShowUnshelveModal] = React.useState(false)
-  const [pendingUnshelveSeriesId, setPendingUnshelveSeriesId] = React.useState<string | null>(null)
-  const [pendingUnshelveSeries, setPendingUnshelveSeries] = React.useState<Series | null>(null)
-  
-  // Delete confirmation modal state
-  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
-  const [pendingDeleteSeriesId, setPendingDeleteSeriesId] = React.useState<string | null>(null)
-  const [pendingDeleteSeries, setPendingDeleteSeries] = React.useState<Series | null>(null)
-
-  const handleShelve = async (seriesId: string, isShelved: boolean, seriesItem: Series) => {
-    if (isShelved) {
-      setPendingUnshelveSeriesId(seriesId)
-      setPendingUnshelveSeries(seriesItem)
-      setShowUnshelveModal(true)
-      return
-    }
-    
-    setPendingShelveSeriesId(seriesId)
-    setPendingShelveSeries(seriesItem)
-    setShowShelveModal(true)
-  }
-
-  const handleShelveConfirm = async () => {
-    if (!pendingShelveSeriesId) return
-    
-    const result = await shelveSeries(pendingShelveSeriesId, true)
-    if (!result.success && result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-    
-    setShowShelveModal(false)
-    setPendingShelveSeriesId(null)
-    setPendingShelveSeries(null)
-  }
-
-  const handleShelveCancel = () => {
-    setShowShelveModal(false)
-    setPendingShelveSeriesId(null)
-    setPendingShelveSeries(null)
-  }
-
-  const handleUnshelveConfirm = async () => {
-    if (!pendingUnshelveSeriesId) return
-    
-    const result = await shelveSeries(pendingUnshelveSeriesId, true)
-    if (!result.success && result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-    
-    setShowUnshelveModal(false)
-    setPendingUnshelveSeriesId(null)
-    setPendingUnshelveSeries(null)
-  }
-
-  const handleUnshelveCancel = () => {
-    setShowUnshelveModal(false)
-    setPendingUnshelveSeriesId(null)
-    setPendingUnshelveSeries(null)
-  }
-
-  const handleDelete = (seriesItem: Series) => {
-    setPendingDeleteSeriesId(seriesItem._id)
-    setPendingDeleteSeries(seriesItem)
-    setShowDeleteModal(true)
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!pendingDeleteSeriesId) return
-    
-    const result = await deleteSeries(pendingDeleteSeriesId)
-    if (result.success) {
-      toastStoreActions.show('Series deleted successfully', 'success')
-    } else if (result.error) {
-      toastStoreActions.show(result.error, 'error')
-    }
-    
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeries(null)
-  }
-
-  const handleDeleteCancel = () => {
-    setShowDeleteModal(false)
-    setPendingDeleteSeriesId(null)
-    setPendingDeleteSeries(null)
-  }
-
-  const handleEdit = (seriesItem: Series) => {
-    setEditingSeries(seriesItem)
-    accountStoreActions.setEditingSeriesId(seriesItem._id)
-  }
-
-  const handleAddSeries = () => {
-    setEditingSeries(null)
-    accountStoreActions.setEditingSeriesId('new')
-  }
-
-  const handleCancelEdit = () => {
-    accountStoreActions.setEditingSeriesId(null)
-    setEditingSeries(null)
-  }
-
-  const handleSaveComplete = () => {
-    accountStoreActions.setEditingSeriesId(null)
-    setEditingSeries(null)
-    // Refresh the series list
-    fetchMySeries()
-  }
 
   if (loading) {
     return (
@@ -1729,7 +1363,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
                 className="phone-series-action-btn"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleShelve(seriesItem._id, seriesItem.shelved || false, seriesItem)
+                  handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)
                 }}
                 title={seriesItem.shelved ? (mySeries.unshelve || 'Unshelve') : (mySeries.shelve || 'Shelve')}
               >
@@ -1739,7 +1373,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
                 className="phone-series-action-btn"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleEdit(seriesItem)
+                  handleEditSeries(seriesItem)
                 }}
                 title={mySeries.edit || 'Edit'}
               >
@@ -1749,7 +1383,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
                 className="phone-series-action-btn phone-series-action-btn-delete"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleDelete(seriesItem)
+                  openDeleteSeriesModal(seriesItem)
                 }}
                 title={mySeries.delete || 'Delete'}
               >
@@ -1762,7 +1396,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
 
       {/* Shelve Confirmation Modal */}
       {showShelveModal && pendingShelveSeries && (
-        <div className="phone-modal-overlay" onClick={handleShelveCancel}>
+        <div className="phone-modal-overlay" onClick={cancelShelve}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">📥</span>
             <h3 className="phone-modal-title">{mySeries.shelveConfirmTitle || 'Confirm Shelve'}</h3>
@@ -1771,10 +1405,10 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
               {mySeries.shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm" onClick={handleShelveConfirm}>
+              <button className="phone-modal-confirm" onClick={confirmShelve}>
                 {mySeries.shelve || 'Shelve'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleShelveCancel}>
+              <button className="phone-modal-cancel" onClick={cancelShelve}>
                 {mySeries.cancel || 'Cancel'}
               </button>
             </div>
@@ -1784,7 +1418,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
 
       {/* Unshelve Confirmation Modal */}
       {showUnshelveModal && pendingUnshelveSeries && (
-        <div className="phone-modal-overlay" onClick={handleUnshelveCancel}>
+        <div className="phone-modal-overlay" onClick={cancelUnshelve}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">📤</span>
             <h3 className="phone-modal-title">{mySeries.unshelveConfirmTitle || 'Confirm Unshelve'}</h3>
@@ -1793,10 +1427,10 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
               {mySeries.unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm" onClick={handleUnshelveConfirm}>
+              <button className="phone-modal-confirm" onClick={confirmUnshelve}>
                 {mySeries.unshelve || 'Unshelve'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleUnshelveCancel}>
+              <button className="phone-modal-cancel" onClick={cancelUnshelve}>
                 {mySeries.cancel || 'Cancel'}
               </button>
             </div>
@@ -1806,7 +1440,7 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && pendingDeleteSeries && (
-        <div className="phone-modal-overlay" onClick={handleDeleteCancel}>
+        <div className="phone-modal-overlay" onClick={cancelDeleteSeries}>
           <div className="phone-modal" onClick={(e) => e.stopPropagation()}>
             <span className="phone-modal-icon">🗑️</span>
             <h3 className="phone-modal-title">{mySeries.deleteConfirmTitle || 'Confirm Delete'}</h3>
@@ -1815,10 +1449,10 @@ const PhoneMySeriesSection: React.FC<PhoneMySeriesSectionProps> = ({
               {mySeries.deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}
             </p>
             <div className="phone-modal-buttons">
-              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={handleDeleteConfirm}>
+              <button className="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteSeries}>
                 {mySeries.delete || 'Delete'}
               </button>
-              <button className="phone-modal-cancel" onClick={handleDeleteCancel}>
+              <button className="phone-modal-cancel" onClick={cancelDeleteSeries}>
                 {mySeries.cancel || 'Cancel'}
               </button>
             </div>

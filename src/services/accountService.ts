@@ -2,8 +2,8 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDelete, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
-import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId } from '../stores/accountStore'
-import { userStoreActions } from '../stores'
+import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
+import { toastStoreActions, userStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
 
@@ -767,4 +767,505 @@ export const deleteSeries = async (seriesId: string): Promise<{ success: boolean
 // Set editing series for the series edit component
 export const setEditingSeries = (series: Series | null) => {
   accountStoreActions.setEditingSeries(series)
+}
+
+// ===== Shared Handlers for Account Pages (Desktop and Phone) =====
+
+// Initialize account page - checks for OAuth callback and login status
+// Uses store-based flags instead of module-level variables
+export const initializeAccountPage = async (
+  searchParams: URLSearchParams,
+  setSearchParams: (params: Record<string, string>) => void,
+  navigate?: (path: string) => void
+) => {
+  const state = accountStoreActions.getState()
+  const code = searchParams.get('code')
+  
+  // Check if there's a new OAuth code to process
+  const hasNewCode = code && code !== state.lastProcessedCode
+  
+  if (!state.accountInitialized || hasNewCode) {
+    accountStoreActions.setAccountInitialized(true)
+    if (code) {
+      accountStoreActions.setLastProcessedCode(code)
+    }
+    await initializeAccountData(searchParams, setSearchParams, navigate)
+  }
+  
+  // Fetch user data when logged in (only once)
+  const updatedState = accountStoreActions.getState()
+  if (updatedState.isLoggedIn && !updatedState.userDataFetched) {
+    accountStoreActions.setUserDataFetched(true)
+    await fetchAccountUserData()
+  }
+  
+  // Fetch my purchases when logged in (only once)
+  const stateAfterUserData = accountStoreActions.getState()
+  if (stateAfterUserData.isLoggedIn && !stateAfterUserData.myPurchasesFetched) {
+    accountStoreActions.setMyPurchasesFetched(true)
+    await fetchMyPurchases()
+  }
+  
+  // Fetch my series when logged in (only once)
+  const stateAfterPurchases = accountStoreActions.getState()
+  if (stateAfterPurchases.isLoggedIn && !stateAfterPurchases.mySeriesFetched) {
+    accountStoreActions.setMySeriesFetched(true)
+    await fetchMySeries()
+  }
+}
+
+// Handle tab from URL - syncs URL tab parameter with store
+export const syncTabFromUrl = (
+  searchParams: URLSearchParams,
+  isPhone: boolean = false
+) => {
+  const tabFromUrl = searchParams.get('tab')
+  const allowedNavItems = isPhone ? phoneNavItems : navItems
+  const state = accountStoreActions.getState()
+  
+  if (tabFromUrl && allowedNavItems.some((item) => item.key === tabFromUrl) && state.activeTab !== tabFromUrl) {
+    accountStoreActions.setActiveTab(tabFromUrl as AccountTab)
+  }
+}
+
+// Handle tab click - updates both store and URL
+export const handleTabClick = (
+  tab: AccountTab,
+  setSearchParams: (params: Record<string, string>) => void
+) => {
+  accountStoreActions.setActiveTab(tab)
+  setSearchParams({ tab })
+}
+
+// Handle tab click with unsaved changes confirmation (for desktop)
+export const handleTabClickWithConfirm = (
+  tab: AccountTab,
+  setSearchParams: (params: Record<string, string>) => void,
+  t: Record<string, unknown>
+) => {
+  const state = accountStoreActions.getState()
+  const overview = t.overview as Record<string, string> | undefined
+  
+  if (state.activeTab === 'overview') {
+    const hasChanges = (
+      state.profileForm.nickname !== state.originalProfile.nickname ||
+      state.profileForm.email !== state.originalProfile.email ||
+      state.profileForm.phoneNumber !== state.originalProfile.phoneNumber ||
+      state.profileForm.gender !== state.originalProfile.gender ||
+      state.profileForm.birthday !== state.originalProfile.birthday
+    )
+    
+    if (hasChanges) {
+      const confirmed = window.confirm(overview?.unsavedChanges || 'You have unsaved changes. Do you want to discard them?')
+      if (confirmed) {
+        accountStoreActions.resetProfileForm()
+      } else {
+        return
+      }
+    }
+  }
+  handleTabClick(tab, setSearchParams)
+}
+
+// Handle logout - resets store and redirects
+export const handleLogoutAndNavigate = (navigate: (path: string) => void) => {
+  // Reset initialization flags so next visit will re-initialize
+  accountStoreActions.resetInitializationFlags()
+  handleLogout()
+  navigate('/')
+}
+
+// Handle login modal close
+export const handleLoginClose = (
+  navigate: (path: string) => void
+) => {
+  const state = accountStoreActions.getState()
+  accountStoreActions.setShowLoginModal(false)
+  if (!state.isLoggedIn) {
+    navigate('/')
+  }
+}
+
+// Handle login success - fetches user data
+export const handleLoginSuccess = async (user: User) => {
+  // Initialize user data (sets loading: false, isLoggedIn: true)
+  accountStoreActions.initializeUserData(user)
+  // Reset fetch flags so data is re-fetched for the new user
+  accountStoreActions.setUserDataFetched(false)
+  accountStoreActions.setMyPurchasesFetched(false)
+  accountStoreActions.setMySeriesFetched(false)
+  // Fetch additional user data
+  await fetchAccountUserData()
+  accountStoreActions.setUserDataFetched(true)
+  // Fetch my purchases and my series
+  await fetchMyPurchases()
+  accountStoreActions.setMyPurchasesFetched(true)
+  await fetchMySeries()
+  accountStoreActions.setMySeriesFetched(true)
+  // Hide the modal after loading is complete
+  accountStoreActions.setShowLoginModal(false)
+}
+
+// ===== Profile Handlers =====
+
+// Handle save profile with toast notification
+export const handleSaveProfile = async (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const overview = t.overview as Record<string, string> | undefined
+  
+  const result = await saveProfile(state.profileForm, overview || {})
+  if (result.success) {
+    toastStoreActions.show(overview?.saveSuccess || 'Profile updated successfully', 'success')
+  } else if (result.error) {
+    toastStoreActions.show(result.error, 'error')
+  }
+}
+
+// Handle change password with toast notification
+export const handleChangePassword = async (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const overview = t.overview as Record<string, string> | undefined
+  
+  const result = await changePassword(state.passwordForm, overview || {})
+  if (result.success) {
+    toastStoreActions.show(overview?.passwordChangeSuccess || 'Password changed successfully', 'success')
+  } else if (result.error) {
+    toastStoreActions.show(result.error, 'error')
+  }
+}
+
+// Handle set password (for OAuth users) with toast notification
+export const handleSetPassword = async (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const overview = t.overview as Record<string, string> | undefined
+  const login = t.login as Record<string, string> | undefined
+  
+  const result = await setPassword(state.passwordForm, overview || {})
+  if (result.success) {
+    toastStoreActions.show(login?.setPasswordSuccess || overview?.passwordChangeSuccess || 'Password set successfully', 'success')
+  } else if (result.error) {
+    toastStoreActions.show(result.error, 'error')
+  }
+}
+
+// Handle avatar upload with toast notification
+export const handleAvatarUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+  t: Record<string, unknown>
+) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  const overview = t.overview as Record<string, string> | undefined
+  const result = await uploadAvatar(file, overview || {})
+  if (result.success) {
+    toastStoreActions.show(overview?.avatarUpdateSuccess || 'Avatar updated successfully', 'success')
+  } else if (result.error) {
+    toastStoreActions.show(result.error, 'error')
+  }
+}
+
+// ===== Wallet Handlers =====
+
+// Handle top up click
+export const handleTopUpClick = (amount: number) => {
+  accountStoreActions.setSelectedTopUpAmount(amount)
+  accountStoreActions.setShowTopUpPopup(true)
+}
+
+// Handle withdraw click with balance check
+export const handleWithdrawClick = (amount: number, t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const wallet = t.wallet as Record<string, string> | undefined
+  
+  if (amount > state.balance) {
+    toastStoreActions.show(wallet?.insufficientBalance || 'Insufficient balance', 'error')
+    return
+  }
+  accountStoreActions.setSelectedWithdrawAmount(amount)
+  accountStoreActions.setShowWithdrawPopup(true)
+}
+
+// Handle confirm top up with toast notification
+export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const wallet = t.wallet as Record<string, string> | undefined
+  
+  if (state.selectedTopUpAmount) {
+    const result = await topUp(state.selectedTopUpAmount)
+    if (result.success) {
+      toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+    } else {
+      toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
+    }
+  }
+}
+
+// Handle confirm withdraw with toast notification
+export const handleConfirmWithdraw = async (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const wallet = t.wallet as Record<string, string> | undefined
+  
+  if (state.selectedWithdrawAmount) {
+    const result = await withdraw(state.selectedWithdrawAmount)
+    if (result.success) {
+      toastStoreActions.show(wallet?.withdrawSuccess || 'Withdrawal successful', 'success')
+    } else {
+      toastStoreActions.show(result.error || wallet?.withdrawFailed || 'Failed to withdraw', 'error')
+    }
+  }
+}
+
+// Close top up popup
+export const closeTopUpPopup = () => {
+  accountStoreActions.setShowTopUpPopup(false)
+  accountStoreActions.setSelectedTopUpAmount(null)
+}
+
+// Close withdraw popup
+export const closeWithdrawPopup = () => {
+  accountStoreActions.setShowWithdrawPopup(false)
+  accountStoreActions.setSelectedWithdrawAmount(null)
+}
+
+// Handle custom amount click
+export const handleCustomAmountClick = () => {
+  accountStoreActions.setCustomAmountInput('')
+  accountStoreActions.setShowCustomAmountPopup(true)
+}
+
+// Handle custom amount confirm
+export const handleCustomAmountConfirm = (t: Record<string, unknown>) => {
+  const state = accountStoreActions.getState()
+  const wallet = t.wallet as Record<string, string> | undefined
+  
+  const amount = parseFloat(state.customAmountInput)
+  if (isNaN(amount) || amount <= 0) {
+    toastStoreActions.show(wallet?.invalidAmount || 'Please enter a valid amount', 'error')
+    return
+  }
+  if (state.walletTab === 'withdraw' && amount > state.balance) {
+    toastStoreActions.show(wallet?.insufficientBalance || 'Insufficient balance', 'error')
+    return
+  }
+  accountStoreActions.setShowCustomAmountPopup(false)
+  if (state.walletTab === 'topup') {
+    handleTopUpClick(amount)
+  } else {
+    handleWithdrawClick(amount, t)
+  }
+}
+
+// Close custom amount popup
+export const closeCustomAmountPopup = () => {
+  accountStoreActions.setShowCustomAmountPopup(false)
+  accountStoreActions.setCustomAmountInput('')
+}
+
+// ===== Watch History Modal Handlers =====
+
+// Open clear history modal
+export const openClearHistoryModal = () => {
+  accountStoreActions.setShowClearHistoryModal(true)
+}
+
+// Confirm clear history
+export const confirmClearHistory = async () => {
+  await clearWatchHistoryNoConfirm()
+  accountStoreActions.setShowClearHistoryModal(false)
+}
+
+// Cancel clear history
+export const cancelClearHistory = () => {
+  accountStoreActions.setShowClearHistoryModal(false)
+}
+
+// Open delete history item modal
+export const openDeleteHistoryItemModal = (seriesId: string, seriesName: string) => {
+  accountStoreActions.setPendingDeleteHistoryItem(seriesId, seriesName)
+  accountStoreActions.setShowDeleteHistoryItemModal(true)
+}
+
+// Confirm delete history item
+export const confirmDeleteHistoryItem = async () => {
+  const state = accountStoreActions.getState()
+  if (state.pendingDeleteHistorySeriesId) {
+    await removeFromWatchListNoConfirm(state.pendingDeleteHistorySeriesId)
+  }
+  accountStoreActions.setShowDeleteHistoryItemModal(false)
+  accountStoreActions.setPendingDeleteHistoryItem(null, '')
+}
+
+// Cancel delete history item
+export const cancelDeleteHistoryItem = () => {
+  accountStoreActions.setShowDeleteHistoryItemModal(false)
+  accountStoreActions.setPendingDeleteHistoryItem(null, '')
+}
+
+// ===== Favorites Modal Handlers =====
+
+// Open clear favorites modal
+export const openClearFavoritesModal = () => {
+  accountStoreActions.setShowClearFavoritesModal(true)
+}
+
+// Confirm clear favorites
+export const confirmClearFavorites = async () => {
+  await clearFavoritesNoConfirm()
+  accountStoreActions.setShowClearFavoritesModal(false)
+}
+
+// Cancel clear favorites
+export const cancelClearFavorites = () => {
+  accountStoreActions.setShowClearFavoritesModal(false)
+}
+
+// Open delete favorite item modal
+export const openDeleteFavoriteItemModal = (seriesId: string, seriesName: string) => {
+  accountStoreActions.setPendingDeleteFavoriteItem(seriesId, seriesName)
+  accountStoreActions.setShowDeleteFavoriteItemModal(true)
+}
+
+// Confirm delete favorite item
+export const confirmDeleteFavoriteItem = async () => {
+  const state = accountStoreActions.getState()
+  if (state.pendingDeleteFavoriteSeriesId) {
+    await removeFromFavoritesNoConfirm(state.pendingDeleteFavoriteSeriesId)
+  }
+  accountStoreActions.setShowDeleteFavoriteItemModal(false)
+  accountStoreActions.setPendingDeleteFavoriteItem(null, '')
+}
+
+// Cancel delete favorite item
+export const cancelDeleteFavoriteItem = () => {
+  accountStoreActions.setShowDeleteFavoriteItemModal(false)
+  accountStoreActions.setPendingDeleteFavoriteItem(null, '')
+}
+
+// ===== Series Modal Handlers =====
+
+// Handle shelve/unshelve click - opens appropriate modal
+export const handleShelveClick = (seriesId: string, isShelved: boolean, series: Series) => {
+  if (isShelved) {
+    accountStoreActions.setPendingUnshelve(seriesId, series)
+    accountStoreActions.setShowUnshelveModal(true)
+  } else {
+    accountStoreActions.setPendingShelve(seriesId, series)
+    accountStoreActions.setShowShelveModal(true)
+  }
+}
+
+// Confirm shelve
+export const confirmShelve = async () => {
+  const state = accountStoreActions.getState()
+  if (state.pendingShelveSeriesId) {
+    const result = await shelveSeries(state.pendingShelveSeriesId, true)
+    if (!result.success && result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+  }
+  accountStoreActions.setShowShelveModal(false)
+  accountStoreActions.setPendingShelve(null, null)
+}
+
+// Cancel shelve
+export const cancelShelve = () => {
+  accountStoreActions.setShowShelveModal(false)
+  accountStoreActions.setPendingShelve(null, null)
+}
+
+// Confirm unshelve
+export const confirmUnshelve = async () => {
+  const state = accountStoreActions.getState()
+  if (state.pendingUnshelveSeriesId) {
+    const result = await shelveSeries(state.pendingUnshelveSeriesId, true)
+    if (!result.success && result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+  }
+  accountStoreActions.setShowUnshelveModal(false)
+  accountStoreActions.setPendingUnshelve(null, null)
+}
+
+// Cancel unshelve
+export const cancelUnshelve = () => {
+  accountStoreActions.setShowUnshelveModal(false)
+  accountStoreActions.setPendingUnshelve(null, null)
+}
+
+// Open delete series modal
+export const openDeleteSeriesModal = (series: Series) => {
+  accountStoreActions.setPendingDeleteSeries(series._id, series)
+  accountStoreActions.setShowDeleteSeriesModal(true)
+}
+
+// Confirm delete series
+export const confirmDeleteSeries = async () => {
+  const state = accountStoreActions.getState()
+  if (state.pendingDeleteSeriesId) {
+    const result = await deleteSeries(state.pendingDeleteSeriesId)
+    if (result.success) {
+      toastStoreActions.show('Series deleted successfully', 'success')
+    } else if (result.error) {
+      toastStoreActions.show(result.error, 'error')
+    }
+  }
+  accountStoreActions.setShowDeleteSeriesModal(false)
+  accountStoreActions.setPendingDeleteSeries(null, null)
+}
+
+// Cancel delete series
+export const cancelDeleteSeries = () => {
+  accountStoreActions.setShowDeleteSeriesModal(false)
+  accountStoreActions.setPendingDeleteSeries(null, null)
+}
+
+// Handle edit series click
+export const handleEditSeries = (series: Series) => {
+  setEditingSeries(series)
+  accountStoreActions.setEditingSeriesId(series._id)
+}
+
+// Handle add series click
+export const handleAddSeries = () => {
+  setEditingSeries(null)
+  accountStoreActions.setEditingSeriesId('new')
+}
+
+// Handle cancel edit
+export const handleCancelEdit = () => {
+  accountStoreActions.setEditingSeriesId(null)
+  setEditingSeries(null)
+}
+
+// Handle save complete
+export const handleSaveComplete = () => {
+  accountStoreActions.setEditingSeriesId(null)
+  setEditingSeries(null)
+  // Refresh the series list
+  fetchMySeries()
+}
+
+// ===== Status Text Helpers =====
+
+// Get status text for transactions
+export const getStatusText = (status: string, t: Record<string, unknown>): string => {
+  const wallet = t.wallet as Record<string, string> | undefined
+  switch (status) {
+    case 'success':
+      return wallet?.statusSuccess || 'Success'
+    case 'failed':
+      return wallet?.statusFailed || 'Failed'
+    case 'processing':
+      return wallet?.statusProcessing || 'Processing'
+    default:
+      return status
+  }
+}
+
+// Get tab title for phone layout
+export const getPhoneTabTitle = (t: Record<string, unknown>): string => {
+  const state = accountStoreActions.getState()
+  const nav = t.nav as Record<string, string> | undefined
+  return nav?.[state.activeTab] || 'Account'
 }

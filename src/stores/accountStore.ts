@@ -19,6 +19,19 @@ export interface Transaction {
   createdAt: Date
 }
 
+// Combined transaction type for display (includes purchases)
+export type CombinedTransactionType = 'topup' | 'withdraw' | 'purchase'
+
+export interface CombinedTransaction {
+  id: string
+  type: CombinedTransactionType
+  amount: number
+  status: string
+  referenceId: string
+  createdAt: Date
+  purchase?: PurchaseItem
+}
+
 const createStore = <T>(initialState: T) => {
   let state = initialState
   const listeners = new Set<Listener>()
@@ -39,6 +52,7 @@ const createStore = <T>(initialState: T) => {
 }
 
 export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'about' | 'contact'
+export type TransactionFilter = 'all' | 'topup' | 'withdraw' | 'purchase'
 
 export interface ProfileFormState {
   nickname: string
@@ -72,6 +86,13 @@ interface AccountState {
   isLoggedIn: boolean
   loading: boolean
   favorites: FavoriteItem[]
+  
+  // Initialization tracking flags (moved from component-level variables)
+  accountInitialized: boolean
+  userDataFetched: boolean
+  myPurchasesFetched: boolean
+  mySeriesFetched: boolean
+  lastProcessedCode: string | null
   
   // My Purchases
   myPurchases: PurchaseItem[]
@@ -112,6 +133,32 @@ interface AccountState {
   selectedWithdrawAmount: number | null
   withdrawing: boolean
   transactions: Transaction[]
+  transactionFilter: TransactionFilter
+  showCustomAmountPopup: boolean
+  customAmountInput: string
+  
+  // Confirmation modals (shared by phone and desktop)
+  showClearHistoryModal: boolean
+  showDeleteHistoryItemModal: boolean
+  pendingDeleteHistorySeriesId: string | null
+  pendingDeleteHistorySeriesName: string
+  
+  showClearFavoritesModal: boolean
+  showDeleteFavoriteItemModal: boolean
+  pendingDeleteFavoriteSeriesId: string | null
+  pendingDeleteFavoriteSeriesName: string
+  
+  showShelveModal: boolean
+  pendingShelveSeriesId: string | null
+  pendingShelveSeries: Series | null
+  
+  showUnshelveModal: boolean
+  pendingUnshelveSeriesId: string | null
+  pendingUnshelveSeries: Series | null
+  
+  showDeleteSeriesModal: boolean
+  pendingDeleteSeriesId: string | null
+  pendingDeleteSeries: Series | null
   
   // UI
   showLoginModal: boolean
@@ -150,6 +197,13 @@ const initialState: AccountState = {
   loading: true,
   favorites: [],
   
+  // Initialization tracking flags
+  accountInitialized: false,
+  userDataFetched: false,
+  myPurchasesFetched: false,
+  mySeriesFetched: false,
+  lastProcessedCode: null,
+  
   // My Purchases
   myPurchases: [],
   myPurchasesLoading: false,
@@ -184,6 +238,32 @@ const initialState: AccountState = {
   selectedWithdrawAmount: null,
   withdrawing: false,
   transactions: [],
+  transactionFilter: 'all',
+  showCustomAmountPopup: false,
+  customAmountInput: '',
+  
+  // Confirmation modals
+  showClearHistoryModal: false,
+  showDeleteHistoryItemModal: false,
+  pendingDeleteHistorySeriesId: null,
+  pendingDeleteHistorySeriesName: '',
+  
+  showClearFavoritesModal: false,
+  showDeleteFavoriteItemModal: false,
+  pendingDeleteFavoriteSeriesId: null,
+  pendingDeleteFavoriteSeriesName: '',
+  
+  showShelveModal: false,
+  pendingShelveSeriesId: null,
+  pendingShelveSeries: null,
+  
+  showUnshelveModal: false,
+  pendingUnshelveSeriesId: null,
+  pendingUnshelveSeries: null,
+  
+  showDeleteSeriesModal: false,
+  pendingDeleteSeriesId: null,
+  pendingDeleteSeries: null,
   
   showLoginModal: false,
 }
@@ -344,6 +424,84 @@ export const accountStoreActions = {
         t.id === id ? { ...t, status } : t,
       ),
     })),
+  setTransactionFilter: (transactionFilter: TransactionFilter) =>
+    accountStore.setState((prev) => ({ ...prev, transactionFilter })),
+  setShowCustomAmountPopup: (showCustomAmountPopup: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showCustomAmountPopup })),
+  setCustomAmountInput: (customAmountInput: string) =>
+    accountStore.setState((prev) => ({ ...prev, customAmountInput })),
+  
+  // Initialization tracking
+  setAccountInitialized: (accountInitialized: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, accountInitialized })),
+  setUserDataFetched: (userDataFetched: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, userDataFetched })),
+  setMyPurchasesFetched: (myPurchasesFetched: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, myPurchasesFetched })),
+  setMySeriesFetched: (mySeriesFetched: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, mySeriesFetched })),
+  setLastProcessedCode: (lastProcessedCode: string | null) =>
+    accountStore.setState((prev) => ({ ...prev, lastProcessedCode })),
+  resetInitializationFlags: () =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      accountInitialized: false,
+      userDataFetched: false,
+      myPurchasesFetched: false,
+      mySeriesFetched: false,
+    })),
+  
+  // Watch History modals
+  setShowClearHistoryModal: (showClearHistoryModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showClearHistoryModal })),
+  setShowDeleteHistoryItemModal: (showDeleteHistoryItemModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showDeleteHistoryItemModal })),
+  setPendingDeleteHistoryItem: (seriesId: string | null, seriesName: string = '') =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      pendingDeleteHistorySeriesId: seriesId,
+      pendingDeleteHistorySeriesName: seriesName,
+    })),
+  
+  // Favorites modals
+  setShowClearFavoritesModal: (showClearFavoritesModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showClearFavoritesModal })),
+  setShowDeleteFavoriteItemModal: (showDeleteFavoriteItemModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showDeleteFavoriteItemModal })),
+  setPendingDeleteFavoriteItem: (seriesId: string | null, seriesName: string = '') =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      pendingDeleteFavoriteSeriesId: seriesId,
+      pendingDeleteFavoriteSeriesName: seriesName,
+    })),
+  
+  // Series shelve/unshelve modals
+  setShowShelveModal: (showShelveModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showShelveModal })),
+  setPendingShelve: (seriesId: string | null, series: Series | null = null) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      pendingShelveSeriesId: seriesId,
+      pendingShelveSeries: series,
+    })),
+  setShowUnshelveModal: (showUnshelveModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showUnshelveModal })),
+  setPendingUnshelve: (seriesId: string | null, series: Series | null = null) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      pendingUnshelveSeriesId: seriesId,
+      pendingUnshelveSeries: series,
+    })),
+  
+  // Series delete modal
+  setShowDeleteSeriesModal: (showDeleteSeriesModal: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showDeleteSeriesModal })),
+  setPendingDeleteSeries: (seriesId: string | null, series: Series | null = null) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      pendingDeleteSeriesId: seriesId,
+      pendingDeleteSeries: series,
+    })),
   
   // Initialize user data
   initializeUserData: (user: User) => {
@@ -419,4 +577,112 @@ export const generateReferenceId = (): string => {
 // Helper function to generate transaction ID
 export const generateTransactionId = (): string => {
   return `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+}
+
+// ===== Derived State / Selectors =====
+// These compute derived values from the store state
+
+// Get sorted watch history items (most recent first by updatedAt)
+export const getSortedWatchHistoryItems = (items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]) => {
+  return [...items].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  )
+}
+
+// Get sorted favorites items (most recent first by addedAt)
+export const getSortedFavoritesItems = <T extends { addedAt: Date }>(items: T[]) => {
+  return [...items].sort(
+    (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
+  )
+}
+
+// Combine transactions and purchases into a single list for display
+export const getCombinedTransactions = (
+  transactions: Transaction[],
+  purchases: PurchaseItem[],
+): CombinedTransaction[] => {
+  const combined: CombinedTransaction[] = [
+    ...transactions.map((t) => ({
+      id: t.id,
+      type: t.type as CombinedTransactionType,
+      amount: t.amount,
+      status: t.status,
+      referenceId: t.referenceId,
+      createdAt: t.createdAt,
+    })),
+    ...purchases.map((p) => ({
+      id: p._id,
+      type: 'purchase' as const,
+      amount: p.price,
+      status: p.status || 'success',
+      referenceId: p.referenceId || '-',
+      createdAt: new Date(p.purchasedAt),
+      purchase: p,
+    })),
+  ]
+  return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+// Filter transactions based on selected filter
+export const getFilteredTransactions = (
+  transactions: CombinedTransaction[],
+  filter: TransactionFilter,
+): CombinedTransaction[] => {
+  if (filter === 'all') return transactions
+  return transactions.filter((t) => t.type === filter)
+}
+
+// Format date for display (used in transaction history)
+export const formatTransactionDate = (date: Date): string => {
+  const d = new Date(date)
+  return d.toLocaleDateString()
+}
+
+// Format date with time for display
+export const formatTransactionDateTime = (date: Date): string => {
+  const d = new Date(date)
+  return d.toLocaleString()
+}
+
+// Get status display class
+export const getStatusClass = (status: string): string => {
+  switch (status) {
+    case 'success':
+      return 'status-success'
+    case 'failed':
+      return 'status-failed'
+    case 'processing':
+      return 'status-processing'
+    default:
+      return ''
+  }
+}
+
+// Check if profile form has changes
+export const hasProfileChanges = (current: ProfileFormState, original: ProfileFormState): boolean => {
+  return (
+    current.nickname !== original.nickname ||
+    current.email !== original.email ||
+    current.phoneNumber !== original.phoneNumber ||
+    current.gender !== original.gender ||
+    current.birthday !== original.birthday
+  )
+}
+
+// Group purchases by series for display
+export const groupPurchasesBySeries = (purchases: PurchaseItem[]) => {
+  const groups = purchases.reduce((acc, purchase) => {
+    if (!acc[purchase.seriesId]) {
+      acc[purchase.seriesId] = {
+        seriesId: purchase.seriesId,
+        seriesName: purchase.seriesName,
+        seriesCover: purchase.seriesCover,
+        episodes: [],
+      }
+    }
+    acc[purchase.seriesId].episodes.push(purchase)
+    return acc
+  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[] }>)
+  
+  return Object.values(groups)
 }
