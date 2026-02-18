@@ -1,7 +1,7 @@
 // Extended player store actions - business logic for the Player page
 // This module combines the base player store from index.ts with player page UI state
 
-import { useSyncExternalStore } from 'react'
+import { createStore } from 'solid-js/store'
 import type { Episode, User, FavoriteUserItem, WatchListItem } from '../types'
 import {
   addToWatchList,
@@ -17,6 +17,9 @@ import {
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
 import { playerStoreActions as basePlayerStoreActions, loginModalStoreActions, getPlayerStore, getUserStore } from './index'
+
+// Re-export playerStore from index.ts
+export { playerStore } from './index'
 
 // Constants
 export const HIDE_FAVORITE_MODAL_KEY = 'hideFavoriteModal'
@@ -99,25 +102,9 @@ const initialState: PlayerPageState = {
   showExpandButton: false,
 }
 
-let state = { ...initialState }
-const listeners = new Set<() => void>()
+const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(initialState)
 
-const emitChange = () => {
-  listeners.forEach((listener) => listener())
-}
-
-const subscribe = (listener: () => void) => {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-const getSnapshot = () => state
-
-// Store hook for player page UI state
-export const usePlayerPageStore = () => useSyncExternalStore(subscribe, getSnapshot)
-
-// Re-export usePlayerStore from index.ts
-export { usePlayerStore } from './index'
+export const playerPageStore = playerPageState
 
 // ======================
 // Derived state helpers (pure functions)
@@ -239,14 +226,14 @@ const playerInstances = new Map<string, PlayerJsState>()
  * - Listening for time updates
  * - Enforcing trial time limit for unpurchased episodes
  *
- * @param iframeRef - Ref to the iframe element
+ * @param iframeRef - Ref to the iframe element (plain object ref)
  * @param videoId - The video ID for tracking
  * @param isPurchased - Whether the current episode is purchased
  * @param onTimeLimitReached - Callback when user hits the trial limit
  * @returns Cleanup function to call on unmount/episode change
  */
 export const initializePlayerJsWithTrialLimit = (
-  iframeRef: React.RefObject<HTMLIFrameElement | null>,
+  iframeRef: { current: HTMLIFrameElement | null },
   videoId: string | undefined,
   isPurchased: boolean,
   onTimeLimitReached: () => void,
@@ -265,7 +252,7 @@ export const initializePlayerJsWithTrialLimit = (
     try {
       const player = new windowWithPlayerJs.playerjs.Player(iframeRef.current)
 
-      const playerState: PlayerJsState = {
+      const playerJsState: PlayerJsState = {
         player,
         isPurchasedRef,
         dialogShownRef,
@@ -273,7 +260,7 @@ export const initializePlayerJsWithTrialLimit = (
           playerInstances.delete(videoId)
         },
       }
-      playerInstances.set(videoId, playerState)
+      playerInstances.set(videoId, playerJsState)
 
       player.on('ready', () => {
         player.on('timeupdate', (data) => {
@@ -313,9 +300,9 @@ export const initializePlayerJsWithTrialLimit = (
   }
 
   return () => {
-    const playerState = playerInstances.get(videoId)
-    if (playerState) {
-      playerState.cleanup()
+    const pjsState = playerInstances.get(videoId)
+    if (pjsState) {
+      pjsState.cleanup()
     }
   }
 }
@@ -330,17 +317,17 @@ export const initializePlayerJsWithTrialLimit = (
 export const updatePlayerJsPurchaseStatus = (videoId: string | undefined, isPurchased: boolean): void => {
   if (!videoId) return
 
-  const playerState = playerInstances.get(videoId)
-  if (playerState) {
-    const wasUnpurchased = !playerState.isPurchasedRef.current
-    playerState.isPurchasedRef.current = isPurchased
+  const pjsState = playerInstances.get(videoId)
+  if (pjsState) {
+    const wasUnpurchased = !pjsState.isPurchasedRef.current
+    pjsState.isPurchasedRef.current = isPurchased
 
     // If user logged out (isPurchased changed from true to false),
     // enforce time limit immediately by pausing and seeking to start
-    if (!isPurchased && !wasUnpurchased && playerState.player) {
+    if (!isPurchased && !wasUnpurchased && pjsState.player) {
       try {
-        playerState.player.pause()
-        playerState.player.setCurrentTime(0)
+        pjsState.player.pause()
+        pjsState.player.setCurrentTime(0)
       } catch {
         // Player might not be ready
       }
@@ -364,7 +351,7 @@ export const handleTimeLimitReached = (setShowPurchasePopup: (show: boolean) => 
 // ======================
 
 export const handlePlayPause = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  videoRef: { current: HTMLVideoElement | null },
   isPlaying: boolean,
 ) => {
   if (!videoRef.current) return
@@ -377,7 +364,7 @@ export const handlePlayPause = (
 }
 
 export const handleTimeUpdate = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  videoRef: { current: HTMLVideoElement | null },
   isPurchased: boolean,
   onTimeLimitReached: () => void,
 ) => {
@@ -392,13 +379,13 @@ export const handleTimeUpdate = (
   }
 }
 
-export const handleLoadedMetadata = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+export const handleLoadedMetadata = (videoRef: { current: HTMLVideoElement | null }) => {
   if (!videoRef.current) return
   basePlayerStoreActions.setDuration(videoRef.current.duration)
 }
 
 export const handleProgressChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  videoRef: { current: HTMLVideoElement | null },
   time: number,
   isPurchased: boolean,
   onTimeLimitReached: () => void,
@@ -418,7 +405,7 @@ export const handleProgressChange = (
 }
 
 export const handleVolumeToggle = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  videoRef: { current: HTMLVideoElement | null },
   currentVolume: number,
 ) => {
   if (!videoRef.current) return
@@ -428,7 +415,7 @@ export const handleVolumeToggle = (
 }
 
 export const handleSpeedChange = (
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  videoRef: { current: HTMLVideoElement | null },
   speed: number,
 ) => {
   if (!videoRef.current) return
@@ -437,7 +424,7 @@ export const handleSpeedChange = (
   basePlayerStoreActions.setShowSpeedSelector(false)
 }
 
-export const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+export const handleFullscreen = (videoRef: { current: HTMLVideoElement | null }) => {
   if (!videoRef.current) return
   if (document.fullscreenElement) {
     document.exitFullscreen()
@@ -447,7 +434,7 @@ export const handleFullscreen = (videoRef: React.RefObject<HTMLVideoElement | nu
 }
 
 export const showControlsTemporarily = (
-  timeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  timeoutRef: { current: ReturnType<typeof setTimeout> | null },
 ) => {
   const playerState = getPlayerStore()
   basePlayerStoreActions.setShowControls(true)
@@ -475,27 +462,24 @@ export const hideControlsIfPlaying = () => {
 export const playerPageStoreActions = {
   // Initialize player data for a series
   initialize: (seriesId: string, fetchRecommendationsData = false) => {
-    if (state.currentSeriesId !== seriesId) {
-      state = {
+    if (playerPageState.currentSeriesId !== seriesId) {
+      setPlayerPageState({
         ...initialState,
         currentSeriesId: seriesId,
-        recommendationsFetched: state.recommendationsFetched,
-        newReleasesFetched: state.newReleasesFetched,
-      }
+        recommendationsFetched: playerPageState.recommendationsFetched,
+        newReleasesFetched: playerPageState.newReleasesFetched,
+      })
       basePlayerStoreActions.reset()
       fetchPlayerData(seriesId)
-      emitChange()
     }
     if (fetchRecommendationsData) {
-      if (!state.recommendationsFetched) {
-        state = { ...state, recommendationsFetched: true }
+      if (!playerPageState.recommendationsFetched) {
+        setPlayerPageState({ recommendationsFetched: true })
         fetchRecommendations()
-        emitChange()
       }
-      if (!state.newReleasesFetched) {
-        state = { ...state, newReleasesFetched: true }
+      if (!playerPageState.newReleasesFetched) {
+        setPlayerPageState({ newReleasesFetched: true })
         fetchNewReleases()
-        emitChange()
       }
     }
   },
@@ -504,7 +488,7 @@ export const playerPageStoreActions = {
   selectEpisodeFromUrlOrWatchList: (episodeNumberFromUrl: string | null) => {
     const playerState = getPlayerStore()
     const userState = getUserStore()
-    const seriesId = state.currentSeriesId
+    const seriesId = playerPageState.currentSeriesId
 
     if (playerState.episodes.length === 0 || playerState.loading || !seriesId) return
 
@@ -533,12 +517,11 @@ export const playerPageStoreActions = {
     }
 
     if (
-      state.watchListUpdatedForSeriesId !== seriesId &&
+      playerPageState.watchListUpdatedForSeriesId !== seriesId &&
       playerState.currentEpisode &&
       isLoggedIn()
     ) {
-      state = { ...state, watchListUpdatedForSeriesId: seriesId }
-      emitChange()
+      setPlayerPageState({ watchListUpdatedForSeriesId: seriesId })
       playerPageStoreActions.updateWatchList(seriesId, playerState.currentEpisode.episodeNumber)
     }
   },
@@ -555,7 +538,7 @@ export const playerPageStoreActions = {
 
   // Handle episode click
   handleEpisodeClick: (episode: Episode, navigate: (path: string, options?: { replace: boolean }) => void) => {
-    const seriesId = state.currentSeriesId
+    const seriesId = playerPageState.currentSeriesId
     basePlayerStoreActions.setCurrentEpisode(episode)
     if (seriesId) {
       navigate(`/player/${seriesId}?episode=${episode.episodeNumber}`, { replace: true })
@@ -569,22 +552,18 @@ export const playerPageStoreActions = {
       loginModalStoreActions.open()
       return
     }
-    state = { ...state, showPurchasePopup: true }
-    emitChange()
+    setPlayerPageState({ showPurchasePopup: true })
   },
 
   // Purchase popup
   showPurchasePopup: () => {
-    state = { ...state, showPurchasePopup: true }
-    emitChange()
+    setPlayerPageState({ showPurchasePopup: true })
   },
   hidePurchasePopup: () => {
-    state = { ...state, showPurchasePopup: false }
-    emitChange()
+    setPlayerPageState({ showPurchasePopup: false })
   },
   setIsPurchasing: (isPurchasing: boolean) => {
-    state = { ...state, isPurchasing }
-    emitChange()
+    setPlayerPageState({ isPurchasing })
   },
 
   // Handle unlock button click
@@ -593,114 +572,95 @@ export const playerPageStoreActions = {
       loginModalStoreActions.open()
       return
     }
-    state = { ...state, showPurchasePopup: true }
-    emitChange()
+    setPlayerPageState({ showPurchasePopup: true })
   },
 
   // Handle purchase confirmation
   handlePurchaseConfirm: async (t: { player: { insufficientBalance: string; purchaseSuccess: string; purchaseFailed: string } }) => {
     const playerState = getPlayerStore()
     const userState = getUserStore()
-    const seriesId = state.currentSeriesId
+    const seriesId = playerPageState.currentSeriesId
     const episode = playerState.currentEpisode
 
     if (!seriesId || !episode) return
 
     const userBalance = userState.user?.balance || 0
     if (userBalance < EPISODE_PRICE) {
-      state = {
-        ...state,
+      setPlayerPageState({
         showPurchasePopup: false,
         showResultModal: true,
         resultModalType: 'error',
         resultModalMessage: t.player.insufficientBalance,
-      }
-      emitChange()
+      })
       return
     }
 
-    state = { ...state, isPurchasing: true }
-    emitChange()
+    setPlayerPageState({ isPurchasing: true })
 
     try {
       const result = await purchaseEpisode(seriesId, episode._id, episode.episodeNumber, EPISODE_PRICE)
-      state = {
-        ...state,
+      setPlayerPageState({
         showPurchasePopup: false,
         isPurchasing: false,
         showResultModal: true,
         resultModalType: result.success ? 'success' : 'error',
         resultModalMessage: result.success ? t.player.purchaseSuccess : (result.error || t.player.purchaseFailed),
-      }
-      emitChange()
+      })
     } catch (error) {
       console.error('Failed to purchase episode:', error)
-      state = {
-        ...state,
+      setPlayerPageState({
         showPurchasePopup: false,
         isPurchasing: false,
         showResultModal: true,
         resultModalType: 'error',
         resultModalMessage: t.player.purchaseFailed,
-      }
-      emitChange()
+      })
     }
   },
 
   // Result modal
   showResultModalSuccess: (message: string) => {
-    state = {
-      ...state,
+    setPlayerPageState({
       showResultModal: true,
       resultModalType: 'success',
       resultModalMessage: message,
-    }
-    emitChange()
+    })
   },
   showResultModalError: (message: string) => {
-    state = {
-      ...state,
+    setPlayerPageState({
       showResultModal: true,
       resultModalType: 'error',
       resultModalMessage: message,
-    }
-    emitChange()
+    })
   },
   hideResultModal: () => {
-    state = { ...state, showResultModal: false }
-    emitChange()
+    setPlayerPageState({ showResultModal: false })
   },
 
   // Handle result modal close with navigation
   handleResultModalClose: (navigate: (path: string) => void) => {
-    if (state.resultModalType === 'error' && state.resultModalMessage.includes('balance')) {
+    if (playerPageState.resultModalType === 'error' && playerPageState.resultModalMessage.includes('balance')) {
       navigate('/account?tab=wallet')
     }
-    state = { ...state, showResultModal: false }
-    emitChange()
+    setPlayerPageState({ showResultModal: false })
   },
 
   // Favorite modal
   showFavoriteModal: (action: 'add' | 'remove') => {
-    state = {
-      ...state,
+    setPlayerPageState({
       showFavoriteModal: true,
       pendingFavoriteAction: action,
       favoriteModalDontShowAgain: false,
-    }
-    emitChange()
+    })
   },
   hideFavoriteModal: () => {
-    state = {
-      ...state,
+    setPlayerPageState({
       showFavoriteModal: false,
       pendingFavoriteAction: null,
-    }
-    emitChange()
+    })
   },
   setFavoriteModalDontShowAgain: (value: boolean) => {
-    state = { ...state, favoriteModalDontShowAgain: value }
-    emitChange()
+    setPlayerPageState({ favoriteModalDontShowAgain: value })
   },
 
   // Handle favorite toggle
@@ -710,7 +670,7 @@ export const playerPageStoreActions = {
       return
     }
 
-    const seriesId = state.currentSeriesId
+    const seriesId = playerPageState.currentSeriesId
     if (!seriesId) return
 
     const isFavorited = checkSeriesFavorited(seriesId)
@@ -729,21 +689,19 @@ export const playerPageStoreActions = {
       return
     }
 
-    state = {
-      ...state,
+    setPlayerPageState({
       showFavoriteModal: true,
       pendingFavoriteAction: willAdd ? 'add' : 'remove',
       favoriteModalDontShowAgain: false,
-    }
-    emitChange()
+    })
   },
 
   // Handle favorite confirmation
   handleFavoriteConfirm: async () => {
-    const seriesId = state.currentSeriesId
-    if (!seriesId || !state.pendingFavoriteAction) return
+    const seriesId = playerPageState.currentSeriesId
+    if (!seriesId || !playerPageState.pendingFavoriteAction) return
 
-    saveFavoriteModalPreference(state.favoriteModalDontShowAgain)
+    saveFavoriteModalPreference(playerPageState.favoriteModalDontShowAgain)
 
     const isFavorited = checkSeriesFavorited(seriesId)
     try {
@@ -756,42 +714,34 @@ export const playerPageStoreActions = {
       console.error('Failed to toggle favorite:', error)
     }
 
-    state = {
-      ...state,
+    setPlayerPageState({
       showFavoriteModal: false,
       pendingFavoriteAction: null,
-    }
-    emitChange()
+    })
   },
 
   // Episode list toggle
   toggleEpisodeList: () => {
-    state = { ...state, showEpisodeList: !state.showEpisodeList }
-    emitChange()
+    setPlayerPageState('showEpisodeList', (prev) => !prev)
   },
   setShowEpisodeList: (show: boolean) => {
-    state = { ...state, showEpisodeList: show }
-    emitChange()
+    setPlayerPageState({ showEpisodeList: show })
   },
 
   // Description expansion
   toggleDescription: () => {
-    state = { ...state, isDescriptionExpanded: !state.isDescriptionExpanded }
-    emitChange()
+    setPlayerPageState('isDescriptionExpanded', (prev) => !prev)
   },
   setDescriptionExpanded: (expanded: boolean) => {
-    state = { ...state, isDescriptionExpanded: expanded }
-    emitChange()
+    setPlayerPageState({ isDescriptionExpanded: expanded })
   },
   setShowExpandButton: (show: boolean) => {
-    state = { ...state, showExpandButton: show }
-    emitChange()
+    setPlayerPageState({ showExpandButton: show })
   },
 
   // Reset all state
   reset: () => {
-    state = { ...initialState }
-    emitChange()
+    setPlayerPageState(initialState)
   },
 }
 
@@ -975,7 +925,7 @@ export const playerStoreActions = {
   },
 
   // Handle video control events for native video element (extended versions)
-  handlePlayPauseExtended: (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+  handlePlayPauseExtended: (videoRef: { current: HTMLVideoElement | null }) => {
     const currentState = basePlayerStoreActions.getState()
     if (videoRef.current) {
       if (currentState.isPlaying) {
@@ -987,26 +937,26 @@ export const playerStoreActions = {
     }
   },
 
-  handleTimeUpdateExtended: (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+  handleTimeUpdateExtended: (videoRef: { current: HTMLVideoElement | null }) => {
     if (videoRef.current) {
       basePlayerStoreActions.setCurrentTime(videoRef.current.currentTime)
     }
   },
 
-  handleLoadedMetadataExtended: (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+  handleLoadedMetadataExtended: (videoRef: { current: HTMLVideoElement | null }) => {
     if (videoRef.current) {
       basePlayerStoreActions.setDuration(videoRef.current.duration)
     }
   },
 
-  handleProgressChangeExtended: (videoRef: React.RefObject<HTMLVideoElement | null>, time: number) => {
+  handleProgressChangeExtended: (videoRef: { current: HTMLVideoElement | null }, time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time
       basePlayerStoreActions.setCurrentTime(time)
     }
   },
 
-  handleVolumeToggleExtended: (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+  handleVolumeToggleExtended: (videoRef: { current: HTMLVideoElement | null }) => {
     const currentState = basePlayerStoreActions.getState()
     if (videoRef.current) {
       const newVolume = currentState.volume === 0 ? 1 : 0
@@ -1015,7 +965,7 @@ export const playerStoreActions = {
     }
   },
 
-  handleSpeedChangeExtended: (videoRef: React.RefObject<HTMLVideoElement | null>, speed: number) => {
+  handleSpeedChangeExtended: (videoRef: { current: HTMLVideoElement | null }, speed: number) => {
     if (videoRef.current) {
       videoRef.current.playbackRate = speed
       basePlayerStoreActions.setPlaybackSpeed(speed)
@@ -1023,7 +973,7 @@ export const playerStoreActions = {
     }
   },
 
-  handleFullscreenExtended: (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+  handleFullscreenExtended: (videoRef: { current: HTMLVideoElement | null }) => {
     if (videoRef.current) {
       if (document.fullscreenElement) {
         document.exitFullscreen()
@@ -1034,7 +984,7 @@ export const playerStoreActions = {
   },
 
   // Handle controls visibility
-  showControlsTemporarilyExtended: (timeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>) => {
+  showControlsTemporarilyExtended: (timeoutRef: { current: ReturnType<typeof setTimeout> | null }) => {
     const currentState = basePlayerStoreActions.getState()
     basePlayerStoreActions.setShowControls(true)
     if (timeoutRef.current) {

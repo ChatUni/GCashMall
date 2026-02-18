@@ -1,39 +1,20 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { createSignal, createEffect, onMount, Show, For } from 'solid-js'
+import { useNavigate, useSearchParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import SeriesCard from '../components/SeriesCard'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import { apiGet } from '../utils/api'
 import type { Series, Genre } from '../types'
 import './SeriesList.css'
 
-const SeriesList: React.FC = () => {
-  const { t } = useLanguage()
+const SeriesList = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [series, setSeries] = useState<Series[]>([])
-  const [genres, setGenres] = useState<Genre[]>([])
-  const [selectedGenreId, setSelectedGenreId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchInitialData()
-  }, [])
-
-  useEffect(() => {
-    const searchQuery = searchParams.get('search')
-    if (searchQuery) {
-      searchSeries(searchQuery)
-    } else {
-      fetchSeriesByGenre(selectedGenreId)
-    }
-  }, [selectedGenreId, searchParams])
-
-  const fetchInitialData = async () => {
-    await fetchGenres()
-    setLoading(false)
-  }
+  const [series, setSeries] = createSignal<Series[]>([])
+  const [genres, setGenres] = createSignal<Genre[]>([])
+  const [selectedGenreId, setSelectedGenreId] = createSignal<string | null>(null)
+  const [loading, setLoading] = createSignal(true)
 
   const fetchGenres = async () => {
     try {
@@ -69,6 +50,24 @@ const SeriesList: React.FC = () => {
     }
   }
 
+  const fetchInitialData = async () => {
+    await fetchGenres()
+    setLoading(false)
+  }
+
+  onMount(() => {
+    fetchInitialData()
+  })
+
+  createEffect(() => {
+    const searchQuery = searchParams.search as string | undefined
+    if (searchQuery) {
+      searchSeries(searchQuery)
+    } else {
+      fetchSeriesByGenre(selectedGenreId())
+    }
+  })
+
   const handleGenreClick = (genreId: string | null) => {
     setSelectedGenreId(genreId)
   }
@@ -78,72 +77,64 @@ const SeriesList: React.FC = () => {
   }
 
   const getSelectedGenreName = (): string => {
-    if (selectedGenreId === null) {
-      return t.series.allGenres
+    if (selectedGenreId() === null) {
+      return t().series.allGenres
     }
-    const genre = genres.find((g) => g._id === selectedGenreId)
-    return genre?.name || t.series.allGenres
+    const genre = genres().find((g) => g._id === selectedGenreId())
+    return genre?.name || t().series.allGenres
   }
 
-  const sortedGenres = [...genres].sort((a, b) => a.name.localeCompare(b.name))
-
-  if (loading) {
-    return (
-      <div className="series-list-page">
-        <TopBar />
-        <div className="loading">{t.series.loading}</div>
-        <BottomBar />
-      </div>
-    )
-  }
+  const sortedGenres = () => [...genres()].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <div className="series-list-page">
+    <div class="series-list-page">
       <TopBar />
-      <main className="series-list-content">
-        <aside className="genre-sidebar">
-          <ul className="genre-list">
-            <li
-              className={`genre-item ${selectedGenreId === null ? 'active' : ''}`}
-              onClick={() => handleGenreClick(null)}
-            >
-              {t.series.allGenres}
-            </li>
-            {sortedGenres.map((genre) => (
+      <Show when={!loading()} fallback={<div class="loading">{t().series.loading}</div>}>
+        <main class="series-list-content">
+          <aside class="genre-sidebar">
+            <ul class="genre-list">
               <li
-                key={genre._id}
-                className={`genre-item ${selectedGenreId === genre._id ? 'active' : ''}`}
-                onClick={() => handleGenreClick(genre._id)}
+                class={`genre-item ${selectedGenreId() === null ? 'active' : ''}`}
+                onClick={() => handleGenreClick(null)}
               >
-                {genre.name}
+                {t().series.allGenres}
               </li>
-            ))}
-          </ul>
-        </aside>
+              <For each={sortedGenres()}>
+                {(genre) => (
+                  <li
+                    class={`genre-item ${selectedGenreId() === genre._id ? 'active' : ''}`}
+                    onClick={() => handleGenreClick(genre._id)}
+                  >
+                    {genre.name}
+                  </li>
+                )}
+              </For>
+            </ul>
+          </aside>
 
-        <div className="content-grid-section">
-          <div className="section-header">
-            <h2 className="section-title">{getSelectedGenreName()}</h2>
-            <span className="result-count">
-              {t.series.resultsCount.replace('{count}', String(series.length))}
-            </span>
-          </div>
-
-          {series.length === 0 ? (
-            <div className="no-series">{t.series.noSeries}</div>
-          ) : (
-            <div className="series-grid">
-              {series.map((seriesItem) => (
-                <SeriesCard
-                  key={seriesItem._id}
-                  series={seriesItem}
-                  onClick={() => handleSeriesClick(seriesItem)}
-                />
-              ))}
+          <div class="content-grid-section">
+            <div class="section-header">
+              <h2 class="section-title">{getSelectedGenreName()}</h2>
+              <span class="result-count">
+                {t().series.resultsCount.replace('{count}', String(series().length))}
+              </span>
             </div>
-          )}
-        </div>
-      </main>
+
+            <Show when={series().length > 0} fallback={<div class="no-series">{t().series.noSeries}</div>}>
+              <div class="series-grid">
+                <For each={series()}>
+                  {(seriesItem) => (
+                    <SeriesCard
+                      series={seriesItem}
+                      onClick={() => handleSeriesClick(seriesItem)}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
+        </main>
+      </Show>
       <BottomBar />
     </div>
   )

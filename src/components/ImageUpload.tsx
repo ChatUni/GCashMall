@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { createSignal, createEffect, onCleanup, Show } from 'solid-js'
 import './ImageUpload.css'
 
 interface ImageUploadProps {
@@ -6,19 +6,19 @@ interface ImageUploadProps {
   onImageChange: (file: File | null, previewUrl: string | null) => void
 }
 
-const ImageUpload = ({ imageUrl, onImageChange }: ImageUploadProps) => {
-  validateProps({ imageUrl, onImageChange })
+const ImageUpload = (props: ImageUploadProps) => {
+  validateProps(props)
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(imageUrl || null)
-  const [showOverlay, setShowOverlay] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [previewUrl, setPreviewUrl] = createSignal<string | null>(props.imageUrl || null)
+  const [showOverlay, setShowOverlay] = createSignal(false)
+  let fileInputRef: HTMLInputElement | undefined
 
-  useEffect(() => {
-    setPreviewUrl(imageUrl || null)
-  }, [imageUrl])
+  createEffect(() => {
+    setPreviewUrl(props.imageUrl || null)
+  })
 
   const handlePreviewClick = () => {
-    if (previewUrl) {
+    if (previewUrl()) {
       setShowOverlay(true)
     } else {
       openFilePicker()
@@ -26,11 +26,11 @@ const ImageUpload = ({ imageUrl, onImageChange }: ImageUploadProps) => {
   }
 
   const openFilePicker = () => {
-    fileInputRef.current?.click()
+    fileInputRef?.click()
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleFileChange = (event: Event & { currentTarget: HTMLInputElement }) => {
+    const file = event.currentTarget.files?.[0]
     if (file) {
       processSelectedFile(file)
     }
@@ -39,44 +39,50 @@ const ImageUpload = ({ imageUrl, onImageChange }: ImageUploadProps) => {
   const processSelectedFile = (file: File) => {
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
-    onImageChange(file, url)
+    props.onImageChange(file, url)
   }
 
   const handleOverlayClick = () => {
     setShowOverlay(false)
   }
 
-  const handleKeyDown = useCallback((_event: KeyboardEvent) => {
-    if (showOverlay) {
+  const handleKeyDown = (_event: KeyboardEvent) => {
+    if (showOverlay()) {
       setShowOverlay(false)
     }
-  }, [showOverlay])
+  }
 
-  useEffect(() => {
-    if (showOverlay) {
+  createEffect(() => {
+    if (showOverlay()) {
       document.addEventListener('keydown', handleKeyDown)
-    }
-    return () => {
+    } else {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [showOverlay, handleKeyDown])
+  })
+
+  onCleanup(() => {
+    document.removeEventListener('keydown', handleKeyDown)
+  })
 
   return (
-    <div className="image-upload">
+    <div class="image-upload">
       <PreviewBox
-        previewUrl={previewUrl}
+        previewUrl={previewUrl()}
         onClick={handlePreviewClick}
       />
-      <FileInput
+      <input
+        type="file"
         ref={fileInputRef}
+        class="image-upload-input"
+        accept="image/*"
         onChange={handleFileChange}
       />
-      {showOverlay && previewUrl && (
+      <Show when={showOverlay() && previewUrl()}>
         <ImageOverlay
-          imageUrl={previewUrl}
+          imageUrl={previewUrl()!}
           onClick={handleOverlayClick}
         />
-      )}
+      </Show>
     </div>
   )
 }
@@ -86,16 +92,17 @@ interface PreviewBoxProps {
   onClick: () => void
 }
 
-const PreviewBox = ({ previewUrl, onClick }: PreviewBoxProps) => {
-  const className = buildPreviewClassName(previewUrl)
+const PreviewBox = (props: PreviewBoxProps) => {
+  const className = () => buildPreviewClassName(props.previewUrl)
 
   return (
-    <div className={className} onClick={onClick}>
-      {previewUrl ? (
-        <img src={previewUrl} alt="Preview" className="image-upload-image" />
-      ) : (
-        <span className="image-upload-plus">+</span>
-      )}
+    <div class={className()} onClick={props.onClick}>
+      <Show
+        when={props.previewUrl}
+        fallback={<span class="image-upload-plus">+</span>}
+      >
+        <img src={props.previewUrl!} alt="Preview" class="image-upload-image" />
+      </Show>
     </div>
   )
 }
@@ -105,41 +112,23 @@ const buildPreviewClassName = (previewUrl: string | null): string => {
   return previewUrl ? `${baseClass} has-image` : baseClass
 }
 
-interface FileInputProps {
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-}
-
-const FileInput = ({ onChange, ref }: FileInputProps & { ref: React.RefObject<HTMLInputElement | null> }) => {
-  return (
-    <input
-      type="file"
-      ref={ref}
-      className="image-upload-input"
-      accept="image/*"
-      onChange={onChange}
-    />
-  )
-}
-
 interface ImageOverlayProps {
   imageUrl: string
   onClick: () => void
 }
 
-const ImageOverlay = ({ imageUrl, onClick }: ImageOverlayProps) => {
-  return (
-    <div className="image-upload-overlay" onClick={onClick}>
-      <img
-        src={imageUrl}
-        alt="Full size preview"
-        className="image-upload-overlay-image"
-      />
-    </div>
-  )
-}
+const ImageOverlay = (props: ImageOverlayProps) => (
+  <div class="image-upload-overlay" onClick={props.onClick}>
+    <img
+      src={props.imageUrl}
+      alt="Full size preview"
+      class="image-upload-overlay-image"
+    />
+  </div>
+)
 
-const validateProps = ({ onImageChange }: ImageUploadProps) => {
-  if (!onImageChange) {
+const validateProps = (props: ImageUploadProps) => {
+  if (!props.onImageChange) {
     throw new Error('onImageChange prop is required')
   }
 }

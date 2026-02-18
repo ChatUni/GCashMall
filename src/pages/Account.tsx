@@ -1,12 +1,14 @@
-import React from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { createSignal, onMount, Show, For } from 'solid-js'
+import { useNavigate, useSearchParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
+import { languageStore, languageStoreActions } from '../stores/languageStore'
+import type { Language } from '../i18n'
 import {
-  useAccountStore,
+  accountStore,
   accountStoreActions,
   navItems,
   walletAmounts,
@@ -52,27 +54,32 @@ import {
   handleSaveComplete,
   getStatusText,
 } from '../services/accountService'
-import { useToastStore } from '../stores'
+import { toastStore } from '../stores'
 import type { PurchaseItem, Series, User } from '../types'
 import './Account.css'
 
-const Account: React.FC = () => {
-  const { t, language, setLanguage } = useLanguage()
+const Account = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const state = useAccountStore()
-  const toastState = useToastStore()
+  // Create URLSearchParams wrapper for service functions
+  const getUrlSearchParams = () => {
+    const usp = new URLSearchParams()
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (value !== undefined) usp.set(key, String(value))
+    }
+    return usp
+  }
 
   // Initialize data using shared service function
-  initializeAccountPage(searchParams, (params) => setSearchParams(params), navigate)
+  initializeAccountPage(getUrlSearchParams(), (params) => setSearchParams(params), navigate)
 
   // Sync tab from URL
-  syncTabFromUrl(searchParams, false)
+  syncTabFromUrl(getUrlSearchParams(), false)
 
   // Event handlers using shared service functions
   const onTabClick = (tab: AccountTab) => {
-    handleTabClickWithConfirm(tab, (params) => setSearchParams(params), t.account)
+    handleTabClickWithConfirm(tab, (params) => setSearchParams(params), t().account)
   }
 
   const onLogout = () => handleLogoutAndNavigate(navigate)
@@ -81,132 +88,116 @@ const Account: React.FC = () => {
 
   const onLoginSuccess = async (user: User) => handleLoginSuccess(user)
 
-  const onSaveProfile = () => handleSaveProfile(t.account)
+  const onSaveProfile = () => handleSaveProfile(t().account)
 
-  const onChangePassword = () => handleChangePassword(t.account)
+  const onChangePassword = () => handleChangePassword(t().account)
 
-  const onSetPassword = () => handleSetPassword(t.account)
+  const onSetPassword = () => handleSetPassword(t().account)
 
-  const onAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => handleAvatarUpload(e, t.account)
-
-  if (state.loading) {
-    return (
-      <div className="account-page">
-        <TopBar />
-        <div className="loading">Loading...</div>
-        <BottomBar />
-      </div>
-    )
-  }
+  const onAvatarUpload = (e: Event & { currentTarget: HTMLInputElement; target: Element }) => handleAvatarUpload(e, t().account)
 
   return (
-    <div className="account-page">
+    <div class="account-page">
       <TopBar />
-      <div className="account-layout">
-        <AccountSidebar
-          user={state.user}
-          activeTab={state.activeTab}
-          onTabClick={onTabClick}
-          onLogout={onLogout}
-          t={t}
-        />
-        <main className="account-content">
-          {state.activeTab === 'overview' && (
-            <OverviewSection
-              user={state.user}
-              hasPassword={state.user?.hasPassword ?? true}
-              profileForm={state.profileForm}
-              profileErrors={state.profileErrors}
-              profileSaving={state.profileSaving}
-              originalProfile={state.originalProfile}
-              passwordForm={state.passwordForm}
-              passwordErrors={state.passwordErrors}
-              passwordChanging={state.passwordChanging}
-              avatarError={state.avatarError}
-              avatarUploading={state.avatarUploading}
-              onSaveProfile={onSaveProfile}
-              onChangePassword={onChangePassword}
-              onSetPassword={onSetPassword}
-              onAvatarUpload={onAvatarUpload}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'watchHistory' && (
-            <WatchHistorySection
-              items={state.user?.watchList || []}
-              onClearHistory={clearWatchHistory}
-              onRemoveItem={removeFromWatchList}
-              onNavigate={navigate}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'favorites' && (
-            <FavoritesSection
-              items={state.user?.favorites || []}
-              onClearFavorites={clearFavorites}
-              onRemoveItem={removeFromFavorites}
-              onNavigate={navigate}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'settings' && (
-            <SettingsSection
-              language={language}
-              playbackSpeed={state.playbackSpeed}
-              autoplay={state.autoplay}
-              notifications={state.notifications}
-              onLanguageChange={setLanguage}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'wallet' && (
-            <WalletSection
-              balance={state.balance}
-              walletTab={state.walletTab}
-              showTopUpPopup={state.showTopUpPopup}
-              selectedTopUpAmount={state.selectedTopUpAmount}
-              showWithdrawPopup={state.showWithdrawPopup}
-              selectedWithdrawAmount={state.selectedWithdrawAmount}
-              withdrawing={state.withdrawing}
-              transactions={state.transactions}
-              purchases={state.myPurchases}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'myPurchases' && (
-            <MyPurchasesSection
-              purchases={state.myPurchases}
-              loading={state.myPurchasesLoading}
-              onNavigate={navigate}
-              t={t}
-            />
-          )}
-          {state.activeTab === 'mySeries' && (
-            <MySeriesSection
-              series={state.mySeries}
-              loading={state.mySeriesLoading}
-              editingSeriesId={state.editingSeriesId}
-              showShelveModal={state.showShelveModal}
-              pendingShelveSeries={state.pendingShelveSeries}
-              showUnshelveModal={state.showUnshelveModal}
-              pendingUnshelveSeries={state.pendingUnshelveSeries}
-              onNavigate={navigate}
-              t={t}
-            />
-          )}
-        </main>
-      </div>
+      <Show when={!accountStore.loading} fallback={<div class="loading">Loading...</div>}>
+        <div class="account-layout">
+          <AccountSidebar
+            user={accountStore.user}
+            activeTab={accountStore.activeTab}
+            onTabClick={onTabClick}
+            onLogout={onLogout}
+          />
+          <main class="account-content">
+            <Show when={accountStore.activeTab === 'overview'}>
+              <OverviewSection
+                user={accountStore.user}
+                hasPassword={accountStore.user?.hasPassword ?? true}
+                profileForm={accountStore.profileForm}
+                profileErrors={accountStore.profileErrors}
+                profileSaving={accountStore.profileSaving}
+                originalProfile={accountStore.originalProfile}
+                passwordForm={accountStore.passwordForm}
+                passwordErrors={accountStore.passwordErrors}
+                passwordChanging={accountStore.passwordChanging}
+                avatarError={accountStore.avatarError}
+                avatarUploading={accountStore.avatarUploading}
+                onSaveProfile={onSaveProfile}
+                onChangePassword={onChangePassword}
+                onSetPassword={onSetPassword}
+                onAvatarUpload={onAvatarUpload}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'watchHistory'}>
+              <WatchHistorySection
+                items={accountStore.user?.watchList || []}
+                onClearHistory={clearWatchHistory}
+                onRemoveItem={removeFromWatchList}
+                onNavigate={navigate}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'favorites'}>
+              <FavoritesSection
+                items={accountStore.user?.favorites || []}
+                onClearFavorites={clearFavorites}
+                onRemoveItem={removeFromFavorites}
+                onNavigate={navigate}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'settings'}>
+              <SettingsSection
+                language={languageStore.language}
+                playbackSpeed={accountStore.playbackSpeed}
+                autoplay={accountStore.autoplay}
+                notifications={accountStore.notifications}
+                onLanguageChange={languageStoreActions.setLanguage}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'wallet'}>
+              <WalletSection
+                balance={accountStore.balance}
+                walletTab={accountStore.walletTab}
+                showTopUpPopup={accountStore.showTopUpPopup}
+                selectedTopUpAmount={accountStore.selectedTopUpAmount}
+                showWithdrawPopup={accountStore.showWithdrawPopup}
+                selectedWithdrawAmount={accountStore.selectedWithdrawAmount}
+                withdrawing={accountStore.withdrawing}
+                transactions={accountStore.transactions}
+                purchases={accountStore.myPurchases}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'myPurchases'}>
+              <MyPurchasesSection
+                purchases={accountStore.myPurchases}
+                loading={accountStore.myPurchasesLoading}
+                onNavigate={navigate}
+              />
+            </Show>
+            <Show when={accountStore.activeTab === 'mySeries'}>
+              <MySeriesSection
+                series={accountStore.mySeries}
+                loading={accountStore.mySeriesLoading}
+                editingSeriesId={accountStore.editingSeriesId}
+                showShelveModal={accountStore.showShelveModal}
+                pendingShelveSeries={accountStore.pendingShelveSeries}
+                showUnshelveModal={accountStore.showUnshelveModal}
+                pendingUnshelveSeries={accountStore.pendingUnshelveSeries}
+                onNavigate={navigate}
+              />
+            </Show>
+          </main>
+        </div>
+      </Show>
       <BottomBar />
 
-      {state.showLoginModal && (
+      <Show when={accountStore.showLoginModal}>
         <LoginModal onClose={onLoginClose} onLoginSuccess={onLoginSuccess} />
-      )}
+      </Show>
 
-      {toastState.isVisible && (
-        <div className={`toast-notification toast-${toastState.type}`}>
-          {toastState.message}
+      <Show when={toastStore.isVisible}>
+        <div class={`toast-notification toast-${toastStore.type}`}>
+          {toastStore.message}
         </div>
-      )}
+      </Show>
     </div>
   )
 }
@@ -218,41 +209,39 @@ interface AccountSidebarProps {
   activeTab: AccountTab
   onTabClick: (tab: AccountTab) => void
   onLogout: () => void
-  t: Record<string, Record<string, unknown>>
 }
 
-const AccountSidebar: React.FC<AccountSidebarProps> = ({ user, activeTab, onTabClick, onLogout, t }) => (
-  <aside className="account-sidebar">
-    <div className="sidebar-profile">
-      <div className="sidebar-avatar">
-        {user?.avatar ? (
-          <img src={user.avatar} alt={user.nickname} />
-        ) : (
-          <span className="avatar-emoji">👤</span>
-        )}
+const AccountSidebar = (props: AccountSidebarProps) => (
+  <aside class="account-sidebar">
+    <div class="sidebar-profile">
+      <div class="sidebar-avatar">
+        <Show when={props.user?.avatar} fallback={<span class="avatar-emoji">👤</span>}>
+          <img src={props.user!.avatar!} alt={props.user?.nickname} />
+        </Show>
       </div>
-      <div className="sidebar-user-info">
-        <span className="sidebar-username">{user?.nickname || 'Guest'}</span>
-        <span className="sidebar-email">{user?.email || ''}</span>
+      <div class="sidebar-user-info">
+        <span class="sidebar-username">{props.user?.nickname || 'Guest'}</span>
+        <span class="sidebar-email">{props.user?.email || ''}</span>
       </div>
     </div>
 
-    <nav className="account-nav">
-      {navItems.map((item) => (
-        <button
-          key={item.key}
-          className={`nav-item ${activeTab === item.key ? 'active' : ''}`}
-          onClick={() => onTabClick(item.key)}
-        >
-          <span className="nav-icon">{item.icon}</span>
-          <span className="nav-label">{(t.account.nav as Record<string, string>)[item.key]}</span>
-        </button>
-      ))}
+    <nav class="account-nav">
+      <For each={navItems}>
+        {(item) => (
+          <button
+            class={`nav-item ${props.activeTab === item.key ? 'active' : ''}`}
+            onClick={() => props.onTabClick(item.key)}
+          >
+            <span class="nav-icon">{item.icon}</span>
+            <span class="nav-label">{(t().account.nav as Record<string, string>)[item.key]}</span>
+          </button>
+        )}
+      </For>
     </nav>
 
-    <button className="nav-item logout" onClick={onLogout}>
-      <span className="nav-icon">🚪</span>
-      <span className="nav-label">{(t.account.nav as Record<string, string>).logout}</span>
+    <button class="nav-item logout" onClick={props.onLogout}>
+      <span class="nav-icon">🚪</span>
+      <span class="nav-label">{(t().account.nav as Record<string, string>).logout}</span>
     </button>
   </aside>
 )
@@ -272,182 +261,164 @@ interface OverviewSectionProps {
   onSaveProfile: () => void
   onChangePassword: () => void
   onSetPassword: () => void
-  onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
-  t: Record<string, Record<string, unknown>>
+  onAvatarUpload: (e: Event & { currentTarget: HTMLInputElement; target: Element }) => void
 }
 
-const OverviewSection: React.FC<OverviewSectionProps> = ({
-  user,
-  hasPassword,
-  profileForm,
-  profileErrors,
-  profileSaving,
-  originalProfile,
-  passwordForm,
-  passwordErrors,
-  passwordChanging,
-  avatarError,
-  avatarUploading,
-  onSaveProfile,
-  onChangePassword,
-  onSetPassword,
-  onAvatarUpload,
-  t,
-}) => {
-  const overview = t.account.overview as Record<string, string>
-  const login = t.login as Record<string, string>
-  const profileHasChanges = hasProfileChanges(profileForm, originalProfile)
+const OverviewSection = (props: OverviewSectionProps) => {
+  const overview = () => t().account.overview as Record<string, string>
+  const login = () => t().login as Record<string, string>
+  const profileHasChanges = () => hasProfileChanges(props.profileForm, props.originalProfile)
 
   return (
-    <div className="content-section overview-section">
-      <div className="section-header">
-        <h1 className="page-title">{overview.title}</h1>
-        <p className="page-subtitle">{overview.subtitle}</p>
+    <div class="content-section overview-section">
+      <div class="section-header">
+        <h1 class="page-title">{overview().title}</h1>
+        <p class="page-subtitle">{overview().subtitle}</p>
       </div>
 
-      <div className="section-card">
-        <h3 className="card-title">{overview.profileInfo}</h3>
-        <div className="form-grid">
+      <div class="section-card">
+        <h3 class="card-title">{overview().profileInfo}</h3>
+        <div class="form-grid">
           <ProfileField
-            label={overview.nickname}
+            label={overview().nickname}
             type="text"
             name="nickname"
             autoComplete="nickname"
-            value={profileForm.nickname}
+            value={props.profileForm.nickname}
             onChange={(v) => accountStoreActions.updateProfileField('nickname', v)}
-            placeholder={overview.nicknamePlaceholder}
+            placeholder={overview().nicknamePlaceholder}
           />
           <ProfileField
-            label={overview.email}
+            label={overview().email}
             type="email"
             name="email"
             autoComplete="email"
-            value={profileForm.email}
+            value={props.profileForm.email}
             onChange={(v) => {
               accountStoreActions.updateProfileField('email', v)
-              if (profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '')
+              if (props.profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '')
             }}
-            placeholder={overview.emailPlaceholder}
-            error={profileErrors.emailError}
+            placeholder={overview().emailPlaceholder}
+            error={props.profileErrors.emailError}
           />
           <ProfileField
-            label={overview.phoneNumber}
+            label={overview().phoneNumber}
             type="tel"
             name="phone"
             autoComplete="tel"
-            value={profileForm.phoneNumber}
+            value={props.profileForm.phoneNumber}
             onChange={(v) => {
               accountStoreActions.updateProfileField('phoneNumber', v)
-              if (profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '')
+              if (props.profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '')
             }}
-            placeholder={overview.phonePlaceholder}
-            error={profileErrors.phoneError}
+            placeholder={overview().phonePlaceholder}
+            error={props.profileErrors.phoneError}
           />
-          <div className="form-field">
-            <label>{overview.gender}</label>
+          <div class="form-field">
+            <label>{overview().gender}</label>
             <select
               name="gender"
-              autoComplete="sex"
-              value={profileForm.gender}
-              onChange={(e) => accountStoreActions.updateProfileField('gender', e.target.value)}
+              autocomplete="sex"
+              value={props.profileForm.gender}
+              onChange={(e) => accountStoreActions.updateProfileField('gender', e.currentTarget.value)}
             >
-              <option value="not_specified">{overview.genderNotSpecified}</option>
-              <option value="male">{overview.genderMale}</option>
-              <option value="female">{overview.genderFemale}</option>
-              <option value="other">{overview.genderOther}</option>
+              <option value="not_specified">{overview().genderNotSpecified}</option>
+              <option value="male">{overview().genderMale}</option>
+              <option value="female">{overview().genderFemale}</option>
+              <option value="other">{overview().genderOther}</option>
             </select>
           </div>
           <ProfileField
-            label={overview.birthday}
+            label={overview().birthday}
             type="date"
             name="birthday"
             autoComplete="bday"
-            value={profileForm.birthday}
+            value={props.profileForm.birthday}
             onChange={(v) => {
               accountStoreActions.updateProfileField('birthday', v)
-              if (profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '')
+              if (props.profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '')
             }}
-            error={profileErrors.birthdayError}
+            error={props.profileErrors.birthdayError}
           />
         </div>
         <button
-          className="btn-primary"
-          onClick={onSaveProfile}
-          disabled={!profileHasChanges || profileSaving}
+          class="btn-primary"
+          onClick={props.onSaveProfile}
+          disabled={!profileHasChanges() || props.profileSaving}
         >
-          {profileSaving ? '...' : overview.save}
+          {props.profileSaving ? '...' : overview().save}
         </button>
       </div>
 
-      <div className="section-card">
-        <h3 className="card-title">{overview.profilePicture}</h3>
-        <div className="avatar-section">
-          <div className="avatar-preview">
-            {user?.avatar ? (
-              <img src={user.avatar} alt="Avatar" />
-            ) : (
-              <span className="avatar-emoji-large">👤</span>
-            )}
+      <div class="section-card">
+        <h3 class="card-title">{overview().profilePicture}</h3>
+        <div class="avatar-section">
+          <div class="avatar-preview">
+            <Show when={props.user?.avatar} fallback={<span class="avatar-emoji-large">👤</span>}>
+              <img src={props.user!.avatar!} alt="Avatar" />
+            </Show>
           </div>
-          <div className="avatar-actions">
-            <label className={`btn-primary upload-btn ${avatarUploading ? 'disabled' : ''}`}>
-              {avatarUploading ? '...' : overview.uploadAvatar}
+          <div class="avatar-actions">
+            <label class={`btn-primary upload-btn ${props.avatarUploading ? 'disabled' : ''}`}>
+              {props.avatarUploading ? '...' : overview().uploadAvatar}
               <input
                 type="file"
                 accept="image/*"
-                onChange={onAvatarUpload}
+                onChange={props.onAvatarUpload}
                 hidden
-                disabled={avatarUploading}
+                disabled={props.avatarUploading}
               />
             </label>
           </div>
-          {avatarError && <span className="field-error">{avatarError}</span>}
-          <p className="avatar-hint">{overview.avatarHint}</p>
+          <Show when={props.avatarError}>
+            <span class="field-error">{props.avatarError}</span>
+          </Show>
+          <p class="avatar-hint">{overview().avatarHint}</p>
         </div>
       </div>
 
-      <div className="section-card">
-        <h3 className="card-title">{hasPassword ? overview.changePassword : login.setPassword || 'Set Password'}</h3>
-        <div className="form-grid password-form">
-          {hasPassword && (
+      <div class="section-card">
+        <h3 class="card-title">{props.hasPassword ? overview().changePassword : login().setPassword || 'Set Password'}</h3>
+        <div class="form-grid password-form">
+          <Show when={props.hasPassword}>
             <PasswordField
-              label={overview.currentPassword}
-              value={passwordForm.currentPassword}
+              label={overview().currentPassword}
+              value={props.passwordForm.currentPassword}
               onChange={(v) => {
                 accountStoreActions.updatePasswordField('currentPassword', v)
-                if (passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
+                if (props.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
               }}
-              placeholder={overview.currentPasswordPlaceholder}
-              error={passwordErrors.currentPasswordError}
+              placeholder={overview().currentPasswordPlaceholder}
+              error={props.passwordErrors.currentPasswordError}
             />
-          )}
+          </Show>
           <PasswordField
-            label={overview.newPassword}
-            value={passwordForm.newPassword}
+            label={overview().newPassword}
+            value={props.passwordForm.newPassword}
             onChange={(v) => {
               accountStoreActions.updatePasswordField('newPassword', v)
-              if (passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '')
+              if (props.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '')
             }}
-            placeholder={overview.newPasswordPlaceholder}
-            error={passwordErrors.newPasswordError}
+            placeholder={overview().newPasswordPlaceholder}
+            error={props.passwordErrors.newPasswordError}
           />
           <PasswordField
-            label={overview.confirmPassword}
-            value={passwordForm.confirmPassword}
+            label={overview().confirmPassword}
+            value={props.passwordForm.confirmPassword}
             onChange={(v) => {
               accountStoreActions.updatePasswordField('confirmPassword', v)
-              if (passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '')
+              if (props.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '')
             }}
-            placeholder={overview.confirmPasswordPlaceholder}
-            error={passwordErrors.confirmPasswordError}
+            placeholder={overview().confirmPasswordPlaceholder}
+            error={props.passwordErrors.confirmPasswordError}
           />
         </div>
         <button
-          className="btn-primary"
-          onClick={hasPassword ? onChangePassword : onSetPassword}
-          disabled={passwordChanging}
+          class="btn-primary"
+          onClick={props.hasPassword ? props.onChangePassword : props.onSetPassword}
+          disabled={props.passwordChanging}
         >
-          {passwordChanging ? '...' : (hasPassword ? overview.changePasswordBtn : (login.setPassword || 'Set Password'))}
+          {props.passwordChanging ? '...' : (props.hasPassword ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
         </button>
       </div>
     </div>
@@ -465,28 +436,21 @@ interface ProfileFieldProps {
   error?: string
 }
 
-const ProfileField: React.FC<ProfileFieldProps> = ({
-  label,
-  type,
-  name,
-  autoComplete,
-  value,
-  onChange,
-  placeholder,
-  error,
-}) => (
-  <div className="form-field">
-    <label>{label}</label>
+const ProfileField = (props: ProfileFieldProps) => (
+  <div class="form-field">
+    <label>{props.label}</label>
     <input
-      type={type}
-      name={name}
-      autoComplete={autoComplete}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={error ? 'input-error' : ''}
+      type={props.type}
+      name={props.name}
+      autocomplete={props.autoComplete}
+      value={props.value}
+      onInput={(e) => props.onChange(e.currentTarget.value)}
+      placeholder={props.placeholder}
+      class={props.error ? 'input-error' : ''}
     />
-    {error && <span className="field-error">{error}</span>}
+    <Show when={props.error}>
+      <span class="field-error">{props.error}</span>
+    </Show>
   </div>
 )
 
@@ -498,23 +462,19 @@ interface PasswordFieldProps {
   error: string
 }
 
-const PasswordField: React.FC<PasswordFieldProps> = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  error,
-}) => (
-  <div className="form-field">
-    <label>{label}</label>
+const PasswordField = (props: PasswordFieldProps) => (
+  <div class="form-field">
+    <label>{props.label}</label>
     <input
       type="password"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={error ? 'input-error' : ''}
+      value={props.value}
+      onInput={(e) => props.onChange(e.currentTarget.value)}
+      placeholder={props.placeholder}
+      class={props.error ? 'input-error' : ''}
     />
-    {error && <span className="field-error">{error}</span>}
+    <Show when={props.error}>
+      <span class="field-error">{props.error}</span>
+    </Show>
   </div>
 )
 
@@ -523,56 +483,50 @@ interface WatchHistorySectionProps {
   onClearHistory: () => Promise<{ success: boolean; error?: string }>
   onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
   onNavigate: (path: string) => void
-  t: Record<string, Record<string, unknown>>
 }
 
-const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
-  items,
-  onClearHistory,
-  onRemoveItem,
-  onNavigate,
-  t,
-}) => {
-  const watchHistory = t.account.watchHistory as Record<string, string>
+const WatchHistorySection = (props: WatchHistorySectionProps) => {
+  const watchHistory = () => t().account.watchHistory as Record<string, string>
 
   // Sort items using shared helper
-  const sortedItems = getSortedWatchHistoryItems(items)
+  const sortedItems = () => getSortedWatchHistoryItems(props.items)
 
   return (
-    <div className="content-section history-section">
-      <div className="section-header-row">
-        <h1 className="page-title">{watchHistory.title}</h1>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={onClearHistory}>
-            {watchHistory.clearHistory}
+    <div class="content-section history-section">
+      <div class="section-header-row">
+        <h1 class="page-title">{watchHistory().title}</h1>
+        <div class="header-actions">
+          <button class="btn-secondary" onClick={props.onClearHistory}>
+            {watchHistory().clearHistory}
           </button>
         </div>
       </div>
 
-      {sortedItems.length === 0 ? (
+      <Show when={sortedItems().length > 0} fallback={
         <EmptyState
           icon="📺"
-          title={watchHistory.emptyTitle}
-          subtext={watchHistory.emptySubtext}
-          buttonText={watchHistory.exploreButton}
-          onButtonClick={() => onNavigate('/series')}
+          title={watchHistory().emptyTitle}
+          subtext={watchHistory().emptySubtext}
+          buttonText={watchHistory().exploreButton}
+          onButtonClick={() => props.onNavigate('/series')}
         />
-      ) : (
-        <div className="content-grid">
-          {sortedItems.map((item) => (
-            <HistoryCard
-              key={item.seriesId}
-              seriesId={item.seriesId}
-              episodeNumber={item.episodeNumber}
-              onClick={() => onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
-              onRemove={(e) => {
-                e.stopPropagation()
-                onRemoveItem(item.seriesId)
-              }}
-            />
-          ))}
+      }>
+        <div class="content-grid">
+          <For each={sortedItems()}>
+            {(item) => (
+              <HistoryCard
+                seriesId={item.seriesId}
+                episodeNumber={item.episodeNumber}
+                onClick={() => props.onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
+                onRemove={(e) => {
+                  e.stopPropagation()
+                  props.onRemoveItem(item.seriesId)
+                }}
+              />
+            )}
+          </For>
         </div>
-      )}
+      </Show>
     </div>
   )
 }
@@ -581,56 +535,46 @@ interface HistoryCardProps {
   seriesId: string
   episodeNumber: number
   onClick: () => void
-  onRemove: (e: React.MouseEvent) => void
+  onRemove: (e: MouseEvent) => void
 }
 
-const HistoryCard: React.FC<HistoryCardProps> = ({
-  seriesId,
-  episodeNumber,
-  onClick,
-  onRemove,
-}) => {
+const HistoryCard = (props: HistoryCardProps) => {
   // Fetch series data for display
-  const [series, setSeries] = React.useState<{ name: string; cover: string; tags?: string[] } | null>(null)
+  const [series, setSeries] = createSignal<{ name: string; cover: string; tags?: string[] } | null>(null)
 
-  React.useEffect(() => {
-    const fetchSeries = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${seriesId}`)
-        const data = await response.json()
-        if (data.success && data.data) {
-          setSeries(data.data)
-        }
-      } catch (error) {
-        console.error('Failed to fetch series:', error)
+  onMount(async () => {
+    try {
+      const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${props.seriesId}`)
+      const data = await response.json()
+      if (data.success && data.data) {
+        setSeries(data.data)
       }
+    } catch (error) {
+      console.error('Failed to fetch series:', error)
     }
-    fetchSeries()
-  }, [seriesId])
+  })
 
   return (
-    <div className="history-card series-card" onClick={onClick}>
-      <div className="series-card-poster">
-        {series?.cover ? (
-          <img src={series.cover} alt={series.name || 'Series'} className="series-card-image" />
-        ) : (
-          <div className="series-card-placeholder" />
-        )}
-        <div className="series-card-overlay">
-          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+    <div class="history-card series-card" onClick={props.onClick}>
+      <div class="series-card-poster">
+        <Show when={series()?.cover} fallback={<div class="series-card-placeholder" />}>
+          <img src={series()!.cover} alt={series()?.name || 'Series'} class="series-card-image" />
+        </Show>
+        <div class="series-card-overlay">
+          <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         </div>
-        <span className="episode-badge">EP {episodeNumber}</span>
-        <button className="remove-btn" onClick={onRemove}>
+        <span class="episode-badge">EP {props.episodeNumber}</span>
+        <button class="remove-btn" onClick={props.onRemove}>
           ✕
         </button>
       </div>
-      <div className="series-card-info">
-        <h3 className="series-card-title">{series?.name || `Series ${seriesId}`}</h3>
-        {series?.tags && series.tags.length > 0 && (
-          <span className="series-card-tag">{series.tags[0]}</span>
-        )}
+      <div class="series-card-info">
+        <h3 class="series-card-title">{series()?.name || `Series ${props.seriesId}`}</h3>
+        <Show when={series()?.tags && series()!.tags!.length > 0}>
+          <span class="series-card-tag">{series()!.tags![0]}</span>
+        </Show>
       </div>
     </div>
   )
@@ -641,60 +585,54 @@ interface FavoritesSectionProps {
   onClearFavorites: () => Promise<{ success: boolean; error?: string }>
   onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
   onNavigate: (path: string) => void
-  t: Record<string, Record<string, unknown>>
 }
 
-const FavoritesSection: React.FC<FavoritesSectionProps> = ({
-  items,
-  onClearFavorites,
-  onRemoveItem,
-  onNavigate,
-  t,
-}) => {
-  const favorites = t.account.favorites as Record<string, string>
+const FavoritesSection = (props: FavoritesSectionProps) => {
+  const favorites = () => t().account.favorites as Record<string, string>
 
   // Sort items using shared helper
-  const sortedItems = getSortedFavoritesItems(items)
+  const sortedItems = () => getSortedFavoritesItems(props.items)
 
   return (
-    <div className="content-section favorites-section">
-      <div className="section-header-row">
-        <h1 className="page-title">{favorites.title}</h1>
-        {sortedItems.length > 0 && (
-          <div className="header-actions">
-            <button className="btn-secondary" onClick={onClearFavorites}>
-              {favorites.clearFavorites || 'Clear Favorites'}
+    <div class="content-section favorites-section">
+      <div class="section-header-row">
+        <h1 class="page-title">{favorites().title}</h1>
+        <Show when={sortedItems().length > 0}>
+          <div class="header-actions">
+            <button class="btn-secondary" onClick={props.onClearFavorites}>
+              {favorites().clearFavorites || 'Clear Favorites'}
             </button>
           </div>
-        )}
+        </Show>
       </div>
 
-      {sortedItems.length === 0 ? (
+      <Show when={sortedItems().length > 0} fallback={
         <EmptyState
           icon="❤️"
-          title={favorites.emptyTitle}
-          subtext={favorites.emptySubtext}
-          buttonText={favorites.exploreButton}
-          onButtonClick={() => onNavigate('/series')}
+          title={favorites().emptyTitle}
+          subtext={favorites().emptySubtext}
+          buttonText={favorites().exploreButton}
+          onButtonClick={() => props.onNavigate('/series')}
         />
-      ) : (
-        <div className="content-grid">
-          {sortedItems.map((item) => (
-            <FavoriteCard
-              key={item.seriesId}
-              seriesId={item.seriesId}
-              seriesName={item.seriesName}
-              seriesCover={item.seriesCover}
-              seriesTags={item.seriesTags}
-              onClick={() => onNavigate(`/player/${item.seriesId}`)}
-              onRemove={(e) => {
-                e.stopPropagation()
-                onRemoveItem(item.seriesId)
-              }}
-            />
-          ))}
+      }>
+        <div class="content-grid">
+          <For each={sortedItems()}>
+            {(item) => (
+              <FavoriteCard
+                seriesId={item.seriesId}
+                seriesName={item.seriesName}
+                seriesCover={item.seriesCover}
+                seriesTags={item.seriesTags}
+                onClick={() => props.onNavigate(`/player/${item.seriesId}`)}
+                onRemove={(e) => {
+                  e.stopPropagation()
+                  props.onRemoveItem(item.seriesId)
+                }}
+              />
+            )}
+          </For>
         </div>
-      )}
+      </Show>
     </div>
   )
 }
@@ -705,43 +643,32 @@ interface FavoriteCardProps {
   seriesCover: string
   seriesTags?: string[]
   onClick: () => void
-  onRemove: (e: React.MouseEvent) => void
+  onRemove: (e: MouseEvent) => void
 }
 
-const FavoriteCard: React.FC<FavoriteCardProps> = ({
-  seriesId,
-  seriesName,
-  seriesCover,
-  seriesTags,
-  onClick,
-  onRemove,
-}) => {
-  return (
-    <div className="favorite-card series-card" onClick={onClick}>
-      <div className="series-card-poster">
-        {seriesCover ? (
-          <img src={seriesCover} alt={seriesName || 'Series'} className="series-card-image" />
-        ) : (
-          <div className="series-card-placeholder" />
-        )}
-        <div className="series-card-overlay">
-          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21" />
-          </svg>
-        </div>
-        <button className="remove-btn" onClick={onRemove}>
-          ✕
-        </button>
+const FavoriteCard = (props: FavoriteCardProps) => (
+  <div class="favorite-card series-card" onClick={props.onClick}>
+    <div class="series-card-poster">
+      <Show when={props.seriesCover} fallback={<div class="series-card-placeholder" />}>
+        <img src={props.seriesCover} alt={props.seriesName || 'Series'} class="series-card-image" />
+      </Show>
+      <div class="series-card-overlay">
+        <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
       </div>
-      <div className="series-card-info">
-        <h3 className="series-card-title">{seriesName || `Series ${seriesId}`}</h3>
-        {seriesTags && seriesTags.length > 0 && (
-          <span className="series-card-tag">{seriesTags[0]}</span>
-        )}
-      </div>
+      <button class="remove-btn" onClick={props.onRemove}>
+        ✕
+      </button>
     </div>
-  )
-}
+    <div class="series-card-info">
+      <h3 class="series-card-title">{props.seriesName || `Series ${props.seriesId}`}</h3>
+      <Show when={props.seriesTags && props.seriesTags.length > 0}>
+        <span class="series-card-tag">{props.seriesTags![0]}</span>
+      </Show>
+    </div>
+  </div>
+)
 
 interface EmptyStateProps {
   icon: string
@@ -751,19 +678,13 @@ interface EmptyStateProps {
   onButtonClick: () => void
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({
-  icon,
-  title,
-  subtext,
-  buttonText,
-  onButtonClick,
-}) => (
-  <div className="empty-state">
-    <div className="empty-icon">{icon}</div>
-    <h3 className="empty-title">{title}</h3>
-    <p className="empty-subtext">{subtext}</p>
-    <button className="btn-primary" onClick={onButtonClick}>
-      {buttonText}
+const EmptyState = (props: EmptyStateProps) => (
+  <div class="empty-state">
+    <div class="empty-icon">{props.icon}</div>
+    <h3 class="empty-title">{props.title}</h3>
+    <p class="empty-subtext">{props.subtext}</p>
+    <button class="btn-primary" onClick={props.onButtonClick}>
+      {props.buttonText}
     </button>
   </div>
 )
@@ -773,45 +694,37 @@ interface SettingsSectionProps {
   playbackSpeed: string
   autoplay: boolean
   notifications: boolean
-  onLanguageChange: (lang: 'en' | 'zh') => void
-  t: Record<string, Record<string, unknown>>
+  onLanguageChange: (lang: Language) => void
 }
 
-const SettingsSection: React.FC<SettingsSectionProps> = ({
-  language,
-  playbackSpeed,
-  autoplay,
-  notifications,
-  onLanguageChange,
-  t,
-}) => {
-  const settings = t.account.settings as Record<string, string>
+const SettingsSection = (props: SettingsSectionProps) => {
+  const settings = () => t().account.settings as Record<string, string>
 
   return (
-    <div className="content-section settings-section">
-      <h1 className="page-title">{settings.title}</h1>
+    <div class="content-section settings-section">
+      <h1 class="page-title">{settings().title}</h1>
 
-      <div className="section-card">
-        <h3 className="card-title">{settings.preferences}</h3>
+      <div class="section-card">
+        <h3 class="card-title">{settings().preferences}</h3>
 
-        <div className="setting-row">
-          <label className="setting-label">{settings.language}</label>
+        <div class="setting-row">
+          <label class="setting-label">{settings().language}</label>
           <select
-            className="setting-control"
-            value={language}
-            onChange={(e) => onLanguageChange(e.target.value as 'en' | 'zh')}
+            class="setting-control"
+            value={props.language}
+            onChange={(e) => props.onLanguageChange(e.currentTarget.value as Language)}
           >
             <option value="en">English</option>
             <option value="zh">中文</option>
           </select>
         </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{settings.playbackSpeed}</label>
+        <div class="setting-row">
+          <label class="setting-label">{settings().playbackSpeed}</label>
           <select
-            className="setting-control"
-            value={playbackSpeed}
-            onChange={(e) => accountStoreActions.setPlaybackSpeed(e.target.value)}
+            class="setting-control"
+            value={props.playbackSpeed}
+            onChange={(e) => accountStoreActions.setPlaybackSpeed(e.currentTarget.value)}
           >
             <option value="0.5x">0.5x</option>
             <option value="1x">1x</option>
@@ -820,27 +733,27 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
           </select>
         </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{settings.autoplay}</label>
-          <label className="toggle">
+        <div class="setting-row">
+          <label class="setting-label">{settings().autoplay}</label>
+          <label class="toggle">
             <input
               type="checkbox"
-              checked={autoplay}
-              onChange={(e) => accountStoreActions.setAutoplay(e.target.checked)}
+              checked={props.autoplay}
+              onChange={(e) => accountStoreActions.setAutoplay(e.currentTarget.checked)}
             />
-            <span className="toggle-slider"></span>
+            <span class="toggle-slider"></span>
           </label>
         </div>
 
-        <div className="setting-row">
-          <label className="setting-label">{settings.notifications}</label>
-          <label className="toggle">
+        <div class="setting-row">
+          <label class="setting-label">{settings().notifications}</label>
+          <label class="toggle">
             <input
               type="checkbox"
-              checked={notifications}
-              onChange={(e) => accountStoreActions.setNotifications(e.target.checked)}
+              checked={props.notifications}
+              onChange={(e) => accountStoreActions.setNotifications(e.currentTarget.checked)}
             />
-            <span className="toggle-slider"></span>
+            <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
@@ -858,206 +771,197 @@ interface WalletSectionProps {
   withdrawing: boolean
   transactions: Transaction[]
   purchases: PurchaseItem[]
-  t: Record<string, Record<string, unknown>>
 }
 
-const WalletSection: React.FC<WalletSectionProps> = ({
-  balance,
-  walletTab,
-  showTopUpPopup,
-  selectedTopUpAmount,
-  showWithdrawPopup,
-  selectedWithdrawAmount,
-  withdrawing,
-  transactions,
-  purchases,
-  t,
-}) => {
-  const wallet = t.account.wallet as Record<string, string>
+const WalletSection = (props: WalletSectionProps) => {
+  const wallet = () => t().account.wallet as Record<string, string>
 
   const onTopUpClick = (amount: number) => handleTopUpClick(amount)
 
-  const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t.account)
+  const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t().account)
 
-  const onConfirmTopUp = () => handleConfirmTopUp(t.account)
+  const onConfirmTopUp = () => handleConfirmTopUp(t().account)
 
-  const onConfirmWithdraw = () => handleConfirmWithdraw(t.account)
+  const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
 
   // Use shared helpers for combined transactions
-  const combinedTransactions = getCombinedTransactions(transactions, purchases)
+  const combinedTransactions = () => getCombinedTransactions(props.transactions, props.purchases)
 
   return (
-    <div className="content-section wallet-section">
-      <div className="section-header">
-        <h1 className="page-title">{wallet.title}</h1>
-        <p className="page-subtitle">{wallet.subtitle}</p>
+    <div class="content-section wallet-section">
+      <div class="section-header">
+        <h1 class="page-title">{wallet().title}</h1>
+        <p class="page-subtitle">{wallet().subtitle}</p>
       </div>
 
-      <div className="balance-card">
-        <div className="balance-icon">💰</div>
-        <div className="balance-info">
-          <span className="balance-label">{wallet.currentBalance}</span>
-          <div className="balance-amount">
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="gcash-logo" />
-            <span>{balance.toFixed(2)}</span>
+      <div class="balance-card">
+        <div class="balance-icon">💰</div>
+        <div class="balance-info">
+          <span class="balance-label">{wallet().currentBalance}</span>
+          <div class="balance-amount">
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="gcash-logo" />
+            <span>{props.balance.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* Wallet Tabs */}
-      <div className="wallet-tabs">
+      <div class="wallet-tabs">
         <button
-          className={`wallet-tab ${walletTab === 'topup' ? 'active' : ''}`}
+          class={`wallet-tab ${props.walletTab === 'topup' ? 'active' : ''}`}
           onClick={() => accountStoreActions.setWalletTab('topup')}
         >
-          {wallet.topUp}
+          {wallet().topUp}
         </button>
         <button
-          className={`wallet-tab ${walletTab === 'withdraw' ? 'active' : ''}`}
+          class={`wallet-tab ${props.walletTab === 'withdraw' ? 'active' : ''}`}
           onClick={() => accountStoreActions.setWalletTab('withdraw')}
         >
-          {wallet.withdraw || 'Withdraw'}
+          {wallet().withdraw || 'Withdraw'}
         </button>
       </div>
 
       {/* Amount Selection Section */}
-      <div className="section-card amount-section">
-        <div className="amount-section-header">
-          <h3 className="card-title">
-            {walletTab === 'topup'
-              ? (wallet.selectTopUpAmount || 'Select Top Up Amount')
-              : (wallet.selectWithdrawAmount || 'Select Withdrawal Amount')
+      <div class="section-card amount-section">
+        <div class="amount-section-header">
+          <h3 class="card-title">
+            {props.walletTab === 'topup'
+              ? (wallet().selectTopUpAmount || 'Select Top Up Amount')
+              : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')
             }
           </h3>
-          {walletTab === 'withdraw' && balance > 0 && (
+          <Show when={props.walletTab === 'withdraw' && props.balance > 0}>
             <button
-              className="btn-withdraw-all"
-              onClick={() => onWithdrawClick(balance)}
+              class="btn-withdraw-all"
+              onClick={() => onWithdrawClick(props.balance)}
             >
-              {wallet.withdrawAll || 'Withdraw All'}
+              {wallet().withdrawAll || 'Withdraw All'}
             </button>
-          )}
+          </Show>
         </div>
-        <p className="amount-description">
-          {walletTab === 'topup'
-            ? wallet.topUpDescription
-            : (wallet.withdrawDescription || 'Select an amount to withdraw from your wallet')
+        <p class="amount-description">
+          {props.walletTab === 'topup'
+            ? wallet().topUpDescription
+            : (wallet().withdrawDescription || 'Select an amount to withdraw from your wallet')
           }
         </p>
-        <div className="amount-grid">
-          {walletAmounts.map((amount) => (
-            <button
-              key={amount}
-              className={`amount-button ${walletTab === 'withdraw' && amount > balance ? 'disabled' : ''}`}
-              onClick={() => walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
-              disabled={walletTab === 'withdraw' && amount > balance}
-            >
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="amount-logo" />
-              <span className="amount-value">{amount}</span>
-            </button>
-          ))}
+        <div class="amount-grid">
+          <For each={walletAmounts}>
+            {(amount) => (
+              <button
+                class={`amount-button ${props.walletTab === 'withdraw' && amount > props.balance ? 'disabled' : ''}`}
+                onClick={() => props.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
+                disabled={props.walletTab === 'withdraw' && amount > props.balance}
+              >
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="amount-logo" />
+                <span class="amount-value">{amount}</span>
+              </button>
+            )}
+          </For>
         </div>
       </div>
 
       {/* Transaction History Section */}
-      <div className="section-card transaction-history-section">
-        <h3 className="card-title">{wallet.transactionHistory || 'Transaction History'}</h3>
-        {combinedTransactions.length === 0 ? (
-          <p className="no-transactions">{wallet.noTransactions || 'No transactions yet'}</p>
-        ) : (
-          <div className="transaction-table-container">
-            <table className="transaction-table">
+      <div class="section-card transaction-history-section">
+        <h3 class="card-title">{wallet().transactionHistory || 'Transaction History'}</h3>
+        <Show when={combinedTransactions().length > 0} fallback={
+          <p class="no-transactions">{wallet().noTransactions || 'No transactions yet'}</p>
+        }>
+          <div class="transaction-table-container">
+            <table class="transaction-table">
               <thead>
                 <tr>
-                  <th>{wallet.time || 'Time'}</th>
-                  <th>{wallet.type || 'Type'}</th>
-                  <th>{wallet.amount || 'Amount'}</th>
-                  <th>{wallet.status || 'Status'}</th>
-                  <th>{wallet.referenceId || 'Reference ID'}</th>
+                  <th>{wallet().time || 'Time'}</th>
+                  <th>{wallet().type || 'Type'}</th>
+                  <th>{wallet().amount || 'Amount'}</th>
+                  <th>{wallet().status || 'Status'}</th>
+                  <th>{wallet().referenceId || 'Reference ID'}</th>
                 </tr>
               </thead>
               <tbody>
-                {combinedTransactions.map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td className="transaction-time">{formatTransactionDateTime(transaction.createdAt)}</td>
-                    <td className={`transaction-type type-${transaction.type}`}>
-                      {transaction.type === 'purchase' && transaction.purchase ? (
-                        <div className="purchase-type-cell">
-                          <span className="purchase-type-series">{transaction.purchase.seriesName}</span>
-                          <span className="purchase-type-episode">
-                            EP {transaction.purchase.episodeNumber}{transaction.purchase.episodeTitle ? ` ${transaction.purchase.episodeTitle}` : ''}
-                          </span>
-                        </div>
-                      ) : (
-                        transaction.type === 'topup' ? (wallet.topUp || 'Top Up') : (wallet.withdraw || 'Withdraw')
-                      )}
-                    </td>
-                    <td className="transaction-amount">
-                      <span className={transaction.type === 'topup' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
-                        {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className={`transaction-status ${getStatusClass(transaction.status)}`}>
-                      {getStatusText(transaction.status, t.account)}
-                    </td>
-                    <td className="transaction-reference">{transaction.referenceId}</td>
-                  </tr>
-                ))}
+                <For each={combinedTransactions()}>
+                  {(transaction) => (
+                    <tr>
+                      <td class="transaction-time">{formatTransactionDateTime(transaction.createdAt)}</td>
+                      <td class={`transaction-type type-${transaction.type}`}>
+                        <Show when={transaction.type === 'purchase' && transaction.purchase} fallback={
+                          transaction.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')
+                        }>
+                          <div class="purchase-type-cell">
+                            <span class="purchase-type-series">{transaction.purchase!.seriesName}</span>
+                            <span class="purchase-type-episode">
+                              EP {transaction.purchase!.episodeNumber}{transaction.purchase!.episodeTitle ? ` ${transaction.purchase!.episodeTitle}` : ''}
+                            </span>
+                          </div>
+                        </Show>
+                      </td>
+                      <td class="transaction-amount">
+                        <span class={transaction.type === 'topup' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
+                          {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td class={`transaction-status ${getStatusClass(transaction.status)}`}>
+                        {getStatusText(transaction.status, t().account)}
+                      </td>
+                      <td class="transaction-reference">{transaction.referenceId}</td>
+                    </tr>
+                  )}
+                </For>
               </tbody>
             </table>
           </div>
-        )}
+        </Show>
       </div>
 
       {/* Top Up Confirmation Popup */}
-      {showTopUpPopup && selectedTopUpAmount && (
-        <div className="popup-overlay" onClick={closeTopUpPopup}>
-          <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
-            <h2 className="popup-title">{wallet.confirmTopUp}</h2>
-            <p className="popup-message">{wallet.addToWallet}</p>
-            <div className="popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
-              <span>{selectedTopUpAmount}</span>
+      <Show when={props.showTopUpPopup && props.selectedTopUpAmount}>
+        <div class="popup-overlay" onClick={closeTopUpPopup}>
+          <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
+            <h2 class="popup-title">{wallet().confirmTopUp}</h2>
+            <p class="popup-message">{wallet().addToWallet}</p>
+            <div class="popup-amount">
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
+              <span>{props.selectedTopUpAmount}</span>
             </div>
-            <div className="popup-buttons">
-              <button className="btn-confirm" onClick={onConfirmTopUp}>
-                {wallet.confirm}
+            <div class="popup-buttons">
+              <button class="btn-confirm" onClick={onConfirmTopUp}>
+                {wallet().confirm}
               </button>
-              <button className="btn-cancel" onClick={closeTopUpPopup}>
-                {wallet.cancel}
+              <button class="btn-cancel" onClick={closeTopUpPopup}>
+                {wallet().cancel}
               </button>
             </div>
           </div>
         </div>
-      )}
+      </Show>
 
       {/* Withdraw Confirmation Popup */}
-      {showWithdrawPopup && selectedWithdrawAmount && (
-        <div className="popup-overlay" onClick={closeWithdrawPopup}>
-          <div className="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-logo" />
-            <h2 className="popup-title">{wallet.confirmWithdraw || 'Confirm Withdraw'}</h2>
-            <p className="popup-message">{wallet.withdrawFromWallet || 'Withdraw from your wallet'}</p>
-            <div className="popup-amount withdraw-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" className="popup-amount-logo" />
-              <span>{selectedWithdrawAmount.toFixed(2)}</span>
+      <Show when={props.showWithdrawPopup && props.selectedWithdrawAmount}>
+        <div class="popup-overlay" onClick={closeWithdrawPopup}>
+          <div class="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
+            <h2 class="popup-title">{wallet().confirmWithdraw || 'Confirm Withdraw'}</h2>
+            <p class="popup-message">{wallet().withdrawFromWallet || 'Withdraw from your wallet'}</p>
+            <div class="popup-amount withdraw-amount">
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
+              <span>{props.selectedWithdrawAmount!.toFixed(2)}</span>
             </div>
-            <div className="popup-buttons">
+            <div class="popup-buttons">
               <button
-                className="btn-withdraw-confirm"
+                class="btn-withdraw-confirm"
                 onClick={onConfirmWithdraw}
-                disabled={withdrawing}
+                disabled={props.withdrawing}
               >
-                {withdrawing ? '...' : (wallet.confirm || 'Confirm')}
+                {props.withdrawing ? '...' : (wallet().confirm || 'Confirm')}
               </button>
-              <button className="btn-cancel" onClick={closeWithdrawPopup} disabled={withdrawing}>
-                {wallet.cancel}
+              <button class="btn-cancel" onClick={closeWithdrawPopup} disabled={props.withdrawing}>
+                {wallet().cancel}
               </button>
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </div>
   )
 }
@@ -1066,97 +970,86 @@ interface MyPurchasesSectionProps {
   purchases: PurchaseItem[]
   loading: boolean
   onNavigate: (path: string) => void
-  t: Record<string, Record<string, unknown>>
 }
 
-const MyPurchasesSection: React.FC<MyPurchasesSectionProps> = ({
-  purchases,
-  loading,
-  onNavigate,
-  t,
-}) => {
-  const myPurchases = (t.account.myPurchases || {}) as Record<string, string>
-
-  if (loading) {
-    return (
-      <div className="content-section my-purchases-section">
-        <div className="loading">Loading...</div>
-      </div>
-    )
-  }
+const MyPurchasesSection = (props: MyPurchasesSectionProps) => {
+  const myPurchases = () => (t().account.myPurchases || {}) as Record<string, string>
 
   // Group purchases by series using shared helper
-  const seriesList = groupPurchasesBySeries(purchases)
+  const seriesList = () => groupPurchasesBySeries(props.purchases)
 
   return (
-    <div className="content-section my-purchases-section">
-      <div className="section-header">
-        <h1 className="page-title">{myPurchases.title || 'My Purchases'}</h1>
-        <p className="page-subtitle">{myPurchases.subtitle || 'Episodes you have purchased'}</p>
+    <Show when={!props.loading} fallback={
+      <div class="content-section my-purchases-section">
+        <div class="loading">Loading...</div>
       </div>
-
-      {seriesList.length === 0 ? (
-        <EmptyState
-          icon="🛒"
-          title={myPurchases.emptyTitle || 'No purchases yet'}
-          subtext={myPurchases.emptySubtext || 'Browse series and purchase episodes to watch'}
-          buttonText={myPurchases.exploreButton || 'Explore Series'}
-          onButtonClick={() => onNavigate('/series')}
-        />
-      ) : (
-        <div className="purchases-list">
-          {seriesList.map((seriesGroup) => (
-            <div key={seriesGroup.seriesId} className="purchase-series-group">
-              <div className="purchase-series-header" onClick={() => onNavigate(`/player/${seriesGroup.seriesId}`)}>
-                <div className="purchase-series-cover">
-                  {seriesGroup.seriesCover ? (
-                    <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
-                  ) : (
-                    <div className="purchase-series-placeholder">🎬</div>
-                  )}
-                </div>
-                <div className="purchase-series-info">
-                  <h3 className="purchase-series-name">{seriesGroup.seriesName}</h3>
-                  <span className="purchase-episode-count">
-                    {seriesGroup.episodes.length} {seriesGroup.episodes.length === 1 ? (myPurchases.episode || 'episode') : (myPurchases.episodes || 'episodes')}
-                  </span>
-                </div>
-              </div>
-              <div className="purchase-episodes-grid">
-                {seriesGroup.episodes
-                  .sort((a, b) => a.episodeNumber - b.episodeNumber)
-                  .map((episode) => (
-                    <div
-                      key={episode.episodeId}
-                      className="purchase-episode-card"
-                      onClick={() => onNavigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
-                    >
-                      <div className="purchase-episode-thumbnail">
-                        {episode.episodeThumbnail ? (
-                          <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
-                        ) : (
-                          <div className="purchase-episode-placeholder">▶️</div>
-                        )}
-                        <div className="purchase-episode-overlay">
-                          <svg className="purchase-play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="5,3 19,12 5,21" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="purchase-episode-info">
-                        <span className="purchase-episode-number">EP {episode.episodeNumber}</span>
-                        {episode.episodeTitle && (
-                          <span className="purchase-episode-title">{episode.episodeTitle}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
+    }>
+      <div class="content-section my-purchases-section">
+        <div class="section-header">
+          <h1 class="page-title">{myPurchases().title || 'My Purchases'}</h1>
+          <p class="page-subtitle">{myPurchases().subtitle || 'Episodes you have purchased'}</p>
         </div>
-      )}
-    </div>
+
+        <Show when={seriesList().length > 0} fallback={
+          <EmptyState
+            icon="🛒"
+            title={myPurchases().emptyTitle || 'No purchases yet'}
+            subtext={myPurchases().emptySubtext || 'Browse series and purchase episodes to watch'}
+            buttonText={myPurchases().exploreButton || 'Explore Series'}
+            onButtonClick={() => props.onNavigate('/series')}
+          />
+        }>
+          <div class="purchases-list">
+            <For each={seriesList()}>
+              {(seriesGroup) => (
+                <div class="purchase-series-group">
+                  <div class="purchase-series-header" onClick={() => props.onNavigate(`/player/${seriesGroup.seriesId}`)}>
+                    <div class="purchase-series-cover">
+                      <Show when={seriesGroup.seriesCover} fallback={<div class="purchase-series-placeholder">🎬</div>}>
+                        <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
+                      </Show>
+                    </div>
+                    <div class="purchase-series-info">
+                      <h3 class="purchase-series-name">{seriesGroup.seriesName}</h3>
+                      <span class="purchase-episode-count">
+                        {seriesGroup.episodes.length} {seriesGroup.episodes.length === 1 ? (myPurchases().episode || 'episode') : (myPurchases().episodes || 'episodes')}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="purchase-episodes-grid">
+                    <For each={[...seriesGroup.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)}>
+                      {(episode) => (
+                        <div
+                          class="purchase-episode-card"
+                          onClick={() => props.onNavigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
+                        >
+                          <div class="purchase-episode-thumbnail">
+                            <Show when={episode.episodeThumbnail} fallback={<div class="purchase-episode-placeholder">▶️</div>}>
+                              <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
+                            </Show>
+                            <div class="purchase-episode-overlay">
+                              <svg class="purchase-play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div class="purchase-episode-info">
+                            <span class="purchase-episode-number">EP {episode.episodeNumber}</span>
+                            <Show when={episode.episodeTitle}>
+                              <span class="purchase-episode-title">{episode.episodeTitle}</span>
+                            </Show>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+      </div>
+    </Show>
   )
 }
 
@@ -1169,111 +1062,96 @@ interface MySeriesSectionProps {
   showUnshelveModal: boolean
   pendingUnshelveSeries: Series | null
   onNavigate: (path: string) => void
-  t: Record<string, Record<string, unknown>>
 }
 
-const MySeriesSection: React.FC<MySeriesSectionProps> = ({
-  series,
-  loading,
-  editingSeriesId,
-  showShelveModal,
-  pendingShelveSeries,
-  showUnshelveModal,
-  pendingUnshelveSeries,
-  onNavigate,
-  t,
-}) => {
-  const mySeries = (t.account.mySeries || {}) as Record<string, string>
-
-  if (loading) {
-    return (
-      <div className="content-section my-series-section">
-        <div className="loading">Loading...</div>
-      </div>
-    )
-  }
-
-  // Show SeriesEditContent when editing or adding
-  if (editingSeriesId) {
-    const isAddMode = editingSeriesId === 'new'
-    const sectionTitle = isAddMode
-      ? (mySeries.addSeriesTitle || 'Add Series')
-      : (mySeries.editSeriesTitle || 'Edit Series')
-
-    return (
-      <div className="content-section my-series-section">
-        <h1 className="page-title">{sectionTitle}</h1>
-        <SeriesEditContent
-          seriesId={editingSeriesId}
-          onCancel={handleCancelEdit}
-          onSaveComplete={handleSaveComplete}
-        />
-      </div>
-    )
-  }
+const MySeriesSection = (props: MySeriesSectionProps) => {
+  const mySeries = () => (t().account.mySeries || {}) as Record<string, string>
 
   return (
-    <div className="content-section my-series-section">
-      <div className="section-header">
-        <h1 className="page-title">{mySeries.title || 'My Series'}</h1>
-        {series.length > 0 ? (
-          <button className="btn-primary add-series-btn" onClick={handleAddSeries}>
-            {mySeries.addSeries || 'Add Series'}
-          </button>
-        ) : (
-          <p className="page-subtitle">{mySeries.subtitle || 'Series you have created'}</p>
-        )}
+    <Show when={!props.loading} fallback={
+      <div class="content-section my-series-section">
+        <div class="loading">Loading...</div>
       </div>
+    }>
+      {/* Show SeriesEditContent when editing or adding */}
+      <Show when={props.editingSeriesId} fallback={
+        <div class="content-section my-series-section">
+          <div class="section-header">
+            <h1 class="page-title">{mySeries().title || 'My Series'}</h1>
+            <Show when={props.series.length > 0} fallback={
+              <p class="page-subtitle">{mySeries().subtitle || 'Series you have created'}</p>
+            }>
+              <button class="btn-primary add-series-btn" onClick={handleAddSeries}>
+                {mySeries().addSeries || 'Add Series'}
+              </button>
+            </Show>
+          </div>
 
-      {series.length === 0 ? (
-        <EmptyState
-          icon="🎬"
-          title={mySeries.emptyTitle || 'No series yet'}
-          subtext={mySeries.emptySubtext || 'Start creating your first series'}
-          buttonText={mySeries.addSeries || 'Add Series'}
-          onButtonClick={handleAddSeries}
-        />
-      ) : (
-        <div className="content-grid">
-          {series.map((seriesItem) => (
-            <MySeriesCard
-              key={seriesItem._id}
-              series={seriesItem}
-              onShelve={() => handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)}
-              onEdit={() => handleEditSeries(seriesItem)}
-              onClick={() => onNavigate(`/player/${seriesItem._id}`)}
-              translations={mySeries}
+          <Show when={props.series.length > 0} fallback={
+            <EmptyState
+              icon="🎬"
+              title={mySeries().emptyTitle || 'No series yet'}
+              subtext={mySeries().emptySubtext || 'Start creating your first series'}
+              buttonText={mySeries().addSeries || 'Add Series'}
+              onButtonClick={handleAddSeries}
             />
-          ))}
+          }>
+            <div class="content-grid">
+              <For each={props.series}>
+                {(seriesItem) => (
+                  <MySeriesCard
+                    series={seriesItem}
+                    onShelve={() => handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)}
+                    onEdit={() => handleEditSeries(seriesItem)}
+                    onClick={() => props.onNavigate(`/player/${seriesItem._id}`)}
+                    translations={mySeries()}
+                  />
+                )}
+              </For>
+            </div>
+          </Show>
+
+          {/* Shelve Confirmation Modal */}
+          <Show when={props.showShelveModal && props.pendingShelveSeries}>
+            <ShelveConfirmationModal
+              seriesName={props.pendingShelveSeries!.name || 'Untitled Series'}
+              title={mySeries().shelveConfirmTitle || 'Confirm Shelve'}
+              message={mySeries().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
+              confirmLabel={mySeries().shelve || 'Shelve'}
+              cancelLabel={mySeries().cancel || 'Cancel'}
+              onConfirm={confirmShelve}
+              onCancel={cancelShelve}
+            />
+          </Show>
+
+          {/* Unshelve Confirmation Modal */}
+          <Show when={props.showUnshelveModal && props.pendingUnshelveSeries}>
+            <UnshelveConfirmationModal
+              seriesName={props.pendingUnshelveSeries!.name || 'Untitled Series'}
+              title={mySeries().unshelveConfirmTitle || 'Confirm Unshelve'}
+              message={mySeries().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
+              confirmLabel={mySeries().unshelve || 'Unshelve'}
+              cancelLabel={mySeries().cancel || 'Cancel'}
+              onConfirm={confirmUnshelve}
+              onCancel={cancelUnshelve}
+            />
+          </Show>
         </div>
-      )}
-
-      {/* Shelve Confirmation Modal */}
-      {showShelveModal && pendingShelveSeries && (
-        <ShelveConfirmationModal
-          seriesName={pendingShelveSeries.name || 'Untitled Series'}
-          title={mySeries.shelveConfirmTitle || 'Confirm Shelve'}
-          message={mySeries.shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
-          confirmLabel={mySeries.shelve || 'Shelve'}
-          cancelLabel={mySeries.cancel || 'Cancel'}
-          onConfirm={confirmShelve}
-          onCancel={cancelShelve}
-        />
-      )}
-
-      {/* Unshelve Confirmation Modal */}
-      {showUnshelveModal && pendingUnshelveSeries && (
-        <UnshelveConfirmationModal
-          seriesName={pendingUnshelveSeries.name || 'Untitled Series'}
-          title={mySeries.unshelveConfirmTitle || 'Confirm Unshelve'}
-          message={mySeries.unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
-          confirmLabel={mySeries.unshelve || 'Unshelve'}
-          cancelLabel={mySeries.cancel || 'Cancel'}
-          onConfirm={confirmUnshelve}
-          onCancel={cancelUnshelve}
-        />
-      )}
-    </div>
+      }>
+        <div class="content-section my-series-section">
+          <h1 class="page-title">
+            {props.editingSeriesId === 'new'
+              ? (mySeries().addSeriesTitle || 'Add Series')
+              : (mySeries().editSeriesTitle || 'Edit Series')}
+          </h1>
+          <SeriesEditContent
+            seriesId={props.editingSeriesId!}
+            onCancel={handleCancelEdit}
+            onSaveComplete={handleSaveComplete}
+          />
+        </div>
+      </Show>
+    </Show>
   )
 }
 
@@ -1285,60 +1163,52 @@ interface MySeriesCardProps {
   translations: Record<string, string>
 }
 
-const MySeriesCard: React.FC<MySeriesCardProps> = ({
-  series,
-  onShelve,
-  onEdit,
-  onClick,
-  translations,
-}) => {
-  const [showActions, setShowActions] = React.useState(false)
+const MySeriesCard = (props: MySeriesCardProps) => {
+  const [showActions, setShowActions] = createSignal(false)
 
   return (
     <div
-      className={`my-series-card series-card ${series.shelved ? 'shelved' : ''}`}
-      onClick={onClick}
+      class={`my-series-card series-card ${props.series.shelved ? 'shelved' : ''}`}
+      onClick={props.onClick}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div className="series-card-poster">
-        {series.cover ? (
-          <img src={series.cover} alt={series.name || 'Series'} className="series-card-image" />
-        ) : (
-          <div className="series-card-placeholder" />
-        )}
-        <div className="series-card-overlay">
-          <svg className="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+      <div class="series-card-poster">
+        <Show when={props.series.cover} fallback={<div class="series-card-placeholder" />}>
+          <img src={props.series.cover} alt={props.series.name || 'Series'} class="series-card-image" />
+        </Show>
+        <div class="series-card-overlay">
+          <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         </div>
-        {series.shelved && (
-          <span className="shelved-badge">{translations.shelved || 'Shelved'}</span>
-        )}
-        {showActions && (
-          <div className="series-action-icons">
+        <Show when={props.series.shelved}>
+          <span class="shelved-badge">{props.translations.shelved || 'Shelved'}</span>
+        </Show>
+        <Show when={showActions()}>
+          <div class="series-action-icons">
             <button
-              className="action-icon-btn"
-              onClick={(e) => { e.stopPropagation(); onShelve(); }}
-              title={series.shelved ? (translations.unshelve || 'Unshelve') : (translations.shelve || 'Shelve')}
+              class="action-icon-btn"
+              onClick={(e) => { e.stopPropagation(); props.onShelve(); }}
+              title={props.series.shelved ? (props.translations.unshelve || 'Unshelve') : (props.translations.shelve || 'Shelve')}
             >
-              {series.shelved ? '📤' : '📥'}
+              {props.series.shelved ? '📤' : '📥'}
             </button>
             <button
-              className="action-icon-btn"
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              title={translations.edit || 'Edit'}
+              class="action-icon-btn"
+              onClick={(e) => { e.stopPropagation(); props.onEdit(); }}
+              title={props.translations.edit || 'Edit'}
             >
               ✏️
             </button>
           </div>
-        )}
+        </Show>
       </div>
-      <div className="series-card-info">
-        <h3 className="series-card-title">{series.name || 'Untitled Series'}</h3>
-        {series.genre && series.genre.length > 0 && (
-          <span className="series-card-tag">{series.genre[0].name}</span>
-        )}
+      <div class="series-card-info">
+        <h3 class="series-card-title">{props.series.name || 'Untitled Series'}</h3>
+        <Show when={props.series.genre && props.series.genre.length > 0}>
+          <span class="series-card-tag">{props.series.genre![0].name}</span>
+        </Show>
       </div>
     </div>
   )
@@ -1354,29 +1224,21 @@ interface ShelveConfirmationModalProps {
   onCancel: () => void
 }
 
-const ShelveConfirmationModal: React.FC<ShelveConfirmationModalProps> = ({
-  seriesName,
-  title,
-  message,
-  confirmLabel,
-  cancelLabel,
-  onConfirm,
-  onCancel,
-}) => (
-  <div className="shelve-modal-overlay" onClick={onCancel}>
-    <div className="shelve-modal" onClick={(e) => e.stopPropagation()}>
-      <div className="shelve-modal-icon">📥</div>
-      <h2 className="shelve-modal-title">{title}</h2>
-      <div className="shelve-modal-series-info">
-        <span className="shelve-modal-series-name">{seriesName}</span>
+const ShelveConfirmationModal = (props: ShelveConfirmationModalProps) => (
+  <div class="shelve-modal-overlay" onClick={props.onCancel}>
+    <div class="shelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div class="shelve-modal-icon">📥</div>
+      <h2 class="shelve-modal-title">{props.title}</h2>
+      <div class="shelve-modal-series-info">
+        <span class="shelve-modal-series-name">{props.seriesName}</span>
       </div>
-      <p className="shelve-modal-message">{message}</p>
-      <div className="shelve-modal-buttons">
-        <button className="shelve-modal-btn shelve-modal-btn-confirm" onClick={onConfirm}>
-          {confirmLabel}
+      <p class="shelve-modal-message">{props.message}</p>
+      <div class="shelve-modal-buttons">
+        <button class="shelve-modal-btn shelve-modal-btn-confirm" onClick={props.onConfirm}>
+          {props.confirmLabel}
         </button>
-        <button className="shelve-modal-btn shelve-modal-btn-cancel" onClick={onCancel}>
-          {cancelLabel}
+        <button class="shelve-modal-btn shelve-modal-btn-cancel" onClick={props.onCancel}>
+          {props.cancelLabel}
         </button>
       </div>
     </div>
@@ -1393,29 +1255,21 @@ interface UnshelveConfirmationModalProps {
   onCancel: () => void
 }
 
-const UnshelveConfirmationModal: React.FC<UnshelveConfirmationModalProps> = ({
-  seriesName,
-  title,
-  message,
-  confirmLabel,
-  cancelLabel,
-  onConfirm,
-  onCancel,
-}) => (
-  <div className="unshelve-modal-overlay" onClick={onCancel}>
-    <div className="unshelve-modal" onClick={(e) => e.stopPropagation()}>
-      <div className="unshelve-modal-icon">📤</div>
-      <h2 className="unshelve-modal-title">{title}</h2>
-      <div className="unshelve-modal-series-info">
-        <span className="unshelve-modal-series-name">{seriesName}</span>
+const UnshelveConfirmationModal = (props: UnshelveConfirmationModalProps) => (
+  <div class="unshelve-modal-overlay" onClick={props.onCancel}>
+    <div class="unshelve-modal" onClick={(e) => e.stopPropagation()}>
+      <div class="unshelve-modal-icon">📤</div>
+      <h2 class="unshelve-modal-title">{props.title}</h2>
+      <div class="unshelve-modal-series-info">
+        <span class="unshelve-modal-series-name">{props.seriesName}</span>
       </div>
-      <p className="unshelve-modal-message">{message}</p>
-      <div className="unshelve-modal-buttons">
-        <button className="unshelve-modal-btn unshelve-modal-btn-confirm" onClick={onConfirm}>
-          {confirmLabel}
+      <p class="unshelve-modal-message">{props.message}</p>
+      <div class="unshelve-modal-buttons">
+        <button class="unshelve-modal-btn unshelve-modal-btn-confirm" onClick={props.onConfirm}>
+          {props.confirmLabel}
         </button>
-        <button className="unshelve-modal-btn unshelve-modal-btn-cancel" onClick={onCancel}>
-          {cancelLabel}
+        <button class="unshelve-modal-btn unshelve-modal-btn-cancel" onClick={props.onCancel}>
+          {props.cancelLabel}
         </button>
       </div>
     </div>

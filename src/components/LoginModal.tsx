@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useLanguage } from '../context/LanguageContext'
+import { createSignal, Show, Switch, Match } from 'solid-js'
+import { useLocation } from '@solidjs/router'
+import { t } from '../stores/languageStore'
 import {
   login,
   emailRegister,
@@ -8,7 +8,7 @@ import {
   saveAuthData,
   apiPost,
 } from '../utils/api'
-import { useLoginModalStore } from '../stores'
+import { loginModalStore } from '../stores'
 import type { OAuthType, ResetPasswordResponse, User } from '../types'
 import './LoginModal.css'
 
@@ -19,26 +19,24 @@ interface LoginModalProps {
 
 type ModalMode = 'login' | 'signup' | 'reset'
 
-const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
-  const { t } = useLanguage()
+const LoginModal = (props: LoginModalProps) => {
   const location = useLocation()
-  const loginModalState = useLoginModalStore()
-  const [mode, setMode] = useState<ModalMode>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [resetMessage, setResetMessage] = useState('')
+  const [mode, setMode] = createSignal<ModalMode>('login')
+  const [email, setEmail] = createSignal('')
+  const [password, setPassword] = createSignal('')
+  const [emailError, setEmailError] = createSignal('')
+  const [passwordError, setPasswordError] = createSignal('')
+  const [loading, setLoading] = createSignal(false)
+  const [resetMessage, setResetMessage] = createSignal('')
 
   const validateEmail = (emailValue: string): boolean => {
     if (!emailValue) {
-      setEmailError(t.login.emailRequired || 'Email is required')
+      setEmailError(t().login.emailRequired || 'Email is required')
       return false
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(emailValue)) {
-      setEmailError(t.login.invalidEmail || 'Invalid email format')
+      setEmailError(t().login.invalidEmail || 'Invalid email format')
       return false
     }
     setEmailError('')
@@ -47,7 +45,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const validateLoginPassword = (passwordValue: string): boolean => {
     if (!passwordValue) {
-      setPasswordError(t.login.passwordRequired || 'Password is required')
+      setPasswordError(t().login.passwordRequired || 'Password is required')
       return false
     }
     setPasswordError('')
@@ -56,39 +54,39 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const validateSignupPassword = (passwordValue: string): boolean => {
     if (!passwordValue) {
-      setPasswordError(t.login.passwordRequired || 'Password is required')
+      setPasswordError(t().login.passwordRequired || 'Password is required')
       return false
     }
     if (passwordValue.length < 6) {
       setPasswordError(
-        t.login.passwordMinLength ||
+        t().login.passwordMinLength ||
           'Password must be at least 6 characters',
       )
       return false
     }
     if (!/[A-Z]/.test(passwordValue)) {
       setPasswordError(
-        t.login.passwordUppercase ||
+        t().login.passwordUppercase ||
           'Password must contain at least 1 uppercase letter',
       )
       return false
     }
     if (!/[a-z]/.test(passwordValue)) {
       setPasswordError(
-        t.login.passwordLowercase ||
+        t().login.passwordLowercase ||
           'Password must contain at least 1 lowercase letter',
       )
       return false
     }
     if (!/[0-9]/.test(passwordValue)) {
       setPasswordError(
-        t.login.passwordNumber || 'Password must contain at least 1 number',
+        t().login.passwordNumber || 'Password must contain at least 1 number',
       )
       return false
     }
     if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwordValue)) {
       setPasswordError(
-        t.login.passwordSpecial ||
+        t().login.passwordSpecial ||
           'Password must contain at least 1 special character',
       )
       return false
@@ -98,8 +96,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   }
 
   const handleLogin = async () => {
-    const isEmailValid = validateEmail(email)
-    const isPasswordValid = validateLoginPassword(password)
+    const isEmailValid = validateEmail(email())
+    const isPasswordValid = validateLoginPassword(password())
 
     if (!isEmailValid || !isPasswordValid) {
       return
@@ -107,11 +105,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
     setLoading(true)
 
-    const response = await login({ email, password })
+    const response = await login({ email: email(), password: password() })
 
     if (response.success && response.data) {
       saveAuthData(response.data.token, response.data.user)
-      onLoginSuccess(response.data.user)
+      props.onLoginSuccess(response.data.user)
     } else {
       setPasswordError(response.error || 'Invalid email or password')
     }
@@ -120,8 +118,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   }
 
   const handleSignup = async () => {
-    const isEmailValid = validateEmail(email)
-    const isPasswordValid = validateSignupPassword(password)
+    const isEmailValid = validateEmail(email())
+    const isPasswordValid = validateSignupPassword(password())
 
     if (!isEmailValid || !isPasswordValid) {
       return
@@ -130,19 +128,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     setLoading(true)
 
     // Check if email exists
-    const checkResponse = await checkEmail(email)
+    const checkResponse = await checkEmail(email())
     if (checkResponse.success && checkResponse.data?.exists) {
-      setEmailError(t.login.emailExists || 'Email already exists')
+      setEmailError(t().login.emailExists || 'Email already exists')
       setLoading(false)
       return
     }
 
     // Register the user
-    const response = await emailRegister({ email, password })
+    const response = await emailRegister({ email: email(), password: password() })
 
     if (response.success && response.data) {
       saveAuthData(response.data.token, response.data.user)
-      onLoginSuccess(response.data.user)
+      props.onLoginSuccess(response.data.user)
     } else {
       setPasswordError(response.error || 'Registration failed')
     }
@@ -151,7 +149,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   }
 
   const handleResetPassword = async () => {
-    const isEmailValid = validateEmail(email)
+    const isEmailValid = validateEmail(email())
 
     if (!isEmailValid) {
       return
@@ -161,12 +159,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     setResetMessage('')
 
     try {
-      const response = await apiPost<ResetPasswordResponse>('resetPassword', { email })
+      const response = await apiPost<ResetPasswordResponse>('resetPassword', { email: email() })
 
       if (response.success) {
         setResetMessage(
-          t.login.resetEmailSent?.replace('{email}', email) ||
-            `An email has been sent to ${email} with password reset instruction.`
+          t().login.resetEmailSent?.replace('{email}', email()) ||
+            `An email has been sent to ${email()} with password reset instruction.`
         )
       } else {
         setEmailError(response.error || 'Failed to send reset email')
@@ -178,21 +176,21 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     setLoading(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: Event) => {
     e.preventDefault()
 
-    if (mode === 'login') {
+    if (mode() === 'login') {
       await handleLogin()
-    } else if (mode === 'signup') {
+    } else if (mode() === 'signup') {
       await handleSignup()
-    } else if (mode === 'reset') {
+    } else if (mode() === 'reset') {
       await handleResetPassword()
     }
   }
 
   const handleClose = () => {
     resetForm()
-    onClose()
+    props.onClose()
   }
 
   const resetForm = () => {
@@ -208,7 +206,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     setMode(newMode)
   }
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: MouseEvent) => {
     if (e.target === e.currentTarget) {
       handleClose()
     }
@@ -217,7 +215,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   // Get OAuth redirect URL - use stored redirectPath or current location
   const getOAuthRedirectUrl = () => {
     // Store the redirect destination in sessionStorage so we can retrieve it after OAuth callback
-    const redirectTo = loginModalState.redirectPath || location.pathname + location.search
+    const redirectTo = loginModalStore.redirectPath || location.pathname + location.search
     sessionStorage.setItem('oauth_redirect', redirectTo)
     // OAuth callback always goes to /account which handles the OAuth flow
     return `${window.location.origin}/account`
@@ -258,67 +256,67 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const renderLoginForm = () => (
     <>
-      <h2 className="login-modal-title">{t.login.title}</h2>
+      <h2 class="login-modal-title">{t().login.title}</h2>
 
-      <form onSubmit={handleSubmit} className="login-form">
-        <div className="login-field">
+      <form onSubmit={handleSubmit} class="login-form">
+        <div class="login-field">
           <input
             type="email"
-            className={`login-input ${emailError ? 'login-input-error' : ''}`}
-            placeholder={t.login.email}
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value)
-              if (emailError) setEmailError('')
+            class={`login-input ${emailError() ? 'login-input-error' : ''}`}
+            placeholder={t().login.email}
+            value={email()}
+            onInput={(e) => {
+              setEmail(e.currentTarget.value)
+              if (emailError()) setEmailError('')
             }}
             required
           />
-          {emailError && (
-            <span className="login-field-error">{emailError}</span>
-          )}
+          <Show when={emailError()}>
+            <span class="login-field-error">{emailError()}</span>
+          </Show>
         </div>
 
-        <div className="login-field">
+        <div class="login-field">
           <input
             type="password"
-            className={`login-input ${passwordError ? 'login-input-error' : ''}`}
-            placeholder={t.login.password}
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              if (passwordError) setPasswordError('')
+            class={`login-input ${passwordError() ? 'login-input-error' : ''}`}
+            placeholder={t().login.password}
+            value={password()}
+            onInput={(e) => {
+              setPassword(e.currentTarget.value)
+              if (passwordError()) setPasswordError('')
             }}
             required
           />
-          {passwordError && (
-            <span className="login-field-error">{passwordError}</span>
-          )}
+          <Show when={passwordError()}>
+            <span class="login-field-error">{passwordError()}</span>
+          </Show>
         </div>
 
         <button
           type="button"
-          className="login-forget-password"
+          class="login-forget-password"
           onClick={handleForgetPassword}
         >
-          {t.login.forgetPassword}
+          {t().login.forgetPassword}
         </button>
 
         <button
           type="submit"
-          className="login-submit"
-          disabled={loading}
+          class="login-submit"
+          disabled={loading()}
         >
-          {loading ? '...' : t.login.submit}
+          {loading() ? '...' : t().login.submit}
         </button>
       </form>
 
-      <div className="login-divider">
-        <span className="login-divider-text">{t.login.orContinueWith}</span>
+      <div class="login-divider">
+        <span class="login-divider-text">{t().login.orContinueWith}</span>
       </div>
 
-      <div className="login-oauth-buttons">
+      <div class="login-oauth-buttons">
         <button
-          className="login-oauth-btn"
+          class="login-oauth-btn"
           onClick={() => handleOAuthSignIn('google')}
           title="Google"
         >
@@ -343,14 +341,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         </button>
       </div>
 
-      <div className="login-signup">
-        <span>{t.login.noAccount}</span>
+      <div class="login-signup">
+        <span>{t().login.noAccount}</span>
         <button
           type="button"
-          className="login-signup-link"
+          class="login-signup-link"
           onClick={() => switchMode('signup')}
         >
-          {t.login.signUp}
+          {t().login.signUp}
         </button>
       </div>
     </>
@@ -358,59 +356,59 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const renderSignupForm = () => (
     <>
-      <h2 className="login-modal-title">{t.login.signUpTitle || 'Sign Up'}</h2>
+      <h2 class="login-modal-title">{t().login.signUpTitle || 'Sign Up'}</h2>
 
-      <form onSubmit={handleSubmit} className="login-form">
-        <div className="login-field">
+      <form onSubmit={handleSubmit} class="login-form">
+        <div class="login-field">
           <input
             type="email"
-            className={`login-input ${emailError ? 'login-input-error' : ''}`}
-            placeholder={t.login.email}
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value)
-              if (emailError) setEmailError('')
+            class={`login-input ${emailError() ? 'login-input-error' : ''}`}
+            placeholder={t().login.email}
+            value={email()}
+            onInput={(e) => {
+              setEmail(e.currentTarget.value)
+              if (emailError()) setEmailError('')
             }}
             required
           />
-          {emailError && (
-            <span className="login-field-error">{emailError}</span>
-          )}
+          <Show when={emailError()}>
+            <span class="login-field-error">{emailError()}</span>
+          </Show>
         </div>
 
-        <div className="login-field">
+        <div class="login-field">
           <input
             type="password"
-            className={`login-input ${passwordError ? 'login-input-error' : ''}`}
-            placeholder={t.login.password}
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              if (passwordError) setPasswordError('')
+            class={`login-input ${passwordError() ? 'login-input-error' : ''}`}
+            placeholder={t().login.password}
+            value={password()}
+            onInput={(e) => {
+              setPassword(e.currentTarget.value)
+              if (passwordError()) setPasswordError('')
             }}
             required
           />
-          {passwordError && (
-            <span className="login-field-error">{passwordError}</span>
-          )}
+          <Show when={passwordError()}>
+            <span class="login-field-error">{passwordError()}</span>
+          </Show>
         </div>
 
         <button
           type="submit"
-          className="login-submit login-submit-signup"
-          disabled={loading}
+          class="login-submit login-submit-signup"
+          disabled={loading()}
         >
-          {loading ? '...' : t.login.createAccount || 'Create an Account'}
+          {loading() ? '...' : t().login.createAccount || 'Create an Account'}
         </button>
       </form>
 
-      <div className="login-divider">
-        <span className="login-divider-text">{t.login.orContinueWith}</span>
+      <div class="login-divider">
+        <span class="login-divider-text">{t().login.orContinueWith}</span>
       </div>
 
-      <div className="login-oauth-buttons">
+      <div class="login-oauth-buttons">
         <button
-          className="login-oauth-btn"
+          class="login-oauth-btn"
           onClick={() => handleOAuthSignIn('google')}
           title="Google"
         >
@@ -435,14 +433,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         </button>
       </div>
 
-      <div className="login-signup">
-        <span>{t.login.hasAccount || 'Already have an account?'}</span>
+      <div class="login-signup">
+        <span>{t().login.hasAccount || 'Already have an account?'}</span>
         <button
           type="button"
-          className="login-signup-link"
+          class="login-signup-link"
           onClick={() => switchMode('login')}
         >
-          {t.login.logIn || 'Log in'}
+          {t().login.logIn || 'Log in'}
         </button>
       </div>
     </>
@@ -450,83 +448,88 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
   const renderResetForm = () => (
     <>
-      <h2 className="login-modal-title">{t.login.resetPasswordTitle || 'Reset Password'}</h2>
+      <h2 class="login-modal-title">{t().login.resetPasswordTitle || 'Reset Password'}</h2>
 
-      {resetMessage ? (
-        <div className="login-reset-success">
-          <p>{resetMessage}</p>
+      <Show
+        when={resetMessage()}
+        fallback={
+          <>
+            <form onSubmit={handleSubmit} class="login-form">
+              <div class="login-field">
+                <input
+                  type="email"
+                  class={`login-input ${emailError() ? 'login-input-error' : ''}`}
+                  placeholder={t().login.email}
+                  value={email()}
+                  onInput={(e) => {
+                    setEmail(e.currentTarget.value)
+                    if (emailError()) setEmailError('')
+                  }}
+                  required
+                />
+                <Show when={emailError()}>
+                  <span class="login-field-error">{emailError()}</span>
+                </Show>
+              </div>
+
+              <button
+                type="submit"
+                class="login-submit login-submit-reset"
+                disabled={loading()}
+              >
+                {loading() ? '...' : t().login.resetPassword || 'Reset Password'}
+              </button>
+            </form>
+
+            <div class="login-signup">
+              <span>{t().login.rememberPassword || 'Remember your password?'}</span>
+              <button
+                type="button"
+                class="login-signup-link"
+                onClick={() => switchMode('login')}
+              >
+                {t().login.logIn || 'Log in'}
+              </button>
+            </div>
+          </>
+        }
+      >
+        <div class="login-reset-success">
+          <p>{resetMessage()}</p>
           <button
             type="button"
-            className="login-submit"
+            class="login-submit"
             onClick={() => switchMode('login')}
           >
-            {t.login.backToLogin || 'Back to Login'}
+            {t().login.backToLogin || 'Back to Login'}
           </button>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="login-field">
-            <input
-              type="email"
-              className={`login-input ${emailError ? 'login-input-error' : ''}`}
-              placeholder={t.login.email}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (emailError) setEmailError('')
-              }}
-              required
-            />
-            {emailError && (
-              <span className="login-field-error">{emailError}</span>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            className="login-submit login-submit-reset"
-            disabled={loading}
-          >
-            {loading ? '...' : t.login.resetPassword || 'Reset Password'}
-          </button>
-        </form>
-      )}
-
-      {!resetMessage && (
-        <div className="login-signup">
-          <span>{t.login.rememberPassword || 'Remember your password?'}</span>
-          <button
-            type="button"
-            className="login-signup-link"
-            onClick={() => switchMode('login')}
-          >
-            {t.login.logIn || 'Log in'}
-          </button>
-        </div>
-      )}
+      </Show>
     </>
   )
 
   return (
-    <div className="login-modal-overlay" onClick={handleOverlayClick}>
-      <div className="login-modal">
-        <button className="login-modal-close" onClick={handleClose}>
+    <div class="login-modal-overlay" onClick={handleOverlayClick}>
+      <div class="login-modal">
+        <button class="login-modal-close" onClick={handleClose}>
           <svg
             width="24"
             height="24"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            stroke-width="2"
           >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
 
-        {mode === 'login' && renderLoginForm()}
-        {mode === 'signup' && renderSignupForm()}
-        {mode === 'reset' && renderResetForm()}
+        <Switch>
+          <Match when={mode() === 'login'}>{renderLoginForm()}</Match>
+          <Match when={mode() === 'signup'}>{renderSignupForm()}</Match>
+          <Match when={mode() === 'reset'}>{renderResetForm()}</Match>
+        </Switch>
       </div>
     </div>
   )

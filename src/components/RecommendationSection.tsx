@@ -1,7 +1,6 @@
-import React from 'react'
 import SeriesCarousel from './SeriesCarousel'
-import { useLanguage } from '../context/LanguageContext'
-import { useRecommendationsStore } from '../stores'
+import { t } from '../stores/languageStore'
+import { recommendationsStore } from '../stores'
 import { fetchRecommendations } from '../services/dataService'
 
 interface RecommendationSectionProps {
@@ -9,7 +8,7 @@ interface RecommendationSectionProps {
   excludeSeriesId?: string
 }
 
-// Initialize data fetch outside component (not in useEffect)
+// Initialize data fetch outside component (not in createEffect)
 let dataFetched = false
 const initializeData = () => {
   if (!dataFetched) {
@@ -18,19 +17,16 @@ const initializeData = () => {
   }
 }
 
-const RecommendationSection: React.FC<RecommendationSectionProps> = ({ title, excludeSeriesId }) => {
-  const { t } = useLanguage()
-  const { series, loading } = useRecommendationsStore()
-
-  // Initialize data on first render (avoiding useEffect for API calls)
+const RecommendationSection = (props: RecommendationSectionProps) => {
+  // Initialize data on first render (avoiding createEffect for API calls)
   initializeData()
 
   return (
     <SeriesCarousel
-      title={title || t.home.youMightLike}
-      series={series}
-      loading={loading}
-      excludeSeriesId={excludeSeriesId}
+      title={props.title || t().home.youMightLike}
+      series={recommendationsStore.series}
+      loading={recommendationsStore.loading}
+      excludeSeriesId={props.excludeSeriesId}
     />
   )
 }

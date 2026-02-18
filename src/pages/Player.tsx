@@ -1,23 +1,23 @@
-import React, { useRef } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { createSignal, createEffect, onCleanup, Show, For } from 'solid-js'
+import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../components/PlayerModals'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import {
-  usePlayerStore,
-  useLoginModalStore,
-  useUserStore,
+  playerStore,
+  loginModalStore,
+  userStore,
   playerStoreActions,
   loginModalStoreActions,
   userStoreActions,
-  useToastStore,
+  toastStore,
 } from '../stores'
 import {
-  usePlayerPageStore,
+  playerPageStore,
   playerPageStoreActions,
   checkSeriesFavorited,
   checkIsSeriesOwner,
@@ -46,47 +46,44 @@ import {
 import type { Episode } from '../types'
 import './Player.css'
 
-const Player: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
+const Player = () => {
+  const params = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { t } = useLanguage()
 
-  // Subscribe to stores
-  const playerState = usePlayerStore()
-  const playerPageState = usePlayerPageStore()
-  const loginModalState = useLoginModalStore()
-  const userState = useUserStore()
-  const toastState = useToastStore()
-
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  let videoRef: HTMLVideoElement | undefined
+  let controlsTimeoutRef: ReturnType<typeof setTimeout> | null = null
 
   // Initialize data
-  if (id) {
-    playerPageStoreActions.initialize(id)
-  }
+  createEffect(() => {
+    const id = params.id
+    if (id) {
+      playerPageStoreActions.initialize(id)
+    }
+  })
 
   // Episode selection logic
-  const episodeNumberFromUrl = searchParams.get('episode')
-  if (playerState.episodes.length > 0 && !playerState.loading && id) {
-    playerPageStoreActions.selectEpisodeFromUrlOrWatchList(episodeNumberFromUrl)
-  }
+  createEffect(() => {
+    const episodeNumberFromUrl = (searchParams.episode as string | undefined) || null
+    if (playerStore.episodes.length > 0 && !playerStore.loading && params.id) {
+      playerPageStoreActions.selectEpisodeFromUrlOrWatchList(episodeNumberFromUrl)
+    }
+  })
 
   // Derived state from store
-  const isOwner = checkIsSeriesOwner()
-  const isFavorited = checkSeriesFavorited(id)
-  const isPurchased = isCurrentEpisodePurchased()
-  const filteredEpisodes = getFilteredEpisodes()
+  const isOwner = () => checkIsSeriesOwner()
+  const isFavorited = () => checkSeriesFavorited(params.id)
+  const isPurchased = () => isCurrentEpisodePurchased()
+  const filteredEpisodes = () => getFilteredEpisodes()
 
   // Event handlers
   const handleMouseMove = () => {
     playerStoreActions.setShowControls(true)
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current)
+    if (controlsTimeoutRef) {
+      clearTimeout(controlsTimeoutRef)
     }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (playerState.isPlaying) {
+    controlsTimeoutRef = setTimeout(() => {
+      if (playerStore.isPlaying) {
         playerStoreActions.setShowControls(false)
       }
     }, 3000)
@@ -96,107 +93,96 @@ const Player: React.FC = () => {
     navigate(`/series?genre=${encodeURIComponent(tag)}`)
   }
 
-  // Loading state
-  if (playerState.loading) {
-    return (
-      <div className="player-page">
-        <TopBar />
-        <div className="loading">Loading...</div>
-        <BottomBar />
-      </div>
-    )
-  }
-
-  // Error state
-  if (!playerState.series) {
-    return (
-      <div className="player-page">
-        <TopBar />
-        <div className="error">Series not found</div>
-        <BottomBar />
-      </div>
-    )
-  }
-
   return (
-    <div className="player-page">
+    <div class="player-page">
       <TopBar />
 
-      <Breadcrumb
-        seriesName={playerState.series.name}
-        homeText={t.player.breadcrumbHome}
-        onHomeClick={() => navigate('/')}
-      />
-
-      <main className="player-content">
-        <div className="player-main">
-          <VideoPlayer
-            episode={playerState.currentEpisode}
-            videoRef={videoRef}
-            isPlaying={playerState.isPlaying}
-            showControls={playerState.showControls}
-            currentTime={playerState.currentTime}
-            duration={playerState.duration}
-            volume={playerState.volume}
-            playbackSpeed={playerState.playbackSpeed}
-            showSpeedSelector={playerState.showSpeedSelector}
-            isPurchased={isPurchased}
-            onPlayPause={() => handlePlayPause(videoRef, playerState.isPlaying)}
-            onTimeUpdate={() =>
-              handleTimeUpdate(videoRef, isPurchased, playerPageStoreActions.handleTimeLimitReached)
-            }
-            onLoadedMetadata={() => handleLoadedMetadata(videoRef)}
-            onProgressChange={(time) =>
-              handleProgressChange(videoRef, time, isPurchased, playerPageStoreActions.handleTimeLimitReached)
-            }
-            onVolumeToggle={() => handleVolumeToggle(videoRef, playerState.volume)}
-            onSpeedChange={(speed) => handleSpeedChange(videoRef, speed)}
-            onSpeedSelectorToggle={() =>
-              playerStoreActions.setShowSpeedSelector(!playerState.showSpeedSelector)
-            }
-            onFullscreen={() => handleFullscreen(videoRef)}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() =>
-              playerState.isPlaying && playerStoreActions.setShowControls(false)
-            }
-            onTimeLimitReached={playerPageStoreActions.handleTimeLimitReached}
+      {/* Loading state */}
+      <Show when={!playerStore.loading} fallback={
+        <div class="loading">Loading...</div>
+      }>
+        {/* Error state */}
+        <Show when={playerStore.series} fallback={
+          <div class="error">Series not found</div>
+        }>
+          <Breadcrumb
+            seriesName={playerStore.series!.name}
+            homeText={t().player.breadcrumbHome}
+            onHomeClick={() => navigate('/')}
           />
 
-          <EpisodeMetadata
-            series={playerState.series}
-            currentEpisode={playerState.currentEpisode}
-            selectedLanguage={playerState.selectedLanguage}
-            isFavorited={isFavorited}
-            isEpisodePurchased={isPurchased}
-            onLanguageChange={playerStoreActions.setSelectedLanguage}
-            onTagClick={handleTagClick}
-            onFavoriteToggle={playerPageStoreActions.handleFavoriteToggle}
-            onUnlockClick={playerPageStoreActions.handleUnlockClick}
-          />
-        </div>
+          <main class="player-content">
+            <div class="player-main">
+              <VideoPlayer
+                episode={playerStore.currentEpisode}
+                videoRef={videoRef}
+                setVideoRef={(el) => { videoRef = el }}
+                isPlaying={playerStore.isPlaying}
+                showControls={playerStore.showControls}
+                currentTime={playerStore.currentTime}
+                duration={playerStore.duration}
+                volume={playerStore.volume}
+                playbackSpeed={playerStore.playbackSpeed}
+                showSpeedSelector={playerStore.showSpeedSelector}
+                isPurchased={isPurchased()}
+                onPlayPause={() => handlePlayPause({ current: videoRef || null }, playerStore.isPlaying)}
+                onTimeUpdate={() =>
+                  handleTimeUpdate({ current: videoRef || null }, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
+                }
+                onLoadedMetadata={() => handleLoadedMetadata({ current: videoRef || null })}
+                onProgressChange={(time) =>
+                  handleProgressChange({ current: videoRef || null }, time, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
+                }
+                onVolumeToggle={() => handleVolumeToggle({ current: videoRef || null }, playerStore.volume)}
+                onSpeedChange={(speed) => handleSpeedChange({ current: videoRef || null }, speed)}
+                onSpeedSelectorToggle={() =>
+                  playerStoreActions.setShowSpeedSelector(!playerStore.showSpeedSelector)
+                }
+                onFullscreen={() => handleFullscreen({ current: videoRef || null })}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() =>
+                  playerStore.isPlaying && playerStoreActions.setShowControls(false)
+                }
+                onTimeLimitReached={playerPageStoreActions.handleTimeLimitReached}
+              />
 
-        <EpisodeSidebar
-          episodes={filteredEpisodes}
-          allEpisodes={playerState.episodes}
-          currentEpisode={playerState.currentEpisode}
-          episodeRange={playerState.episodeRange}
-          title={t.player.episodes}
-          seriesId={id || ''}
-          isSeriesOwner={isOwner}
-          onEpisodeClick={(episode) => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
-          onRangeSelect={playerStoreActions.setEpisodeRange}
-        />
-      </main>
+              <EpisodeMetadata
+                series={playerStore.series!}
+                currentEpisode={playerStore.currentEpisode}
+                selectedLanguage={playerStore.selectedLanguage}
+                isFavorited={isFavorited()}
+                isEpisodePurchased={isPurchased()}
+                onLanguageChange={playerStoreActions.setSelectedLanguage}
+                onTagClick={handleTagClick}
+                onFavoriteToggle={playerPageStoreActions.handleFavoriteToggle}
+                onUnlockClick={playerPageStoreActions.handleUnlockClick}
+              />
+            </div>
 
-      <RecommendationSection excludeSeriesId={id} />
-      <NewReleasesSection excludeSeriesId={id} />
+            <EpisodeSidebar
+              episodes={filteredEpisodes()}
+              allEpisodes={playerStore.episodes}
+              currentEpisode={playerStore.currentEpisode}
+              episodeRange={playerStore.episodeRange}
+              title={t().player.episodes}
+              seriesId={params.id || ''}
+              isSeriesOwner={isOwner()}
+              onEpisodeClick={(episode) => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
+              onRangeSelect={playerStoreActions.setEpisodeRange}
+            />
+          </main>
 
-      <SocialButtons favoritesText={t.player.addToFavorites} />
+          <RecommendationSection excludeSeriesId={params.id} />
+          <NewReleasesSection excludeSeriesId={params.id} />
+
+          <SocialButtons favoritesText={t().player.addToFavorites} />
+        </Show>
+      </Show>
 
       <BottomBar />
 
       {/* Login Modal */}
-      {loginModalState.isOpen && (
+      <Show when={loginModalStore.isOpen}>
         <LoginModal
           onClose={loginModalStoreActions.close}
           onLoginSuccess={(user) => {
@@ -206,60 +192,60 @@ const Player: React.FC = () => {
             loginModalStoreActions.close()
           }}
         />
-      )}
+      </Show>
 
       {/* Purchase Popup */}
-      {playerPageState.showPurchasePopup && playerState.currentEpisode && (
+      <Show when={playerPageStore.showPurchasePopup && playerStore.currentEpisode}>
         <PurchasePopup
-          seriesName={playerState.series?.name || ''}
-          episodeNumber={playerState.currentEpisode.episodeNumber}
-          episodeTitle={playerState.currentEpisode.title}
-          userBalance={userState.user?.balance || 0}
-          isPurchasing={playerPageState.isPurchasing}
-          onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t)}
+          seriesName={playerStore.series?.name || ''}
+          episodeNumber={playerStore.currentEpisode!.episodeNumber}
+          episodeTitle={playerStore.currentEpisode!.title}
+          userBalance={userStore.user?.balance || 0}
+          isPurchasing={playerPageStore.isPurchasing}
+          onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t())}
           onCancel={playerPageStoreActions.hidePurchasePopup}
-          t={t.player}
+          t={t().player}
         />
-      )}
+      </Show>
 
       {/* Result Modal */}
-      {playerPageState.showResultModal && (
+      <Show when={playerPageStore.showResultModal}>
         <ResultModal
-          type={playerPageState.resultModalType}
+          type={playerPageStore.resultModalType}
           title={
-            playerPageState.resultModalType === 'success'
-              ? t.player.unlockSuccess
-              : t.player.unlockFailed
+            playerPageStore.resultModalType === 'success'
+              ? t().player.unlockSuccess
+              : t().player.unlockFailed
           }
-          message={playerPageState.resultModalMessage}
+          message={playerPageStore.resultModalMessage}
           buttonText={
-            playerPageState.resultModalType === 'error' &&
-            playerPageState.resultModalMessage.includes('balance')
-              ? t.player.goToWallet
+            playerPageStore.resultModalType === 'error' &&
+            playerPageStore.resultModalMessage.includes('balance')
+              ? t().player.goToWallet
               : 'OK'
           }
           onClose={() => playerPageStoreActions.handleResultModalClose(navigate)}
         />
-      )}
+      </Show>
 
       {/* Favorite Modal */}
-      {playerPageState.showFavoriteModal && (
+      <Show when={playerPageStore.showFavoriteModal}>
         <FavoriteModal
-          action={playerPageState.pendingFavoriteAction || 'add'}
-          seriesName={playerState.series?.name || ''}
-          dontShowAgain={playerPageState.favoriteModalDontShowAgain}
+          action={playerPageStore.pendingFavoriteAction || 'add'}
+          seriesName={playerStore.series?.name || ''}
+          dontShowAgain={playerPageStore.favoriteModalDontShowAgain}
           onDontShowAgainChange={playerPageStoreActions.setFavoriteModalDontShowAgain}
           onConfirm={playerPageStoreActions.handleFavoriteConfirm}
           onCancel={playerPageStoreActions.hideFavoriteModal}
-          t={t.player}
+          t={t().player}
         />
-      )}
+      </Show>
 
       {/* Toast */}
       <Toast
-        message={toastState.message}
-        type={toastState.type}
-        isVisible={toastState.isVisible}
+        message={toastStore.message}
+        type={toastStore.type}
+        isVisible={toastStore.isVisible}
       />
     </div>
   )
@@ -273,19 +259,20 @@ interface BreadcrumbProps {
   onHomeClick: () => void
 }
 
-const Breadcrumb: React.FC<BreadcrumbProps> = ({ seriesName, homeText, onHomeClick }) => (
-  <div className="breadcrumb">
-    <span className="breadcrumb-link" onClick={onHomeClick}>
-      {homeText}
+const Breadcrumb = (props: BreadcrumbProps) => (
+  <div class="breadcrumb">
+    <span class="breadcrumb-link" onClick={props.onHomeClick}>
+      {props.homeText}
     </span>
-    <span className="breadcrumb-separator">&gt;</span>
-    <span className="breadcrumb-current">{seriesName}</span>
+    <span class="breadcrumb-separator">&gt;</span>
+    <span class="breadcrumb-current">{props.seriesName}</span>
   </div>
 )
 
 interface VideoPlayerProps {
   episode: Episode | null
-  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoRef: HTMLVideoElement | undefined
+  setVideoRef: (el: HTMLVideoElement) => void
   isPlaying: boolean
   showControls: boolean
   currentTime: number
@@ -307,117 +294,99 @@ interface VideoPlayerProps {
   onTimeLimitReached: () => void
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  episode,
-  videoRef,
-  isPlaying,
-  showControls,
-  currentTime,
-  duration,
-  volume,
-  playbackSpeed,
-  showSpeedSelector,
-  isPurchased,
-  onPlayPause,
-  onTimeUpdate,
-  onLoadedMetadata,
-  onProgressChange,
-  onVolumeToggle,
-  onSpeedChange,
-  onSpeedSelectorToggle,
-  onFullscreen,
-  onMouseMove,
-  onMouseLeave,
-  onTimeLimitReached,
-}) => {
-  const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const [iframeLoaded, setIframeLoaded] = React.useState(false)
+const VideoPlayer = (props: VideoPlayerProps) => {
+  let iframeRef: HTMLIFrameElement | undefined
+  const [iframeLoaded, setIframeLoaded] = createSignal(false)
 
-  const currentVideoId = episode?.videoId
+  const currentVideoId = () => props.episode?.videoId
 
   // Reset iframe loaded state when video changes
-  React.useEffect(() => {
+  createEffect(() => {
+    const _vid = currentVideoId()
     setIframeLoaded(false)
-  }, [currentVideoId])
+  })
 
   // Initialize Player.js with trial limit enforcement
-  React.useEffect(() => {
-    if (!currentVideoId || !iframeLoaded) return
+  createEffect(() => {
+    const vid = currentVideoId()
+    if (!vid || !iframeLoaded()) return
 
     const cleanup = initializePlayerJsWithTrialLimit(
-      iframeRef,
-      currentVideoId,
-      isPurchased,
-      onTimeLimitReached,
+      { current: iframeRef || null },
+      vid,
+      props.isPurchased,
+      props.onTimeLimitReached,
     )
 
-    return cleanup
-  }, [currentVideoId, isPurchased, iframeLoaded, onTimeLimitReached])
+    if (cleanup) {
+      onCleanup(cleanup)
+    }
+  })
 
   // Update purchase status when it changes
-  React.useEffect(() => {
-    if (!iframeLoaded) return
-    updatePlayerJsPurchaseStatus(currentVideoId, isPurchased)
-  }, [isPurchased, currentVideoId, iframeLoaded])
+  createEffect(() => {
+    if (!iframeLoaded()) return
+    updatePlayerJsPurchaseStatus(currentVideoId(), props.isPurchased)
+  })
 
   return (
-    <div className="video-player">
-      {!episode ? (
-        <div className="video-placeholder">No video available</div>
-      ) : episode.videoId ? (
-        <iframe
-          ref={iframeRef}
-          src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId)}
-          loading="lazy"
-          style={{ border: 'none', width: '100%', height: '100%' }}
-          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-          allowFullScreen
-          onLoad={() => setIframeLoaded(true)}
-        />
-      ) : (
-        <div
-          className="video-player-native"
-          onMouseMove={onMouseMove}
-          onMouseLeave={onMouseLeave}
-        >
-          <video
-            ref={videoRef}
-            src={episode.videoUrl}
-            poster={episode.thumbnail}
-            onTimeUpdate={onTimeUpdate}
-            onLoadedMetadata={onLoadedMetadata}
-            onClick={onPlayPause}
-          />
-
-          <div className={`player-controls ${showControls ? 'visible' : ''}`}>
-            <PlayPauseButton isPlaying={isPlaying} onClick={onPlayPause} />
-
-            <input
-              type="range"
-              className="progress-bar"
-              min="0"
-              max={duration}
-              value={currentTime}
-              onChange={(e) => onProgressChange(parseFloat(e.target.value))}
+    <div class="video-player">
+      <Show when={props.episode} fallback={<div class="video-placeholder">No video available</div>}>
+        <Show when={props.episode!.videoId} fallback={
+          <div
+            class="video-player-native"
+            onMouseMove={props.onMouseMove}
+            onMouseLeave={props.onMouseLeave}
+          >
+            <video
+              ref={props.setVideoRef}
+              src={props.episode!.videoUrl}
+              poster={props.episode!.thumbnail}
+              onTimeUpdate={props.onTimeUpdate}
+              onLoadedMetadata={props.onLoadedMetadata}
+              onClick={props.onPlayPause}
             />
 
-            <span className="time-display">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+            <div class={`player-controls ${props.showControls ? 'visible' : ''}`}>
+              <PlayPauseButton isPlaying={props.isPlaying} onClick={props.onPlayPause} />
 
-            <VolumeButton volume={volume} onClick={onVolumeToggle} />
+              <input
+                type="range"
+                class="progress-bar"
+                min="0"
+                max={props.duration}
+                value={props.currentTime}
+                onInput={(e) => props.onProgressChange(parseFloat(e.currentTarget.value))}
+              />
 
-            <SpeedSelector
-              currentSpeed={playbackSpeed}
-              showSelector={showSpeedSelector}
-              onToggle={onSpeedSelectorToggle}
-              onSpeedSelect={onSpeedChange}
-            />
+              <span class="time-display">
+                {formatTime(props.currentTime)} / {formatTime(props.duration)}
+              </span>
 
-            <FullscreenButton onClick={onFullscreen} />
+              <VolumeButton volume={props.volume} onClick={props.onVolumeToggle} />
+
+              <SpeedSelector
+                currentSpeed={props.playbackSpeed}
+                showSelector={props.showSpeedSelector}
+                onToggle={props.onSpeedSelectorToggle}
+                onSpeedSelect={props.onSpeedChange}
+              />
+
+              <FullscreenButton onClick={props.onFullscreen} />
+            </div>
           </div>
-        </div>
-      )}
+        }>
+          <iframe
+            ref={iframeRef}
+            src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, props.episode!.videoId || '')}
+            loading="lazy"
+            style={{ border: 'none', width: '100%', height: '100%' }}
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen
+            onLoad={() => setIframeLoaded(true)}
+          />
+        </Show>
+      </Show>
     </div>
   )
 }
@@ -427,18 +396,18 @@ interface PlayPauseButtonProps {
   onClick: () => void
 }
 
-const PlayPauseButton: React.FC<PlayPauseButtonProps> = ({ isPlaying, onClick }) => (
-  <button className="control-button play-pause" onClick={onClick}>
-    {isPlaying ? (
+const PlayPauseButton = (props: PlayPauseButtonProps) => (
+  <button class="control-button play-pause" onClick={props.onClick}>
+    <Show when={props.isPlaying} fallback={
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5,3 19,12 5,21" />
+      </svg>
+    }>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
         <rect x="6" y="4" width="4" height="16" />
         <rect x="14" y="4" width="4" height="16" />
       </svg>
-    ) : (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-        <polygon points="5,3 19,12 5,21" />
-      </svg>
-    )}
+    </Show>
   </button>
 )
 
@@ -447,17 +416,17 @@ interface VolumeButtonProps {
   onClick: () => void
 }
 
-const VolumeButton: React.FC<VolumeButtonProps> = ({ volume, onClick }) => (
-  <button className="control-button volume" onClick={onClick}>
-    {volume === 0 ? (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45a4.5 4.5 0 0 0 .05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
-      </svg>
-    ) : (
+const VolumeButton = (props: VolumeButtonProps) => (
+  <button class="control-button volume" onClick={props.onClick}>
+    <Show when={props.volume === 0} fallback={
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8c1.48-.73 2.5-2.25 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
       </svg>
-    )}
+    }>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45a4.5 4.5 0 0 0 .05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
+      </svg>
+    </Show>
   </button>
 )
 
@@ -468,29 +437,25 @@ interface SpeedSelectorProps {
   onSpeedSelect: (speed: number) => void
 }
 
-const SpeedSelector: React.FC<SpeedSelectorProps> = ({
-  currentSpeed,
-  showSelector,
-  onToggle,
-  onSpeedSelect,
-}) => (
-  <div className="speed-selector">
-    <button className="control-button speed" onClick={onToggle}>
-      {currentSpeed}x
+const SpeedSelector = (props: SpeedSelectorProps) => (
+  <div class="speed-selector">
+    <button class="control-button speed" onClick={props.onToggle}>
+      {props.currentSpeed}x
     </button>
-    {showSelector && (
-      <div className="speed-options">
-        {playbackSpeeds.map((speed) => (
-          <button
-            key={speed}
-            className={`speed-option ${speed === currentSpeed ? 'active' : ''}`}
-            onClick={() => onSpeedSelect(speed)}
-          >
-            {speed}x
-          </button>
-        ))}
+    <Show when={props.showSelector}>
+      <div class="speed-options">
+        <For each={playbackSpeeds}>
+          {(speed) => (
+            <button
+              class={`speed-option ${speed === props.currentSpeed ? 'active' : ''}`}
+              onClick={() => props.onSpeedSelect(speed)}
+            >
+              {speed}x
+            </button>
+          )}
+        </For>
       </div>
-    )}
+    </Show>
   </div>
 )
 
@@ -498,8 +463,8 @@ interface FullscreenButtonProps {
   onClick: () => void
 }
 
-const FullscreenButton: React.FC<FullscreenButtonProps> = ({ onClick }) => (
-  <button className="control-button fullscreen" onClick={onClick}>
+const FullscreenButton = (props: FullscreenButtonProps) => (
+  <button class="control-button fullscreen" onClick={props.onClick}>
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
       <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
     </svg>
@@ -524,92 +489,89 @@ interface EpisodeMetadataProps {
   onUnlockClick: () => void
 }
 
-const EpisodeMetadata: React.FC<EpisodeMetadataProps> = ({
-  series,
-  currentEpisode,
-  selectedLanguage,
-  isFavorited,
-  isEpisodePurchased,
-  onLanguageChange,
-  onTagClick,
-  onFavoriteToggle,
-  onUnlockClick,
-}) => (
-  <div className="episode-metadata">
-    <h1 className="episode-title">
-      {currentEpisode
-        ? buildEpisodeTitle(series.name, currentEpisode.episodeNumber)
-        : series.name}
+const EpisodeMetadata = (props: EpisodeMetadataProps) => (
+  <div class="episode-metadata">
+    <h1 class="episode-title">
+      {props.currentEpisode
+        ? buildEpisodeTitle(props.series.name, props.currentEpisode.episodeNumber)
+        : props.series.name}
     </h1>
 
-    <div className="metadata-row">
-      <div className="episode-language">
+    <div class="metadata-row">
+      <div class="episode-language">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
         </svg>
         <select
-          value={selectedLanguage}
-          onChange={(e) => onLanguageChange(e.target.value)}
-          className="language-select"
+          value={props.selectedLanguage}
+          onChange={(e) => props.onLanguageChange(e.currentTarget.value)}
+          class="language-select"
         >
-          {series.languages?.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang}
-            </option>
-          )) || <option value="English">English</option>}
+          <Show when={props.series.languages && props.series.languages.length > 0} fallback={
+            <option value="English">English</option>
+          }>
+            <For each={props.series.languages}>
+              {(lang) => (
+                <option value={lang}>{lang}</option>
+              )}
+            </For>
+          </Show>
         </select>
       </div>
 
-      <div className="metadata-buttons">
+      <div class="metadata-buttons">
         <button
-          className={`favorite-button ${isFavorited ? 'active' : ''}`}
-          onClick={onFavoriteToggle}
-          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          class={`favorite-button ${props.isFavorited ? 'active' : ''}`}
+          onClick={props.onFavoriteToggle}
+          title={props.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
         >
           <svg viewBox="0 0 24 24" width="24" height="24">
             <path
-              fill={isFavorited ? '#ef4444' : 'none'}
-              stroke={isFavorited ? '#ef4444' : '#9ca3af'}
-              strokeWidth="2"
+              fill={props.isFavorited ? '#ef4444' : 'none'}
+              stroke={props.isFavorited ? '#ef4444' : '#9ca3af'}
+              stroke-width="2"
               d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
             />
           </svg>
         </button>
 
-        {!isEpisodePurchased && (
-          <button className="unlock-button" onClick={onUnlockClick} title="Unlock episode">
+        <Show when={!props.isEpisodePurchased}>
+          <button class="unlock-button" onClick={props.onUnlockClick} title="Unlock episode">
             <svg viewBox="0 0 24 24" width="24" height="24">
               <path
                 fill="none"
                 stroke="#9ca3af"
-                strokeWidth="2"
+                stroke-width="2"
                 d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
               />
             </svg>
           </button>
-        )}
+        </Show>
       </div>
     </div>
 
-    <div className="episode-tags">
-      {series.tags?.map((tag, index) => (
-        <span key={index} className="episode-tag" onClick={() => onTagClick(tag)}>
-          {tag}
-        </span>
-      ))}
-      {series.genre?.map((genre) => (
-        <span
-          key={genre._id}
-          className="episode-tag"
-          onClick={() => onTagClick(genre.name)}
-        >
-          {genre.name}
-        </span>
-      ))}
+    <div class="episode-tags">
+      <For each={props.series.tags}>
+        {(tag, index) => (
+          <span class="episode-tag" onClick={() => props.onTagClick(tag)}>
+            {tag}
+          </span>
+        )}
+      </For>
+      <For each={props.series.genre}>
+        {(genre) => (
+          <span
+            class="episode-tag"
+            onClick={() => props.onTagClick(genre.name)}
+          >
+            {genre.name}
+          </span>
+        )}
+      </For>
     </div>
 
-    <p className="episode-description">
-      {currentEpisode?.description || series.description}
+    <p class="episode-description">
+      {props.currentEpisode?.description || props.series.description}
     </p>
   </div>
 )
@@ -621,25 +583,22 @@ interface EpisodeItemProps {
   onClick: () => void
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({
-  episode,
-  isActive,
-  isPurchased,
-  onClick,
-}) => {
-  const [isHovered, setIsHovered] = React.useState(false)
+const EpisodeItem = (props: EpisodeItemProps) => {
+  const [isHovered, setIsHovered] = createSignal(false)
 
   return (
     <div
-      className={`episode-thumbnail ${isActive ? 'active' : ''}`}
-      onClick={onClick}
+      class={`episode-thumbnail ${props.isActive ? 'active' : ''}`}
+      onClick={props.onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {isPurchased && <div className="purchased-ribbon" />}
-      <img src={getEpisodeThumbnailUrl(episode, isHovered)} alt={episode.title} />
-      <span className="episode-number">
-        EP {episode.episodeNumber.toString().padStart(2, '0')}
+      <Show when={props.isPurchased}>
+        <div class="purchased-ribbon" />
+      </Show>
+      <img src={getEpisodeThumbnailUrl(props.episode, isHovered())} alt={props.episode.title} />
+      <span class="episode-number">
+        EP {props.episode.episodeNumber.toString().padStart(2, '0')}
       </span>
     </div>
   )
@@ -657,59 +616,50 @@ interface EpisodeSidebarProps {
   onRangeSelect: (range: [number, number]) => void
 }
 
-const EpisodeSidebar: React.FC<EpisodeSidebarProps> = ({
-  episodes,
-  allEpisodes,
-  currentEpisode,
-  episodeRange,
-  title,
-  seriesId,
-  isSeriesOwner,
-  onEpisodeClick,
-  onRangeSelect,
-}) => {
-  const userState = useUserStore()
-  const purchases = userState.user?.purchases
+const EpisodeSidebar = (props: EpisodeSidebarProps) => {
+  const purchases = () => userStore.user?.purchases
 
-  const ranges = getEpisodeRangeOptions()
+  const ranges = () => getEpisodeRangeOptions()
 
   const checkPurchased = (episode: Episode): boolean => {
-    if (!seriesId) return false
-    if (isSeriesOwner) return true
-    return isEpisodePurchased(seriesId, episode._id, purchases, episode.episodeNumber)
+    if (!props.seriesId) return false
+    if (props.isSeriesOwner) return true
+    return isEpisodePurchased(props.seriesId, episode._id, purchases(), episode.episodeNumber)
   }
 
   return (
-    <aside className="episode-sidebar">
-      <h2 className="sidebar-title">{title}</h2>
+    <aside class="episode-sidebar">
+      <h2 class="sidebar-title">{props.title}</h2>
 
-      <div className="episode-range-selector">
-        {ranges.map(([start, end]) => (
-          <button
-            key={`${start}-${end}`}
-            className={`range-button ${
-              episodeRange[0] === start && episodeRange[1] === end ? 'active' : ''
-            }`}
-            onClick={() => onRangeSelect([start, end])}
-          >
-            {start.toString().padStart(2, '0')}-{end.toString().padStart(2, '0')}
-          </button>
-        ))}
+      <div class="episode-range-selector">
+        <For each={ranges()}>
+          {([start, end]) => (
+            <button
+              class={`range-button ${
+                props.episodeRange[0] === start && props.episodeRange[1] === end ? 'active' : ''
+              }`}
+              onClick={() => props.onRangeSelect([start, end])}
+            >
+              {start.toString().padStart(2, '0')}-{end.toString().padStart(2, '0')}
+            </button>
+          )}
+        </For>
       </div>
 
-      <div className="episode-grid">
-        {episodes.map((episode) => (
-          <EpisodeItem
-            key={episode.episodeNumber}
-            episode={episode}
-            isActive={
-              currentEpisode !== null &&
-              currentEpisode.episodeNumber === episode.episodeNumber
-            }
-            isPurchased={checkPurchased(episode)}
-            onClick={() => onEpisodeClick(episode)}
-          />
-        ))}
+      <div class="episode-grid">
+        <For each={props.episodes}>
+          {(episode) => (
+            <EpisodeItem
+              episode={episode}
+              isActive={
+                props.currentEpisode !== null &&
+                props.currentEpisode.episodeNumber === episode.episodeNumber
+              }
+              isPurchased={checkPurchased(episode)}
+              onClick={() => props.onEpisodeClick(episode)}
+            />
+          )}
+        </For>
       </div>
     </aside>
   )
@@ -719,9 +669,9 @@ interface SocialButtonsProps {
   favoritesText: string
 }
 
-const SocialButtons: React.FC<SocialButtonsProps> = ({ favoritesText }) => (
-  <div className="social-buttons">
-    <button className="social-button" title="Facebook">
+const SocialButtons = (props: SocialButtonsProps) => (
+  <div class="social-buttons">
+    <button class="social-button" title="Facebook">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#1877F2"
@@ -729,7 +679,7 @@ const SocialButtons: React.FC<SocialButtonsProps> = ({ favoritesText }) => (
         />
       </svg>
     </button>
-    <button className="social-button" title="Twitter">
+    <button class="social-button" title="Twitter">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#1DA1F2"
@@ -737,7 +687,7 @@ const SocialButtons: React.FC<SocialButtonsProps> = ({ favoritesText }) => (
         />
       </svg>
     </button>
-    <button className="social-button" title="Pinterest">
+    <button class="social-button" title="Pinterest">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#E60023"
@@ -745,7 +695,7 @@ const SocialButtons: React.FC<SocialButtonsProps> = ({ favoritesText }) => (
         />
       </svg>
     </button>
-    <button className="social-button" title="WhatsApp">
+    <button class="social-button" title="WhatsApp">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#25D366"
@@ -753,7 +703,7 @@ const SocialButtons: React.FC<SocialButtonsProps> = ({ favoritesText }) => (
         />
       </svg>
     </button>
-    <button className="social-button" title={favoritesText}>
+    <button class="social-button" title={props.favoritesText}>
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#ef4444"

@@ -1,22 +1,17 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { createSignal, onMount, Show, For } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import Card from '../components/Card'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import { apiGet } from '../utils/api'
 import type { ProductCategory } from '../types'
 import './ProductCategoryList.css'
 
-const ProductCategoryList: React.FC = () => {
-  const [categories, setCategories] = useState<ProductCategory[]>([])
-  const [loading, setLoading] = useState(true)
+const ProductCategoryList = () => {
+  const [categories, setCategories] = createSignal<ProductCategory[]>([])
+  const [loading, setLoading] = createSignal(true)
   const navigate = useNavigate()
-  const { t } = useLanguage()
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
 
   const fetchCategories = async () => {
     try {
@@ -31,45 +26,42 @@ const ProductCategoryList: React.FC = () => {
     }
   }
 
+  onMount(() => {
+    fetchCategories()
+  })
+
   const handleCategoryClick = (categoryId: string) => {
     navigate(`/products?category=${categoryId}`)
   }
 
-  if (loading) {
-    return (
-      <div className="product-category-page">
-        <TopBar />
-        <div className="loading">{t.productCategory.loading}</div>
-        <BottomBar />
-      </div>
-    )
-  }
-
   return (
-    <div className="product-category-page">
+    <div class="product-category-page">
       <TopBar />
-      <main className="product-category-content">
-        <div className="product-category-list">
-          {categories.map((category) => (
-            <Card
-              key={category._id}
-              className="product-category-card"
-              onClick={() => handleCategoryClick(category._id)}
-            >
-              <div className="product-category-item">
-                <div className="product-category-image-container">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="product-category-image"
-                  />
-                </div>
-                <h3 className="product-category-name">{category.name}</h3>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </main>
+      <Show when={!loading()} fallback={<div class="loading">{t().productCategory.loading}</div>}>
+        <main class="product-category-content">
+          <div class="product-category-list">
+            <For each={categories()}>
+              {(category) => (
+                <Card
+                  class="product-category-card"
+                  onClick={() => handleCategoryClick(category._id)}
+                >
+                  <div class="product-category-item">
+                    <div class="product-category-image-container">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        class="product-category-image"
+                      />
+                    </div>
+                    <h3 class="product-category-name">{category.name}</h3>
+                  </div>
+                </Card>
+              )}
+            </For>
+          </div>
+        </main>
+      </Show>
       <BottomBar />
     </div>
   )

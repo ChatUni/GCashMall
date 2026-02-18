@@ -1,11 +1,11 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Show, For } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
-import { useLanguage } from '../context/LanguageContext'
-import { useFeaturedStore } from '../stores'
+import { t } from '../stores/languageStore'
+import { featuredStore } from '../stores'
 import { fetchFeaturedSeries } from '../services/dataService'
 import './Home.css'
 
@@ -35,33 +35,33 @@ const createTagClickHandler = (navigate: ReturnType<typeof useNavigate>, tag: st
   navigate(`/genre?category=${encodeURIComponent(tag)}`)
 }
 
-const Home: React.FC = () => {
-  const { series: featuredSeries, loading } = useFeaturedStore()
+const Home = () => {
   const navigate = useNavigate()
-  const { t } = useLanguage()
 
   // Initialize data on first render
   initializeData()
 
-  const handlePlayClick = createPlayClickHandler(navigate, featuredSeries?._id)
-  const handlePosterClick = createPosterClickHandler(navigate, featuredSeries?._id)
+  const handlePlayClick = () => createPlayClickHandler(navigate, featuredStore.series?._id)()
+  const handlePosterClick = () => createPosterClickHandler(navigate, featuredStore.series?._id)()
   const handleTagClick = (tag: string) => createTagClickHandler(navigate, tag)()
 
   return (
-    <div className="home-page">
+    <div class="home-page">
       <TopBar />
 
-      {loading ? (
-        <div className="hero-loading">Loading...</div>
-      ) : featuredSeries ? (
-        <HeroSection
-          series={featuredSeries}
-          onPlayClick={handlePlayClick}
-          onPosterClick={handlePosterClick}
-          onTagClick={handleTagClick}
-          playText={t.home.play}
-        />
-      ) : null}
+      <Show when={!featuredStore.loading} fallback={<div class="hero-loading">Loading...</div>}>
+        <Show when={featuredStore.series}>
+          {(series) => (
+            <HeroSection
+              series={series()}
+              onPlayClick={handlePlayClick}
+              onPosterClick={handlePosterClick}
+              onTagClick={handleTagClick}
+              playText={t().home.play}
+            />
+          )}
+        </Show>
+      </Show>
 
       <RecommendationSection />
       <NewReleasesSection />
@@ -87,51 +87,49 @@ interface HeroSectionProps {
   playText: string
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({
-  series,
-  onPlayClick,
-  onPosterClick,
-  onTagClick,
-  playText,
-}) => (
-  <section className="hero-section">
-    <div className="hero-content">
-      <div className="hero-poster" onClick={onPosterClick}>
+const HeroSection = (props: HeroSectionProps) => (
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-poster" onClick={props.onPosterClick}>
         <img
-          src={series.cover}
-          alt={series.name}
-          className="hero-poster-image"
+          src={props.series.cover}
+          alt={props.series.name}
+          class="hero-poster-image"
         />
-        <div className="hero-poster-overlay">
-          <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor">
+        <div class="hero-poster-overlay">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         </div>
       </div>
 
-      <div className="hero-info">
-        <h1 className="hero-title">{series.name}</h1>
+      <div class="hero-info">
+        <h1 class="hero-title">{props.series.name}</h1>
 
-        <div className="hero-tags">
-          {series.tags?.map((tag, index) => (
-            <span key={index} className="hero-tag" onClick={() => onTagClick(tag)}>
-              {tag}
-            </span>
-          ))}
-          {series.genre?.map((genre) => (
-            <span key={genre._id} className="hero-tag" onClick={() => onTagClick(genre.name)}>
-              {genre.name}
-            </span>
-          ))}
+        <div class="hero-tags">
+          <For each={props.series.tags}>
+            {(tag, index) => (
+              <span class="hero-tag" onClick={() => props.onTagClick(tag)}>
+                {tag}
+              </span>
+            )}
+          </For>
+          <For each={props.series.genre}>
+            {(genre) => (
+              <span class="hero-tag" onClick={() => props.onTagClick(genre.name)}>
+                {genre.name}
+              </span>
+            )}
+          </For>
         </div>
 
-        <p className="hero-description">{series.description}</p>
+        <p class="hero-description">{props.series.description}</p>
 
-        <button className="hero-play-button" onClick={onPlayClick}>
+        <button class="hero-play-button" onClick={props.onPlayClick}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>
-          {playText}
+          {props.playText}
         </button>
       </div>
     </div>

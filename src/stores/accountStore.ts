@@ -1,10 +1,8 @@
-// Account page store - extracted state management
+// Account page store - SolidJS store
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
-import { useSyncExternalStore } from 'react'
+import { createStore } from 'solid-js/store'
 import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
-
-type Listener = () => void
 
 // Transaction types
 export type TransactionType = 'topup' | 'withdraw'
@@ -30,25 +28,6 @@ export interface CombinedTransaction {
   referenceId: string
   createdAt: Date
   purchase?: PurchaseItem
-}
-
-const createStore = <T>(initialState: T) => {
-  let state = initialState
-  const listeners = new Set<Listener>()
-
-  const getState = () => state
-
-  const setState = (newState: T | ((prev: T) => T)) => {
-    state = typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState
-    listeners.forEach((listener) => listener())
-  }
-
-  const subscribe = (listener: Listener) => {
-    listeners.add(listener)
-    return () => listeners.delete(listener)
-  }
-
-  return { getState, setState, subscribe }
 }
 
 export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'about' | 'contact'
@@ -268,84 +247,66 @@ const initialState: AccountState = {
   showLoginModal: false,
 }
 
-const accountStore = createStore<AccountState>(initialState)
+const [accountState, setAccountState] = createStore<AccountState>(initialState)
 
-export const useAccountStore = () => {
-  const state = useSyncExternalStore(accountStore.subscribe, accountStore.getState)
-  return state
-}
+export const accountStore = accountState
 
 export const accountStoreActions = {
   // Tab
   setActiveTab: (activeTab: AccountTab) =>
-    accountStore.setState((prev) => ({ ...prev, activeTab })),
+    setAccountState({ activeTab }),
   
   // User/Auth
   setUser: (user: User | null) =>
-    accountStore.setState((prev) => ({ ...prev, user, isLoggedIn: !!user })),
+    setAccountState({ user, isLoggedIn: !!user }),
   setLoading: (loading: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, loading })),
+    setAccountState({ loading }),
   setShowLoginModal: (showLoginModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showLoginModal })),
+    setAccountState({ showLoginModal }),
   
   // Data
   setFavorites: (favorites: FavoriteItem[]) =>
-    accountStore.setState((prev) => ({ ...prev, favorites })),
+    setAccountState({ favorites }),
   removeFavoriteItem: (itemId: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      favorites: prev.favorites.filter((item) => item._id !== itemId),
-    })),
+    setAccountState('favorites', (prev) => prev.filter((item) => item._id !== itemId)),
   
   // My Purchases
   setMyPurchases: (myPurchases: PurchaseItem[]) =>
-    accountStore.setState((prev) => ({ ...prev, myPurchases })),
+    setAccountState({ myPurchases }),
   setMyPurchasesLoading: (myPurchasesLoading: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, myPurchasesLoading })),
+    setAccountState({ myPurchasesLoading }),
   
   // My Series
   setMySeries: (mySeries: Series[]) =>
-    accountStore.setState((prev) => ({ ...prev, mySeries })),
+    setAccountState({ mySeries }),
   setMySeriesLoading: (mySeriesLoading: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, mySeriesLoading })),
+    setAccountState({ mySeriesLoading }),
   setEditingSeries: (editingSeries: Series | null) =>
-    accountStore.setState((prev) => ({ ...prev, editingSeries })),
+    setAccountState({ editingSeries }),
   setEditingSeriesId: (editingSeriesId: string | null) =>
-    accountStore.setState((prev) => ({ ...prev, editingSeriesId })),
+    setAccountState({ editingSeriesId }),
   updateSeriesInList: (updatedSeries: Series) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      mySeries: prev.mySeries.map((s) =>
-        s._id === updatedSeries._id ? updatedSeries : s,
-      ),
-    })),
+    setAccountState('mySeries', (prev) =>
+      prev.map((s) => s._id === updatedSeries._id ? updatedSeries : s),
+    ),
   removeSeriesFromList: (seriesId: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      mySeries: prev.mySeries.filter((s) => s._id !== seriesId),
-    })),
+    setAccountState('mySeries', (prev) => prev.filter((s) => s._id !== seriesId)),
   
   // Profile form
   setProfileForm: (profileForm: ProfileFormState) => 
-    accountStore.setState((prev) => ({ ...prev, profileForm })),
+    setAccountState({ profileForm }),
   updateProfileField: <K extends keyof ProfileFormState>(field: K, value: ProfileFormState[K]) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      profileForm: { ...prev.profileForm, [field]: value },
-    })),
+    setAccountState('profileForm', { [field]: value } as Partial<ProfileFormState>),
   setProfileErrors: (profileErrors: ProfileErrorsState) => 
-    accountStore.setState((prev) => ({ ...prev, profileErrors })),
+    setAccountState({ profileErrors }),
   updateProfileError: <K extends keyof ProfileErrorsState>(field: K, value: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      profileErrors: { ...prev.profileErrors, [field]: value },
-    })),
+    setAccountState('profileErrors', { [field]: value } as Partial<ProfileErrorsState>),
   setProfileSaving: (profileSaving: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, profileSaving })),
+    setAccountState({ profileSaving }),
   setOriginalProfile: (originalProfile: ProfileFormState) => 
-    accountStore.setState((prev) => ({ ...prev, originalProfile })),
+    setAccountState({ originalProfile }),
   resetProfileForm: () =>
-    accountStore.setState((prev) => ({
+    setAccountState((prev) => ({
       ...prev,
       profileForm: prev.originalProfile,
       profileErrors: initialProfileErrors,
@@ -353,155 +314,136 @@ export const accountStoreActions = {
   
   // Password form
   setPasswordForm: (passwordForm: PasswordFormState) => 
-    accountStore.setState((prev) => ({ ...prev, passwordForm })),
+    setAccountState({ passwordForm }),
   updatePasswordField: <K extends keyof PasswordFormState>(field: K, value: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      passwordForm: { ...prev.passwordForm, [field]: value },
-    })),
+    setAccountState('passwordForm', { [field]: value } as Partial<PasswordFormState>),
   setPasswordErrors: (passwordErrors: PasswordErrorsState) => 
-    accountStore.setState((prev) => ({ ...prev, passwordErrors })),
+    setAccountState({ passwordErrors }),
   updatePasswordError: <K extends keyof PasswordErrorsState>(field: K, value: string) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      passwordErrors: { ...prev.passwordErrors, [field]: value },
-    })),
+    setAccountState('passwordErrors', { [field]: value } as Partial<PasswordErrorsState>),
   setPasswordChanging: (passwordChanging: boolean) => 
-    accountStore.setState((prev) => ({ ...prev, passwordChanging })),
+    setAccountState({ passwordChanging }),
   clearPasswordForm: () =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       passwordForm: initialPasswordForm,
       passwordErrors: initialPasswordErrors,
-    })),
+    }),
   
   // Avatar
   setAvatarError: (avatarError: string) => 
-    accountStore.setState((prev) => ({ ...prev, avatarError })),
+    setAccountState({ avatarError }),
   setAvatarUploading: (avatarUploading: boolean) => 
-    accountStore.setState((prev) => ({ ...prev, avatarUploading })),
+    setAccountState({ avatarUploading }),
   
   // Settings
   setPlaybackSpeed: (playbackSpeed: string) => 
-    accountStore.setState((prev) => ({ ...prev, playbackSpeed })),
+    setAccountState({ playbackSpeed }),
   setAutoplay: (autoplay: boolean) => 
-    accountStore.setState((prev) => ({ ...prev, autoplay })),
+    setAccountState({ autoplay }),
   setNotifications: (notifications: boolean) => 
-    accountStore.setState((prev) => ({ ...prev, notifications })),
+    setAccountState({ notifications }),
   
   // Wallet
   setBalance: (balance: number) =>
-    accountStore.setState((prev) => ({ ...prev, balance })),
+    setAccountState({ balance }),
   addBalance: (amount: number) =>
-    accountStore.setState((prev) => ({ ...prev, balance: prev.balance + amount })),
+    setAccountState('balance', (prev) => prev + amount),
   subtractBalance: (amount: number) =>
-    accountStore.setState((prev) => ({ ...prev, balance: prev.balance - amount })),
+    setAccountState('balance', (prev) => prev - amount),
   setWalletTab: (walletTab: 'topup' | 'withdraw') =>
-    accountStore.setState((prev) => ({ ...prev, walletTab })),
+    setAccountState({ walletTab }),
   setShowTopUpPopup: (showTopUpPopup: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showTopUpPopup })),
+    setAccountState({ showTopUpPopup }),
   setSelectedTopUpAmount: (selectedTopUpAmount: number | null) =>
-    accountStore.setState((prev) => ({ ...prev, selectedTopUpAmount })),
+    setAccountState({ selectedTopUpAmount }),
   setShowWithdrawPopup: (showWithdrawPopup: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showWithdrawPopup })),
+    setAccountState({ showWithdrawPopup }),
   setSelectedWithdrawAmount: (selectedWithdrawAmount: number | null) =>
-    accountStore.setState((prev) => ({ ...prev, selectedWithdrawAmount })),
+    setAccountState({ selectedWithdrawAmount }),
   setWithdrawing: (withdrawing: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, withdrawing })),
+    setAccountState({ withdrawing }),
   
   // Transactions
   setTransactions: (transactions: Transaction[]) =>
-    accountStore.setState((prev) => ({ ...prev, transactions })),
+    setAccountState({ transactions }),
   addTransaction: (transaction: Transaction) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      transactions: [transaction, ...prev.transactions],
-    })),
+    setAccountState('transactions', (prev) => [transaction, ...prev]),
   updateTransactionStatus: (id: string, status: TransactionStatus) =>
-    accountStore.setState((prev) => ({
-      ...prev,
-      transactions: prev.transactions.map((t) =>
-        t.id === id ? { ...t, status } : t,
-      ),
-    })),
+    setAccountState('transactions', (prev) =>
+      prev.map((t) => t.id === id ? { ...t, status } : t),
+    ),
   setTransactionFilter: (transactionFilter: TransactionFilter) =>
-    accountStore.setState((prev) => ({ ...prev, transactionFilter })),
+    setAccountState({ transactionFilter }),
   setShowCustomAmountPopup: (showCustomAmountPopup: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showCustomAmountPopup })),
+    setAccountState({ showCustomAmountPopup }),
   setCustomAmountInput: (customAmountInput: string) =>
-    accountStore.setState((prev) => ({ ...prev, customAmountInput })),
+    setAccountState({ customAmountInput }),
   
   // Initialization tracking
   setAccountInitialized: (accountInitialized: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, accountInitialized })),
+    setAccountState({ accountInitialized }),
   setUserDataFetched: (userDataFetched: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, userDataFetched })),
+    setAccountState({ userDataFetched }),
   setMyPurchasesFetched: (myPurchasesFetched: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, myPurchasesFetched })),
+    setAccountState({ myPurchasesFetched }),
   setMySeriesFetched: (mySeriesFetched: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, mySeriesFetched })),
+    setAccountState({ mySeriesFetched }),
   setLastProcessedCode: (lastProcessedCode: string | null) =>
-    accountStore.setState((prev) => ({ ...prev, lastProcessedCode })),
+    setAccountState({ lastProcessedCode }),
   resetInitializationFlags: () =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       accountInitialized: false,
       userDataFetched: false,
       myPurchasesFetched: false,
       mySeriesFetched: false,
-    })),
+    }),
   
   // Watch History modals
   setShowClearHistoryModal: (showClearHistoryModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showClearHistoryModal })),
+    setAccountState({ showClearHistoryModal }),
   setShowDeleteHistoryItemModal: (showDeleteHistoryItemModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showDeleteHistoryItemModal })),
+    setAccountState({ showDeleteHistoryItemModal }),
   setPendingDeleteHistoryItem: (seriesId: string | null, seriesName: string = '') =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       pendingDeleteHistorySeriesId: seriesId,
       pendingDeleteHistorySeriesName: seriesName,
-    })),
+    }),
   
   // Favorites modals
   setShowClearFavoritesModal: (showClearFavoritesModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showClearFavoritesModal })),
+    setAccountState({ showClearFavoritesModal }),
   setShowDeleteFavoriteItemModal: (showDeleteFavoriteItemModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showDeleteFavoriteItemModal })),
+    setAccountState({ showDeleteFavoriteItemModal }),
   setPendingDeleteFavoriteItem: (seriesId: string | null, seriesName: string = '') =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       pendingDeleteFavoriteSeriesId: seriesId,
       pendingDeleteFavoriteSeriesName: seriesName,
-    })),
+    }),
   
   // Series shelve/unshelve modals
   setShowShelveModal: (showShelveModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showShelveModal })),
+    setAccountState({ showShelveModal }),
   setPendingShelve: (seriesId: string | null, series: Series | null = null) =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       pendingShelveSeriesId: seriesId,
       pendingShelveSeries: series,
-    })),
+    }),
   setShowUnshelveModal: (showUnshelveModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showUnshelveModal })),
+    setAccountState({ showUnshelveModal }),
   setPendingUnshelve: (seriesId: string | null, series: Series | null = null) =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       pendingUnshelveSeriesId: seriesId,
       pendingUnshelveSeries: series,
-    })),
+    }),
   
   // Series delete modal
   setShowDeleteSeriesModal: (showDeleteSeriesModal: boolean) =>
-    accountStore.setState((prev) => ({ ...prev, showDeleteSeriesModal })),
+    setAccountState({ showDeleteSeriesModal }),
   setPendingDeleteSeries: (seriesId: string | null, series: Series | null = null) =>
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       pendingDeleteSeriesId: seriesId,
       pendingDeleteSeries: series,
-    })),
+    }),
   
   // Initialize user data
   initializeUserData: (user: User) => {
@@ -521,8 +463,7 @@ export const accountStoreActions = {
       status: t.status,
       createdAt: typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt,
     }))
-    accountStore.setState((prev) => ({
-      ...prev,
+    setAccountState({
       user,
       isLoggedIn: true,
       loading: false,
@@ -532,13 +473,13 @@ export const accountStoreActions = {
       balance: user.balance || 0,
       transactions,
       myPurchases: user.purchases || [],
-    }))
+    })
   },
   
   // Reset
-  reset: () => accountStore.setState(initialState),
+  reset: () => setAccountState(initialState),
   
-  getState: accountStore.getState,
+  getState: () => accountState,
 }
 
 // Nav items config for desktop (without about/contact - those are separate pages)

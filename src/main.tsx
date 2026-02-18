@@ -1,7 +1,6 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { render } from 'solid-js/web'
 import './index.css'
-import App from './App.tsx'
+import App from './App'
 
 declare global {
   interface Window {
@@ -14,8 +13,8 @@ window.tap = <T,>(x: T): T => {
   return x
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const root = document.getElementById('root')
+
+if (root) {
+  render(() => <App />, root)
+}

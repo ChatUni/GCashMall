@@ -1,29 +1,8 @@
-// SeriesEdit page store - extracted state management
+// SeriesEdit page store - SolidJS store
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
-import { useSyncExternalStore } from 'react'
+import { createStore } from 'solid-js/store'
 import type { Genre } from '../types'
-
-type Listener = () => void
-
-const createStore = <T>(initialState: T) => {
-  let state = initialState
-  const listeners = new Set<Listener>()
-
-  const getState = () => state
-
-  const setState = (newState: T | ((prev: T) => T)) => {
-    state = typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState
-    listeners.forEach((listener) => listener())
-  }
-
-  const subscribe = (listener: Listener) => {
-    listeners.add(listener)
-    return () => listeners.delete(listener)
-  }
-
-  return { getState, setState, subscribe }
-}
 
 export interface EpisodeFormData {
   id?: string
@@ -92,141 +71,96 @@ const initialState: SeriesEditState = {
   },
 }
 
-const seriesEditStore = createStore<SeriesEditState>(initialState)
+const [seriesEditState, setSeriesEditState] = createStore<SeriesEditState>(initialState)
 
-export const useSeriesEditStore = () => {
-  const state = useSyncExternalStore(seriesEditStore.subscribe, seriesEditStore.getState)
-  return state
-}
+export const seriesEditStore = seriesEditState
 
 export const seriesEditStoreActions = {
   // Form data
   setFormData: (formData: SeriesFormData) =>
-    seriesEditStore.setState((prev) => ({ ...prev, formData })),
+    setSeriesEditState({ formData }),
   updateFormField: <K extends keyof SeriesFormData>(field: K, value: SeriesFormData[K]) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, [field]: value },
-    })),
+    setSeriesEditState('formData', { [field]: value } as Partial<SeriesFormData>),
 
   // Name
   setName: (name: string) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, name },
-    })),
+    setSeriesEditState('formData', { name }),
 
   // Description
   setDescription: (description: string) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, description },
-    })),
+    setSeriesEditState('formData', { description }),
 
   // Genres
   setGenreIds: (genreIds: string[]) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, genreIds },
-    })),
+    setSeriesEditState('formData', { genreIds }),
   setGenres: (genres: Genre[]) =>
-    seriesEditStore.setState((prev) => ({ ...prev, genres })),
+    setSeriesEditState({ genres }),
 
   // Cover
   setCover: (cover: string) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, cover },
-    })),
+    setSeriesEditState('formData', { cover }),
   setImageFile: (imageFile: File | null) =>
-    seriesEditStore.setState((prev) => ({ ...prev, imageFile })),
+    setSeriesEditState({ imageFile }),
   setOriginalCover: (originalCover: string) =>
-    seriesEditStore.setState((prev) => ({ ...prev, originalCover })),
+    setSeriesEditState({ originalCover }),
   
   // Shelved
   setShelved: (shelved: boolean) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, shelved },
-    })),
+    setSeriesEditState('formData', { shelved }),
 
   // Episodes
   setEpisodes: (episodes: EpisodeFormData[]) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, episodes },
-    })),
+    setSeriesEditState('formData', { episodes }),
   updateEpisode: (index: number, updates: Partial<EpisodeFormData>) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: {
-        ...prev.formData,
-        episodes: prev.formData.episodes.map((ep, i) =>
-          i === index ? { ...ep, ...updates } : ep,
-        ),
-      },
-    })),
+    setSeriesEditState('formData', 'episodes', index, updates),
   addEpisode: (episode: EpisodeFormData) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      formData: {
-        ...prev.formData,
-        episodes: [...prev.formData.episodes, episode],
-      },
-    })),
-  markEpisodeDeleted: (index: number) =>
-    seriesEditStore.setState((prev) => {
-      const episode = prev.formData.episodes[index]
-      let newEpisodes: EpisodeFormData[]
+    setSeriesEditState('formData', 'episodes', (prev) => [...prev, episode]),
+  markEpisodeDeleted: (index: number) => {
+    const episode = seriesEditState.formData.episodes[index]
+    let newEpisodes: EpisodeFormData[]
 
-      if (episode.isNew) {
-        newEpisodes = prev.formData.episodes.filter((_, i) => i !== index)
-      } else {
-        newEpisodes = prev.formData.episodes.map((ep, i) =>
-          i === index ? { ...ep, isDeleted: true } : ep,
-        )
-      }
+    if (episode.isNew) {
+      newEpisodes = seriesEditState.formData.episodes.filter((_, i) => i !== index)
+    } else {
+      newEpisodes = seriesEditState.formData.episodes.map((ep, i) =>
+        i === index ? { ...ep, isDeleted: true } : ep,
+      )
+    }
 
-      // Renumber episodes
-      let number = 1
-      newEpisodes = newEpisodes.map((ep) => {
-        if (ep.isDeleted) return ep
-        return { ...ep, episodeNumber: number++ }
-      })
+    // Renumber episodes
+    let number = 1
+    newEpisodes = newEpisodes.map((ep) => {
+      if (ep.isDeleted) return ep
+      return { ...ep, episodeNumber: number++ }
+    })
 
-      return {
-        ...prev,
-        formData: { ...prev.formData, episodes: newEpisodes },
-      }
-    }),
+    setSeriesEditState('formData', { episodes: newEpisodes })
+  },
   setOriginalEpisodes: (originalEpisodes: EpisodeFormData[]) =>
-    seriesEditStore.setState((prev) => ({ ...prev, originalEpisodes })),
+    setSeriesEditState({ originalEpisodes }),
 
   // Loading states
   setLoading: (loading: boolean) =>
-    seriesEditStore.setState((prev) => ({ ...prev, loading })),
+    setSeriesEditState({ loading }),
   setSaving: (saving: boolean) =>
-    seriesEditStore.setState((prev) => ({ ...prev, saving })),
+    setSeriesEditState({ saving }),
 
   // Messages
   setError: (error: string | null) =>
-    seriesEditStore.setState((prev) => ({ ...prev, error })),
+    setSeriesEditState({ error }),
   setSuccess: (success: string | null) =>
-    seriesEditStore.setState((prev) => ({ ...prev, success })),
+    setSeriesEditState({ success }),
 
   // Upload progress
   setUploadProgress: (uploadProgress: UploadProgress) =>
-    seriesEditStore.setState((prev) => ({ ...prev, uploadProgress })),
+    setSeriesEditState({ uploadProgress }),
   updateUploadProgress: (updates: Partial<UploadProgress>) =>
-    seriesEditStore.setState((prev) => ({
-      ...prev,
-      uploadProgress: { ...prev.uploadProgress, ...updates },
-    })),
+    setSeriesEditState('uploadProgress', updates),
 
   // Reset
-  reset: () => seriesEditStore.setState(initialState),
+  reset: () => setSeriesEditState(initialState),
 
-  getState: seriesEditStore.getState,
+  getState: () => seriesEditState,
 }
 
 // Helper function to create a new episode with default title

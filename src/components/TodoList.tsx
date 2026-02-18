@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { createSignal, onMount, Show, For } from 'solid-js'
 import './TodoList.css'
 
 interface Todo {
@@ -10,29 +10,29 @@ interface Todo {
 }
 
 const TodoList = () => {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [newTodoText, setNewTodoText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [todos, setTodos] = createSignal<Todo[]>([])
+  const [newTodoText, setNewTodoText] = createSignal('')
+  const [loading, setLoading] = createSignal(false)
+  const [error, setError] = createSignal<string | null>(null)
 
-  useEffect(() => {
+  onMount(() => {
     fetchTodos()
-  }, [])
+  })
 
   const getApiUrl = () => {
-    return window.location.hostname === 'localhost' 
-      ? 'http://localhost:8888' 
+    return window.location.hostname === 'localhost'
+      ? 'http://localhost:8888'
       : window.location.origin
   }
 
   const fetchTodos = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`${getApiUrl()}/.netlify/functions/api?type=todos`)
       const data = await response.json()
-      
+
       if (data.success) {
         setTodos(data.data)
       } else {
@@ -48,10 +48,10 @@ const TodoList = () => {
 
   const addTodo = async () => {
     if (!validateNewTodo()) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`${getApiUrl()}/.netlify/functions/api?type=todo`, {
         method: 'POST',
@@ -59,13 +59,13 @@ const TodoList = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: newTodoText.trim(),
-          completed: false
-        })
+          text: newTodoText().trim(),
+          completed: false,
+        }),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         setNewTodoText('')
         await fetchTodos() // Refresh the list
@@ -83,7 +83,7 @@ const TodoList = () => {
   const toggleTodo = async (todo: Todo) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`${getApiUrl()}/.netlify/functions/api?type=todo`, {
         method: 'POST',
@@ -92,12 +92,12 @@ const TodoList = () => {
         },
         body: JSON.stringify({
           ...todo,
-          completed: !todo.completed
-        })
+          completed: !todo.completed,
+        }),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         await fetchTodos() // Refresh the list
       } else {
@@ -113,10 +113,10 @@ const TodoList = () => {
 
   const deleteTodo = async (todo: Todo) => {
     if (!confirmDelete()) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`${getApiUrl()}/.netlify/functions/api?type=todo`, {
         method: 'DELETE',
@@ -124,12 +124,12 @@ const TodoList = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: todo._id
-        })
+          id: todo._id,
+        }),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         await fetchTodos() // Refresh the list
       } else {
@@ -144,7 +144,7 @@ const TodoList = () => {
   }
 
   const validateNewTodo = () => {
-    if (!newTodoText.trim()) {
+    if (!newTodoText().trim()) {
       setError('Todo text cannot be empty')
       return false
     }
@@ -155,57 +155,64 @@ const TodoList = () => {
     return window.confirm('Are you sure you want to delete this todo?')
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       addTodo()
     }
   }
 
   return (
-    <div className="todo-list">
+    <div class="todo-list">
       <h1>Todo List</h1>
-      
-      {error && <div className="error">{error}</div>}
-      
-      <div className="add-todo">
+
+      <Show when={error()}>
+        <div class="error">{error()}</div>
+      </Show>
+
+      <div class="add-todo">
         <input
           type="text"
-          value={newTodoText}
-          onChange={(e) => setNewTodoText(e.target.value)}
-          onKeyPress={handleKeyPress}
+          value={newTodoText()}
+          onInput={(e) => setNewTodoText(e.currentTarget.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Enter a new todo..."
-          disabled={loading}
+          disabled={loading()}
         />
-        <button onClick={addTodo} disabled={loading || !newTodoText.trim()}>
-          {loading ? 'Adding...' : 'Add Todo'}
+        <button onClick={addTodo} disabled={loading() || !newTodoText().trim()}>
+          {loading() ? 'Adding...' : 'Add Todo'}
         </button>
       </div>
-      
-      {loading && <div className="loading">Loading...</div>}
-      
-      <div className="todos">
-        {todos.length === 0 ? (
-          <p className="no-todos">No todos yet. Add one above!</p>
-        ) : (
-          todos.map((todo) => (
-            <div key={todo._id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo)}
-                disabled={loading}
-              />
-              <span className="todo-text">{todo.text}</span>
-              <button 
-                className="delete-btn"
-                onClick={() => deleteTodo(todo)}
-                disabled={loading}
-              >
-                Delete
-              </button>
-            </div>
-          ))
-        )}
+
+      <Show when={loading()}>
+        <div class="loading">Loading...</div>
+      </Show>
+
+      <div class="todos">
+        <Show
+          when={todos().length > 0}
+          fallback={<p class="no-todos">No todos yet. Add one above!</p>}
+        >
+          <For each={todos()}>
+            {(todo) => (
+              <div class={`todo-item ${todo.completed ? 'completed' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => toggleTodo(todo)}
+                  disabled={loading()}
+                />
+                <span class="todo-text">{todo.text}</span>
+                <button
+                  class="delete-btn"
+                  onClick={() => deleteTodo(todo)}
+                  disabled={loading()}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </For>
+        </Show>
       </div>
     </div>
   )

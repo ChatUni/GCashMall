@@ -1,12 +1,9 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useLanguage } from '../context/LanguageContext'
+import { useNavigate } from '@solidjs/router'
+import { t } from '../stores/languageStore'
 import './BottomBar.css'
 
-const BottomBar: React.FC = () => {
+const BottomBar = () => {
   const navigate = useNavigate()
-  const { t } = useLanguage()
-  const bottomBar = t.bottomBar as Record<string, string>
 
   const handleAboutClick = () => {
     navigate('/about')
@@ -17,13 +14,13 @@ const BottomBar: React.FC = () => {
   }
 
   return (
-    <div className="bottom-bar">
-      <div className="bottom-bar-content">
-        <button className="bottom-bar-link" onClick={handleAboutClick}>
-          {bottomBar.about}
+    <div class="bottom-bar">
+      <div class="bottom-bar-content">
+        <button class="bottom-bar-link" onClick={handleAboutClick}>
+          {(t().bottomBar as Record<string, string>).about}
         </button>
-        <button className="bottom-bar-link" onClick={handleContactClick}>
-          {bottomBar.contact}
+        <button class="bottom-bar-link" onClick={handleContactClick}>
+          {(t().bottomBar as Record<string, string>).contact}
         </button>
       </div>
     </div>

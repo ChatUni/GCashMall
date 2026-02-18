@@ -1,51 +1,50 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { createSignal, createEffect, Show, For } from 'solid-js'
+import { useNavigate, useSearchParams } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCard from '../../components/phone/PhoneSeriesCard'
-import { useLanguage } from '../../context/LanguageContext'
+import { t } from '../../stores/languageStore'
 import { apiGet } from '../../utils/api'
 import type { Series, Genre as GenreType } from '../../types'
 import './PhoneGenre.css'
 
-const PhoneGenre: React.FC = () => {
+const PhoneGenre = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { t } = useLanguage()
 
-  const [genres, setGenres] = useState<GenreType[]>([])
-  const [series, setSeries] = useState<Series[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeGenre, setActiveGenre] = useState<string>('all')
-  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [genres, setGenres] = createSignal<GenreType[]>([])
+  const [series, setSeries] = createSignal<Series[]>([])
+  const [loading, setLoading] = createSignal(true)
+  const [activeGenre, setActiveGenre] = createSignal<string>('all')
+  const [showFilterModal, setShowFilterModal] = createSignal(false)
 
   // Get category from URL query params
-  useEffect(() => {
-    const category = searchParams.get('category')
+  createEffect(() => {
+    const category = searchParams.category as string | undefined
     if (category) {
       setActiveGenre(category)
     } else {
       setActiveGenre('all')
     }
-  }, [searchParams])
+  })
 
   // Fetch genres
-  useEffect(() => {
-    const fetchGenres = async () => {
-      const result = await apiGet<GenreType[]>('genres')
-      if (result.success && result.data) {
-        setGenres(result.data)
-      }
+  const fetchGenres = async () => {
+    const result = await apiGet<GenreType[]>('genres')
+    if (result.success && result.data) {
+      setGenres(result.data)
     }
-    fetchGenres()
-  }, [])
+  }
+  fetchGenres()
 
   // Fetch series based on active genre
-  useEffect(() => {
+  createEffect(() => {
+    const currentGenre = activeGenre()
+    const currentGenres = genres()
     const fetchSeries = async () => {
       setLoading(true)
       let params: Record<string, string | number> | undefined = undefined
-      if (activeGenre !== 'all') {
-        const matchingGenre = genres.find((g) => g.name === activeGenre)
+      if (currentGenre !== 'all') {
+        const matchingGenre = currentGenres.find((g) => g.name === currentGenre)
         if (matchingGenre) {
           params = { genreId: matchingGenre._id }
         }
@@ -57,7 +56,7 @@ const PhoneGenre: React.FC = () => {
       setLoading(false)
     }
     fetchSeries()
-  }, [activeGenre, genres])
+  })
 
   const handleGenreSelect = (genreName: string) => {
     setShowFilterModal(false)
@@ -69,106 +68,117 @@ const PhoneGenre: React.FC = () => {
   }
 
   const getActiveGenreName = (): string => {
-    if (activeGenre === 'all') {
-      return t.series.allGenres
+    if (activeGenre() === 'all') {
+      return t().series.allGenres
     }
-    return activeGenre
+    return activeGenre()
   }
 
   return (
-    <PhoneLayout showHeader={true} title={t.topBar.genre}>
-      <div className="phone-genre">
+    <PhoneLayout showHeader={true} title={t().topBar.genre}>
+      <div class="phone-genre">
         {/* Filter Button */}
-        <div className="phone-genre-filter-bar">
-          <button 
-            className="phone-genre-filter-button"
+        <div class="phone-genre-filter-bar">
+          <button
+            class="phone-genre-filter-button"
             onClick={() => setShowFilterModal(true)}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
             <span>{getActiveGenreName()}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          <span className="phone-genre-count">
-            {t.series.resultsCount.replace('{count}', String(series.length))}
+          <span class="phone-genre-count">
+            {t().series.resultsCount.replace('{count}', String(series().length))}
           </span>
         </div>
 
         {/* Filter Modal */}
-        {showFilterModal && (
-          <div className="phone-genre-modal-overlay" onClick={() => setShowFilterModal(false)}>
-            <div className="phone-genre-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="phone-genre-modal-header">
+        <Show when={showFilterModal()}>
+          <div class="phone-genre-modal-overlay" onClick={() => setShowFilterModal(false)}>
+            <div class="phone-genre-modal" onClick={(e) => e.stopPropagation()}>
+              <div class="phone-genre-modal-header">
                 <h3>Select Category</h3>
-                <button 
-                  className="phone-genre-modal-close"
+                <button
+                  class="phone-genre-modal-close"
                   onClick={() => setShowFilterModal(false)}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
-              <div className="phone-genre-modal-list">
+              <div class="phone-genre-modal-list">
                 <button
-                  className={`phone-genre-modal-item ${activeGenre === 'all' ? 'active' : ''}`}
+                  class={`phone-genre-modal-item ${activeGenre() === 'all' ? 'active' : ''}`}
                   onClick={() => handleGenreSelect('all')}
                 >
-                  <span>{t.series.allGenres}</span>
-                  {activeGenre === 'all' && (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <span>{t().series.allGenres}</span>
+                  <Show when={activeGenre() === 'all'}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                  )}
+                  </Show>
                 </button>
-                {genres.map((genre) => (
-                  <button
-                    key={genre._id}
-                    className={`phone-genre-modal-item ${activeGenre === genre.name ? 'active' : ''}`}
-                    onClick={() => handleGenreSelect(genre.name)}
-                  >
-                    <span>{genre.name}</span>
-                    {activeGenre === genre.name && (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
+                <For each={genres()}>
+                  {(genre) => (
+                    <button
+                      class={`phone-genre-modal-item ${activeGenre() === genre.name ? 'active' : ''}`}
+                      onClick={() => handleGenreSelect(genre.name)}
+                    >
+                      <span>{genre.name}</span>
+                      <Show when={activeGenre() === genre.name}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </Show>
+                    </button>
+                  )}
+                </For>
               </div>
             </div>
           </div>
-        )}
+        </Show>
 
         {/* Series Grid */}
-        {loading ? (
-          <div className="phone-genre-loading">
-            <div className="phone-genre-grid">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="phone-genre-skeleton">
-                  <div className="phone-genre-skeleton-image" />
-                  <div className="phone-genre-skeleton-title" />
-                  <div className="phone-genre-skeleton-tag" />
-                </div>
-              ))}
+        <Show
+          when={!loading()}
+          fallback={
+            <div class="phone-genre-loading">
+              <div class="phone-genre-grid">
+                <For each={[1, 2, 3, 4, 5, 6]}>
+                  {() => (
+                    <div class="phone-genre-skeleton">
+                      <div class="phone-genre-skeleton-image" />
+                      <div class="phone-genre-skeleton-title" />
+                      <div class="phone-genre-skeleton-tag" />
+                    </div>
+                  )}
+                </For>
+              </div>
             </div>
-          </div>
-        ) : series.length === 0 ? (
-          <div className="phone-genre-empty">
-            <span className="phone-genre-empty-icon">🎬</span>
-            <p>{t.series.noSeries}</p>
-          </div>
-        ) : (
-          <div className="phone-genre-grid">
-            {series.map((item) => (
-              <PhoneSeriesCard key={item._id} series={item} />
-            ))}
-          </div>
-        )}
+          }
+        >
+          <Show
+            when={series().length > 0}
+            fallback={
+              <div class="phone-genre-empty">
+                <span class="phone-genre-empty-icon">🎬</span>
+                <p>{t().series.noSeries}</p>
+              </div>
+            }
+          >
+            <div class="phone-genre-grid">
+              <For each={series()}>
+                {(item) => <PhoneSeriesCard series={item} />}
+              </For>
+            </div>
+          </Show>
+        </Show>
       </div>
     </PhoneLayout>
   )

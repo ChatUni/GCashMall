@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { createSignal, createEffect, onCleanup, Show } from 'solid-js'
 import './MediaUpload.css'
 
 type MediaMode = 'image' | 'video'
@@ -11,21 +11,21 @@ interface MediaUploadProps {
   showRemoveButton?: boolean
 }
 
-const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange, showRemoveButton = true }: MediaUploadProps) => {
-  validateProps({ mode, onMediaChange })
+const MediaUpload = (props: MediaUploadProps) => {
+  validateProps(props)
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(mediaUrl || null)
-  const [showOverlay, setShowOverlay] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [previewUrl, setPreviewUrl] = createSignal<string | null>(props.mediaUrl || null)
+  const [showOverlay, setShowOverlay] = createSignal(false)
+  let fileInputRef: HTMLInputElement | undefined
 
-  useEffect(() => {
-    setPreviewUrl(mediaUrl || null)
-  }, [mediaUrl])
+  createEffect(() => {
+    setPreviewUrl(props.mediaUrl || null)
+  })
 
-  const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
+  const hasMedia = () => Boolean(previewUrl()) || (props.mode === 'video' && Boolean(props.videoId))
 
   const handlePreviewClick = () => {
-    if (hasMedia) {
+    if (hasMedia()) {
       setShowOverlay(true)
     } else {
       openFilePicker()
@@ -33,11 +33,11 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange, showRemoveButton 
   }
 
   const openFilePicker = () => {
-    fileInputRef.current?.click()
+    fileInputRef?.click()
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleFileChange = (event: Event & { currentTarget: HTMLInputElement }) => {
+    const file = event.currentTarget.files?.[0]
     if (file) {
       processSelectedFile(file)
     }
@@ -46,14 +46,14 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange, showRemoveButton 
   const processSelectedFile = (file: File) => {
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
-    onMediaChange(file, url)
+    props.onMediaChange(file, url)
   }
 
   const handleRemove = () => {
     setPreviewUrl(null)
-    onMediaChange(null, null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+    props.onMediaChange(null, null)
+    if (fileInputRef) {
+      fileInputRef.value = ''
     }
   }
 
@@ -61,45 +61,51 @@ const MediaUpload = ({ mode, mediaUrl, videoId, onMediaChange, showRemoveButton 
     setShowOverlay(false)
   }
 
-  const handleKeyDown = useCallback(
-    (_event: KeyboardEvent) => {
-      if (showOverlay) {
-        setShowOverlay(false)
-      }
-    },
-    [showOverlay],
-  )
-
-  useEffect(() => {
-    if (showOverlay) {
-      document.addEventListener('keydown', handleKeyDown)
+  const handleKeyDown = (_event: KeyboardEvent) => {
+    if (showOverlay()) {
+      setShowOverlay(false)
     }
-    return () => {
+  }
+
+  createEffect(() => {
+    if (showOverlay()) {
+      document.addEventListener('keydown', handleKeyDown)
+    } else {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [showOverlay, handleKeyDown])
+  })
 
-  const acceptType = getAcceptType(mode)
+  onCleanup(() => {
+    document.removeEventListener('keydown', handleKeyDown)
+  })
+
+  const acceptType = () => getAcceptType(props.mode)
 
   return (
-    <div className="media-upload">
+    <div class="media-upload">
       <PreviewBox
-        mode={mode}
-        previewUrl={previewUrl}
-        videoId={videoId}
+        mode={props.mode}
+        previewUrl={previewUrl()}
+        videoId={props.videoId}
         onClick={handlePreviewClick}
         onRemove={handleRemove}
-        showRemoveButton={showRemoveButton}
+        showRemoveButton={props.showRemoveButton ?? true}
       />
-      <FileInput ref={fileInputRef} accept={acceptType} onChange={handleFileChange} />
-      {showOverlay && hasMedia && (
+      <input
+        type="file"
+        ref={fileInputRef}
+        class="media-upload-input"
+        accept={acceptType()}
+        onChange={handleFileChange}
+      />
+      <Show when={showOverlay() && hasMedia()}>
         <MediaOverlay
-          mode={mode}
-          mediaUrl={previewUrl}
-          videoId={videoId}
+          mode={props.mode}
+          mediaUrl={previewUrl()}
+          videoId={props.videoId}
           onClick={handleOverlayClick}
         />
-      )}
+      </Show>
     </div>
   )
 }
@@ -117,29 +123,30 @@ interface PreviewBoxProps {
   showRemoveButton: boolean
 }
 
-const PreviewBox = ({ mode, previewUrl, videoId, onClick, onRemove, showRemoveButton }: PreviewBoxProps) => {
-  const hasMedia = Boolean(previewUrl) || (mode === 'video' && Boolean(videoId))
-  const className = buildPreviewClassName(hasMedia)
+const PreviewBox = (props: PreviewBoxProps) => {
+  const hasMedia = () => Boolean(props.previewUrl) || (props.mode === 'video' && Boolean(props.videoId))
+  const className = () => buildPreviewClassName(hasMedia())
 
-  const handleRemoveClick = (e: React.MouseEvent) => {
+  const handleRemoveClick = (e: MouseEvent) => {
     e.stopPropagation()
-    onRemove()
+    props.onRemove()
   }
 
   return (
-    <div className={className} onClick={onClick}>
-      {hasMedia ? (
+    <div class={className()} onClick={props.onClick}>
+      <Show
+        when={hasMedia()}
+        fallback={<span class="media-upload-plus">+</span>}
+      >
         <>
-          <PreviewContent mode={mode} previewUrl={previewUrl} videoId={videoId} />
-          {showRemoveButton && (
-            <button className="media-upload-remove-button" onClick={handleRemoveClick}>
+          <PreviewContent mode={props.mode} previewUrl={props.previewUrl} videoId={props.videoId} />
+          <Show when={props.showRemoveButton}>
+            <button class="media-upload-remove-button" onClick={handleRemoveClick}>
               ×
             </button>
-          )}
+          </Show>
         </>
-      ) : (
-        <span className="media-upload-plus">+</span>
-      )}
+      </Show>
     </div>
   )
 }
@@ -150,12 +157,12 @@ interface PreviewContentProps {
   videoId?: string
 }
 
-const PreviewContent = ({ mode, previewUrl, videoId }: PreviewContentProps) => {
-  if (mode === 'image' && previewUrl) {
-    return <img src={previewUrl} alt="Preview" className="media-upload-image" />
+const PreviewContent = (props: PreviewContentProps) => {
+  if (props.mode === 'image' && props.previewUrl) {
+    return <img src={props.previewUrl} alt="Preview" class="media-upload-image" />
   }
 
-  return <VideoThumbnail previewUrl={previewUrl} videoId={videoId} />
+  return <VideoThumbnail previewUrl={props.previewUrl} videoId={props.videoId} />
 }
 
 interface VideoThumbnailProps {
@@ -163,24 +170,28 @@ interface VideoThumbnailProps {
   videoId?: string
 }
 
-const VideoThumbnail = ({ previewUrl, videoId }: VideoThumbnailProps) => {
-  const thumbnailUrl = getThumbnailUrl(previewUrl, videoId)
-  const isLocalBlob = previewUrl?.startsWith('blob:')
+const VideoThumbnail = (props: VideoThumbnailProps) => {
+  const thumbnailUrl = () => getThumbnailUrl(props.previewUrl, props.videoId)
+  const isLocalBlob = () => props.previewUrl?.startsWith('blob:')
 
-  if (isLocalBlob && previewUrl) {
-    return <video src={previewUrl} className="media-upload-video-thumbnail" muted />
-  }
-
-  if (thumbnailUrl) {
-    return (
-      <div className="media-upload-video-container">
-        <img src={thumbnailUrl} alt="Video thumbnail" className="media-upload-image" />
-        <div className="media-upload-play-icon">▶</div>
-      </div>
-    )
-  }
-
-  return <span className="media-upload-plus">+</span>
+  return (
+    <Show
+      when={isLocalBlob() && props.previewUrl}
+      fallback={
+        <Show
+          when={thumbnailUrl()}
+          fallback={<span class="media-upload-plus">+</span>}
+        >
+          <div class="media-upload-video-container">
+            <img src={thumbnailUrl()!} alt="Video thumbnail" class="media-upload-image" />
+            <div class="media-upload-play-icon">▶</div>
+          </div>
+        </Show>
+      }
+    >
+      <video src={props.previewUrl!} class="media-upload-video-thumbnail" muted />
+    </Show>
+  )
 }
 
 const getThumbnailUrl = (previewUrl: string | null, videoId?: string): string | null => {
@@ -195,27 +206,6 @@ const buildPreviewClassName = (hasMedia: boolean): string => {
   return hasMedia ? `${baseClass} has-media` : baseClass
 }
 
-interface FileInputProps {
-  accept: string
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-}
-
-const FileInput = ({
-  accept,
-  onChange,
-  ref,
-}: FileInputProps & { ref: React.RefObject<HTMLInputElement | null> }) => {
-  return (
-    <input
-      type="file"
-      ref={ref}
-      className="media-upload-input"
-      accept={accept}
-      onChange={onChange}
-    />
-  )
-}
-
 interface MediaOverlayProps {
   mode: MediaMode
   mediaUrl: string | null
@@ -223,20 +213,23 @@ interface MediaOverlayProps {
   onClick: () => void
 }
 
-const MediaOverlay = ({ mode, mediaUrl, videoId, onClick }: MediaOverlayProps) => {
-  const handleContentClick = (e: React.MouseEvent) => {
+const MediaOverlay = (props: MediaOverlayProps) => {
+  const handleContentClick = (e: MouseEvent) => {
     e.stopPropagation()
   }
 
   return (
-    <div className="media-upload-overlay" onClick={onClick}>
-      {mode === 'image' && mediaUrl ? (
-        <img src={mediaUrl} alt="Full size preview" className="media-upload-overlay-image" />
-      ) : (
-        <div className="media-upload-overlay-video" onClick={handleContentClick}>
-          <VideoPlayer mediaUrl={mediaUrl} videoId={videoId} />
-        </div>
-      )}
+    <div class="media-upload-overlay" onClick={props.onClick}>
+      <Show
+        when={props.mode === 'image' && props.mediaUrl}
+        fallback={
+          <div class="media-upload-overlay-video" onClick={handleContentClick}>
+            <VideoPlayer mediaUrl={props.mediaUrl} videoId={props.videoId} />
+          </div>
+        }
+      >
+        <img src={props.mediaUrl!} alt="Full size preview" class="media-upload-overlay-image" />
+      </Show>
     </div>
   )
 }
@@ -246,39 +239,40 @@ interface VideoPlayerProps {
   videoId?: string
 }
 
-const VideoPlayer = ({ mediaUrl, videoId }: VideoPlayerProps) => {
-  const isLocalBlob = mediaUrl?.startsWith('blob:')
+const VideoPlayer = (props: VideoPlayerProps) => {
+  const isLocalBlob = () => props.mediaUrl?.startsWith('blob:')
 
-  if (isLocalBlob && mediaUrl) {
-    return <video src={mediaUrl} className="media-upload-video-player" controls autoPlay />
-  }
-
-  if (videoId) {
-    return (
-      <iframe
-        src={`https://iframe.mediadelivery.net/embed/569096/${videoId}?autoplay=true`}
-        className="media-upload-video-iframe"
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen
-      />
-    )
-  }
-
-  if (mediaUrl) {
-    return <video src={mediaUrl} className="media-upload-video-player" controls autoPlay />
-  }
-
-  return null
+  return (
+    <Show
+      when={isLocalBlob() && props.mediaUrl}
+      fallback={
+        <Show
+          when={props.videoId}
+          fallback={
+            <Show when={props.mediaUrl}>
+              <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay />
+            </Show>
+          }
+        >
+          <iframe
+            src={`https://iframe.mediadelivery.net/embed/569096/${props.videoId}?autoplay=true`}
+            class="media-upload-video-iframe"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen
+          />
+        </Show>
+      }
+    >
+      <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay />
+    </Show>
+  )
 }
 
-const validateProps = ({
-  mode,
-  onMediaChange,
-}: Pick<MediaUploadProps, 'mode' | 'onMediaChange'>) => {
-  if (!mode) {
+const validateProps = (props: MediaUploadProps) => {
+  if (!props.mode) {
     throw new Error('mode prop is required')
   }
-  if (!onMediaChange) {
+  if (!props.onMediaChange) {
     throw new Error('onMediaChange prop is required')
   }
 }

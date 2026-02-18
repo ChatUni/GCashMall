@@ -1,23 +1,21 @@
-import React from 'react'
+import type { JSX } from 'solid-js'
 import './Card.css'
 
 interface CardProps {
-  children: React.ReactNode
+  children: JSX.Element
   onClick?: () => void
-  className?: string
+  class?: string
   title?: string
 }
 
-const Card: React.FC<CardProps> = ({ children, onClick, className = '', title }) => {
-  return (
-    <div
-      className={`card ${className}`}
-      onClick={onClick}
-      title={title}
-    >
-      {children}
-    </div>
-  )
-}
+const Card = (props: CardProps) => (
+  <div
+    class={`card ${props.class || ''}`}
+    onClick={props.onClick}
+    title={props.title}
+  >
+    {props.children}
+  </div>
+)
 
 export default Card

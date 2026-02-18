@@ -1,57 +1,56 @@
-import React, { useEffect } from 'react'
+import { onMount } from 'solid-js'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import './Contact.css'
 
-const Contact: React.FC = () => {
-  const { t } = useLanguage()
-  const contact = t.contact as Record<string, string>
-
+const Contact = () => {
   // Scroll to top when page loads
-  useEffect(() => {
+  onMount(() => {
     window.scrollTo(0, 0)
-  }, [])
+  })
+
+  const contact = () => t().contact as Record<string, string>
 
   return (
-    <div className="contact-page">
+    <div class="contact-page">
       <TopBar />
-      <main className="contact-content">
-        <div className="contact-container">
-          <div className="contact-header">
-            <div className="contact-icon">✉️</div>
-            <h1 className="contact-title">{contact.title}</h1>
-            <p className="contact-subtitle">{contact.subtitle}</p>
+      <main class="contact-content">
+        <div class="contact-container">
+          <div class="contact-header">
+            <div class="contact-icon">✉️</div>
+            <h1 class="contact-title">{contact().title}</h1>
+            <p class="contact-subtitle">{contact().subtitle}</p>
           </div>
 
-          <div className="contact-card">
-            <div className="contact-message">
-              <p>{contact.welcomeMessage}</p>
+          <div class="contact-card">
+            <div class="contact-message">
+              <p>{contact().welcomeMessage}</p>
             </div>
 
-            <div className="contact-info">
-              <div className="contact-info-item">
-                <span className="contact-info-icon">📧</span>
-                <div className="contact-info-details">
-                  <span className="contact-info-label">{contact.emailLabel}</span>
-                  <a href="mailto:chatuni.ai@gmail.com" className="contact-info-value">
+            <div class="contact-info">
+              <div class="contact-info-item">
+                <span class="contact-info-icon">📧</span>
+                <div class="contact-info-details">
+                  <span class="contact-info-label">{contact().emailLabel}</span>
+                  <a href="mailto:chatuni.ai@gmail.com" class="contact-info-value">
                     chatuni.ai@gmail.com
                   </a>
                 </div>
               </div>
             </div>
 
-            <div className="contact-cta">
-              <p className="contact-cta-text">{contact.ctaText}</p>
-              <a href="mailto:chatuni.ai@gmail.com" className="contact-btn">
-                <span className="contact-btn-icon">✉️</span>
-                {contact.sendEmail}
+            <div class="contact-cta">
+              <p class="contact-cta-text">{contact().ctaText}</p>
+              <a href="mailto:chatuni.ai@gmail.com" class="contact-btn">
+                <span class="contact-btn-icon">✉️</span>
+                {contact().sendEmail}
               </a>
             </div>
           </div>
 
-          <div className="contact-footer">
-            <p>{contact.footerText}</p>
+          <div class="contact-footer">
+            <p>{contact().footerText}</p>
           </div>
         </div>
       </main>

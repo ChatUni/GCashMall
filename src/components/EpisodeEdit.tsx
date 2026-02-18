@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { createSignal, Show } from 'solid-js'
 import MediaUpload from './MediaUpload'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import './EpisodeEdit.css'
 
 interface EpisodeEditProps {
@@ -13,69 +13,60 @@ interface EpisodeEditProps {
   onDelete: () => void
 }
 
-const EpisodeEdit = ({
-  episodeNumber,
-  title,
-  videoId,
-  videoPreview,
-  onTitleChange,
-  onVideoChange,
-  onDelete,
-}: EpisodeEditProps) => {
-  const { t } = useLanguage()
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [editedTitle, setEditedTitle] = useState(title)
+const EpisodeEdit = (props: EpisodeEditProps) => {
+  const [isEditingTitle, setIsEditingTitle] = createSignal(false)
+  const [editedTitle, setEditedTitle] = createSignal(props.title)
 
   const handleTitleClick = () => {
     setIsEditingTitle(true)
-    setEditedTitle(title)
+    setEditedTitle(props.title)
   }
 
   const handleTitleBlur = () => {
     setIsEditingTitle(false)
-    onTitleChange(editedTitle)
+    props.onTitleChange(editedTitle())
   }
 
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleTitleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       setIsEditingTitle(false)
-      onTitleChange(editedTitle)
+      props.onTitleChange(editedTitle())
     }
     if (e.key === 'Escape') {
       setIsEditingTitle(false)
-      setEditedTitle(title)
+      setEditedTitle(props.title)
     }
   }
 
   return (
-    <div className="episode-edit">
-      <div className="episode-edit-header">
+    <div class="episode-edit">
+      <div class="episode-edit-header">
         <TitleField
-          episodeNumber={episodeNumber}
-          title={title}
-          editedTitle={editedTitle}
-          isEditingTitle={isEditingTitle}
+          episodeNumber={props.episodeNumber}
+          title={props.title}
+          editedTitle={editedTitle()}
+          isEditingTitle={isEditingTitle()}
           onTitleClick={handleTitleClick}
           onTitleChange={setEditedTitle}
           onTitleBlur={handleTitleBlur}
           onTitleKeyDown={handleTitleKeyDown}
         />
       </div>
-      <div className="episode-edit-video">
+      <div class="episode-edit-video">
         <MediaUpload
           mode="video"
-          mediaUrl={videoPreview}
-          videoId={videoId}
-          onMediaChange={onVideoChange}
+          mediaUrl={props.videoPreview}
+          videoId={props.videoId}
+          onMediaChange={props.onVideoChange}
           showRemoveButton={false}
         />
       </div>
       <button
         type="button"
-        className="episode-delete-button"
-        onClick={onDelete}
+        class="episode-delete-button"
+        onClick={props.onDelete}
       >
-        {t.seriesEdit.deleteEpisode}
+        {t().seriesEdit.deleteEpisode}
       </button>
     </div>
   )
@@ -89,41 +80,33 @@ interface TitleFieldProps {
   onTitleClick: () => void
   onTitleChange: (value: string) => void
   onTitleBlur: () => void
-  onTitleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  onTitleKeyDown: (e: KeyboardEvent) => void
 }
 
-const TitleField = ({
-  episodeNumber,
-  title,
-  editedTitle,
-  isEditingTitle,
-  onTitleClick,
-  onTitleChange,
-  onTitleBlur,
-  onTitleKeyDown,
-}: TitleFieldProps) => {
-  const displayTitle = title || `EP ${String(episodeNumber).padStart(2, '0')}`
-  
-  if (isEditingTitle) {
-    return (
-      <input
-        type="text"
-        className="episode-title-input"
-        value={editedTitle}
-        onChange={(e) => onTitleChange(e.target.value)}
-        onBlur={onTitleBlur}
-        onKeyDown={onTitleKeyDown}
-        autoFocus
-      />
-    )
-  }
+const TitleField = (props: TitleFieldProps) => {
+  const displayTitle = () => props.title || `EP ${String(props.episodeNumber).padStart(2, '0')}`
 
   return (
-    <div className="episode-title-display" onClick={onTitleClick}>
-      <span className="episode-title">{displayTitle}</span>
-      <span className="episode-edit-icon">✏️</span>
-      <span className="episode-edit-text">(edit)</span>
-    </div>
+    <Show
+      when={props.isEditingTitle}
+      fallback={
+        <div class="episode-title-display" onClick={props.onTitleClick}>
+          <span class="episode-title">{displayTitle()}</span>
+          <span class="episode-edit-icon">✏️</span>
+          <span class="episode-edit-text">(edit)</span>
+        </div>
+      }
+    >
+      <input
+        type="text"
+        class="episode-title-input"
+        value={props.editedTitle}
+        onInput={(e) => props.onTitleChange(e.currentTarget.value)}
+        onBlur={props.onTitleBlur}
+        onKeyDown={props.onTitleKeyDown}
+        autofocus
+      />
+    </Show>
   )
 }
 

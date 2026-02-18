@@ -950,10 +950,10 @@ export const handleSetPassword = async (t: Record<string, unknown>) => {
 
 // Handle avatar upload with toast notification
 export const handleAvatarUpload = async (
-  e: React.ChangeEvent<HTMLInputElement>,
+  e: Event & { currentTarget: HTMLInputElement; target: Element },
   t: Record<string, unknown>
 ) => {
-  const file = e.target.files?.[0]
+  const file = (e.currentTarget as HTMLInputElement).files?.[0]
   if (!file) return
 
   const overview = t.overview as Record<string, string> | undefined

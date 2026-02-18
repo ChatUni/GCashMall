@@ -1,5 +1,11 @@
-import React, { useRef, useEffect, useCallback } from 'react'
-import { useVideoFeedStore, useLoginModalStore, loginModalStoreActions, userStoreActions } from '../../stores'
+import { Show, For, onMount, onCleanup } from 'solid-js'
+import {
+  videoFeedStore,
+  videoFeedStoreActions,
+  loginModalStore,
+  loginModalStoreActions,
+  userStoreActions,
+} from '../../stores'
 import { accountStoreActions } from '../../stores/accountStore'
 import { fetchVideoFeed, loadMoreVideos } from '../../services/dataService'
 import VideoCard from '../../components/phone/VideoCard'
@@ -16,135 +22,137 @@ const initializeData = () => {
   }
 }
 
-const PhoneHome: React.FC = () => {
-  const { videos, currentIndex, loading, hasMore } = useVideoFeedStore()
-  const loginModalState = useLoginModalStore()
-  
-  const containerRef = useRef<HTMLDivElement>(null)
-  const observerRef = useRef<IntersectionObserver | null>(null)
+const PhoneHome = () => {
+  let containerRef: HTMLDivElement | undefined
+  let observerRef: IntersectionObserver | undefined
 
   // Initialize data on first render
   initializeData()
 
   // Handle scroll to detect current video
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return
-    
-    const container = containerRef.current
-    const scrollTop = container.scrollTop
-    const cardHeight = container.clientHeight
+  const handleScroll = () => {
+    if (!containerRef) return
+
+    const scrollTop = containerRef.scrollTop
+    const cardHeight = containerRef.clientHeight
     const newIndex = Math.round(scrollTop / cardHeight)
-    
-    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < videos.length) {
-      // Update current index in store
-      import('../../stores').then(({ videoFeedStoreActions }) => {
-        videoFeedStoreActions.setCurrentIndex(newIndex)
-      })
+
+    if (newIndex !== videoFeedStore.currentIndex && newIndex >= 0 && newIndex < videoFeedStore.videos.length) {
+      videoFeedStoreActions.setCurrentIndex(newIndex)
     }
-    
+
     // Load more when approaching end
-    if (newIndex >= videos.length - 3 && hasMore && !loading) {
+    if (newIndex >= videoFeedStore.videos.length - 3 && videoFeedStore.hasMore && !videoFeedStore.loading) {
       loadMoreVideos()
     }
-  }, [currentIndex, videos.length, hasMore, loading])
+  }
 
-  // Set up scroll listener
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-
-  // Set up intersection observer for video visibility
-  useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect()
+  // Set up scroll listener and intersection observer
+  onMount(() => {
+    if (containerRef) {
+      containerRef.addEventListener('scroll', handleScroll, { passive: true })
     }
 
-    observerRef.current = new IntersectionObserver(
+    setupIntersectionObserver()
+  })
+
+  onCleanup(() => {
+    if (containerRef) {
+      containerRef.removeEventListener('scroll', handleScroll)
+    }
+    if (observerRef) {
+      observerRef.disconnect()
+    }
+  })
+
+  const setupIntersectionObserver = () => {
+    if (observerRef) {
+      observerRef.disconnect()
+    }
+
+    observerRef = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const index = parseInt(entry.target.getAttribute('data-index') || '0', 10)
-            import('../../stores').then(({ videoFeedStoreActions }) => {
-              videoFeedStoreActions.setCurrentIndex(index)
-            })
+            videoFeedStoreActions.setCurrentIndex(index)
           }
         })
       },
       {
-        root: containerRef.current,
+        root: containerRef,
         threshold: 0.5,
-      }
+      },
     )
 
     // Observe all video cards
-    const cards = containerRef.current?.querySelectorAll('.video-card')
-    cards?.forEach((card) => observerRef.current?.observe(card))
-
-    return () => observerRef.current?.disconnect()
-  }, [videos])
-
-  if (loading && videos.length === 0) {
-    return (
-      <div className="phone-home-feed">
-        <div className="phone-home-loading">
-          <div className="phone-home-spinner" />
-        </div>
-        <PhoneNavBar />
-      </div>
-    )
+    const cards = containerRef?.querySelectorAll('.video-card')
+    cards?.forEach((card) => observerRef?.observe(card))
   }
 
-  if (!loading && videos.length === 0) {
-    return (
-      <div className="phone-home-feed">
-        <div className="phone-home-empty">
-          <p>No videos available</p>
-          <button onClick={() => fetchVideoFeed(1)}>Refresh</button>
-        </div>
-        <PhoneNavBar />
-      </div>
-    )
+  const handleLoginSuccess = (user: import('../../types').User) => {
+    userStoreActions.setUser(user)
+    userStoreActions.setLoading(false)
+    accountStoreActions.initializeUserData(user)
+    loginModalStoreActions.close()
   }
 
   return (
-    <div className="phone-home-feed">
-      <div className="phone-home-container" ref={containerRef}>
-        {videos.map((series, index) => (
-          <VideoCard
-            key={series._id}
-            series={series}
-            isActive={index === currentIndex}
-            index={index}
-          />
-        ))}
-        
-        {/* Loading indicator at bottom */}
-        {loading && videos.length > 0 && (
-          <div className="phone-home-loading-more">
-            <div className="phone-home-spinner-small" />
+    <div class="phone-home-feed">
+      <Show
+        when={!(videoFeedStore.loading && videoFeedStore.videos.length === 0)}
+        fallback={
+          <div class="phone-home-feed">
+            <div class="phone-home-loading">
+              <div class="phone-home-spinner" />
+            </div>
+            <PhoneNavBar />
           </div>
-        )}
-      </div>
-      
-      {/* Bottom Navigation */}
-      <PhoneNavBar />
-      
-      {/* Login Modal */}
-      {loginModalState.isOpen && (
-        <LoginModal
-          onClose={loginModalStoreActions.close}
-          onLoginSuccess={(user) => {
-            userStoreActions.setUser(user)
-            userStoreActions.setLoading(false)
-            accountStoreActions.initializeUserData(user)
-            loginModalStoreActions.close()
-          }}
-        />
-      )}
+        }
+      >
+        <Show
+          when={videoFeedStore.videos.length > 0}
+          fallback={
+            <div class="phone-home-feed">
+              <div class="phone-home-empty">
+                <p>No videos available</p>
+                <button onClick={() => fetchVideoFeed(1)}>Refresh</button>
+              </div>
+              <PhoneNavBar />
+            </div>
+          }
+        >
+          <div class="phone-home-container" ref={containerRef}>
+            <For each={videoFeedStore.videos}>
+              {(series, index) => (
+                <VideoCard
+                  series={series}
+                  isActive={index() === videoFeedStore.currentIndex}
+                  index={index()}
+                />
+              )}
+            </For>
+
+            {/* Loading indicator at bottom */}
+            <Show when={videoFeedStore.loading && videoFeedStore.videos.length > 0}>
+              <div class="phone-home-loading-more">
+                <div class="phone-home-spinner-small" />
+              </div>
+            </Show>
+          </div>
+
+          {/* Bottom Navigation */}
+          <PhoneNavBar />
+
+          {/* Login Modal */}
+          <Show when={loginModalStore.isOpen}>
+            <LoginModal
+              onClose={loginModalStoreActions.close}
+              onLoginSuccess={handleLoginSuccess}
+            />
+          </Show>
+        </Show>
+      </Show>
     </div>
   )
 }

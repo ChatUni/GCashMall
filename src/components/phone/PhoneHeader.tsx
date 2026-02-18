@@ -1,5 +1,6 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Show } from 'solid-js'
+import type { JSX } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import './PhoneHeader.css'
 
 interface PhoneHeaderProps {
@@ -7,21 +8,15 @@ interface PhoneHeaderProps {
   showBackButton?: boolean
   showSearch?: boolean
   onBack?: () => void
-  rightAction?: React.ReactNode
+  rightAction?: JSX.Element
 }
 
-const PhoneHeader: React.FC<PhoneHeaderProps> = ({
-  title,
-  showBackButton = false,
-  showSearch = true,
-  onBack,
-  rightAction,
-}) => {
+const PhoneHeader = (props: PhoneHeaderProps) => {
   const navigate = useNavigate()
 
   const handleBack = () => {
-    if (onBack) {
-      onBack()
+    if (props.onBack) {
+      props.onBack()
     } else {
       navigate(-1)
     }
@@ -36,39 +31,42 @@ const PhoneHeader: React.FC<PhoneHeaderProps> = ({
   }
 
   return (
-    <header className="phone-header">
-      <div className="phone-header-left">
-        {showBackButton ? (
-          <button className="phone-header-back" onClick={handleBack}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <header class="phone-header">
+      <div class="phone-header-left">
+        <Show
+          when={props.showBackButton}
+          fallback={
+            <div class="phone-header-logo" onClick={handleLogoClick}>
+              <img
+                src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
+                alt="GcashTV"
+                class="phone-logo-image"
+              />
+            </div>
+          }
+        >
+          <button class="phone-header-back" onClick={handleBack}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-        ) : (
-          <div className="phone-header-logo" onClick={handleLogoClick}>
-            <img
-              src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-              alt="GcashTV"
-              className="phone-logo-image"
-            />
-          </div>
-        )}
+        </Show>
       </div>
 
-      {title && (
-        <h1 className="phone-header-title">{title}</h1>
-      )}
+      <Show when={props.title}>
+        <h1 class="phone-header-title">{props.title}</h1>
+      </Show>
 
-      <div className="phone-header-right">
-        {rightAction}
-        {showSearch && (
-          <button className="phone-header-search" onClick={handleSearchClick}>
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div class="phone-header-right">
+        {props.rightAction}
+        <Show when={props.showSearch !== false}>
+          <button class="phone-header-search" onClick={handleSearchClick}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
           </button>
-        )}
+        </Show>
       </div>
     </header>
   )

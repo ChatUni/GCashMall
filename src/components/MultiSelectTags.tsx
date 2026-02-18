@@ -1,3 +1,4 @@
+import { For } from 'solid-js'
 import './MultiSelectTags.css'
 
 interface Tag {
@@ -11,28 +12,25 @@ interface MultiSelectTagsProps {
   onChange: (selectedIds: string[]) => void
 }
 
-const MultiSelectTags = ({
-  tags,
-  selectedIds,
-  onChange,
-}: MultiSelectTagsProps) => {
-  validateProps({ tags, selectedIds, onChange })
+const MultiSelectTags = (props: MultiSelectTagsProps) => {
+  validateProps(props)
 
   const handleTagClick = (tagId: string) => {
-    const newSelectedIds = toggleTagSelection(selectedIds, tagId)
-    onChange(newSelectedIds)
+    const newSelectedIds = toggleTagSelection(props.selectedIds, tagId)
+    props.onChange(newSelectedIds)
   }
 
   return (
-    <div className="multi-select-tags">
-      {tags.map((tag) => (
-        <TagItem
-          key={tag._id}
-          tag={tag}
-          isSelected={selectedIds.includes(tag._id)}
-          onClick={() => handleTagClick(tag._id)}
-        />
-      ))}
+    <div class="multi-select-tags">
+      <For each={props.tags}>
+        {(tag) => (
+          <TagItem
+            tag={tag}
+            isSelected={props.selectedIds.includes(tag._id)}
+            onClick={() => handleTagClick(tag._id)}
+          />
+        )}
+      </For>
     </div>
   )
 }
@@ -43,12 +41,12 @@ interface TagItemProps {
   onClick: () => void
 }
 
-const TagItem = ({ tag, isSelected, onClick }: TagItemProps) => {
-  const className = buildTagClassName(isSelected)
+const TagItem = (props: TagItemProps) => {
+  const className = () => buildTagClassName(props.isSelected)
 
   return (
-    <button type="button" className={className} onClick={onClick}>
-      {tag.name}
+    <button type="button" class={className()} onClick={props.onClick}>
+      {props.tag.name}
     </button>
   )
 }
@@ -68,18 +66,14 @@ const toggleTagSelection = (
   return [...selectedIds, tagId]
 }
 
-const validateProps = ({
-  tags,
-  selectedIds,
-  onChange,
-}: MultiSelectTagsProps) => {
-  if (!tags) {
+const validateProps = (props: MultiSelectTagsProps) => {
+  if (!props.tags) {
     throw new Error('tags prop is required')
   }
-  if (!selectedIds) {
+  if (!props.selectedIds) {
     throw new Error('selectedIds prop is required')
   }
-  if (!onChange) {
+  if (!props.onChange) {
     throw new Error('onChange prop is required')
   }
 }

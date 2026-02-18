@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { createSignal, createEffect, Show } from 'solid-js'
+import { useParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import { apiGet } from '../utils/api'
@@ -20,43 +20,42 @@ const fetchSeriesById = async (id: string): Promise<SeriesType | null> => {
   return null
 }
 
-const Series: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
-  const [series, setSeries] = useState<SeriesType | null>(null)
-  const [loading, setLoading] = useState(true)
+const Series = () => {
+  const params = useParams()
+  const [series, setSeries] = createSignal<SeriesType | null>(null)
+  const [loading, setLoading] = createSignal(true)
 
-  useEffect(() => {
+  createEffect(() => {
+    const id = params.id
+    if (!id) return
     const loadSeries = async () => {
-      if (!id) return
       setLoading(true)
       const data = await fetchSeriesById(id)
       setSeries(data)
       setLoading(false)
     }
     loadSeries()
-  }, [id])
+  })
 
-  const videoId = series?.videoId || ''
-  const videoEmbedUrl = buildVideoEmbedUrl(BUNNY_LIBRARY_ID, videoId)
+  const videoId = () => series()?.videoId || ''
+  const videoEmbedUrl = () => buildVideoEmbedUrl(BUNNY_LIBRARY_ID, videoId())
 
   return (
-    <div className="series-page">
+    <div class="series-page">
       <TopBar />
-      <main className="series-player-container">
-        {loading ? (
-          <div className="series-loading">Loading...</div>
-        ) : videoId ? (
-          <iframe
-            className="series-player"
-            src={videoEmbedUrl}
-            loading="lazy"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-            title="Series Player"
-          />
-        ) : (
-          <div className="series-no-video">No video available</div>
-        )}
+      <main class="series-player-container">
+        <Show when={!loading()} fallback={<div class="series-loading">Loading...</div>}>
+          <Show when={videoId()} fallback={<div class="series-no-video">No video available</div>}>
+            <iframe
+              class="series-player"
+              src={videoEmbedUrl()}
+              loading="lazy"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allowfullscreen
+              title="Series Player"
+            />
+          </Show>
+        </Show>
       </main>
       <BottomBar />
     </div>

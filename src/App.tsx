@@ -1,6 +1,7 @@
-import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom'
-import { useDeviceType } from './hooks/useDeviceType'
+import { Router, HashRouter, Route } from '@solidjs/router'
+import { Show } from 'solid-js'
 import { isCordova } from './utils/cordova'
+import { deviceStore } from './stores/deviceStore'
 
 // Desktop Pages
 import Home from './pages/Home'
@@ -25,126 +26,66 @@ import PhoneAccount from './pages/phone/PhoneAccount'
 import PhoneAbout from './pages/phone/PhoneAbout'
 import PhoneContact from './pages/phone/PhoneContact'
 
-import { LanguageProvider } from './context/LanguageContext'
 import './App.css'
 
-// Use HashRouter for Cordova (file:// protocol doesn't support BrowserRouter)
-// Use BrowserRouter for web (needed for OAuth redirects with query params)
-const Router = isCordova() ? HashRouter : BrowserRouter
-
 // Responsive component that renders different versions based on device type
-interface ResponsiveRouteProps {
-  desktop: React.ReactNode
-  phone: React.ReactNode
-}
+const ResponsiveRoute = (props: { desktop: () => any; phone: () => any }) => (
+  <Show when={deviceStore.deviceType === 'phone'} fallback={<>{props.desktop()}</>}>
+    {props.phone()}
+  </Show>
+)
 
-const ResponsiveRoute: React.FC<ResponsiveRouteProps> = ({ desktop, phone }) => {
-  const deviceType = useDeviceType()
-  
-  if (deviceType === 'phone') {
-    return <>{phone}</>
-  }
-  
-  // Tablet and desktop use the desktop version (which already has responsive CSS)
-  return <>{desktop}</>
-}
+const routes = (
+  <>
+    {/* Home */}
+    <Route path="/" component={() => <ResponsiveRoute desktop={() => <Home />} phone={() => <PhoneHome />} />} />
 
-function App() {
-  return (
-    <LanguageProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Home */}
-            <Route
-              path="/"
-              element={
-                <ResponsiveRoute
-                  desktop={<Home />}
-                  phone={<PhoneHome />}
-                />
-              }
-            />
+    {/* Genre */}
+    <Route path="/genre" component={() => <ResponsiveRoute desktop={() => <Genre />} phone={() => <PhoneGenre />} />} />
 
-            {/* Genre */}
-            <Route
-              path="/genre"
-              element={
-                <ResponsiveRoute
-                  desktop={<Genre />}
-                  phone={<PhoneGenre />}
-                />
-              }
-            />
+    {/* Search (Phone only, desktop uses TopBar search) */}
+    <Route path="/search" component={() => <ResponsiveRoute desktop={() => <Genre />} phone={() => <PhoneSearch />} />} />
 
-            {/* Search (Phone only, desktop uses TopBar search) */}
-            <Route
-              path="/search"
-              element={
-                <ResponsiveRoute
-                  desktop={<Genre />}
-                  phone={<PhoneSearch />}
-                />
-              }
-            />
+    {/* Player */}
+    <Route path="/player/:id" component={() => <ResponsiveRoute desktop={() => <Player />} phone={() => <PhonePlayer />} />} />
 
-            {/* Player */}
-            <Route
-              path="/player/:id"
-              element={
-                <ResponsiveRoute
-                  desktop={<Player />}
-                  phone={<PhonePlayer />}
-                />
-              }
-            />
+    {/* Account */}
+    <Route path="/account" component={() => <ResponsiveRoute desktop={() => <Account />} phone={() => <PhoneAccount />} />} />
 
-            {/* Account */}
-            <Route
-              path="/account"
-              element={
-                <ResponsiveRoute
-                  desktop={<Account />}
-                  phone={<PhoneAccount />}
-                />
-              }
-            />
+    {/* About */}
+    <Route path="/about" component={() => <ResponsiveRoute desktop={() => <About />} phone={() => <PhoneAbout />} />} />
 
-            {/* About */}
-            <Route
-              path="/about"
-              element={
-                <ResponsiveRoute
-                  desktop={<About />}
-                  phone={<PhoneAbout />}
-                />
-              }
-            />
+    {/* Contact */}
+    <Route path="/contact" component={() => <ResponsiveRoute desktop={() => <Contact />} phone={() => <PhoneContact />} />} />
 
-            {/* Contact */}
-            <Route
-              path="/contact"
-              element={
-                <ResponsiveRoute
-                  desktop={<Contact />}
-                  phone={<PhoneContact />}
-                />
-              }
-            />
+    {/* Desktop-only routes (admin/management features) */}
+    <Route path="/products" component={ProductList} />
+    <Route path="/categories" component={ProductCategoryList} />
+    <Route path="/series" component={SeriesList} />
+    <Route path="/series/new" component={SeriesEdit} />
+    <Route path="/series/:id" component={Series} />
+    <Route path="/series/:id/edit" component={SeriesEdit} />
+    <Route path="/reset-password" component={ResetPassword} />
+  </>
+)
 
-            {/* Desktop-only routes (admin/management features) */}
-            <Route path="/products" element={<ProductList />} />
-            <Route path="/categories" element={<ProductCategoryList />} />
-            <Route path="/series" element={<SeriesList />} />
-            <Route path="/series/new" element={<SeriesEdit />} />
-            <Route path="/series/:id" element={<Series />} />
-            <Route path="/series/:id/edit" element={<SeriesEdit />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-          </Routes>
-        </div>
-      </Router>
-    </LanguageProvider>
-  )
-}
+// Use HashRouter for Cordova (file:// protocol doesn't support BrowserRouter)
+// Use Router for web (needed for OAuth redirects with query params)
+const App = () => (
+  <div class="App">
+    <Show
+      when={isCordova()}
+      fallback={
+        <Router root={(props) => props.children}>
+          {routes}
+        </Router>
+      }
+    >
+      <HashRouter root={(props) => props.children}>
+        {routes}
+      </HashRouter>
+    </Show>
+  </div>
+)
 
 export default App

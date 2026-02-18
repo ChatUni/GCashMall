@@ -1,33 +1,11 @@
-// Centralized state management using external stores
+// Centralized state management using SolidJS stores
 // Following Rule #7: States shared by 2+ components must be defined outside the component tree
 
-import { useSyncExternalStore } from 'react'
+import { createStore } from 'solid-js/store'
 import type { User, Series, Episode } from '../types'
 
 // Re-export User type for convenience
 export type { User }
-
-// Generic store factory
-type Listener = () => void
-
-const createStore = <T>(initialState: T) => {
-  let state = initialState
-  const listeners = new Set<Listener>()
-
-  const getState = () => state
-
-  const setState = (newState: T | ((prev: T) => T)) => {
-    state = typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState
-    listeners.forEach((listener) => listener())
-  }
-
-  const subscribe = (listener: Listener) => {
-    listeners.add(listener)
-    return () => listeners.delete(listener)
-  }
-
-  return { getState, setState, subscribe }
-}
 
 // User store
 interface UserState {
@@ -36,27 +14,19 @@ interface UserState {
   loading: boolean
 }
 
-const userStore = createStore<UserState>({
+const [userState, setUserState] = createStore<UserState>({
   user: null,
   isLoggedIn: false,
   loading: true,
 })
 
-export const useUserStore = () => {
-  const state = useSyncExternalStore(userStore.subscribe, userStore.getState)
-  return {
-    ...state,
-    setUser: (user: User | null) => userStore.setState((prev) => ({ ...prev, user, isLoggedIn: !!user })),
-    setLoading: (loading: boolean) => userStore.setState((prev) => ({ ...prev, loading })),
-    logout: () => userStore.setState({ user: null, isLoggedIn: false, loading: false }),
-  }
-}
+export const userStore = userState
 
 export const userStoreActions = {
-  setUser: (user: User | null) => userStore.setState((prev) => ({ ...prev, user, isLoggedIn: !!user })),
-  setLoading: (loading: boolean) => userStore.setState((prev) => ({ ...prev, loading })),
-  logout: () => userStore.setState({ user: null, isLoggedIn: false, loading: false }),
-  getState: userStore.getState,
+  setUser: (user: User | null) => setUserState({ user, isLoggedIn: !!user }),
+  setLoading: (loading: boolean) => setUserState({ loading }),
+  logout: () => setUserState({ user: null, isLoggedIn: false, loading: false }),
+  getState: () => userState,
 }
 
 // Featured series store
@@ -65,24 +35,17 @@ interface FeaturedState {
   loading: boolean
 }
 
-const featuredStore = createStore<FeaturedState>({
+const [featuredState, setFeaturedState] = createStore<FeaturedState>({
   series: null,
   loading: true,
 })
 
-export const useFeaturedStore = () => {
-  const state = useSyncExternalStore(featuredStore.subscribe, featuredStore.getState)
-  return {
-    ...state,
-    setSeries: (series: Series | null) => featuredStore.setState((prev) => ({ ...prev, series })),
-    setLoading: (loading: boolean) => featuredStore.setState((prev) => ({ ...prev, loading })),
-  }
-}
+export const featuredStore = featuredState
 
 export const featuredStoreActions = {
-  setSeries: (series: Series | null) => featuredStore.setState((prev) => ({ ...prev, series })),
-  setLoading: (loading: boolean) => featuredStore.setState((prev) => ({ ...prev, loading })),
-  getState: featuredStore.getState,
+  setSeries: (series: Series | null) => setFeaturedState({ series }),
+  setLoading: (loading: boolean) => setFeaturedState({ loading }),
+  getState: () => featuredState,
 }
 
 // Recommendations store
@@ -91,24 +54,17 @@ interface RecommendationsState {
   loading: boolean
 }
 
-const recommendationsStore = createStore<RecommendationsState>({
+const [recommendationsState, setRecommendationsState] = createStore<RecommendationsState>({
   series: [],
   loading: true,
 })
 
-export const useRecommendationsStore = () => {
-  const state = useSyncExternalStore(recommendationsStore.subscribe, recommendationsStore.getState)
-  return {
-    ...state,
-    setSeries: (series: Series[]) => recommendationsStore.setState((prev) => ({ ...prev, series })),
-    setLoading: (loading: boolean) => recommendationsStore.setState((prev) => ({ ...prev, loading })),
-  }
-}
+export const recommendationsStore = recommendationsState
 
 export const recommendationsStoreActions = {
-  setSeries: (series: Series[]) => recommendationsStore.setState((prev) => ({ ...prev, series })),
-  setLoading: (loading: boolean) => recommendationsStore.setState((prev) => ({ ...prev, loading })),
-  getState: recommendationsStore.getState,
+  setSeries: (series: Series[]) => setRecommendationsState({ series }),
+  setLoading: (loading: boolean) => setRecommendationsState({ loading }),
+  getState: () => recommendationsState,
 }
 
 // New releases store
@@ -117,24 +73,17 @@ interface NewReleasesState {
   loading: boolean
 }
 
-const newReleasesStore = createStore<NewReleasesState>({
+const [newReleasesState, setNewReleasesState] = createStore<NewReleasesState>({
   series: [],
   loading: true,
 })
 
-export const useNewReleasesStore = () => {
-  const state = useSyncExternalStore(newReleasesStore.subscribe, newReleasesStore.getState)
-  return {
-    ...state,
-    setSeries: (series: Series[]) => newReleasesStore.setState((prev) => ({ ...prev, series })),
-    setLoading: (loading: boolean) => newReleasesStore.setState((prev) => ({ ...prev, loading })),
-  }
-}
+export const newReleasesStore = newReleasesState
 
 export const newReleasesStoreActions = {
-  setSeries: (series: Series[]) => newReleasesStore.setState((prev) => ({ ...prev, series })),
-  setLoading: (loading: boolean) => newReleasesStore.setState((prev) => ({ ...prev, loading })),
-  getState: newReleasesStore.getState,
+  setSeries: (series: Series[]) => setNewReleasesState({ series }),
+  setLoading: (loading: boolean) => setNewReleasesState({ loading }),
+  getState: () => newReleasesState,
 }
 
 // Player store
@@ -157,7 +106,7 @@ interface PlayerState {
   purchaseLoading: boolean
 }
 
-const playerStore = createStore<PlayerState>({
+const [playerState, setPlayerState] = createStore<PlayerState>({
   series: null,
   episodes: [],
   currentEpisode: null,
@@ -170,35 +119,32 @@ const playerStore = createStore<PlayerState>({
   playbackSpeed: 1,
   showSpeedSelector: false,
   selectedLanguage: 'English',
-  episodeRange: [1, 40],
+  episodeRange: [1, 40] as [number, number],
   hoveredEpisodeId: null,
   showPurchaseDialog: false,
   purchaseLoading: false,
 })
 
-export const usePlayerStore = () => {
-  const state = useSyncExternalStore(playerStore.subscribe, playerStore.getState)
-  return state
-}
+export const playerStore = playerState
 
 export const playerStoreActions = {
-  setSeries: (series: Series | null) => playerStore.setState((prev) => ({ ...prev, series })),
-  setEpisodes: (episodes: Episode[]) => playerStore.setState((prev) => ({ ...prev, episodes })),
-  setCurrentEpisode: (currentEpisode: Episode | null) => playerStore.setState((prev) => ({ ...prev, currentEpisode })),
-  setLoading: (loading: boolean) => playerStore.setState((prev) => ({ ...prev, loading })),
-  setIsPlaying: (isPlaying: boolean) => playerStore.setState((prev) => ({ ...prev, isPlaying })),
-  setShowControls: (showControls: boolean) => playerStore.setState((prev) => ({ ...prev, showControls })),
-  setCurrentTime: (currentTime: number) => playerStore.setState((prev) => ({ ...prev, currentTime })),
-  setDuration: (duration: number) => playerStore.setState((prev) => ({ ...prev, duration })),
-  setVolume: (volume: number) => playerStore.setState((prev) => ({ ...prev, volume })),
-  setPlaybackSpeed: (playbackSpeed: number) => playerStore.setState((prev) => ({ ...prev, playbackSpeed })),
-  setShowSpeedSelector: (showSpeedSelector: boolean) => playerStore.setState((prev) => ({ ...prev, showSpeedSelector })),
-  setSelectedLanguage: (selectedLanguage: string) => playerStore.setState((prev) => ({ ...prev, selectedLanguage })),
-  setEpisodeRange: (episodeRange: [number, number]) => playerStore.setState((prev) => ({ ...prev, episodeRange })),
-  setHoveredEpisodeId: (hoveredEpisodeId: string | null) => playerStore.setState((prev) => ({ ...prev, hoveredEpisodeId })),
-  setShowPurchaseDialog: (showPurchaseDialog: boolean) => playerStore.setState((prev) => ({ ...prev, showPurchaseDialog })),
-  setPurchaseLoading: (purchaseLoading: boolean) => playerStore.setState((prev) => ({ ...prev, purchaseLoading })),
-  reset: () => playerStore.setState({
+  setSeries: (series: Series | null) => setPlayerState({ series }),
+  setEpisodes: (episodes: Episode[]) => setPlayerState({ episodes }),
+  setCurrentEpisode: (currentEpisode: Episode | null) => setPlayerState({ currentEpisode }),
+  setLoading: (loading: boolean) => setPlayerState({ loading }),
+  setIsPlaying: (isPlaying: boolean) => setPlayerState({ isPlaying }),
+  setShowControls: (showControls: boolean) => setPlayerState({ showControls }),
+  setCurrentTime: (currentTime: number) => setPlayerState({ currentTime }),
+  setDuration: (duration: number) => setPlayerState({ duration }),
+  setVolume: (volume: number) => setPlayerState({ volume }),
+  setPlaybackSpeed: (playbackSpeed: number) => setPlayerState({ playbackSpeed }),
+  setShowSpeedSelector: (showSpeedSelector: boolean) => setPlayerState({ showSpeedSelector }),
+  setSelectedLanguage: (selectedLanguage: string) => setPlayerState({ selectedLanguage }),
+  setEpisodeRange: (episodeRange: [number, number]) => setPlayerState({ episodeRange }),
+  setHoveredEpisodeId: (hoveredEpisodeId: string | null) => setPlayerState({ hoveredEpisodeId }),
+  setShowPurchaseDialog: (showPurchaseDialog: boolean) => setPlayerState({ showPurchaseDialog }),
+  setPurchaseLoading: (purchaseLoading: boolean) => setPlayerState({ purchaseLoading }),
+  reset: () => setPlayerState({
     series: null,
     episodes: [],
     currentEpisode: null,
@@ -211,12 +157,12 @@ export const playerStoreActions = {
     playbackSpeed: 1,
     showSpeedSelector: false,
     selectedLanguage: 'English',
-    episodeRange: [1, 40],
+    episodeRange: [1, 40] as [number, number],
     hoveredEpisodeId: null,
     showPurchaseDialog: false,
     purchaseLoading: false,
   }),
-  getState: playerStore.getState,
+  getState: () => playerState,
 }
 
 // Login modal store
@@ -225,20 +171,17 @@ interface LoginModalState {
   redirectPath: string | null
 }
 
-const loginModalStore = createStore<LoginModalState>({
+const [loginModalState, setLoginModalState] = createStore<LoginModalState>({
   isOpen: false,
   redirectPath: null,
 })
 
-export const useLoginModalStore = () => {
-  const state = useSyncExternalStore(loginModalStore.subscribe, loginModalStore.getState)
-  return state
-}
+export const loginModalStore = loginModalState
 
 export const loginModalStoreActions = {
-  open: (redirectPath?: string) => loginModalStore.setState({ isOpen: true, redirectPath: redirectPath || null }),
-  close: () => loginModalStore.setState({ isOpen: false, redirectPath: null }),
-  getState: loginModalStore.getState,
+  open: (redirectPath?: string) => setLoginModalState({ isOpen: true, redirectPath: redirectPath || null }),
+  close: () => setLoginModalState({ isOpen: false, redirectPath: null }),
+  getState: () => loginModalState,
 }
 
 // Toast notification store
@@ -248,24 +191,21 @@ interface ToastState {
   isVisible: boolean
 }
 
-const toastStore = createStore<ToastState>({
+const [toastState, setToastState] = createStore<ToastState>({
   message: '',
   type: 'info',
   isVisible: false,
 })
 
-export const useToastStore = () => {
-  const state = useSyncExternalStore(toastStore.subscribe, toastStore.getState)
-  return state
-}
+export const toastStore = toastState
 
 export const toastStoreActions = {
   show: (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    toastStore.setState({ message, type, isVisible: true })
-    setTimeout(() => toastStore.setState((prev) => ({ ...prev, isVisible: false })), 3000)
+    setToastState({ message, type, isVisible: true })
+    setTimeout(() => setToastState({ isVisible: false }), 3000)
   },
-  hide: () => toastStore.setState((prev) => ({ ...prev, isVisible: false })),
-  getState: toastStore.getState,
+  hide: () => setToastState({ isVisible: false }),
+  getState: () => toastState,
 }
 
 // Video Feed store (for TikTok-style home page)
@@ -278,7 +218,7 @@ interface VideoFeedState {
   isMuted: boolean
 }
 
-const videoFeedStore = createStore<VideoFeedState>({
+const [videoFeedState, setVideoFeedState] = createStore<VideoFeedState>({
   videos: [],
   currentIndex: 0,
   loading: true,
@@ -287,21 +227,18 @@ const videoFeedStore = createStore<VideoFeedState>({
   isMuted: true,
 })
 
-export const useVideoFeedStore = () => {
-  const state = useSyncExternalStore(videoFeedStore.subscribe, videoFeedStore.getState)
-  return state
-}
+export const videoFeedStore = videoFeedState
 
 export const videoFeedStoreActions = {
-  setVideos: (videos: Series[]) => videoFeedStore.setState((prev) => ({ ...prev, videos })),
-  appendVideos: (videos: Series[]) => videoFeedStore.setState((prev) => ({ ...prev, videos: [...prev.videos, ...videos] })),
-  setCurrentIndex: (currentIndex: number) => videoFeedStore.setState((prev) => ({ ...prev, currentIndex })),
-  setLoading: (loading: boolean) => videoFeedStore.setState((prev) => ({ ...prev, loading })),
-  setHasMore: (hasMore: boolean) => videoFeedStore.setState((prev) => ({ ...prev, hasMore })),
-  setPage: (page: number) => videoFeedStore.setState((prev) => ({ ...prev, page })),
-  setIsMuted: (isMuted: boolean) => videoFeedStore.setState((prev) => ({ ...prev, isMuted })),
-  toggleMute: () => videoFeedStore.setState((prev) => ({ ...prev, isMuted: !prev.isMuted })),
-  reset: () => videoFeedStore.setState({
+  setVideos: (videos: Series[]) => setVideoFeedState({ videos }),
+  appendVideos: (videos: Series[]) => setVideoFeedState('videos', (prev) => [...prev, ...videos]),
+  setCurrentIndex: (currentIndex: number) => setVideoFeedState({ currentIndex }),
+  setLoading: (loading: boolean) => setVideoFeedState({ loading }),
+  setHasMore: (hasMore: boolean) => setVideoFeedState({ hasMore }),
+  setPage: (page: number) => setVideoFeedState({ page }),
+  setIsMuted: (isMuted: boolean) => setVideoFeedState({ isMuted }),
+  toggleMute: () => setVideoFeedState('isMuted', (prev) => !prev),
+  reset: () => setVideoFeedState({
     videos: [],
     currentIndex: 0,
     loading: true,
@@ -309,9 +246,9 @@ export const videoFeedStoreActions = {
     page: 1,
     isMuted: true,
   }),
-  getState: videoFeedStore.getState,
+  getState: () => videoFeedState,
 }
 
 // Export getters for external access
-export const getPlayerStore = playerStore.getState
-export const getUserStore = userStore.getState
+export const getPlayerStore = () => playerState
+export const getUserStore = () => userState

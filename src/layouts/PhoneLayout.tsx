@@ -1,41 +1,33 @@
-import React from 'react'
+import { Show } from 'solid-js'
+import type { JSX } from 'solid-js'
 import PhoneNavBar from '../components/phone/PhoneNavBar'
 import PhoneHeader from '../components/phone/PhoneHeader'
 import './PhoneLayout.css'
 
 interface PhoneLayoutProps {
-  children: React.ReactNode
+  children?: JSX.Element
   title?: string
   showHeader?: boolean
   showBackButton?: boolean
   onBack?: () => void
-  rightAction?: React.ReactNode
+  rightAction?: JSX.Element
 }
 
-const PhoneLayout: React.FC<PhoneLayoutProps> = ({
-  children,
-  title,
-  showHeader = true,
-  showBackButton = false,
-  onBack,
-  rightAction,
-}) => {
-  return (
-    <div className="phone-layout">
-      {showHeader && (
-        <PhoneHeader
-          title={title}
-          showBackButton={showBackButton}
-          onBack={onBack}
-          rightAction={rightAction}
-        />
-      )}
-      <main className="phone-content">
-        {children}
-      </main>
-      <PhoneNavBar />
-    </div>
-  )
-}
+const PhoneLayout = (props: PhoneLayoutProps) => (
+  <div class="phone-layout">
+    <Show when={props.showHeader !== false}>
+      <PhoneHeader
+        title={props.title}
+        showBackButton={props.showBackButton}
+        onBack={props.onBack}
+        rightAction={props.rightAction}
+      />
+    </Show>
+    <main class="phone-content">
+      {props.children}
+    </main>
+    <PhoneNavBar />
+  </div>
+)
 
 export default PhoneLayout

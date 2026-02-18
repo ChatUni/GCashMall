@@ -1,5 +1,4 @@
-import React from 'react'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import './PurchaseDialog.css'
 
 interface PurchaseDialogProps {
@@ -9,56 +8,49 @@ interface PurchaseDialogProps {
   loading?: boolean
 }
 
-const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
-  episodeCost,
-  onPurchase,
-  onCancel,
-  loading = false,
-}) => {
-  const { t } = useLanguage()
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
+const PurchaseDialog = (props: PurchaseDialogProps) => {
+  const handleOverlayClick = (e: MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onCancel()
+      props.onCancel()
     }
   }
 
   const getMessage = () => {
     const message =
-      t.player?.purchaseDialog?.message ||
+      t().player?.purchaseDialog?.message ||
       'You must purchase the episode in order to continue watching. It will cost {cost} GCash.'
-    return message.replace('{cost}', String(episodeCost))
+    return message.replace('{cost}', String(props.episodeCost))
   }
 
   return (
-    <div className="purchase-dialog-overlay" onClick={handleOverlayClick}>
-      <div className="purchase-dialog">
-        <h2 className="purchase-dialog-title">
-          {t.player?.purchaseDialog?.title || 'Purchase Required'}
+    <div class="purchase-dialog-overlay" onClick={handleOverlayClick}>
+      <div class="purchase-dialog">
+        <h2 class="purchase-dialog-title">
+          {t().player?.purchaseDialog?.title || 'Purchase Required'}
         </h2>
 
-        <p className="purchase-dialog-message">{getMessage()}</p>
+        <p class="purchase-dialog-message">{getMessage()}</p>
 
-        <p className="purchase-dialog-confirm">
-          {t.player?.purchaseDialog?.confirm || 'Do you want to purchase?'}
+        <p class="purchase-dialog-confirm">
+          {t().player?.purchaseDialog?.confirm || 'Do you want to purchase?'}
         </p>
 
-        <div className="purchase-dialog-buttons">
+        <div class="purchase-dialog-buttons">
           <button
-            className="purchase-dialog-btn purchase-dialog-btn-purchase"
-            onClick={onPurchase}
-            disabled={loading}
+            class="purchase-dialog-btn purchase-dialog-btn-purchase"
+            onClick={props.onPurchase}
+            disabled={props.loading}
           >
-            {loading
+            {props.loading
               ? '...'
-              : t.player?.purchaseDialog?.purchaseButton || 'Purchase'}
+              : t().player?.purchaseDialog?.purchaseButton || 'Purchase'}
           </button>
           <button
-            className="purchase-dialog-btn purchase-dialog-btn-cancel"
-            onClick={onCancel}
-            disabled={loading}
+            class="purchase-dialog-btn purchase-dialog-btn-cancel"
+            onClick={props.onCancel}
+            disabled={props.loading}
           >
-            {t.player?.purchaseDialog?.cancelButton || 'Cancel'}
+            {t().player?.purchaseDialog?.cancelButton || 'Cancel'}
           </button>
         </div>
       </div>

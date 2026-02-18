@@ -1,7 +1,7 @@
-import React, { useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { For } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import SeriesCard from './SeriesCard'
-import { useLanguage } from '../context/LanguageContext'
+import { t } from '../stores/languageStore'
 import type { Series } from '../types'
 import './SeriesCarousel.css'
 
@@ -12,32 +12,27 @@ interface SeriesCarouselProps {
   excludeSeriesId?: string
 }
 
-const SeriesCarousel: React.FC<SeriesCarouselProps> = ({ 
-  title, 
-  series, 
-  loading = false,
-  excludeSeriesId 
-}) => {
-  const { t } = useLanguage()
+const SeriesCarousel = (props: SeriesCarouselProps) => {
   const navigate = useNavigate()
-  const carouselRef = useRef<HTMLDivElement>(null)
+  let carouselRef: HTMLDivElement | undefined
 
   // Filter out excluded series if provided
-  const filteredSeries = excludeSeriesId 
-    ? series.filter(s => s._id !== excludeSeriesId)
-    : series
+  const filteredSeries = () =>
+    props.excludeSeriesId
+      ? props.series.filter((s) => s._id !== props.excludeSeriesId)
+      : props.series
 
   const scrollLeft = () => {
-    if (carouselRef.current) {
-      const scrollAmount = carouselRef.current.clientWidth * 0.8
-      carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+    if (carouselRef) {
+      const scrollAmount = carouselRef.clientWidth * 0.8
+      carouselRef.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
     }
   }
 
   const scrollRight = () => {
-    if (carouselRef.current) {
-      const scrollAmount = carouselRef.current.clientWidth * 0.8
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    if (carouselRef) {
+      const scrollAmount = carouselRef.clientWidth * 0.8
+      carouselRef.scrollBy({ left: scrollAmount, behavior: 'smooth' })
     }
   }
 
@@ -45,38 +40,38 @@ const SeriesCarousel: React.FC<SeriesCarouselProps> = ({
     navigate('/genre')
   }
 
-  if (loading) {
-    return <div className="series-section loading">Loading...</div>
+  if (props.loading) {
+    return <div class="series-section loading">Loading...</div>
   }
 
   return (
-    <section className="series-section">
-      <div className="series-section-header">
-        <h2 className="series-section-title">{title}</h2>
-        <div className="carousel-controls">
-          <button 
-            className="carousel-arrow carousel-arrow-left" 
+    <section class="series-section">
+      <div class="series-section-header">
+        <h2 class="series-section-title">{props.title}</h2>
+        <div class="carousel-controls">
+          <button
+            class="carousel-arrow carousel-arrow-left"
             onClick={scrollLeft}
             aria-label="Scroll left"
           />
-          <button 
-            className="carousel-arrow carousel-arrow-right" 
+          <button
+            class="carousel-arrow carousel-arrow-right"
             onClick={scrollRight}
             aria-label="Scroll right"
           />
         </div>
       </div>
-      <div className="series-carousel" ref={carouselRef}>
-        {filteredSeries.map((item) => (
-          <SeriesCard key={item._id} series={item} />
-        ))}
-        <div className="view-more-card" onClick={handleViewMore}>
-          <div className="view-more-content">
-            <svg className="view-more-arrow" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+      <div class="series-carousel" ref={carouselRef}>
+        <For each={filteredSeries()}>
+          {(item) => <SeriesCard series={item} />}
+        </For>
+        <div class="view-more-card" onClick={handleViewMore}>
+          <div class="view-more-content">
+            <svg class="view-more-arrow" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
             </svg>
           </div>
-          <span className="view-more-text">{t.home.viewMore || 'View More'}</span>
+          <span class="view-more-text">{t().home.viewMore || 'View More'}</span>
         </div>
       </div>
     </section>

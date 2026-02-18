@@ -1,23 +1,23 @@
-import React, { useRef, useEffect } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { createSignal, createEffect, onCleanup, Show, For } from 'solid-js'
+import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
 import LoginModal from '../../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../../components/PlayerModals'
-import { useLanguage } from '../../context/LanguageContext'
+import { t } from '../../stores/languageStore'
 import {
-  usePlayerStore,
-  useLoginModalStore,
-  useUserStore,
+  playerStore,
+  loginModalStore,
+  userStore,
   playerStoreActions,
   loginModalStoreActions,
   userStoreActions,
-  useRecommendationsStore,
-  useNewReleasesStore,
-  useToastStore,
+  recommendationsStore,
+  newReleasesStore,
+  toastStore,
 } from '../../stores'
 import {
-  usePlayerPageStore,
+  playerPageStore,
   playerPageStoreActions,
   checkSeriesFavorited,
   isCurrentEpisodePurchased,
@@ -29,392 +29,407 @@ import {
 } from '../../stores/playerStore'
 import { accountStoreActions } from '../../stores/accountStore'
 import { getIframeUrl } from '../../utils/playerHelpers'
+import type { User } from '../../types'
 import './PhonePlayer.css'
 
-const PhonePlayer: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
+const PhonePlayer = () => {
+  const params = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { t } = useLanguage()
 
-  // Subscribe to stores
-  const playerState = usePlayerStore()
-  const playerPageState = usePlayerPageStore()
-  const loginModalState = useLoginModalStore()
-  const userState = useUserStore()
-  const { series: recommendations } = useRecommendationsStore()
-  const { series: newReleases } = useNewReleasesStore()
-  const toastState = useToastStore()
+  let iframeRef: HTMLIFrameElement | undefined
+  let descriptionRef: HTMLParagraphElement | undefined
 
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const descriptionRef = useRef<HTMLParagraphElement>(null)
-  const [iframeLoaded, setIframeLoaded] = React.useState(false)
+  const [iframeLoaded, setIframeLoaded] = createSignal(false)
 
   // Initialize data
-  if (id) {
-    playerPageStoreActions.initialize(id, true) // true = fetch recommendations
-  }
+  createEffect(() => {
+    const id = params.id
+    if (id) {
+      playerPageStoreActions.initialize(id, true) // true = fetch recommendations
+    }
+  })
 
   // Episode selection logic
-  const episodeNumberFromUrl = searchParams.get('episode')
-  if (playerState.episodes.length > 0 && !playerState.loading && id) {
-    playerPageStoreActions.selectEpisodeFromUrlOrWatchList(episodeNumberFromUrl)
-  }
+  createEffect(() => {
+    const episodeNumberFromUrl = (searchParams.episode as string | undefined) || null
+    if (playerStore.episodes.length > 0 && !playerStore.loading && params.id) {
+      playerPageStoreActions.selectEpisodeFromUrlOrWatchList(episodeNumberFromUrl)
+    }
+  })
 
   // Derived state from store
-  const isFavorited = checkSeriesFavorited(id)
-  const isPurchased = isCurrentEpisodePurchased()
-  const filteredEpisodes = getFilteredEpisodes()
-  const ranges = getEpisodeRangeOptions()
+  const isFavorited = () => checkSeriesFavorited(params.id)
+  const isPurchased = () => isCurrentEpisodePurchased()
+  const filteredEpisodes = () => getFilteredEpisodes()
+  const ranges = () => getEpisodeRangeOptions()
 
   // Check description truncation
-  useEffect(() => {
-    const checkTruncation = () => {
-      if (descriptionRef.current) {
-        const element = descriptionRef.current
-        const isTruncated = element.scrollHeight > element.clientHeight
-        playerPageStoreActions.setShowExpandButton(isTruncated)
-      }
-    }
+  createEffect(() => {
+    // Track dependencies
+    const _ep = playerStore.currentEpisode
+    const _series = playerStore.series
 
     playerPageStoreActions.setDescriptionExpanded(false)
-    const timer = setTimeout(checkTruncation, 100)
-    return () => clearTimeout(timer)
-  }, [playerState.currentEpisode, playerState.series])
+    const timer = setTimeout(() => {
+      if (descriptionRef) {
+        const isTruncated = descriptionRef.scrollHeight > descriptionRef.clientHeight
+        playerPageStoreActions.setShowExpandButton(isTruncated)
+      }
+    }, 100)
+
+    onCleanup(() => clearTimeout(timer))
+  })
 
   // Player.js initialization
-  const currentVideoId = playerState.currentEpisode?.videoId
-  const userId = userState.user?._id
-
-  useEffect(() => {
+  createEffect(() => {
+    const currentVideoId = playerStore.currentEpisode?.videoId
+    const _userId = userStore.user?._id
     setIframeLoaded(false)
-  }, [currentVideoId, userId])
+  })
 
   const handleIframeLoad = () => {
     setIframeLoaded(true)
   }
 
-  useEffect(() => {
-    if (!currentVideoId || !iframeLoaded) return
+  createEffect(() => {
+    const currentVideoId = playerStore.currentEpisode?.videoId
+    const purchased = isPurchased()
+    const loaded = iframeLoaded()
 
+    if (!currentVideoId || !loaded) return
+
+    const iframeRefObj = { current: iframeRef || null }
     const cleanup = initializePlayerJsWithTrialLimit(
-      iframeRef,
+      iframeRefObj,
       currentVideoId,
-      isPurchased,
+      purchased,
       playerPageStoreActions.handleTimeLimitReached,
     )
 
-    return cleanup
-  }, [currentVideoId, isPurchased, iframeLoaded])
+    onCleanup(() => {
+      if (cleanup) cleanup()
+    })
+  })
 
-  useEffect(() => {
-    if (!iframeLoaded) return
-    updatePlayerJsPurchaseStatus(currentVideoId, isPurchased)
-  }, [isPurchased, currentVideoId, iframeLoaded])
+  createEffect(() => {
+    const currentVideoId = playerStore.currentEpisode?.videoId
+    const purchased = isPurchased()
+    const loaded = iframeLoaded()
 
-  // Loading state
-  if (playerState.loading) {
-    return (
-      <PhoneLayout showHeader={true} showBackButton={true} title="">
-        <div className="phone-player-loading">Loading...</div>
-      </PhoneLayout>
-    )
-  }
+    if (!loaded) return
+    updatePlayerJsPurchaseStatus(currentVideoId, purchased)
+  })
 
-  // Error state
-  if (!playerState.series) {
-    return (
-      <PhoneLayout showHeader={true} showBackButton={true} title="">
-        <div className="phone-player-error">Series not found</div>
-      </PhoneLayout>
-    )
+  const handleLoginSuccess = (user: User) => {
+    userStoreActions.setUser(user)
+    userStoreActions.setLoading(false)
+    accountStoreActions.initializeUserData(user)
+    loginModalStoreActions.close()
   }
 
   return (
-    <PhoneLayout showHeader={false}>
-      <div className="phone-player">
-        {/* Video Player */}
-        <div className="phone-video-container">
-          <button className="phone-player-back" onClick={() => navigate(-1)}>
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-
-          {playerState.currentEpisode?.videoId ? (
-            <iframe
-              key={`${playerState.currentEpisode.videoId}-${userId || 'anon'}`}
-              ref={iframeRef}
-              src={getIframeUrl(
-                import.meta.env.VITE_BUNNY_LIBRARY_ID,
-                playerState.currentEpisode.videoId,
-              )}
-              loading="lazy"
-              className="phone-video-iframe"
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-              onLoad={handleIframeLoad}
-            />
-          ) : (
-            <div className="phone-video-placeholder">No video available</div>
-          )}
-        </div>
-
-        {/* Episode Info */}
-        <div className="phone-player-info">
-          <div className="phone-player-header">
-            <div className="phone-player-title-section">
-              <h1 className="phone-player-title">{playerState.series.name}</h1>
-              <span className="phone-player-episode">
-                EP {playerState.currentEpisode?.episodeNumber.toString().padStart(2, '0')}
-                {playerState.currentEpisode?.title
-                  ? ` - ${playerState.currentEpisode.title}`
-                  : ''}
-              </span>
-            </div>
-            <div className="phone-player-actions">
-              <button
-                className={`phone-action-btn phone-action-btn-large ${isFavorited ? 'active' : ''}`}
-                onClick={playerPageStoreActions.handleFavoriteToggle}
-              >
-                <svg viewBox="0 0 24 24" width="32" height="32">
-                  <path
-                    fill={isFavorited ? '#ef4444' : 'none'}
-                    stroke={isFavorited ? '#ef4444' : 'currentColor'}
-                    strokeWidth="2"
-                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                  />
-                </svg>
-              </button>
-              {!isPurchased && (
-                <button
-                  className="phone-action-btn phone-action-btn-large locked"
-                  onClick={playerPageStoreActions.handleUnlockClick}
-                >
-                  <svg viewBox="0 0 24 24" width="32" height="32">
-                    <path
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="phone-player-tags">
-            {playerState.series.tags?.map((tag, index) => (
-              <span key={index} className="phone-player-tag">
-                {tag}
-              </span>
-            ))}
-            {playerState.series.genre?.map((genre) => (
-              <span key={genre._id} className="phone-player-tag">
-                {genre.name}
-              </span>
-            ))}
-          </div>
-
-          {/* Description */}
-          <div className="phone-player-description-container">
-            <p
-              ref={descriptionRef}
-              className={`phone-player-description ${playerPageState.isDescriptionExpanded ? 'expanded' : ''}`}
-            >
-              {playerState.currentEpisode?.description || playerState.series.description}
-            </p>
-            {playerPageState.showExpandButton && (
-              <button
-                className={`phone-player-expand-btn ${playerPageState.isDescriptionExpanded ? 'expanded' : ''}`}
-                onClick={playerPageStoreActions.toggleDescription}
-              >
-                {playerPageState.isDescriptionExpanded
-                  ? (t.player as unknown as Record<string, string>).collapse || 'Show Less'
-                  : (t.player as unknown as Record<string, string>).expand || 'Show More'}
+    <Show
+      when={!playerStore.loading}
+      fallback={
+        <PhoneLayout showHeader={true} showBackButton={true} title="">
+          <div class="phone-player-loading">Loading...</div>
+        </PhoneLayout>
+      }
+    >
+      <Show
+        when={playerStore.series}
+        fallback={
+          <PhoneLayout showHeader={true} showBackButton={true} title="">
+            <div class="phone-player-error">Series not found</div>
+          </PhoneLayout>
+        }
+      >
+        <PhoneLayout showHeader={false}>
+          <div class="phone-player">
+            {/* Video Player */}
+            <div class="phone-video-container">
+              <button class="phone-player-back" onClick={() => navigate(-1)}>
                 <svg
-                  width="14"
-                  height="14"
+                  width="28"
+                  height="28"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  stroke-width="2.5"
                 >
-                  <polyline points="6,9 12,15 18,9" />
+                  <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-            )}
-          </div>
-        </div>
 
-        {/* Episode List Toggle */}
-        <button
-          className="phone-episode-toggle"
-          onClick={playerPageStoreActions.toggleEpisodeList}
-        >
-          <span>
-            {t.player.episodes} ({playerState.episodes.length})
-          </span>
-          <svg
-            className={`phone-episode-arrow ${playerPageState.showEpisodeList ? 'open' : ''}`}
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="6,9 12,15 18,9" />
-          </svg>
-        </button>
-
-        {/* Episode List */}
-        {playerPageState.showEpisodeList && (
-          <div className="phone-episode-list">
-            {/* Range Selector */}
-            {ranges.length > 1 && (
-              <div className="phone-episode-ranges">
-                {ranges.map(([start, end]) => (
-                  <button
-                    key={`${start}-${end}`}
-                    className={`phone-range-btn ${
-                      playerState.episodeRange[0] === start &&
-                      playerState.episodeRange[1] === end
-                        ? 'active'
-                        : ''
-                    }`}
-                    onClick={() => playerStoreActions.setEpisodeRange([start, end])}
-                  >
-                    {start.toString().padStart(2, '0')}-{end.toString().padStart(2, '0')}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Episode Grid */}
-            <div className="phone-episode-grid">
-              {filteredEpisodes.map((episode) => (
-                <div
-                  key={episode.episodeNumber}
-                  className={`phone-episode-thumbnail ${
-                    playerState.currentEpisode?.episodeNumber === episode.episodeNumber
-                      ? 'active'
-                      : ''
-                  }`}
-                  onClick={() => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
-                >
-                  <img
-                    src={`https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`}
-                    alt={`Episode ${episode.episodeNumber}`}
-                    className="phone-episode-thumb-img"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src =
-                        playerState.series?.cover || '/placeholder.jpg'
-                    }}
-                  />
-                  <span className="phone-episode-badge">
-                    EP {episode.episodeNumber.toString().padStart(2, '0')}
-                  </span>
-                  {checkEpisodePurchased(episode._id, episode.episodeNumber) && (
-                    <span className="phone-episode-ribbon" />
+              <Show
+                when={playerStore.currentEpisode?.videoId}
+                fallback={
+                  <div class="phone-video-placeholder">No video available</div>
+                }
+              >
+                <iframe
+                  ref={iframeRef}
+                  src={getIframeUrl(
+                    import.meta.env.VITE_BUNNY_LIBRARY_ID,
+                    playerStore.currentEpisode!.videoId!,
                   )}
-                </div>
-              ))}
+                  loading="lazy"
+                  class="phone-video-iframe"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen
+                  onLoad={handleIframeLoad}
+                />
+              </Show>
             </div>
+
+            {/* Episode Info */}
+            <div class="phone-player-info">
+              <div class="phone-player-header">
+                <div class="phone-player-title-section">
+                  <h1 class="phone-player-title">{playerStore.series!.name}</h1>
+                  <span class="phone-player-episode">
+                    EP {playerStore.currentEpisode?.episodeNumber.toString().padStart(2, '0')}
+                    {playerStore.currentEpisode?.title
+                      ? ` - ${playerStore.currentEpisode.title}`
+                      : ''}
+                  </span>
+                </div>
+                <div class="phone-player-actions">
+                  <button
+                    class={`phone-action-btn phone-action-btn-large ${isFavorited() ? 'active' : ''}`}
+                    onClick={playerPageStoreActions.handleFavoriteToggle}
+                  >
+                    <svg viewBox="0 0 24 24" width="32" height="32">
+                      <path
+                        fill={isFavorited() ? '#ef4444' : 'none'}
+                        stroke={isFavorited() ? '#ef4444' : 'currentColor'}
+                        stroke-width="2"
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                      />
+                    </svg>
+                  </button>
+                  <Show when={!isPurchased()}>
+                    <button
+                      class="phone-action-btn phone-action-btn-large locked"
+                      onClick={playerPageStoreActions.handleUnlockClick}
+                    >
+                      <svg viewBox="0 0 24 24" width="32" height="32">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+                        />
+                      </svg>
+                    </button>
+                  </Show>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div class="phone-player-tags">
+                <For each={playerStore.series!.tags || []}>
+                  {(tag) => (
+                    <span class="phone-player-tag">{tag}</span>
+                  )}
+                </For>
+                <For each={playerStore.series!.genre || []}>
+                  {(genre) => (
+                    <span class="phone-player-tag">{genre.name}</span>
+                  )}
+                </For>
+              </div>
+
+              {/* Description */}
+              <div class="phone-player-description-container">
+                <p
+                  ref={descriptionRef}
+                  class={`phone-player-description ${playerPageStore.isDescriptionExpanded ? 'expanded' : ''}`}
+                >
+                  {playerStore.currentEpisode?.description || playerStore.series!.description}
+                </p>
+                <Show when={playerPageStore.showExpandButton}>
+                  <button
+                    class={`phone-player-expand-btn ${playerPageStore.isDescriptionExpanded ? 'expanded' : ''}`}
+                    onClick={playerPageStoreActions.toggleDescription}
+                  >
+                    {playerPageStore.isDescriptionExpanded
+                      ? (t().player as unknown as Record<string, string>).collapse || 'Show Less'
+                      : (t().player as unknown as Record<string, string>).expand || 'Show More'}
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <polyline points="6,9 12,15 18,9" />
+                    </svg>
+                  </button>
+                </Show>
+              </div>
+            </div>
+
+            {/* Episode List Toggle */}
+            <button
+              class="phone-episode-toggle"
+              onClick={playerPageStoreActions.toggleEpisodeList}
+            >
+              <span>
+                {t().player.episodes} ({playerStore.episodes.length})
+              </span>
+              <svg
+                class={`phone-episode-arrow ${playerPageStore.showEpisodeList ? 'open' : ''}`}
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </button>
+
+            {/* Episode List */}
+            <Show when={playerPageStore.showEpisodeList}>
+              <div class="phone-episode-list">
+                {/* Range Selector */}
+                <Show when={ranges().length > 1}>
+                  <div class="phone-episode-ranges">
+                    <For each={ranges()}>
+                      {([start, end]) => (
+                        <button
+                          class={`phone-range-btn ${
+                            playerStore.episodeRange[0] === start &&
+                            playerStore.episodeRange[1] === end
+                              ? 'active'
+                              : ''
+                          }`}
+                          onClick={() => playerStoreActions.setEpisodeRange([start, end])}
+                        >
+                          {start.toString().padStart(2, '0')}-{end.toString().padStart(2, '0')}
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+
+                {/* Episode Grid */}
+                <div class="phone-episode-grid">
+                  <For each={filteredEpisodes()}>
+                    {(episode) => (
+                      <div
+                        class={`phone-episode-thumbnail ${
+                          playerStore.currentEpisode?.episodeNumber === episode.episodeNumber
+                            ? 'active'
+                            : ''
+                        }`}
+                        onClick={() => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
+                      >
+                        <img
+                          src={`https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`}
+                          alt={`Episode ${episode.episodeNumber}`}
+                          class="phone-episode-thumb-img"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).src =
+                              playerStore.series?.cover || '/placeholder.jpg'
+                          }}
+                        />
+                        <span class="phone-episode-badge">
+                          EP {episode.episodeNumber.toString().padStart(2, '0')}
+                        </span>
+                        <Show when={checkEpisodePurchased(episode._id, episode.episodeNumber)}>
+                          <span class="phone-episode-ribbon" />
+                        </Show>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </div>
+            </Show>
+
+            {/* Recommendations */}
+            <PhoneSeriesCarousel
+              title={t().home.youMightLike}
+              series={recommendationsStore.series}
+              excludeSeriesId={params.id}
+            />
+
+            {/* New Releases */}
+            <PhoneSeriesCarousel
+              title={t().home.newReleases}
+              series={newReleasesStore.series}
+              excludeSeriesId={params.id}
+            />
           </div>
-        )}
 
-        {/* Recommendations */}
-        <PhoneSeriesCarousel
-          title={t.home.youMightLike}
-          series={recommendations}
-          excludeSeriesId={id}
-        />
+          {/* Login Modal */}
+          <Show when={loginModalStore.isOpen}>
+            <LoginModal
+              onClose={loginModalStoreActions.close}
+              onLoginSuccess={handleLoginSuccess}
+            />
+          </Show>
 
-        {/* New Releases */}
-        <PhoneSeriesCarousel
-          title={t.home.newReleases}
-          series={newReleases}
-          excludeSeriesId={id}
-        />
-      </div>
+          {/* Purchase Popup */}
+          <Show when={playerPageStore.showPurchasePopup && playerStore.currentEpisode}>
+            <PurchasePopup
+              seriesName={playerStore.series?.name || ''}
+              episodeNumber={playerStore.currentEpisode!.episodeNumber}
+              episodeTitle={playerStore.currentEpisode!.title}
+              userBalance={userStore.user?.balance || 0}
+              isPurchasing={playerPageStore.isPurchasing}
+              onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t())}
+              onCancel={playerPageStoreActions.hidePurchasePopup}
+              t={t().player}
+            />
+          </Show>
 
-      {/* Login Modal */}
-      {loginModalState.isOpen && (
-        <LoginModal
-          onClose={loginModalStoreActions.close}
-          onLoginSuccess={(user) => {
-            userStoreActions.setUser(user)
-            userStoreActions.setLoading(false)
-            accountStoreActions.initializeUserData(user)
-            loginModalStoreActions.close()
-          }}
-        />
-      )}
+          {/* Favorite Modal */}
+          <Show when={playerPageStore.showFavoriteModal}>
+            <FavoriteModal
+              action={playerPageStore.pendingFavoriteAction || 'add'}
+              seriesName={playerStore.series?.name || ''}
+              dontShowAgain={playerPageStore.favoriteModalDontShowAgain}
+              onDontShowAgainChange={playerPageStoreActions.setFavoriteModalDontShowAgain}
+              onConfirm={playerPageStoreActions.handleFavoriteConfirm}
+              onCancel={playerPageStoreActions.hideFavoriteModal}
+              t={t().player}
+            />
+          </Show>
 
-      {/* Purchase Popup */}
-      {playerPageState.showPurchasePopup && playerState.currentEpisode && (
-        <PurchasePopup
-          seriesName={playerState.series?.name || ''}
-          episodeNumber={playerState.currentEpisode.episodeNumber}
-          episodeTitle={playerState.currentEpisode.title}
-          userBalance={userState.user?.balance || 0}
-          isPurchasing={playerPageState.isPurchasing}
-          onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t)}
-          onCancel={playerPageStoreActions.hidePurchasePopup}
-          t={t.player}
-        />
-      )}
+          {/* Result Modal */}
+          <Show when={playerPageStore.showResultModal}>
+            <ResultModal
+              type={playerPageStore.resultModalType}
+              title={
+                playerPageStore.resultModalType === 'success'
+                  ? t().player.unlockSuccess
+                  : t().player.unlockFailed
+              }
+              message={playerPageStore.resultModalMessage}
+              buttonText={
+                playerPageStore.resultModalType === 'error' &&
+                playerPageStore.resultModalMessage.includes('balance')
+                  ? t().player.goToWallet
+                  : 'OK'
+              }
+              onClose={() => playerPageStoreActions.handleResultModalClose(navigate)}
+            />
+          </Show>
 
-      {/* Favorite Modal */}
-      {playerPageState.showFavoriteModal && (
-        <FavoriteModal
-          action={playerPageState.pendingFavoriteAction || 'add'}
-          seriesName={playerState.series?.name || ''}
-          dontShowAgain={playerPageState.favoriteModalDontShowAgain}
-          onDontShowAgainChange={playerPageStoreActions.setFavoriteModalDontShowAgain}
-          onConfirm={playerPageStoreActions.handleFavoriteConfirm}
-          onCancel={playerPageStoreActions.hideFavoriteModal}
-          t={t.player}
-        />
-      )}
-
-      {/* Result Modal */}
-      {playerPageState.showResultModal && (
-        <ResultModal
-          type={playerPageState.resultModalType}
-          title={
-            playerPageState.resultModalType === 'success'
-              ? t.player.unlockSuccess
-              : t.player.unlockFailed
-          }
-          message={playerPageState.resultModalMessage}
-          buttonText={
-            playerPageState.resultModalType === 'error' &&
-            playerPageState.resultModalMessage.includes('balance')
-              ? t.player.goToWallet
-              : 'OK'
-          }
-          onClose={() => playerPageStoreActions.handleResultModalClose(navigate)}
-        />
-      )}
-
-      {/* Toast */}
-      <Toast
-        message={toastState.message}
-        type={toastState.type}
-        isVisible={toastState.isVisible}
-      />
-    </PhoneLayout>
+          {/* Toast */}
+          <Toast
+            message={toastStore.message}
+            type={toastStore.type}
+            isVisible={toastStore.isVisible}
+          />
+        </PhoneLayout>
+      </Show>
+    </Show>
   )
 }
 

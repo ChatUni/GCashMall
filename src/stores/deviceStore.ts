@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { createStore } from 'solid-js/store'
+import { createMemo } from 'solid-js'
 
 export type DeviceType = 'phone' | 'tablet' | 'desktop'
 
@@ -40,7 +41,7 @@ const detectDeviceType = (): DeviceType => {
     hasTouch,
     userAgent: navigator.userAgent,
     PHONE_MAX_WIDTH,
-    TABLET_MAX_WIDTH
+    TABLET_MAX_WIDTH,
   })
   
   // Primary: use viewport width (works with DevTools device emulation)
@@ -64,58 +65,22 @@ const detectDeviceType = (): DeviceType => {
   return 'desktop'
 }
 
-export const useDeviceType = (): DeviceType => {
-  // Initialize with detected value immediately (works on client)
-  const [deviceType, setDeviceType] = useState<DeviceType>(() => {
-    // This runs on initial render - on client, window is available
-    if (typeof window !== 'undefined') {
-      return detectDeviceType()
-    }
-    return 'desktop' // SSR fallback
-  })
-  
-  useEffect(() => {
-    // Re-detect after mount to ensure correctness (handles any edge cases)
-    const currentType = detectDeviceType()
-    setDeviceType(currentType)
-    
-    // Debug logging to help diagnose issues
-    console.log('useDeviceType: width=', window.innerWidth, 'detected=', currentType, 'ua=', navigator.userAgent.substring(0, 50))
-    
-    // Handle resize events
-    const handleResize = () => {
-      const newType = detectDeviceType()
-      console.log('useDeviceType resize: width=', window.innerWidth, 'detected=', newType)
-      setDeviceType(newType)
-    }
-    
-    window.addEventListener('resize', handleResize)
-    
-    // Also listen for orientation change (important for mobile)
-    window.addEventListener('orientationchange', handleResize)
-    
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleResize)
-    }
-  }, [])
-  
-  return deviceType
+const [deviceState, setDeviceState] = createStore({
+  deviceType: detectDeviceType() as DeviceType,
+})
+
+// Set up resize listener (runs once at module load)
+if (typeof window !== 'undefined') {
+  const handleResize = () => {
+    const newType = detectDeviceType()
+    setDeviceState({ deviceType: newType })
+  }
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
 }
 
-export const useIsMobile = (): boolean => {
-  const deviceType = useDeviceType()
-  return deviceType === 'phone'
-}
+export const deviceStore = deviceState
 
-export const useIsTablet = (): boolean => {
-  const deviceType = useDeviceType()
-  return deviceType === 'tablet'
-}
-
-export const useIsDesktop = (): boolean => {
-  const deviceType = useDeviceType()
-  return deviceType === 'desktop'
-}
-
-export default useDeviceType
+export const isPhone = createMemo(() => deviceState.deviceType === 'phone')
+export const isTablet = createMemo(() => deviceState.deviceType === 'tablet')
+export const isDesktop = createMemo(() => deviceState.deviceType === 'desktop')
