@@ -1,4 +1,4 @@
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import SeriesCard from './SeriesCard'
 import { t } from '../stores/languageStore'
@@ -40,41 +40,42 @@ const SeriesCarousel = (props: SeriesCarouselProps) => {
     navigate('/genre')
   }
 
-  if (props.loading) {
-    return <div class="series-section loading">Loading...</div>
-  }
-
   return (
-    <section class="series-section">
-      <div class="series-section-header">
-        <h2 class="series-section-title">{props.title}</h2>
-        <div class="carousel-controls">
-          <button
-            class="carousel-arrow carousel-arrow-left"
-            onClick={scrollLeft}
-            aria-label="Scroll left"
-          />
-          <button
-            class="carousel-arrow carousel-arrow-right"
-            onClick={scrollRight}
-            aria-label="Scroll right"
-          />
-        </div>
-      </div>
-      <div class="series-carousel" ref={carouselRef}>
-        <For each={filteredSeries()}>
-          {(item) => <SeriesCard series={item} />}
-        </For>
-        <div class="view-more-card" onClick={handleViewMore}>
-          <div class="view-more-content">
-            <svg class="view-more-arrow" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
-            </svg>
+    <Show
+      when={!props.loading}
+      fallback={<div class="series-section loading">Loading...</div>}
+    >
+      <section class="series-section">
+        <div class="series-section-header">
+          <h2 class="series-section-title">{props.title}</h2>
+          <div class="carousel-controls">
+            <button
+              class="carousel-arrow carousel-arrow-left"
+              onClick={scrollLeft}
+              aria-label="Scroll left"
+            />
+            <button
+              class="carousel-arrow carousel-arrow-right"
+              onClick={scrollRight}
+              aria-label="Scroll right"
+            />
           </div>
-          <span class="view-more-text">{t().home.viewMore || 'View More'}</span>
         </div>
-      </div>
-    </section>
+        <div class="series-carousel" ref={carouselRef}>
+          <For each={filteredSeries()}>
+            {(item) => <SeriesCard series={item} />}
+          </For>
+          <div class="view-more-card" onClick={handleViewMore}>
+            <div class="view-more-content">
+              <svg class="view-more-arrow" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+              </svg>
+            </div>
+            <span class="view-more-text">{t().home.viewMore || 'View More'}</span>
+          </div>
+        </div>
+      </section>
+    </Show>
   )
 }
 

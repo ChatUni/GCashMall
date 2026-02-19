@@ -169,7 +169,7 @@ const initialPasswordErrors: PasswordErrorsState = {
   confirmPasswordError: '',
 }
 
-const initialState: AccountState = {
+const getInitialState = (): AccountState => ({
   activeTab: 'overview',
   user: null,
   isLoggedIn: false,
@@ -193,13 +193,13 @@ const initialState: AccountState = {
   editingSeries: null,
   editingSeriesId: null,
   
-  profileForm: initialProfileForm,
-  profileErrors: initialProfileErrors,
+  profileForm: { ...initialProfileForm },
+  profileErrors: { ...initialProfileErrors },
   profileSaving: false,
-  originalProfile: initialProfileForm,
+  originalProfile: { ...initialProfileForm },
   
-  passwordForm: initialPasswordForm,
-  passwordErrors: initialPasswordErrors,
+  passwordForm: { ...initialPasswordForm },
+  passwordErrors: { ...initialPasswordErrors },
   passwordChanging: false,
   
   avatarError: '',
@@ -245,9 +245,9 @@ const initialState: AccountState = {
   pendingDeleteSeries: null,
   
   showLoginModal: false,
-}
+})
 
-const [accountState, setAccountState] = createStore<AccountState>(initialState)
+const [accountState, setAccountState] = createStore<AccountState>(getInitialState())
 
 export const accountStore = accountState
 
@@ -477,7 +477,7 @@ export const accountStoreActions = {
   },
   
   // Reset
-  reset: () => setAccountState(initialState),
+  reset: () => setAccountState(getInitialState()),
   
   getState: () => accountState,
 }

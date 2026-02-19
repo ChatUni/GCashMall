@@ -3,30 +3,19 @@
 
 import { createStore } from 'solid-js/store'
 import type { User, Series, Episode } from '../types'
+import { accountStore, accountStoreActions } from './accountStore'
 
 // Re-export User type for convenience
 export type { User }
 
-// User store
-interface UserState {
-  user: User | null
-  isLoggedIn: boolean
-  loading: boolean
-}
-
-const [userState, setUserState] = createStore<UserState>({
-  user: null,
-  isLoggedIn: false,
-  loading: true,
-})
-
-export const userStore = userState
+// User store - delegates to accountStore (single source of truth for user state)
+export const userStore = accountStore
 
 export const userStoreActions = {
-  setUser: (user: User | null) => setUserState({ user, isLoggedIn: !!user }),
-  setLoading: (loading: boolean) => setUserState({ loading }),
-  logout: () => setUserState({ user: null, isLoggedIn: false, loading: false }),
-  getState: () => userState,
+  setUser: (user: User | null) => accountStoreActions.setUser(user),
+  setLoading: (loading: boolean) => accountStoreActions.setLoading(loading),
+  logout: () => accountStoreActions.reset(),
+  getState: () => accountStoreActions.getState(),
 }
 
 // Featured series store
@@ -251,4 +240,4 @@ export const videoFeedStoreActions = {
 
 // Export getters for external access
 export const getPlayerStore = () => playerState
-export const getUserStore = () => userState
+export const getUserStore = () => accountStoreActions.getState()

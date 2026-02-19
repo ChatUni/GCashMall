@@ -53,8 +53,8 @@ const initialFormData: SeriesFormData = {
   shelved: true,
 }
 
-const initialState: SeriesEditState = {
-  formData: initialFormData,
+const getInitialState = (): SeriesEditState => ({
+  formData: { ...initialFormData, genreIds: [], episodes: [] },
   genres: [],
   imageFile: null,
   originalCover: '',
@@ -69,9 +69,9 @@ const initialState: SeriesEditState = {
     current: 0,
     total: 0,
   },
-}
+})
 
-const [seriesEditState, setSeriesEditState] = createStore<SeriesEditState>(initialState)
+const [seriesEditState, setSeriesEditState] = createStore<SeriesEditState>(getInitialState())
 
 export const seriesEditStore = seriesEditState
 
@@ -158,7 +158,7 @@ export const seriesEditStoreActions = {
     setSeriesEditState('uploadProgress', updates),
 
   // Reset
-  reset: () => setSeriesEditState(initialState),
+  reset: () => setSeriesEditState(getInitialState()),
 
   getState: () => seriesEditState,
 }

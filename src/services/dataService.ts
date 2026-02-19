@@ -187,9 +187,8 @@ export const addToWatchList = async (seriesId: string, episodeNumber: number) =>
     if (token) {
       saveAuthData(token, result.data)
     }
-    // Update both userStore and accountStore so watch history is in sync everywhere
+    // Update user store (delegates to accountStore - single source of truth)
     userStoreActions.setUser(result.data)
-    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -203,7 +202,6 @@ export const addToFavorites = async (seriesId: string) => {
       saveAuthData(token, result.data)
     }
     userStoreActions.setUser(result.data)
-    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -216,7 +214,6 @@ export const removeFromFavorites = async (seriesId: string) => {
       saveAuthData(token, result.data)
     }
     userStoreActions.setUser(result.data)
-    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -255,7 +252,6 @@ export const purchaseEpisodeSimple = async (seriesId: string, episodeNumber: num
       }
       saveAuthData(token, updatedUser)
       userStoreActions.setUser(updatedUser)
-      accountStoreActions.setUser(updatedUser)
       // Also update the separate balance field in accountStore (used by WalletSection)
       accountStoreActions.setBalance(result.data.balance)
     }
@@ -433,7 +429,6 @@ export const purchaseEpisode = async (
       saveAuthData(token, result.data)
     }
     userStoreActions.setUser(result.data)
-    accountStoreActions.setUser(result.data)
     // Also update myPurchases in accountStore if purchases exist in user data
     if (result.data.purchases) {
       accountStoreActions.setMyPurchases(result.data.purchases)

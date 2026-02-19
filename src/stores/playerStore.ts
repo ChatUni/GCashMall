@@ -84,7 +84,7 @@ interface PlayerPageState {
   showExpandButton: boolean
 }
 
-const initialState: PlayerPageState = {
+const getInitialState = (): PlayerPageState => ({
   currentSeriesId: null,
   watchListUpdatedForSeriesId: null,
   recommendationsFetched: false,
@@ -100,9 +100,9 @@ const initialState: PlayerPageState = {
   showEpisodeList: true,
   isDescriptionExpanded: false,
   showExpandButton: false,
-}
+})
 
-const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(initialState)
+const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
 
 export const playerPageStore = playerPageState
 
@@ -741,7 +741,7 @@ export const playerPageStoreActions = {
 
   // Reset all state
   reset: () => {
-    setPlayerPageState(initialState)
+    setPlayerPageState(getInitialState())
   },
 }
 

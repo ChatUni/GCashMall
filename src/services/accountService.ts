@@ -3,7 +3,7 @@
 
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDelete, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
-import { toastStoreActions, userStoreActions } from '../stores'
+import { toastStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
 
@@ -167,7 +167,6 @@ export const fetchAccountUserData = async () => {
 export const handleLogout = () => {
   clearAuthData()
   accountStoreActions.reset()
-  userStoreActions.logout() // Also clear userStore so purchase info is reset
 }
 
 // Validate profile form
@@ -468,9 +467,7 @@ export const clearWatchHistoryNoConfirm = async (): Promise<{ success: boolean; 
       if (token) {
         saveAuthData(token, response.data)
       }
-      // Update both stores so watch history is in sync everywhere (Account page and TopBar)
       accountStoreActions.setUser(response.data)
-      userStoreActions.setUser(response.data)
       return { success: true }
     }
     return { success: false, error: response.error || 'Failed to clear watch history' }
@@ -502,7 +499,6 @@ export const removeFromWatchListNoConfirm = async (seriesId: string): Promise<{ 
       }
       // Update both stores so watch history is in sync everywhere (Account page and TopBar)
       accountStoreActions.setUser(response.data)
-      userStoreActions.setUser(response.data)
       return { success: true }
     }
     return { success: false, error: response.error || 'Failed to remove from watch list' }
@@ -533,9 +529,7 @@ export const removeFromFavoritesNoConfirm = async (seriesId: string): Promise<{ 
       if (token) {
         saveAuthData(token, response.data)
       }
-      // Update both stores so favorites are in sync everywhere
       accountStoreActions.setUser(response.data)
-      userStoreActions.setUser(response.data)
       // Also update the favorites list in the store from the user data
       if (response.data.favorites) {
         accountStoreActions.setFavorites(response.data.favorites.map((f: FavoriteUserItem) => ({
@@ -576,9 +570,7 @@ export const clearFavoritesNoConfirm = async (): Promise<{ success: boolean; err
       if (token) {
         saveAuthData(token, response.data)
       }
-      // Update both stores so favorites are in sync everywhere
       accountStoreActions.setUser(response.data)
-      userStoreActions.setUser(response.data)
       // Clear the favorites list in the store
       accountStoreActions.setFavorites([])
       return { success: true }
