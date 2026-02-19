@@ -464,7 +464,7 @@ export const playerPageStoreActions = {
   initialize: (seriesId: string, fetchRecommendationsData = false) => {
     if (playerPageState.currentSeriesId !== seriesId) {
       setPlayerPageState({
-        ...initialState,
+        ...getInitialState(),
         currentSeriesId: seriesId,
         recommendationsFetched: playerPageState.recommendationsFetched,
         newReleasesFetched: playerPageState.newReleasesFetched,
