@@ -1,5 +1,6 @@
 import { Show } from 'solid-js'
 import { EPISODE_PRICE } from '../services/playerPageService'
+import { toastStore } from '../stores'
 import './PlayerModals.css'
 
 // Purchase Popup Modal
@@ -171,15 +172,10 @@ export const FavoriteModal = (props: FavoriteModalProps) => (
   </div>
 )
 
-// Toast Notification
-interface ToastProps {
-  message: string
-  type: 'success' | 'error' | 'info'
-  isVisible: boolean
-}
+// Toast Notification - subscribes directly to toastStore
 
-export const Toast = (props: ToastProps) => (
-  <Show when={props.isVisible}>
-    <div class={`toast-notification toast-${props.type}`}>{props.message}</div>
+export const Toast = () => (
+  <Show when={toastStore.isVisible}>
+    <div class={`toast-notification toast-${toastStore.type}`}>{toastStore.message}</div>
   </Show>
 )

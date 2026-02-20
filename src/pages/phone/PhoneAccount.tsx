@@ -12,7 +12,6 @@ import {
   phoneNavItems,
   walletAmounts,
   type AccountTab,
-  type Transaction,
   getCombinedTransactions,
   getFilteredTransactions,
   formatTransactionDate,
@@ -70,7 +69,7 @@ import {
   getPhoneTabTitle,
 } from '../../services/accountService'
 import { toastStore } from '../../stores'
-import type { User, PurchaseItem, Series } from '../../types'
+import type { User } from '../../types'
 import './PhoneAccount.css'
 
 const PhoneAccount = () => {
@@ -89,12 +88,8 @@ const PhoneAccount = () => {
   syncTabFromUrl(getUrlSearchParams(), true)
 
   const onTabClick = (tab: AccountTab) => handleTabClick(tab, (params) => setSearchParams(params))
-  const onLogout = () => handleLogoutAndNavigate(navigate)
   const onLoginClose = () => handleLoginClose(navigate)
   const onLoginSuccess = async (user: User) => handleLoginSuccess(user)
-  const onSaveProfile = () => handleSaveProfile(t().account)
-  const onChangePassword = () => handleChangePassword(t().account)
-  const onSetPassword = () => handleSetPassword(t().account)
   const onAvatarUpload = (e: Event & { currentTarget: HTMLInputElement; target: Element }) => handleAvatarUpload(e, t().account)
 
   return (
@@ -149,25 +144,25 @@ const PhoneAccount = () => {
             </div>
             <div class="phone-account-content">
               <Show when={accountStore.activeTab === 'overview'}>
-                <PhoneOverviewSection hasPassword={accountStore.user?.hasPassword ?? true} profileForm={accountStore.profileForm} profileErrors={accountStore.profileErrors} profileSaving={accountStore.profileSaving} originalProfile={accountStore.originalProfile} passwordForm={accountStore.passwordForm} passwordErrors={accountStore.passwordErrors} passwordChanging={accountStore.passwordChanging} onSaveProfile={onSaveProfile} onChangePassword={onChangePassword} onSetPassword={onSetPassword} />
+                <PhoneOverviewSection />
               </Show>
               <Show when={accountStore.activeTab === 'watchHistory'}>
-                <PhoneWatchHistorySection items={accountStore.user?.watchList || []} showClearModal={accountStore.showClearHistoryModal} showDeleteModal={accountStore.showDeleteHistoryItemModal} pendingDeleteSeriesName={accountStore.pendingDeleteHistorySeriesName} onNavigate={navigate} />
+                <PhoneWatchHistorySection />
               </Show>
               <Show when={accountStore.activeTab === 'favorites'}>
-                <PhoneFavoritesSection items={accountStore.user?.favorites || []} showClearModal={accountStore.showClearFavoritesModal} showDeleteModal={accountStore.showDeleteFavoriteItemModal} pendingDeleteSeriesName={accountStore.pendingDeleteFavoriteSeriesName} onNavigate={navigate} />
+                <PhoneFavoritesSection />
               </Show>
               <Show when={accountStore.activeTab === 'settings'}>
-                <PhoneSettingsSection language={languageStore.language} playbackSpeed={accountStore.playbackSpeed} autoplay={accountStore.autoplay} notifications={accountStore.notifications} onLanguageChange={(lang: Language) => languageStoreActions.setLanguage(lang)} onLogout={onLogout} />
+                <PhoneSettingsSection />
               </Show>
               <Show when={accountStore.activeTab === 'wallet'}>
-                <PhoneWalletSection balance={accountStore.balance} walletTab={accountStore.walletTab} showTopUpPopup={accountStore.showTopUpPopup} selectedTopUpAmount={accountStore.selectedTopUpAmount} showWithdrawPopup={accountStore.showWithdrawPopup} selectedWithdrawAmount={accountStore.selectedWithdrawAmount} withdrawing={accountStore.withdrawing} transactions={accountStore.transactions} purchases={accountStore.myPurchases} transactionFilter={accountStore.transactionFilter} showCustomAmountPopup={accountStore.showCustomAmountPopup} customAmountInput={accountStore.customAmountInput} />
+                <PhoneWalletSection />
               </Show>
               <Show when={accountStore.activeTab === 'myPurchases'}>
-                <PhoneMyPurchasesSection purchases={accountStore.myPurchases} loading={accountStore.myPurchasesLoading} onNavigate={navigate} />
+                <PhoneMyPurchasesSection />
               </Show>
               <Show when={accountStore.activeTab === 'mySeries'}>
-                <PhoneMySeriesSection series={accountStore.mySeries} loading={accountStore.mySeriesLoading} editingSeriesId={accountStore.editingSeriesId} showShelveModal={accountStore.showShelveModal} pendingShelveSeries={accountStore.pendingShelveSeries} showUnshelveModal={accountStore.showUnshelveModal} pendingUnshelveSeries={accountStore.pendingUnshelveSeries} showDeleteModal={accountStore.showDeleteSeriesModal} pendingDeleteSeries={accountStore.pendingDeleteSeries} onNavigate={navigate} />
+                <PhoneMySeriesSection />
               </Show>
               <Show when={accountStore.activeTab === 'about'}>
                 <PhoneAboutSection />
@@ -189,29 +184,19 @@ const PhoneAccount = () => {
   )
 }
 
-// ── Overview Section ──
+// ── Overview Section ── subscribes directly to accountStore
 
-interface PhoneOverviewSectionProps {
-  hasPassword: boolean
-  profileForm: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
-  profileErrors: { emailError: string; phoneError: string; birthdayError: string }
-  profileSaving: boolean
-  originalProfile: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
-  passwordForm: { currentPassword: string; newPassword: string; confirmPassword: string }
-  passwordErrors: { currentPasswordError: string; newPasswordError: string; confirmPasswordError: string }
-  passwordChanging: boolean
-  onSaveProfile: () => void
-  onChangePassword: () => void
-  onSetPassword: () => void
-}
-
-const PhoneOverviewSection = (props: PhoneOverviewSectionProps) => {
+const PhoneOverviewSection = () => {
   const overview = () => t().account.overview as Record<string, string>
   const login = () => t().login as Record<string, string>
-  const profileHasChanges = () => hasProfileChanges(props.profileForm, props.originalProfile)
+  const profileHasChanges = () => hasProfileChanges(accountStore.profileForm, accountStore.originalProfile)
   const [showCurrentPassword, setShowCurrentPassword] = createSignal(false)
   const [showNewPassword, setShowNewPassword] = createSignal(false)
   const [showConfirmPassword, setShowConfirmPassword] = createSignal(false)
+
+  const onSaveProfile = () => handleSaveProfile(t().account)
+  const onChangePassword = () => handleChangePassword(t().account)
+  const onSetPassword = () => handleSetPassword(t().account)
 
   const PasswordToggle = (pwProps: { show: boolean }) => (
     <Show when={pwProps.show} fallback={
@@ -233,21 +218,21 @@ const PhoneOverviewSection = (props: PhoneOverviewSectionProps) => {
         <h3 class="phone-section-title">{overview().profileInfo}</h3>
         <div class="phone-form-group">
           <label>{overview().nickname}</label>
-          <input type="text" value={props.profileForm.nickname} onInput={(e) => accountStoreActions.updateProfileField('nickname', e.currentTarget.value)} placeholder={overview().nicknamePlaceholder} />
+          <input type="text" value={accountStore.profileForm.nickname} onInput={(e) => accountStoreActions.updateProfileField('nickname', e.currentTarget.value)} placeholder={overview().nicknamePlaceholder} />
         </div>
         <div class="phone-form-group">
           <label>{overview().email}</label>
-          <input type="email" value={props.profileForm.email} onInput={(e) => { accountStoreActions.updateProfileField('email', e.currentTarget.value); if (props.profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '') }} placeholder={overview().emailPlaceholder} class={props.profileErrors.emailError ? 'error' : ''} />
-          <Show when={props.profileErrors.emailError}><span class="phone-field-error">{props.profileErrors.emailError}</span></Show>
+          <input type="email" value={accountStore.profileForm.email} onInput={(e) => { accountStoreActions.updateProfileField('email', e.currentTarget.value); if (accountStore.profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '') }} placeholder={overview().emailPlaceholder} class={accountStore.profileErrors.emailError ? 'error' : ''} />
+          <Show when={accountStore.profileErrors.emailError}><span class="phone-field-error">{accountStore.profileErrors.emailError}</span></Show>
         </div>
         <div class="phone-form-group">
           <label>{overview().phoneNumber}</label>
-          <input type="tel" value={props.profileForm.phoneNumber} onInput={(e) => { accountStoreActions.updateProfileField('phoneNumber', e.currentTarget.value); if (props.profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '') }} placeholder={overview().phonePlaceholder} class={props.profileErrors.phoneError ? 'error' : ''} />
-          <Show when={props.profileErrors.phoneError}><span class="phone-field-error">{props.profileErrors.phoneError}</span></Show>
+          <input type="tel" value={accountStore.profileForm.phoneNumber} onInput={(e) => { accountStoreActions.updateProfileField('phoneNumber', e.currentTarget.value); if (accountStore.profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '') }} placeholder={overview().phonePlaceholder} class={accountStore.profileErrors.phoneError ? 'error' : ''} />
+          <Show when={accountStore.profileErrors.phoneError}><span class="phone-field-error">{accountStore.profileErrors.phoneError}</span></Show>
         </div>
         <div class="phone-form-group">
           <label>{overview().gender}</label>
-          <select value={props.profileForm.gender} onChange={(e) => accountStoreActions.updateProfileField('gender', e.currentTarget.value)}>
+          <select value={accountStore.profileForm.gender} onChange={(e) => accountStoreActions.updateProfileField('gender', e.currentTarget.value)}>
             <option value="not_specified">{overview().genderNotSpecified}</option>
             <option value="male">{overview().genderMale}</option>
             <option value="female">{overview().genderFemale}</option>
@@ -256,71 +241,64 @@ const PhoneOverviewSection = (props: PhoneOverviewSectionProps) => {
         </div>
         <div class="phone-form-group">
           <label>{overview().birthday}</label>
-          <input type="date" value={props.profileForm.birthday} onInput={(e) => { accountStoreActions.updateProfileField('birthday', e.currentTarget.value); if (props.profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '') }} class={props.profileErrors.birthdayError ? 'error' : ''} />
-          <Show when={props.profileErrors.birthdayError}><span class="phone-field-error">{props.profileErrors.birthdayError}</span></Show>
+          <input type="date" value={accountStore.profileForm.birthday} onInput={(e) => { accountStoreActions.updateProfileField('birthday', e.currentTarget.value); if (accountStore.profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '') }} class={accountStore.profileErrors.birthdayError ? 'error' : ''} />
+          <Show when={accountStore.profileErrors.birthdayError}><span class="phone-field-error">{accountStore.profileErrors.birthdayError}</span></Show>
         </div>
-        <button class="phone-save-btn" onClick={props.onSaveProfile} disabled={!profileHasChanges() || props.profileSaving}>
-          {props.profileSaving ? '...' : overview().save}
+        <button class="phone-save-btn" onClick={onSaveProfile} disabled={!profileHasChanges() || accountStore.profileSaving}>
+          {accountStore.profileSaving ? '...' : overview().save}
         </button>
       </div>
       <div class="phone-section-card">
-        <h3 class="phone-section-title">{props.hasPassword ? overview().changePassword : (login().setPassword || 'Set Password')}</h3>
-        <Show when={props.hasPassword}>
+        <h3 class="phone-section-title">{(accountStore.user?.hasPassword ?? true) ? overview().changePassword : (login().setPassword || 'Set Password')}</h3>
+        <Show when={accountStore.user?.hasPassword ?? true}>
           <div class="phone-form-group">
             <label>{overview().currentPassword}</label>
             <div class="phone-password-input">
-              <input type={showCurrentPassword() ? 'text' : 'password'} value={props.passwordForm.currentPassword} onInput={(e) => { accountStoreActions.updatePasswordField('currentPassword', e.currentTarget.value); if (props.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '') }} placeholder={overview().currentPasswordPlaceholder} class={props.passwordErrors.currentPasswordError ? 'error' : ''} />
+              <input type={showCurrentPassword() ? 'text' : 'password'} value={accountStore.passwordForm.currentPassword} onInput={(e) => { accountStoreActions.updatePasswordField('currentPassword', e.currentTarget.value); if (accountStore.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '') }} placeholder={overview().currentPasswordPlaceholder} class={accountStore.passwordErrors.currentPasswordError ? 'error' : ''} />
               <button type="button" class="phone-password-toggle" onClick={() => setShowCurrentPassword(!showCurrentPassword())}><PasswordToggle show={showCurrentPassword()} /></button>
             </div>
-            <Show when={props.passwordErrors.currentPasswordError}><span class="phone-field-error">{props.passwordErrors.currentPasswordError}</span></Show>
+            <Show when={accountStore.passwordErrors.currentPasswordError}><span class="phone-field-error">{accountStore.passwordErrors.currentPasswordError}</span></Show>
           </div>
         </Show>
         <div class="phone-form-group">
           <label>{overview().newPassword}</label>
           <div class="phone-password-input">
-            <input type={showNewPassword() ? 'text' : 'password'} value={props.passwordForm.newPassword} onInput={(e) => { accountStoreActions.updatePasswordField('newPassword', e.currentTarget.value); if (props.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '') }} placeholder={overview().newPasswordPlaceholder} class={props.passwordErrors.newPasswordError ? 'error' : ''} />
+            <input type={showNewPassword() ? 'text' : 'password'} value={accountStore.passwordForm.newPassword} onInput={(e) => { accountStoreActions.updatePasswordField('newPassword', e.currentTarget.value); if (accountStore.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '') }} placeholder={overview().newPasswordPlaceholder} class={accountStore.passwordErrors.newPasswordError ? 'error' : ''} />
             <button type="button" class="phone-password-toggle" onClick={() => setShowNewPassword(!showNewPassword())}><PasswordToggle show={showNewPassword()} /></button>
           </div>
-          <Show when={props.passwordErrors.newPasswordError} fallback={<span class="phone-password-hint">{overview().passwordRequirements || 'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character'}</span>}>
-            <span class="phone-field-error">{props.passwordErrors.newPasswordError}</span>
+          <Show when={accountStore.passwordErrors.newPasswordError} fallback={<span class="phone-password-hint">{overview().passwordRequirements || 'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character'}</span>}>
+            <span class="phone-field-error">{accountStore.passwordErrors.newPasswordError}</span>
           </Show>
         </div>
         <div class="phone-form-group">
           <label>{overview().confirmPassword}</label>
           <div class="phone-password-input">
-            <input type={showConfirmPassword() ? 'text' : 'password'} value={props.passwordForm.confirmPassword} onInput={(e) => { accountStoreActions.updatePasswordField('confirmPassword', e.currentTarget.value); if (props.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '') }} placeholder={overview().confirmPasswordPlaceholder} class={props.passwordErrors.confirmPasswordError ? 'error' : ''} />
+            <input type={showConfirmPassword() ? 'text' : 'password'} value={accountStore.passwordForm.confirmPassword} onInput={(e) => { accountStoreActions.updatePasswordField('confirmPassword', e.currentTarget.value); if (accountStore.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '') }} placeholder={overview().confirmPasswordPlaceholder} class={accountStore.passwordErrors.confirmPasswordError ? 'error' : ''} />
             <button type="button" class="phone-password-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword())}><PasswordToggle show={showConfirmPassword()} /></button>
           </div>
-          <Show when={props.passwordErrors.confirmPasswordError}><span class="phone-field-error">{props.passwordErrors.confirmPasswordError}</span></Show>
+          <Show when={accountStore.passwordErrors.confirmPasswordError}><span class="phone-field-error">{accountStore.passwordErrors.confirmPasswordError}</span></Show>
         </div>
-        <button class="phone-save-btn" onClick={props.hasPassword ? props.onChangePassword : props.onSetPassword} disabled={props.passwordChanging}>
-          {props.passwordChanging ? '...' : (props.hasPassword ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
+        <button class="phone-save-btn" onClick={(accountStore.user?.hasPassword ?? true) ? onChangePassword : onSetPassword} disabled={accountStore.passwordChanging}>
+          {accountStore.passwordChanging ? '...' : ((accountStore.user?.hasPassword ?? true) ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
         </button>
       </div>
     </div>
   )
 }
 
-// ── Watch History Section ──
+// ── Watch History Section ── subscribes directly to accountStore
 
-interface PhoneWatchHistorySectionProps {
-  items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]
-  showClearModal: boolean
-  showDeleteModal: boolean
-  pendingDeleteSeriesName: string
-  onNavigate: (path: string) => void
-}
-
-const PhoneWatchHistorySection = (props: PhoneWatchHistorySectionProps) => {
+const PhoneWatchHistorySection = () => {
+  const navigate = useNavigate()
   const wh = () => t().account.watchHistory as Record<string, string>
-  const sortedItems = () => getSortedWatchHistoryItems(props.items)
+  const sortedItems = () => getSortedWatchHistoryItems(accountStore.user?.watchList || [])
 
   return (
     <Show when={sortedItems().length > 0} fallback={
       <div class="phone-empty-state">
         <span class="phone-empty-icon">📺</span>
         <p>{wh().emptyTitle}</p>
-        <button class="phone-explore-btn" onClick={() => props.onNavigate('/genre')}>{wh().exploreButton}</button>
+        <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{wh().exploreButton}</button>
       </div>
     }>
       <div class="phone-history-section">
@@ -328,11 +306,11 @@ const PhoneWatchHistorySection = (props: PhoneWatchHistorySectionProps) => {
         <div class="phone-history-list">
           <For each={sortedItems()}>
             {(item) => (
-              <PhoneHistoryCard seriesId={item.seriesId} episodeNumber={item.episodeNumber} onClick={() => props.onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)} onRemove={(e: MouseEvent, name: string) => { e.stopPropagation(); openDeleteHistoryItemModal(item.seriesId, name) }} />
+              <PhoneHistoryCard seriesId={item.seriesId} episodeNumber={item.episodeNumber} onClick={() => navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)} onRemove={(e: MouseEvent, name: string) => { e.stopPropagation(); openDeleteHistoryItemModal(item.seriesId, name) }} />
             )}
           </For>
         </div>
-        <Show when={props.showClearModal}>
+        <Show when={accountStore.showClearHistoryModal}>
           <div class="phone-modal-overlay" onClick={cancelClearHistory}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
               <span class="phone-modal-icon">🗑️</span>
@@ -345,12 +323,12 @@ const PhoneWatchHistorySection = (props: PhoneWatchHistorySectionProps) => {
             </div>
           </div>
         </Show>
-        <Show when={props.showDeleteModal}>
+        <Show when={accountStore.showDeleteHistoryItemModal}>
           <div class="phone-modal-overlay" onClick={cancelDeleteHistoryItem}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
               <span class="phone-modal-icon">🗑️</span>
               <h3 class="phone-modal-title">{wh().deleteConfirmTitle || 'Remove from History'}</h3>
-              <Show when={props.pendingDeleteSeriesName}><div class="phone-modal-series">{props.pendingDeleteSeriesName}</div></Show>
+              <Show when={accountStore.pendingDeleteHistorySeriesName}><div class="phone-modal-series">{accountStore.pendingDeleteHistorySeriesName}</div></Show>
               <p class="phone-modal-message">{wh().deleteConfirmMessage || 'Are you sure you want to remove this item from your watch history?'}</p>
               <div class="phone-modal-buttons">
                 <button class="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteHistoryItem}>{wh().remove || 'Remove'}</button>
@@ -400,26 +378,19 @@ const PhoneHistoryCard = (props: PhoneHistoryCardProps) => {
   )
 }
 
-// ── Favorites Section ──
+// ── Favorites Section ── subscribes directly to accountStore
 
-interface PhoneFavoritesSectionProps {
-  items: { seriesId: string; seriesName: string; seriesCover: string; seriesTags?: string[]; addedAt: Date }[]
-  showClearModal: boolean
-  showDeleteModal: boolean
-  pendingDeleteSeriesName: string
-  onNavigate: (path: string) => void
-}
-
-const PhoneFavoritesSection = (props: PhoneFavoritesSectionProps) => {
+const PhoneFavoritesSection = () => {
+  const navigate = useNavigate()
   const fav = () => t().account.favorites as Record<string, string>
-  const sortedItems = () => getSortedFavoritesItems(props.items)
+  const sortedItems = () => getSortedFavoritesItems(accountStore.user?.favorites || [])
 
   return (
     <Show when={sortedItems().length > 0} fallback={
       <div class="phone-empty-state">
         <span class="phone-empty-icon">❤️</span>
         <p>{fav().emptyTitle}</p>
-        <button class="phone-explore-btn" onClick={() => props.onNavigate('/genre')}>{fav().exploreButton}</button>
+        <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{fav().exploreButton}</button>
       </div>
     }>
       <div class="phone-favorites-section">
@@ -427,7 +398,7 @@ const PhoneFavoritesSection = (props: PhoneFavoritesSectionProps) => {
         <div class="phone-favorites-list">
           <For each={sortedItems()}>
             {(item) => (
-              <div class="phone-favorite-item" onClick={() => props.onNavigate(`/player/${item.seriesId}`)}>
+              <div class="phone-favorite-item" onClick={() => navigate(`/player/${item.seriesId}`)}>
                 <div class="phone-favorite-cover">
                   <Show when={item.seriesCover} fallback={<div class="phone-favorite-placeholder">🎬</div>}>
                     <img src={item.seriesCover} alt={item.seriesName} />
@@ -439,7 +410,7 @@ const PhoneFavoritesSection = (props: PhoneFavoritesSectionProps) => {
             )}
           </For>
         </div>
-        <Show when={props.showClearModal}>
+        <Show when={accountStore.showClearFavoritesModal}>
           <div class="phone-modal-overlay" onClick={cancelClearFavorites}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
               <span class="phone-modal-icon">🗑️</span>
@@ -452,12 +423,12 @@ const PhoneFavoritesSection = (props: PhoneFavoritesSectionProps) => {
             </div>
           </div>
         </Show>
-        <Show when={props.showDeleteModal}>
+        <Show when={accountStore.showDeleteFavoriteItemModal}>
           <div class="phone-modal-overlay" onClick={cancelDeleteFavoriteItem}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
               <span class="phone-modal-icon">🗑️</span>
               <h3 class="phone-modal-title">{fav().deleteConfirmTitle || 'Remove from Favorites'}</h3>
-              <Show when={props.pendingDeleteSeriesName}><div class="phone-modal-series">{props.pendingDeleteSeriesName}</div></Show>
+              <Show when={accountStore.pendingDeleteFavoriteSeriesName}><div class="phone-modal-series">{accountStore.pendingDeleteFavoriteSeriesName}</div></Show>
               <p class="phone-modal-message">{fav().deleteConfirmMessage || 'Are you sure you want to remove this item from your favorites?'}</p>
               <div class="phone-modal-buttons">
                 <button class="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteFavoriteItem}>{fav().remove || 'Remove'}</button>
@@ -471,33 +442,26 @@ const PhoneFavoritesSection = (props: PhoneFavoritesSectionProps) => {
   )
 }
 
-// ── Settings Section ──
+// ── Settings Section ── subscribes directly to accountStore and languageStore
 
-interface PhoneSettingsSectionProps {
-  language: string
-  playbackSpeed: string
-  autoplay: boolean
-  notifications: boolean
-  onLanguageChange: (lang: Language) => void
-  onLogout: () => void
-}
-
-const PhoneSettingsSection = (props: PhoneSettingsSectionProps) => {
+const PhoneSettingsSection = () => {
+  const navigate = useNavigate()
   const settings = () => t().account.settings as Record<string, string>
   const nav = () => t().account.nav as Record<string, string>
+  const onLogout = () => handleLogoutAndNavigate(navigate)
 
   return (
     <div class="phone-settings">
       <div class="phone-setting-item">
         <span class="phone-setting-label">{settings().language}</span>
-        <select value={props.language} onChange={(e) => props.onLanguageChange(e.currentTarget.value as Language)} class="phone-setting-select">
+        <select value={languageStore.language} onChange={(e) => languageStoreActions.setLanguage(e.currentTarget.value as Language)} class="phone-setting-select">
           <option value="en">English</option>
           <option value="zh">中文</option>
         </select>
       </div>
       <div class="phone-setting-item">
         <span class="phone-setting-label">{settings().playbackSpeed}</span>
-        <select value={props.playbackSpeed} onChange={(e) => accountStoreActions.setPlaybackSpeed(e.currentTarget.value)} class="phone-setting-select">
+        <select value={accountStore.playbackSpeed} onChange={(e) => accountStoreActions.setPlaybackSpeed(e.currentTarget.value)} class="phone-setting-select">
           <option value="0.5">0.5x</option>
           <option value="1">1x</option>
           <option value="1.5">1.5x</option>
@@ -507,18 +471,18 @@ const PhoneSettingsSection = (props: PhoneSettingsSectionProps) => {
       <div class="phone-setting-item">
         <span class="phone-setting-label">{settings().autoplay}</span>
         <label class="phone-toggle">
-          <input type="checkbox" checked={props.autoplay} onChange={(e) => accountStoreActions.setAutoplay(e.currentTarget.checked)} />
+          <input type="checkbox" checked={accountStore.autoplay} onChange={(e) => accountStoreActions.setAutoplay(e.currentTarget.checked)} />
           <span class="phone-toggle-slider"></span>
         </label>
       </div>
       <div class="phone-setting-item">
         <span class="phone-setting-label">{settings().notifications}</span>
         <label class="phone-toggle">
-          <input type="checkbox" checked={props.notifications} onChange={(e) => accountStoreActions.setNotifications(e.currentTarget.checked)} />
+          <input type="checkbox" checked={accountStore.notifications} onChange={(e) => accountStoreActions.setNotifications(e.currentTarget.checked)} />
           <span class="phone-toggle-slider"></span>
         </label>
       </div>
-      <button class="phone-logout-btn" onClick={props.onLogout}>
+      <button class="phone-logout-btn" onClick={onLogout}>
         <span>🚪</span>
         {nav().logout}
       </button>
@@ -526,32 +490,17 @@ const PhoneSettingsSection = (props: PhoneSettingsSectionProps) => {
   )
 }
 
-// ── Wallet Section ──
+// ── Wallet Section ── subscribes directly to accountStore
 
-interface PhoneWalletSectionProps {
-  balance: number
-  walletTab: 'topup' | 'withdraw'
-  showTopUpPopup: boolean
-  selectedTopUpAmount: number | null
-  showWithdrawPopup: boolean
-  selectedWithdrawAmount: number | null
-  withdrawing: boolean
-  transactions: Transaction[]
-  purchases: PurchaseItem[]
-  transactionFilter: 'all' | 'topup' | 'withdraw' | 'purchase'
-  showCustomAmountPopup: boolean
-  customAmountInput: string
-}
-
-const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
+const PhoneWalletSection = () => {
   const wallet = () => t().account.wallet as Record<string, string>
   const onTopUpClick = (amount: number) => handleTopUpClick(amount)
   const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t().account)
   const onConfirmTopUp = () => handleConfirmTopUp(t().account)
   const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
   const onCustomAmountConfirm = () => handleCustomAmountConfirm(t().account)
-  const combinedTransactions = () => getCombinedTransactions(props.transactions, props.purchases)
-  const filteredTransactions = () => getFilteredTransactions(combinedTransactions(), props.transactionFilter)
+  const combinedTransactions = () => getCombinedTransactions(accountStore.transactions, accountStore.myPurchases)
+  const filteredTransactions = () => getFilteredTransactions(combinedTransactions(), accountStore.transactionFilter)
 
   return (
     <div class="phone-wallet">
@@ -559,22 +508,22 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
         <span class="phone-balance-label">{wallet().currentBalance}</span>
         <div class="phone-balance-amount">
           <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-balance-logo" />
-          <span>{props.balance.toFixed(2)}</span>
+          <span>{accountStore.balance.toFixed(2)}</span>
         </div>
       </div>
       <div class="phone-wallet-tabs">
-        <button class={`phone-wallet-tab ${props.walletTab === 'topup' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('topup')}>{wallet().topUp}</button>
-        <button class={`phone-wallet-tab ${props.walletTab === 'withdraw' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('withdraw')}>{wallet().withdraw}</button>
+        <button class={`phone-wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('topup')}>{wallet().topUp}</button>
+        <button class={`phone-wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('withdraw')}>{wallet().withdraw}</button>
       </div>
       <div class="phone-amount-section">
         <div class="phone-amount-header">
-          <h3 class="phone-wallet-title">{props.walletTab === 'topup' ? (wallet().selectTopUpAmount || 'Select Top Up Amount') : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')}</h3>
-          <button class={`phone-withdraw-all-btn ${props.walletTab === 'topup' || props.balance <= 0 ? 'invisible' : ''}`} onClick={() => onWithdrawClick(parseFloat(props.balance.toFixed(2)))} disabled={props.walletTab === 'topup' || props.balance <= 0}>{wallet().withdrawAll || 'Withdraw All'}</button>
+          <h3 class="phone-wallet-title">{accountStore.walletTab === 'topup' ? (wallet().selectTopUpAmount || 'Select Top Up Amount') : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')}</h3>
+          <button class={`phone-withdraw-all-btn ${accountStore.walletTab === 'topup' || accountStore.balance <= 0 ? 'invisible' : ''}`} onClick={() => onWithdrawClick(parseFloat(accountStore.balance.toFixed(2)))} disabled={accountStore.walletTab === 'topup' || accountStore.balance <= 0}>{wallet().withdrawAll || 'Withdraw All'}</button>
         </div>
         <div class="phone-wallet-amounts">
           <For each={walletAmounts}>
             {(amount) => (
-              <button class={`phone-amount-btn ${props.walletTab === 'withdraw' && amount > props.balance ? 'disabled' : ''}`} onClick={() => props.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={props.walletTab === 'withdraw' && amount > props.balance}>
+              <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}>
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-amount-logo" />
                 <span>{amount}</span>
               </button>
@@ -589,7 +538,7 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
       <div class="phone-transaction-section">
         <div class="phone-transaction-header">
           <h3 class="phone-wallet-title">{wallet().transactionHistory || 'Transaction History'}</h3>
-          <select class="phone-transaction-filter" value={props.transactionFilter} onChange={(e) => accountStoreActions.setTransactionFilter(e.currentTarget.value as 'all' | 'topup' | 'withdraw' | 'purchase')}>
+          <select class="phone-transaction-filter" value={accountStore.transactionFilter} onChange={(e) => accountStoreActions.setTransactionFilter(e.currentTarget.value as 'all' | 'topup' | 'withdraw' | 'purchase')}>
             <option value="all">{wallet().filterAll || 'All'}</option>
             <option value="topup">{wallet().topUp || 'Top Up'}</option>
             <option value="withdraw">{wallet().withdraw || 'Withdraw'}</option>
@@ -625,7 +574,7 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
           </div>
         </Show>
       </div>
-      <Show when={props.showTopUpPopup && props.selectedTopUpAmount}>
+      <Show when={accountStore.showTopUpPopup && accountStore.selectedTopUpAmount}>
         <div class="phone-popup-overlay" onClick={closeTopUpPopup}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
@@ -633,7 +582,7 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
             <p class="phone-popup-message">{wallet().topUpMessage || 'Add to your wallet'}</p>
             <div class="phone-popup-amount">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
-              <span>{props.selectedTopUpAmount}</span>
+              <span>{accountStore.selectedTopUpAmount}</span>
             </div>
             <div class="phone-popup-buttons">
               <button class="phone-popup-confirm" onClick={onConfirmTopUp}>{wallet().confirm || 'Confirm'}</button>
@@ -642,7 +591,7 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
           </div>
         </div>
       </Show>
-      <Show when={props.showWithdrawPopup && props.selectedWithdrawAmount}>
+      <Show when={accountStore.showWithdrawPopup && accountStore.selectedWithdrawAmount}>
         <div class="phone-popup-overlay" onClick={closeWithdrawPopup}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
@@ -650,24 +599,24 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
             <p class="phone-popup-message">{wallet().withdrawMessage || 'Withdraw from your wallet'}</p>
             <div class="phone-popup-amount">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
-              <span>{props.selectedWithdrawAmount}</span>
+              <span>{accountStore.selectedWithdrawAmount}</span>
             </div>
             <div class="phone-popup-buttons">
-              <button class="phone-popup-confirm" onClick={onConfirmWithdraw} disabled={props.withdrawing}>{props.withdrawing ? '...' : (wallet().confirm || 'Confirm')}</button>
-              <button class="phone-popup-cancel" onClick={closeWithdrawPopup} disabled={props.withdrawing}>{wallet().cancel || 'Cancel'}</button>
+              <button class="phone-popup-confirm" onClick={onConfirmWithdraw} disabled={accountStore.withdrawing}>{accountStore.withdrawing ? '...' : (wallet().confirm || 'Confirm')}</button>
+              <button class="phone-popup-cancel" onClick={closeWithdrawPopup} disabled={accountStore.withdrawing}>{wallet().cancel || 'Cancel'}</button>
             </div>
           </div>
         </div>
       </Show>
-      <Show when={props.showCustomAmountPopup}>
+      <Show when={accountStore.showCustomAmountPopup}>
         <div class="phone-popup-overlay" onClick={closeCustomAmountPopup}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
-            <h3 class="phone-popup-title">{props.walletTab === 'topup' ? (wallet().customTopUp || 'Custom Top Up') : (wallet().customWithdraw || 'Custom Withdrawal')}</h3>
-            <p class="phone-popup-message">{props.walletTab === 'topup' ? (wallet().enterTopUpAmount || 'Enter the amount to add') : (wallet().enterWithdrawAmount || 'Enter the amount to withdraw')}</p>
+            <h3 class="phone-popup-title">{accountStore.walletTab === 'topup' ? (wallet().customTopUp || 'Custom Top Up') : (wallet().customWithdraw || 'Custom Withdrawal')}</h3>
+            <p class="phone-popup-message">{accountStore.walletTab === 'topup' ? (wallet().enterTopUpAmount || 'Enter the amount to add') : (wallet().enterWithdrawAmount || 'Enter the amount to withdraw')}</p>
             <div class="phone-custom-amount-input-wrapper">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
-              <input type="number" class="phone-custom-amount-input" value={props.customAmountInput} onInput={(e) => accountStoreActions.setCustomAmountInput(e.currentTarget.value)} placeholder="0.00" min="0" step="0.01" />
+              <input type="number" class="phone-custom-amount-input" value={accountStore.customAmountInput} onInput={(e) => accountStoreActions.setCustomAmountInput(e.currentTarget.value)} placeholder="0.00" min="0" step="0.01" />
             </div>
             <div class="phone-popup-buttons">
               <button class="phone-popup-confirm" onClick={onCustomAmountConfirm}>{wallet().confirm || 'Confirm'}</button>
@@ -680,32 +629,27 @@ const PhoneWalletSection = (props: PhoneWalletSectionProps) => {
   )
 }
 
-// ── My Purchases Section ──
+// ── My Purchases Section ── subscribes directly to accountStore
 
-interface PhoneMyPurchasesSectionProps {
-  purchases: PurchaseItem[]
-  loading: boolean
-  onNavigate: (path: string) => void
-}
-
-const PhoneMyPurchasesSection = (props: PhoneMyPurchasesSectionProps) => {
+const PhoneMyPurchasesSection = () => {
+  const navigate = useNavigate()
   const mp = () => (t().account.myPurchases || {}) as Record<string, string>
-  const seriesList = () => groupPurchasesBySeries(props.purchases)
+  const seriesList = () => groupPurchasesBySeries(accountStore.myPurchases)
 
   return (
-    <Show when={!props.loading} fallback={<div class="phone-loading">Loading...</div>}>
+    <Show when={!accountStore.myPurchasesLoading} fallback={<div class="phone-loading">Loading...</div>}>
       <Show when={seriesList().length > 0} fallback={
         <div class="phone-empty-state">
           <span class="phone-empty-icon">🛒</span>
           <p>{mp().emptyTitle || 'No purchases yet'}</p>
-          <button class="phone-explore-btn" onClick={() => props.onNavigate('/genre')}>{mp().exploreButton || 'Explore Series'}</button>
+          <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{mp().exploreButton || 'Explore Series'}</button>
         </div>
       }>
         <div class="phone-purchases">
           <For each={seriesList()}>
             {(sg) => (
               <div class="phone-purchase-group">
-                <div class="phone-purchase-header" onClick={() => props.onNavigate(`/player/${sg.seriesId}`)}>
+                <div class="phone-purchase-header" onClick={() => navigate(`/player/${sg.seriesId}`)}>
                   <div class="phone-purchase-cover">
                     <Show when={sg.seriesCover} fallback={<div class="phone-purchase-placeholder">🎬</div>}>
                       <img src={sg.seriesCover} alt={sg.seriesName} />
@@ -719,7 +663,7 @@ const PhoneMyPurchasesSection = (props: PhoneMyPurchasesSectionProps) => {
                 <div class="phone-purchase-episodes">
                   <For each={sg.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)}>
                     {(ep) => (
-                      <div class="phone-purchase-episode" onClick={() => props.onNavigate(`/player/${sg.seriesId}?episode=${ep.episodeNumber}`)}>
+                      <div class="phone-purchase-episode" onClick={() => navigate(`/player/${sg.seriesId}?episode=${ep.episodeNumber}`)}>
                         <div class="phone-episode-thumbnail">
                           <Show when={ep.episodeThumbnail} fallback={<div class="phone-episode-placeholder">▶️</div>}>
                             <img src={ep.episodeThumbnail} alt={`Episode ${ep.episodeNumber}`} />
@@ -745,35 +689,23 @@ const PhoneMyPurchasesSection = (props: PhoneMyPurchasesSectionProps) => {
   )
 }
 
-// ── My Series Section ──
+// ── My Series Section ── subscribes directly to accountStore
 
-interface PhoneMySeriesSectionProps {
-  series: Series[]
-  loading: boolean
-  editingSeriesId: string | null
-  showShelveModal: boolean
-  pendingShelveSeries: Series | null
-  showUnshelveModal: boolean
-  pendingUnshelveSeries: Series | null
-  showDeleteModal: boolean
-  pendingDeleteSeries: Series | null
-  onNavigate: (path: string) => void
-}
-
-const PhoneMySeriesSection = (props: PhoneMySeriesSectionProps) => {
+const PhoneMySeriesSection = () => {
+  const navigate = useNavigate()
   const ms = () => (t().account.mySeries || {}) as Record<string, string>
 
   return (
-    <Show when={!props.loading} fallback={<div class="phone-loading">Loading...</div>}>
-      <Show when={!props.editingSeriesId} fallback={
+    <Show when={!accountStore.mySeriesLoading} fallback={<div class="phone-loading">Loading...</div>}>
+      <Show when={!accountStore.editingSeriesId} fallback={
         <div class="phone-my-series">
           <div class="phone-series-edit-header">
-            <h2 class="phone-series-edit-title">{props.editingSeriesId === 'new' ? (ms().addSeriesTitle || 'Add Series') : (ms().editSeriesTitle || 'Edit Series')}</h2>
+            <h2 class="phone-series-edit-title">{accountStore.editingSeriesId === 'new' ? (ms().addSeriesTitle || 'Add Series') : (ms().editSeriesTitle || 'Edit Series')}</h2>
           </div>
-          <SeriesEditContent seriesId={props.editingSeriesId!} onCancel={handleCancelEdit} onSaveComplete={handleSaveComplete} />
+          <SeriesEditContent seriesId={accountStore.editingSeriesId!} onCancel={handleCancelEdit} onSaveComplete={handleSaveComplete} />
         </div>
       }>
-        <Show when={props.series.length > 0} fallback={
+        <Show when={accountStore.mySeries.length > 0} fallback={
           <div class="phone-empty-state">
             <span class="phone-empty-icon">🎬</span>
             <p>{ms().emptyTitle || 'No series yet'}</p>
@@ -787,9 +719,9 @@ const PhoneMySeriesSection = (props: PhoneMySeriesSectionProps) => {
               <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
             </div>
             <div class="phone-series-list">
-              <For each={props.series}>
+              <For each={accountStore.mySeries}>
                 {(si) => (
-                  <div class={`phone-series-item ${si.shelved ? 'shelved' : ''}`} onClick={() => props.onNavigate(`/player/${si._id}`)}>
+                  <div class={`phone-series-item ${si.shelved ? 'shelved' : ''}`} onClick={() => navigate(`/player/${si._id}`)}>
                     <div class="phone-series-item-cover">
                       <Show when={si.cover} fallback={<div class="phone-series-item-placeholder">🎬</div>}>
                         <img src={si.cover!} alt={si.name} />
@@ -809,12 +741,12 @@ const PhoneMySeriesSection = (props: PhoneMySeriesSectionProps) => {
                 )}
               </For>
             </div>
-            <Show when={props.showShelveModal && props.pendingShelveSeries}>
+            <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
               <div class="phone-modal-overlay" onClick={cancelShelve}>
                 <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
                   <span class="phone-modal-icon">📥</span>
                   <h3 class="phone-modal-title">{ms().shelveConfirmTitle || 'Confirm Shelve'}</h3>
-                  <div class="phone-modal-series">{props.pendingShelveSeries!.name || 'Untitled Series'}</div>
+                  <div class="phone-modal-series">{accountStore.pendingShelveSeries!.name || 'Untitled Series'}</div>
                   <p class="phone-modal-message">{ms().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}</p>
                   <div class="phone-modal-buttons">
                     <button class="phone-modal-confirm" onClick={confirmShelve}>{ms().shelve || 'Shelve'}</button>
@@ -823,12 +755,12 @@ const PhoneMySeriesSection = (props: PhoneMySeriesSectionProps) => {
                 </div>
               </div>
             </Show>
-            <Show when={props.showUnshelveModal && props.pendingUnshelveSeries}>
+            <Show when={accountStore.showUnshelveModal && accountStore.pendingUnshelveSeries}>
               <div class="phone-modal-overlay" onClick={cancelUnshelve}>
                 <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
                   <span class="phone-modal-icon">📤</span>
                   <h3 class="phone-modal-title">{ms().unshelveConfirmTitle || 'Confirm Unshelve'}</h3>
-                  <div class="phone-modal-series">{props.pendingUnshelveSeries!.name || 'Untitled Series'}</div>
+                  <div class="phone-modal-series">{accountStore.pendingUnshelveSeries!.name || 'Untitled Series'}</div>
                   <p class="phone-modal-message">{ms().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}</p>
                   <div class="phone-modal-buttons">
                     <button class="phone-modal-confirm" onClick={confirmUnshelve}>{ms().unshelve || 'Unshelve'}</button>
@@ -837,12 +769,12 @@ const PhoneMySeriesSection = (props: PhoneMySeriesSectionProps) => {
                 </div>
               </div>
             </Show>
-            <Show when={props.showDeleteModal && props.pendingDeleteSeries}>
+            <Show when={accountStore.showDeleteSeriesModal && accountStore.pendingDeleteSeries}>
               <div class="phone-modal-overlay" onClick={cancelDeleteSeries}>
                 <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
                   <span class="phone-modal-icon">🗑️</span>
                   <h3 class="phone-modal-title">{ms().deleteConfirmTitle || 'Confirm Delete'}</h3>
-                  <div class="phone-modal-series">{props.pendingDeleteSeries!.name || 'Untitled Series'}</div>
+                  <div class="phone-modal-series">{accountStore.pendingDeleteSeries!.name || 'Untitled Series'}</div>
                   <p class="phone-modal-message">{ms().deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}</p>
                   <div class="phone-modal-buttons">
                     <button class="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteSeries}>{ms().delete || 'Delete'}</button>

@@ -12,7 +12,6 @@ import {
   loginModalStore,
   playerStoreActions,
   loginModalStoreActions,
-  toastStore,
 } from '../stores'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
 import {
@@ -49,9 +48,6 @@ const Player = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  let videoRef: HTMLVideoElement | undefined
-  let controlsTimeoutRef: ReturnType<typeof setTimeout> | null = null
-
   // Initialize data
   createEffect(() => {
     const id = params.id
@@ -68,29 +64,6 @@ const Player = () => {
     }
   })
 
-  // Derived state from store
-  const isOwner = () => checkIsSeriesOwner()
-  const isFavorited = () => checkSeriesFavorited(params.id)
-  const isPurchased = () => isCurrentEpisodePurchased()
-  const filteredEpisodes = () => getFilteredEpisodes()
-
-  // Event handlers
-  const handleMouseMove = () => {
-    playerStoreActions.setShowControls(true)
-    if (controlsTimeoutRef) {
-      clearTimeout(controlsTimeoutRef)
-    }
-    controlsTimeoutRef = setTimeout(() => {
-      if (playerStore.isPlaying) {
-        playerStoreActions.setShowControls(false)
-      }
-    }, 3000)
-  }
-
-  const handleTagClick = (tag: string) => {
-    navigate(`/series?genre=${encodeURIComponent(tag)}`)
-  }
-
   return (
     <div class="player-page">
       <TopBar />
@@ -103,77 +76,21 @@ const Player = () => {
         <Show when={playerStore.series} fallback={
           <div class="error">Series not found</div>
         }>
-          <Breadcrumb
-            seriesName={playerStore.series!.name}
-            homeText={t().player.breadcrumbHome}
-            onHomeClick={() => navigate('/')}
-          />
+          <Breadcrumb />
 
           <main class="player-content">
             <div class="player-main">
-              <VideoPlayer
-                episode={playerStore.currentEpisode}
-                videoRef={videoRef}
-                setVideoRef={(el) => { videoRef = el }}
-                isPlaying={playerStore.isPlaying}
-                showControls={playerStore.showControls}
-                currentTime={playerStore.currentTime}
-                duration={playerStore.duration}
-                volume={playerStore.volume}
-                playbackSpeed={playerStore.playbackSpeed}
-                showSpeedSelector={playerStore.showSpeedSelector}
-                isPurchased={isPurchased()}
-                onPlayPause={() => handlePlayPause({ current: videoRef || null }, playerStore.isPlaying)}
-                onTimeUpdate={() =>
-                  handleTimeUpdate({ current: videoRef || null }, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
-                }
-                onLoadedMetadata={() => handleLoadedMetadata({ current: videoRef || null })}
-                onProgressChange={(time) =>
-                  handleProgressChange({ current: videoRef || null }, time, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
-                }
-                onVolumeToggle={() => handleVolumeToggle({ current: videoRef || null }, playerStore.volume)}
-                onSpeedChange={(speed) => handleSpeedChange({ current: videoRef || null }, speed)}
-                onSpeedSelectorToggle={() =>
-                  playerStoreActions.setShowSpeedSelector(!playerStore.showSpeedSelector)
-                }
-                onFullscreen={() => handleFullscreen({ current: videoRef || null })}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={() =>
-                  playerStore.isPlaying && playerStoreActions.setShowControls(false)
-                }
-                onTimeLimitReached={playerPageStoreActions.handleTimeLimitReached}
-              />
-
-              <EpisodeMetadata
-                series={playerStore.series!}
-                currentEpisode={playerStore.currentEpisode}
-                selectedLanguage={playerStore.selectedLanguage}
-                isFavorited={isFavorited()}
-                isEpisodePurchased={isPurchased()}
-                onLanguageChange={playerStoreActions.setSelectedLanguage}
-                onTagClick={handleTagClick}
-                onFavoriteToggle={playerPageStoreActions.handleFavoriteToggle}
-                onUnlockClick={playerPageStoreActions.handleUnlockClick}
-              />
+              <VideoPlayer />
+              <EpisodeMetadata />
             </div>
 
-            <EpisodeSidebar
-              episodes={filteredEpisodes()}
-              allEpisodes={playerStore.episodes}
-              currentEpisode={playerStore.currentEpisode}
-              episodeRange={playerStore.episodeRange}
-              title={t().player.episodes}
-              seriesId={params.id || ''}
-              isSeriesOwner={isOwner()}
-              onEpisodeClick={(episode) => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
-              onRangeSelect={playerStoreActions.setEpisodeRange}
-            />
+            <EpisodeSidebar />
           </main>
 
           <RecommendationSection excludeSeriesId={params.id} />
           <NewReleasesSection excludeSeriesId={params.id} />
 
-          <SocialButtons favoritesText={t().player.addToFavorites} />
+          <SocialButtons />
         </Show>
       </Show>
 
@@ -240,63 +157,37 @@ const Player = () => {
       </Show>
 
       {/* Toast */}
-      <Toast
-        message={toastStore.message}
-        type={toastStore.type}
-        isVisible={toastStore.isVisible}
-      />
+      <Toast />
     </div>
   )
 }
 
-// Pure sub-components
+// ── Breadcrumb ── subscribes directly to playerStore and languageStore
 
-interface BreadcrumbProps {
-  seriesName: string
-  homeText: string
-  onHomeClick: () => void
+const Breadcrumb = () => {
+  const navigate = useNavigate()
+
+  return (
+    <div class="breadcrumb">
+      <span class="breadcrumb-link" onClick={() => navigate('/')}>
+        {t().player.breadcrumbHome}
+      </span>
+      <span class="breadcrumb-separator">&gt;</span>
+      <span class="breadcrumb-current">{playerStore.series!.name}</span>
+    </div>
+  )
 }
 
-const Breadcrumb = (props: BreadcrumbProps) => (
-  <div class="breadcrumb">
-    <span class="breadcrumb-link" onClick={props.onHomeClick}>
-      {props.homeText}
-    </span>
-    <span class="breadcrumb-separator">&gt;</span>
-    <span class="breadcrumb-current">{props.seriesName}</span>
-  </div>
-)
+// ── VideoPlayer ── subscribes directly to playerStore/playerPageStore
 
-interface VideoPlayerProps {
-  episode: Episode | null
-  videoRef: HTMLVideoElement | undefined
-  setVideoRef: (el: HTMLVideoElement) => void
-  isPlaying: boolean
-  showControls: boolean
-  currentTime: number
-  duration: number
-  volume: number
-  playbackSpeed: number
-  showSpeedSelector: boolean
-  isPurchased: boolean
-  onPlayPause: () => void
-  onTimeUpdate: () => void
-  onLoadedMetadata: () => void
-  onProgressChange: (time: number) => void
-  onVolumeToggle: () => void
-  onSpeedChange: (speed: number) => void
-  onSpeedSelectorToggle: () => void
-  onFullscreen: () => void
-  onMouseMove: () => void
-  onMouseLeave: () => void
-  onTimeLimitReached: () => void
-}
-
-const VideoPlayer = (props: VideoPlayerProps) => {
+const VideoPlayer = () => {
+  let videoRef: HTMLVideoElement | undefined
   let iframeRef: HTMLIFrameElement | undefined
+  let controlsTimeoutRef: ReturnType<typeof setTimeout> | null = null
   const [iframeLoaded, setIframeLoaded] = createSignal(false)
 
-  const currentVideoId = () => props.episode?.videoId
+  const currentVideoId = () => playerStore.currentEpisode?.videoId
+  const isPurchased = () => isCurrentEpisodePurchased()
 
   // Reset iframe loaded state when video changes
   createEffect(() => {
@@ -312,8 +203,8 @@ const VideoPlayer = (props: VideoPlayerProps) => {
     const cleanup = initializePlayerJsWithTrialLimit(
       { current: iframeRef || null },
       vid,
-      props.isPurchased,
-      props.onTimeLimitReached,
+      isPurchased(),
+      playerPageStoreActions.handleTimeLimitReached,
     )
 
     if (cleanup) {
@@ -324,59 +215,84 @@ const VideoPlayer = (props: VideoPlayerProps) => {
   // Update purchase status when it changes
   createEffect(() => {
     if (!iframeLoaded()) return
-    updatePlayerJsPurchaseStatus(currentVideoId(), props.isPurchased)
+    updatePlayerJsPurchaseStatus(currentVideoId(), isPurchased())
   })
+
+  const handleMouseMove = () => {
+    playerStoreActions.setShowControls(true)
+    if (controlsTimeoutRef) {
+      clearTimeout(controlsTimeoutRef)
+    }
+    controlsTimeoutRef = setTimeout(() => {
+      if (playerStore.isPlaying) {
+        playerStoreActions.setShowControls(false)
+      }
+    }, 3000)
+  }
+
+  const handleMouseLeave = () => {
+    if (playerStore.isPlaying) {
+      playerStoreActions.setShowControls(false)
+    }
+  }
+
+  const onPlayPause = () => handlePlayPause({ current: videoRef || null }, playerStore.isPlaying)
+  const onTimeUpdate = () => handleTimeUpdate({ current: videoRef || null }, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
+  const onLoadedMetadata = () => handleLoadedMetadata({ current: videoRef || null })
+  const onProgressChange = (time: number) => handleProgressChange({ current: videoRef || null }, time, isPurchased(), playerPageStoreActions.handleTimeLimitReached)
+  const onVolumeToggle = () => handleVolumeToggle({ current: videoRef || null }, playerStore.volume)
+  const onSpeedChange = (speed: number) => handleSpeedChange({ current: videoRef || null }, speed)
+  const onSpeedSelectorToggle = () => playerStoreActions.setShowSpeedSelector(!playerStore.showSpeedSelector)
+  const onFullscreen = () => handleFullscreen({ current: videoRef || null })
 
   return (
     <div class="video-player">
-      <Show when={props.episode} fallback={<div class="video-placeholder">No video available</div>}>
-        <Show when={props.episode!.videoId} fallback={
+      <Show when={playerStore.currentEpisode} fallback={<div class="video-placeholder">No video available</div>}>
+        <Show when={playerStore.currentEpisode!.videoId} fallback={
           <div
             class="video-player-native"
-            onMouseMove={props.onMouseMove}
-            onMouseLeave={props.onMouseLeave}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
           >
             <video
-              ref={props.setVideoRef}
-              src={props.episode!.videoUrl}
-              poster={props.episode!.thumbnail}
-              onTimeUpdate={props.onTimeUpdate}
-              onLoadedMetadata={props.onLoadedMetadata}
-              onClick={props.onPlayPause}
+              ref={(el) => { videoRef = el }}
+              src={playerStore.currentEpisode!.videoUrl}
+              poster={playerStore.currentEpisode!.thumbnail}
+              onTimeUpdate={onTimeUpdate}
+              onLoadedMetadata={onLoadedMetadata}
+              onClick={onPlayPause}
             />
 
-            <div class={`player-controls ${props.showControls ? 'visible' : ''}`}>
-              <PlayPauseButton isPlaying={props.isPlaying} onClick={props.onPlayPause} />
+            <div class={`player-controls ${playerStore.showControls ? 'visible' : ''}`}>
+              <PlayPauseButton onClick={onPlayPause} />
 
               <input
                 type="range"
                 class="progress-bar"
                 min="0"
-                max={props.duration}
-                value={props.currentTime}
-                onInput={(e) => props.onProgressChange(parseFloat(e.currentTarget.value))}
+                max={playerStore.duration}
+                value={playerStore.currentTime}
+                onInput={(e) => onProgressChange(parseFloat(e.currentTarget.value))}
               />
 
               <span class="time-display">
-                {formatTime(props.currentTime)} / {formatTime(props.duration)}
+                {formatTime(playerStore.currentTime)} / {formatTime(playerStore.duration)}
               </span>
 
-              <VolumeButton volume={props.volume} onClick={props.onVolumeToggle} />
+              <VolumeButton onClick={onVolumeToggle} />
 
               <SpeedSelector
-                currentSpeed={props.playbackSpeed}
-                showSelector={props.showSpeedSelector}
-                onToggle={props.onSpeedSelectorToggle}
-                onSpeedSelect={props.onSpeedChange}
+                onToggle={onSpeedSelectorToggle}
+                onSpeedSelect={onSpeedChange}
               />
 
-              <FullscreenButton onClick={props.onFullscreen} />
+              <FullscreenButton onClick={onFullscreen} />
             </div>
           </div>
         }>
           <iframe
             ref={iframeRef}
-            src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, props.episode!.videoId || '')}
+            src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, playerStore.currentEpisode!.videoId || '')}
             loading="lazy"
             style={{ border: 'none', width: '100%', height: '100%' }}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
@@ -389,14 +305,15 @@ const VideoPlayer = (props: VideoPlayerProps) => {
   )
 }
 
+// ── PlayPauseButton ── subscribes directly to playerStore
+
 interface PlayPauseButtonProps {
-  isPlaying: boolean
   onClick: () => void
 }
 
 const PlayPauseButton = (props: PlayPauseButtonProps) => (
   <button class="control-button play-pause" onClick={props.onClick}>
-    <Show when={props.isPlaying} fallback={
+    <Show when={playerStore.isPlaying} fallback={
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
         <polygon points="5,3 19,12 5,21" />
       </svg>
@@ -409,14 +326,15 @@ const PlayPauseButton = (props: PlayPauseButtonProps) => (
   </button>
 )
 
+// ── VolumeButton ── subscribes directly to playerStore
+
 interface VolumeButtonProps {
-  volume: number
   onClick: () => void
 }
 
 const VolumeButton = (props: VolumeButtonProps) => (
   <button class="control-button volume" onClick={props.onClick}>
-    <Show when={props.volume === 0} fallback={
+    <Show when={playerStore.volume === 0} fallback={
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8c1.48-.73 2.5-2.25 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
       </svg>
@@ -428,9 +346,9 @@ const VolumeButton = (props: VolumeButtonProps) => (
   </button>
 )
 
+// ── SpeedSelector ── subscribes directly to playerStore
+
 interface SpeedSelectorProps {
-  currentSpeed: number
-  showSelector: boolean
   onToggle: () => void
   onSpeedSelect: (speed: number) => void
 }
@@ -438,14 +356,14 @@ interface SpeedSelectorProps {
 const SpeedSelector = (props: SpeedSelectorProps) => (
   <div class="speed-selector">
     <button class="control-button speed" onClick={props.onToggle}>
-      {props.currentSpeed}x
+      {playerStore.playbackSpeed}x
     </button>
-    <Show when={props.showSelector}>
+    <Show when={playerStore.showSpeedSelector}>
       <div class="speed-options">
         <For each={playbackSpeeds}>
           {(speed) => (
             <button
-              class={`speed-option ${speed === props.currentSpeed ? 'active' : ''}`}
+              class={`speed-option ${speed === playerStore.playbackSpeed ? 'active' : ''}`}
               onClick={() => props.onSpeedSelect(speed)}
             >
               {speed}x
@@ -469,110 +387,103 @@ const FullscreenButton = (props: FullscreenButtonProps) => (
   </button>
 )
 
-interface EpisodeMetadataProps {
-  series: {
-    name: string
-    tags?: string[]
-    genre?: { _id: string; name: string }[]
-    description: string
-    languages?: string[]
-  }
-  currentEpisode: Episode | null
-  selectedLanguage: string
-  isFavorited: boolean
-  isEpisodePurchased: boolean
-  onLanguageChange: (language: string) => void
-  onTagClick: (tag: string) => void
-  onFavoriteToggle: () => void
-  onUnlockClick: () => void
-}
+// ── EpisodeMetadata ── subscribes directly to playerStore/playerPageStore
 
-const EpisodeMetadata = (props: EpisodeMetadataProps) => (
-  <div class="episode-metadata">
-    <h1 class="episode-title">
-      {props.currentEpisode
-        ? buildEpisodeTitle(props.series.name, props.currentEpisode.episodeNumber)
-        : props.series.name}
-    </h1>
+const EpisodeMetadata = () => {
+  const navigate = useNavigate()
+  const isFavorited = () => checkSeriesFavorited(useParams().id)
+  const isPurchased = () => isCurrentEpisodePurchased()
+  const handleTagClick = (tag: string) => navigate(`/series?genre=${encodeURIComponent(tag)}`)
 
-    <div class="metadata-row">
-      <div class="episode-language">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-        </svg>
-        <select
-          value={props.selectedLanguage}
-          onChange={(e) => props.onLanguageChange(e.currentTarget.value)}
-          class="language-select"
-        >
-          <Show when={props.series.languages && props.series.languages.length > 0} fallback={
-            <option value="English">English</option>
-          }>
-            <For each={props.series.languages}>
-              {(lang) => (
-                <option value={lang}>{lang}</option>
-              )}
-            </For>
-          </Show>
-        </select>
-      </div>
+  return (
+    <div class="episode-metadata">
+      <h1 class="episode-title">
+        {playerStore.currentEpisode
+          ? buildEpisodeTitle(playerStore.series!.name, playerStore.currentEpisode.episodeNumber)
+          : playerStore.series!.name}
+      </h1>
 
-      <div class="metadata-buttons">
-        <button
-          class={`favorite-button ${props.isFavorited ? 'active' : ''}`}
-          onClick={props.onFavoriteToggle}
-          title={props.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <path
-              fill={props.isFavorited ? '#ef4444' : 'none'}
-              stroke={props.isFavorited ? '#ef4444' : '#9ca3af'}
-              stroke-width="2"
-              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-            />
+      <div class="metadata-row">
+        <div class="episode-language">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
           </svg>
-        </button>
+          <select
+            value={playerStore.selectedLanguage}
+            onChange={(e) => playerStoreActions.setSelectedLanguage(e.currentTarget.value)}
+            class="language-select"
+          >
+            <Show when={playerStore.series!.languages && playerStore.series!.languages.length > 0} fallback={
+              <option value="English">English</option>
+            }>
+              <For each={playerStore.series!.languages}>
+                {(lang) => (
+                  <option value={lang}>{lang}</option>
+                )}
+              </For>
+            </Show>
+          </select>
+        </div>
 
-        <Show when={!props.isEpisodePurchased}>
-          <button class="unlock-button" onClick={props.onUnlockClick} title="Unlock episode">
+        <div class="metadata-buttons">
+          <button
+            class={`favorite-button ${isFavorited() ? 'active' : ''}`}
+            onClick={playerPageStoreActions.handleFavoriteToggle}
+            title={isFavorited() ? 'Remove from favorites' : 'Add to favorites'}
+          >
             <svg viewBox="0 0 24 24" width="24" height="24">
               <path
-                fill="none"
-                stroke="#9ca3af"
+                fill={isFavorited() ? '#ef4444' : 'none'}
+                stroke={isFavorited() ? '#ef4444' : '#9ca3af'}
                 stroke-width="2"
-                d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
               />
             </svg>
           </button>
-        </Show>
+
+          <Show when={!isPurchased()}>
+            <button class="unlock-button" onClick={playerPageStoreActions.handleUnlockClick} title="Unlock episode">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path
+                  fill="none"
+                  stroke="#9ca3af"
+                  stroke-width="2"
+                  d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+                />
+              </svg>
+            </button>
+          </Show>
+        </div>
       </div>
-    </div>
 
-    <div class="episode-tags">
-      <For each={props.series.tags}>
-        {(tag, index) => (
-          <span class="episode-tag" onClick={() => props.onTagClick(tag)}>
-            {tag}
-          </span>
-        )}
-      </For>
-      <For each={props.series.genre}>
-        {(genre) => (
-          <span
-            class="episode-tag"
-            onClick={() => props.onTagClick(genre.name)}
-          >
-            {genre.name}
-          </span>
-        )}
-      </For>
-    </div>
+      <div class="episode-tags">
+        <For each={playerStore.series!.tags}>
+          {(tag, index) => (
+            <span class="episode-tag" onClick={() => handleTagClick(tag)}>
+              {tag}
+            </span>
+          )}
+        </For>
+        <For each={playerStore.series!.genre}>
+          {(genre) => (
+            <span
+              class="episode-tag"
+              onClick={() => handleTagClick(genre.name)}
+            >
+              {genre.name}
+            </span>
+          )}
+        </For>
+      </div>
 
-    <p class="episode-description">
-      {props.currentEpisode?.description || props.series.description}
-    </p>
-  </div>
-)
+      <p class="episode-description">
+        {playerStore.currentEpisode?.description || playerStore.series!.description}
+      </p>
+    </div>
+  )
+}
+
+// ── EpisodeItem ── pure presentational (episode comes from For loop)
 
 interface EpisodeItemProps {
   episode: Episode
@@ -602,41 +513,34 @@ const EpisodeItem = (props: EpisodeItemProps) => {
   )
 }
 
-interface EpisodeSidebarProps {
-  episodes: Episode[]
-  allEpisodes: Episode[]
-  currentEpisode: Episode | null
-  episodeRange: [number, number]
-  title: string
-  seriesId: string
-  isSeriesOwner: boolean
-  onEpisodeClick: (episode: Episode) => void
-  onRangeSelect: (range: [number, number]) => void
-}
+// ── EpisodeSidebar ── subscribes directly to playerStore/playerPageStore/accountStore
 
-const EpisodeSidebar = (props: EpisodeSidebarProps) => {
+const EpisodeSidebar = () => {
+  const params = useParams()
+  const navigate = useNavigate()
   const purchases = () => accountStore.user?.purchases
-
+  const isOwner = () => checkIsSeriesOwner()
+  const filteredEpisodes = () => getFilteredEpisodes()
   const ranges = () => getEpisodeRangeOptions()
 
   const checkPurchased = (episode: Episode): boolean => {
-    if (!props.seriesId) return false
-    if (props.isSeriesOwner) return true
-    return isEpisodePurchased(props.seriesId, episode._id, purchases(), episode.episodeNumber)
+    if (!params.id) return false
+    if (isOwner()) return true
+    return isEpisodePurchased(params.id, episode._id, purchases(), episode.episodeNumber)
   }
 
   return (
     <aside class="episode-sidebar">
-      <h2 class="sidebar-title">{props.title}</h2>
+      <h2 class="sidebar-title">{t().player.episodes}</h2>
 
       <div class="episode-range-selector">
         <For each={ranges()}>
           {([start, end]) => (
             <button
               class={`range-button ${
-                props.episodeRange[0] === start && props.episodeRange[1] === end ? 'active' : ''
+                playerStore.episodeRange[0] === start && playerStore.episodeRange[1] === end ? 'active' : ''
               }`}
-              onClick={() => props.onRangeSelect([start, end])}
+              onClick={() => playerStoreActions.setEpisodeRange([start, end])}
             >
               {start.toString().padStart(2, '0')}-{end.toString().padStart(2, '0')}
             </button>
@@ -645,16 +549,16 @@ const EpisodeSidebar = (props: EpisodeSidebarProps) => {
       </div>
 
       <div class="episode-grid">
-        <For each={props.episodes}>
+        <For each={filteredEpisodes()}>
           {(episode) => (
             <EpisodeItem
               episode={episode}
               isActive={
-                props.currentEpisode !== null &&
-                props.currentEpisode.episodeNumber === episode.episodeNumber
+                playerStore.currentEpisode !== null &&
+                playerStore.currentEpisode.episodeNumber === episode.episodeNumber
               }
               isPurchased={checkPurchased(episode)}
-              onClick={() => props.onEpisodeClick(episode)}
+              onClick={() => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
             />
           )}
         </For>
@@ -663,11 +567,9 @@ const EpisodeSidebar = (props: EpisodeSidebarProps) => {
   )
 }
 
-interface SocialButtonsProps {
-  favoritesText: string
-}
+// ── SocialButtons ── subscribes directly to languageStore
 
-const SocialButtons = (props: SocialButtonsProps) => (
+const SocialButtons = () => (
   <div class="social-buttons">
     <button class="social-button" title="Facebook">
       <svg viewBox="0 0 24 24" width="24" height="24">
@@ -701,7 +603,7 @@ const SocialButtons = (props: SocialButtonsProps) => (
         />
       </svg>
     </button>
-    <button class="social-button" title={props.favoritesText}>
+    <button class="social-button" title={t().player.addToFavorites}>
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path
           fill="#ef4444"

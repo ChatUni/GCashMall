@@ -12,7 +12,6 @@ import {
   loginModalStoreActions,
   recommendationsStore,
   newReleasesStore,
-  toastStore,
 } from '../../stores'
 import { accountStore, accountStoreActions } from '../../stores/accountStore'
 import {
@@ -420,11 +419,7 @@ const PhonePlayer = () => {
           </Show>
 
           {/* Toast */}
-          <Toast
-            message={toastStore.message}
-            type={toastStore.type}
-            isVisible={toastStore.isVisible}
-          />
+          <Toast />
         </PhoneLayout>
       </Show>
     </Show>

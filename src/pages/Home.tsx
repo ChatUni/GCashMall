@@ -18,32 +18,11 @@ const initializeData = () => {
   }
 }
 
-// Click handlers defined outside component (avoiding embedded functions)
-const createPlayClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
-  if (seriesId) {
-    navigate(`/player/${seriesId}`)
-  }
-}
-
-const createPosterClickHandler = (navigate: ReturnType<typeof useNavigate>, seriesId: string | undefined) => () => {
-  if (seriesId) {
-    navigate(`/player/${seriesId}`)
-  }
-}
-
-const createTagClickHandler = (navigate: ReturnType<typeof useNavigate>, tag: string) => () => {
-  navigate(`/genre?category=${encodeURIComponent(tag)}`)
-}
-
 const Home = () => {
   const navigate = useNavigate()
 
   // Initialize data on first render
   initializeData()
-
-  const handlePlayClick = () => createPlayClickHandler(navigate, featuredStore.series?._id)()
-  const handlePosterClick = () => createPosterClickHandler(navigate, featuredStore.series?._id)()
-  const handleTagClick = (tag: string) => createTagClickHandler(navigate, tag)()
 
   return (
     <div class="home-page">
@@ -51,15 +30,7 @@ const Home = () => {
 
       <Show when={!featuredStore.loading} fallback={<div class="hero-loading">Loading...</div>}>
         <Show when={featuredStore.series}>
-          {(series) => (
-            <HeroSection
-              series={series()}
-              onPlayClick={handlePlayClick}
-              onPosterClick={handlePosterClick}
-              onTagClick={handleTagClick}
-              playText={t().home.play}
-            />
-          )}
+          <HeroSection />
         </Show>
       </Show>
 
@@ -71,69 +42,75 @@ const Home = () => {
   )
 }
 
-// Pure sub-component for hero section
-interface HeroSectionProps {
-  series: {
-    _id: string
-    name: string
-    cover: string
-    description: string
-    tags?: string[]
-    genre?: { _id: string; name: string }[]
+// ── HeroSection ── subscribes directly to featuredStore and languageStore
+
+const HeroSection = () => {
+  const navigate = useNavigate()
+
+  const handlePlayClick = () => {
+    if (featuredStore.series?._id) {
+      navigate(`/player/${featuredStore.series._id}`)
+    }
   }
-  onPlayClick: () => void
-  onPosterClick: () => void
-  onTagClick: (tag: string) => void
-  playText: string
+
+  const handlePosterClick = () => {
+    if (featuredStore.series?._id) {
+      navigate(`/player/${featuredStore.series._id}`)
+    }
+  }
+
+  const handleTagClick = (tag: string) => {
+    navigate(`/genre?category=${encodeURIComponent(tag)}`)
+  }
+
+  return (
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-poster" onClick={handlePosterClick}>
+          <img
+            src={featuredStore.series!.cover}
+            alt={featuredStore.series!.name}
+            class="hero-poster-image"
+          />
+          <div class="hero-poster-overlay">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="hero-info">
+          <h1 class="hero-title">{featuredStore.series!.name}</h1>
+
+          <div class="hero-tags">
+            <For each={featuredStore.series!.tags}>
+              {(tag, index) => (
+                <span class="hero-tag" onClick={() => handleTagClick(tag)}>
+                  {tag}
+                </span>
+              )}
+            </For>
+            <For each={featuredStore.series!.genre}>
+              {(genre) => (
+                <span class="hero-tag" onClick={() => handleTagClick(genre.name)}>
+                  {genre.name}
+                </span>
+              )}
+            </For>
+          </div>
+
+          <p class="hero-description">{featuredStore.series!.description}</p>
+
+          <button class="hero-play-button" onClick={handlePlayClick}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+            {t().home.play}
+          </button>
+        </div>
+      </div>
+    </section>
+  )
 }
-
-const HeroSection = (props: HeroSectionProps) => (
-  <section class="hero-section">
-    <div class="hero-content">
-      <div class="hero-poster" onClick={props.onPosterClick}>
-        <img
-          src={props.series.cover}
-          alt={props.series.name}
-          class="hero-poster-image"
-        />
-        <div class="hero-poster-overlay">
-          <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21" />
-          </svg>
-        </div>
-      </div>
-
-      <div class="hero-info">
-        <h1 class="hero-title">{props.series.name}</h1>
-
-        <div class="hero-tags">
-          <For each={props.series.tags}>
-            {(tag, index) => (
-              <span class="hero-tag" onClick={() => props.onTagClick(tag)}>
-                {tag}
-              </span>
-            )}
-          </For>
-          <For each={props.series.genre}>
-            {(genre) => (
-              <span class="hero-tag" onClick={() => props.onTagClick(genre.name)}>
-                {genre.name}
-              </span>
-            )}
-          </For>
-        </div>
-
-        <p class="hero-description">{props.series.description}</p>
-
-        <button class="hero-play-button" onClick={props.onPlayClick}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21" />
-          </svg>
-          {props.playText}
-        </button>
-      </div>
-    </div>
-  </section>
-)
 
 export default Home
