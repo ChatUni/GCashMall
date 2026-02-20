@@ -4,7 +4,7 @@ import { t } from '../stores/languageStore'
 import { languageStore, languageStoreActions } from '../stores/languageStore'
 import { languageIcons, supportedLanguages, type Language } from '../i18n'
 import { apiGet, isLoggedIn as checkIsLoggedIn, getStoredUser } from '../utils/api'
-import { accountStoreActions } from '../stores/accountStore'
+import { accountStore, accountStoreActions } from '../stores/accountStore'
 import type { SearchSuggestion, WatchListItem, User } from '../types'
 import LoginModal from './LoginModal'
 import './TopBar.css'
@@ -31,10 +31,12 @@ const TopBar = () => {
     return location.pathname === path
   }
 
-  // Check login status on mount and when location changes
+  // Check login status on mount, when location changes, or when accountStore login state changes
   createEffect(() => {
     // Track location.pathname to re-run when it changes
     const _path = location.pathname
+    // Track accountStore.isLoggedIn so this re-runs after login from other pages (e.g., player page)
+    const _storeLoggedIn = accountStore.isLoggedIn
     const loggedIn = checkIsLoggedIn()
     setIsLoggedIn(loggedIn)
     if (loggedIn) {

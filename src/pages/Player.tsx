@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show, For } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Show, For, untrack } from 'solid-js'
 import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
@@ -196,6 +196,10 @@ const VideoPlayer = () => {
   })
 
   // Initialize Player.js with trial limit enforcement
+  // Note: Use untrack for isPurchased() so this effect only re-runs on video/iframe changes.
+  // Purchase status updates are handled separately by updatePlayerJsPurchaseStatus below.
+  // If we track isPurchased() here, login causes re-initialization which destroys the
+  // existing Player.js instance and creates a new one that may not attach listeners in time.
   createEffect(() => {
     const vid = currentVideoId()
     if (!vid || !iframeLoaded()) return
@@ -203,7 +207,7 @@ const VideoPlayer = () => {
     const cleanup = initializePlayerJsWithTrialLimit(
       { current: iframeRef || null },
       vid,
-      isPurchased(),
+      untrack(() => isPurchased()),
       playerPageStoreActions.handleTimeLimitReached,
     )
 

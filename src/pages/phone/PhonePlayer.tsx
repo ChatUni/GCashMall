@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show, For } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Show, For, untrack } from 'solid-js'
 import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
@@ -78,10 +78,13 @@ const PhonePlayer = () => {
     onCleanup(() => clearTimeout(timer))
   })
 
-  // Player.js initialization
+  // Player.js initialization - reset iframe loaded state when video changes
+  // Note: Do NOT track accountStore.user here. When user logs in, iframeLoaded must
+  // stay true so that updatePlayerJsPurchaseStatus can run and update the Player.js
+  // purchase ref. If we reset iframeLoaded on user change, the iframe doesn't actually
+  // reload (same video), onLoad never fires, and the purchase status never updates.
   createEffect(() => {
     void playerStore.currentEpisode?.videoId
-    void accountStore.user?._id
     setIframeLoaded(false)
   })
 
@@ -89,13 +92,16 @@ const PhonePlayer = () => {
     setIframeLoaded(true)
   }
 
+  // Initialize Player.js with trial limit enforcement
+  // Note: Use untrack for isPurchased() so this effect only re-runs on video/iframe changes.
+  // Purchase status updates are handled separately by updatePlayerJsPurchaseStatus below.
   createEffect(() => {
     const currentVideoId = playerStore.currentEpisode?.videoId
-    const purchased = isPurchased()
     const loaded = iframeLoaded()
 
     if (!currentVideoId || !loaded) return
 
+    const purchased = untrack(() => isPurchased())
     const iframeRefObj = { current: iframeRef || null }
     const cleanup = initializePlayerJsWithTrialLimit(
       iframeRefObj,
