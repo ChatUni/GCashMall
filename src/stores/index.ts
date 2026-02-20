@@ -7,6 +7,7 @@ import type { Series } from '../types'
 // Re-export stores from dedicated modules
 export { playerStore, playerStoreActions } from './playerStore'
 export { featuredStore, featuredStoreActions, videoFeedStore, videoFeedStoreActions } from './homeStore'
+export { genreStore, genreStoreActions, activeGenreName, seriesCount } from './genreStore'
 
 // Recommendations store
 interface RecommendationsState {

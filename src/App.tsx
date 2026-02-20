@@ -8,8 +8,6 @@ import Home from './pages/Home'
 import ProductList from './pages/ProductList'
 import ProductCategoryList from './pages/ProductCategoryList'
 import Genre from './pages/Genre'
-import SeriesList from './pages/SeriesList'
-import Series from './pages/Series'
 import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
 import Account from './pages/Account'
@@ -61,9 +59,7 @@ const routes = (
     {/* Desktop-only routes (admin/management features) */}
     <Route path="/products" component={ProductList} />
     <Route path="/categories" component={ProductCategoryList} />
-    <Route path="/series" component={SeriesList} />
     <Route path="/series/new" component={SeriesEdit} />
-    <Route path="/series/:id" component={Series} />
     <Route path="/series/:id/edit" component={SeriesEdit} />
     <Route path="/reset-password" component={ResetPassword} />
   </>

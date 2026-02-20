@@ -19,8 +19,6 @@ const initializeData = () => {
 }
 
 const Home = () => {
-  const navigate = useNavigate()
-
   // Initialize data on first render
   initializeData()
 
@@ -84,7 +82,7 @@ const HeroSection = () => {
 
           <div class="hero-tags">
             <For each={featuredStore.series!.tags}>
-              {(tag, index) => (
+              {(tag) => (
                 <span class="hero-tag" onClick={() => handleTagClick(tag)}>
                   {tag}
                 </span>
