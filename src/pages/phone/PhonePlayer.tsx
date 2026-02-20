@@ -64,8 +64,8 @@ const PhonePlayer = () => {
   // Check description truncation
   createEffect(() => {
     // Track dependencies
-    const _ep = playerStore.currentEpisode
-    const _series = playerStore.series
+    void playerStore.currentEpisode
+    void playerStore.series
 
     playerPageStoreActions.setDescriptionExpanded(false)
     const timer = setTimeout(() => {
@@ -80,8 +80,8 @@ const PhonePlayer = () => {
 
   // Player.js initialization
   createEffect(() => {
-    const currentVideoId = playerStore.currentEpisode?.videoId
-    const _userId = accountStore.user?._id
+    void playerStore.currentEpisode?.videoId
+    void accountStore.user?._id
     setIframeLoaded(false)
   })
 

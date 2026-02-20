@@ -1,201 +1,155 @@
-import { createSignal, createEffect, Show } from 'solid-js'
+import { createEffect, Show, Switch, Match } from 'solid-js'
 import { useSearchParams, useNavigate } from '@solidjs/router'
+import { resetPasswordStore, resetPasswordStoreActions } from '../stores/resetPasswordStore'
 import { t } from '../stores/languageStore'
-import { apiPost } from '../utils/api'
-import { validatePassword } from '../utils/validation'
+import { syncParamsFromUrl, handleSubmit } from '../services/resetPasswordService'
 import './ResetPassword.css'
+
+// ======================
+// Sub-components
+// ======================
+
+const PageWrapper = (props: { children: any }) => (
+  <div class="reset-password-page">
+    <div class="reset-password-container">
+      <div class="reset-password-card">{props.children}</div>
+    </div>
+  </div>
+)
+
+const InvalidLinkView = (props: { onGoHome: () => void }) => (
+  <PageWrapper>
+    <h1 class="reset-password-title">{t().resetPassword.title}</h1>
+    <div class="reset-password-error-message">
+      {t().resetPassword.invalidLink}
+    </div>
+    <button class="reset-password-button" onClick={props.onGoHome}>
+      {t().resetPassword.backToHome}
+    </button>
+  </PageWrapper>
+)
+
+const SuccessView = (props: { onGoLogin: () => void }) => (
+  <PageWrapper>
+    <div class="reset-password-success-icon">✓</div>
+    <h1 class="reset-password-title">{t().resetPassword.success}</h1>
+    <p class="reset-password-success-message">
+      {t().resetPassword.successMessage}
+    </p>
+    <button class="reset-password-button" onClick={props.onGoLogin}>
+      {t().login.backToLogin}
+    </button>
+  </PageWrapper>
+)
+
+const PasswordField = (props: {
+  id: string
+  label: string
+  value: string
+  placeholder: string
+  error: string | undefined
+  onInput: (value: string) => void
+}) => (
+  <div class="reset-password-field">
+    <label for={props.id}>{props.label}</label>
+    <input
+      type="password"
+      id={props.id}
+      value={props.value}
+      onInput={(e) => props.onInput(e.currentTarget.value)}
+      placeholder={props.placeholder}
+      class={`reset-password-input ${props.error ? 'error' : ''}`}
+    />
+    <Show when={props.error}>
+      <span class="reset-password-error">{props.error}</span>
+    </Show>
+  </div>
+)
+
+const FormView = () => (
+  <PageWrapper>
+    <h1 class="reset-password-title">{t().resetPassword.title}</h1>
+    <p class="reset-password-subtitle">{t().resetPassword.enterNewPassword}</p>
+
+    <form onSubmit={handleSubmit} class="reset-password-form">
+      <div class="reset-password-field">
+        <label for="email">{t().resetPassword.email}</label>
+        <input
+          type="email"
+          id="email"
+          value={resetPasswordStore.email}
+          disabled
+          class="reset-password-input disabled"
+        />
+      </div>
+
+      <PasswordField
+        id="newPassword"
+        label={t().resetPassword.newPassword}
+        value={resetPasswordStore.newPassword}
+        placeholder={t().resetPassword.newPasswordPlaceholder}
+        error={resetPasswordStore.errors.newPassword}
+        onInput={resetPasswordStoreActions.setNewPassword}
+      />
+
+      <PasswordField
+        id="confirmPassword"
+        label={t().resetPassword.confirmNewPassword}
+        value={resetPasswordStore.confirmPassword}
+        placeholder={t().resetPassword.confirmNewPasswordPlaceholder}
+        error={resetPasswordStore.errors.confirmPassword}
+        onInput={resetPasswordStoreActions.setConfirmPassword}
+      />
+
+      <Show when={resetPasswordStore.apiError}>
+        <div class="reset-password-api-error">
+          {resetPasswordStore.apiError}
+        </div>
+      </Show>
+
+      <button
+        type="submit"
+        class="reset-password-button"
+        disabled={resetPasswordStore.isLoading}
+      >
+        {resetPasswordStore.isLoading
+          ? t().resetPassword.resetting
+          : t().resetPassword.resetButton}
+      </button>
+    </form>
+  </PageWrapper>
+)
+
+// ======================
+// Main page component
+// ======================
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const [email, setEmail] = createSignal('')
-  const [token, setToken] = createSignal('')
-  const [newPassword, setNewPassword] = createSignal('')
-  const [confirmPassword, setConfirmPassword] = createSignal('')
-  const [errors, setErrors] = createSignal<{ [key: string]: string }>({})
-  const [isLoading, setIsLoading] = createSignal(false)
-  const [isSuccess, setIsSuccess] = createSignal(false)
-  const [apiError, setApiError] = createSignal('')
-
+  // Sync URL params to store on mount / URL change
   createEffect(() => {
-    extractParamsFromUrl()
+    syncParamsFromUrl(
+      searchParams.token as string | undefined,
+      searchParams.email as string | undefined,
+    )
   })
 
-  const extractParamsFromUrl = () => {
-    const tokenParam = searchParams.token as string | undefined
-    const emailParam = searchParams.email as string | undefined
-
-    if (tokenParam) setToken(tokenParam)
-    if (emailParam) setEmail(decodeURIComponent(emailParam))
-  }
-
-  const validateForm = () => {
-    const validationErrors: { [key: string]: string } = {}
-
-    if (!newPassword()) {
-      validationErrors.newPassword = t().resetPassword.newPasswordRequired
-    } else {
-      const passwordValidation = validatePassword(newPassword())
-      if (!passwordValidation.valid) {
-        validationErrors.newPassword = passwordValidation.error || t().resetPassword.newPasswordRequired
-      }
-    }
-
-    if (!confirmPassword()) {
-      validationErrors.confirmPassword = t().resetPassword.confirmPasswordRequired
-    } else if (newPassword() !== confirmPassword()) {
-      validationErrors.confirmPassword = t().resetPassword.passwordsDoNotMatch
-    }
-
-    return validationErrors
-  }
-
-  const submitResetPassword = async () => {
-    setIsLoading(true)
-
-    try {
-      const response = await apiPost('confirmResetPassword', {
-        email: email(),
-        token: token(),
-        newPassword: newPassword(),
-      })
-
-      if (response.success) {
-        setIsSuccess(true)
-      } else {
-        setApiError(response.error || t().resetPassword.failed)
-      }
-    } catch {
-      setApiError(t().resetPassword.failed)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault()
-    setApiError('')
-
-    const validationErrors = validateForm()
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
-      return
-    }
-
-    setErrors({})
-    await submitResetPassword()
-  }
-
-  const handleGoToLogin = () => {
-    navigate('/')
-  }
+  const handleGoHome = () => navigate('/')
 
   return (
-    <Show when={token() && email()} fallback={
-      <div class="reset-password-page">
-        <div class="reset-password-container">
-          <div class="reset-password-card">
-            <h1 class="reset-password-title">{t().resetPassword.title}</h1>
-            <div class="reset-password-error-message">
-              {t().resetPassword.invalidLink}
-            </div>
-            <button
-              class="reset-password-button"
-              onClick={handleGoToLogin}
-            >
-              {t().resetPassword.backToHome}
-            </button>
-          </div>
-        </div>
-      </div>
-    }>
-      <Show when={!isSuccess()} fallback={
-        <div class="reset-password-page">
-          <div class="reset-password-container">
-            <div class="reset-password-card">
-              <div class="reset-password-success-icon">✓</div>
-              <h1 class="reset-password-title">{t().resetPassword.success}</h1>
-              <p class="reset-password-success-message">
-                {t().resetPassword.successMessage}
-              </p>
-              <button
-                class="reset-password-button"
-                onClick={handleGoToLogin}
-              >
-                {t().login.backToLogin}
-              </button>
-            </div>
-          </div>
-        </div>
-      }>
-        <div class="reset-password-page">
-          <div class="reset-password-container">
-            <div class="reset-password-card">
-              <h1 class="reset-password-title">{t().resetPassword.title}</h1>
-              <p class="reset-password-subtitle">
-                {t().resetPassword.enterNewPassword}
-              </p>
-
-              <form onSubmit={handleSubmit} class="reset-password-form">
-                <div class="reset-password-field">
-                  <label for="email">{t().resetPassword.email}</label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email()}
-                    disabled
-                    class="reset-password-input disabled"
-                  />
-                </div>
-
-                <div class="reset-password-field">
-                  <label for="newPassword">{t().resetPassword.newPassword}</label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    value={newPassword()}
-                    onInput={(e) => setNewPassword(e.currentTarget.value)}
-                    placeholder={t().resetPassword.newPasswordPlaceholder}
-                    class={`reset-password-input ${errors().newPassword ? 'error' : ''}`}
-                  />
-                  <Show when={errors().newPassword}>
-                    <span class="reset-password-error">{errors().newPassword}</span>
-                  </Show>
-                </div>
-
-                <div class="reset-password-field">
-                  <label for="confirmPassword">{t().resetPassword.confirmNewPassword}</label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    value={confirmPassword()}
-                    onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-                    placeholder={t().resetPassword.confirmNewPasswordPlaceholder}
-                    class={`reset-password-input ${errors().confirmPassword ? 'error' : ''}`}
-                  />
-                  <Show when={errors().confirmPassword}>
-                    <span class="reset-password-error">{errors().confirmPassword}</span>
-                  </Show>
-                </div>
-
-                <Show when={apiError()}>
-                  <div class="reset-password-api-error">{apiError()}</div>
-                </Show>
-
-                <button
-                  type="submit"
-                  class="reset-password-button"
-                  disabled={isLoading()}
-                >
-                  {isLoading() ? t().resetPassword.resetting : t().resetPassword.resetButton}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </Show>
-    </Show>
+    <Switch>
+      <Match when={resetPasswordStore.view === 'invalidLink'}>
+        <InvalidLinkView onGoHome={handleGoHome} />
+      </Match>
+      <Match when={resetPasswordStore.view === 'success'}>
+        <SuccessView onGoLogin={handleGoHome} />
+      </Match>
+      <Match when={resetPasswordStore.view === 'form'}>
+        <FormView />
+      </Match>
+    </Switch>
   )
 }
 

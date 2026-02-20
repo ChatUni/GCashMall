@@ -1,4 +1,5 @@
 import { createSignal, onMount, Show, For } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
@@ -92,6 +93,18 @@ const PhoneAccount = () => {
   const onLoginSuccess = async (user: User) => handleLoginSuccess(user)
   const onAvatarUpload = (e: Event & { currentTarget: HTMLInputElement; target: Element }) => handleAvatarUpload(e, t().account)
 
+  const tabComponents: Record<AccountTab, () => any> = {
+    overview: PhoneOverviewSection,
+    watchHistory: PhoneWatchHistorySection,
+    favorites: PhoneFavoritesSection,
+    settings: PhoneSettingsSection,
+    wallet: PhoneWalletSection,
+    myPurchases: PhoneMyPurchasesSection,
+    mySeries: PhoneMySeriesSection,
+    about: PhoneAboutSection,
+    contact: PhoneContactSection,
+  }
+
   return (
     <Show when={!accountStore.loading} fallback={
       <PhoneLayout showHeader={true} title={(t().account.nav as Record<string, string>).overview}>
@@ -143,33 +156,7 @@ const PhoneAccount = () => {
               </For>
             </div>
             <div class="phone-account-content">
-              <Show when={accountStore.activeTab === 'overview'}>
-                <PhoneOverviewSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'watchHistory'}>
-                <PhoneWatchHistorySection />
-              </Show>
-              <Show when={accountStore.activeTab === 'favorites'}>
-                <PhoneFavoritesSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'settings'}>
-                <PhoneSettingsSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'wallet'}>
-                <PhoneWalletSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'myPurchases'}>
-                <PhoneMyPurchasesSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'mySeries'}>
-                <PhoneMySeriesSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'about'}>
-                <PhoneAboutSection />
-              </Show>
-              <Show when={accountStore.activeTab === 'contact'}>
-                <PhoneContactSection />
-              </Show>
+              <Dynamic component={tabComponents[accountStore.activeTab]} />
             </div>
           </div>
           <Show when={accountStore.showLoginModal}>
