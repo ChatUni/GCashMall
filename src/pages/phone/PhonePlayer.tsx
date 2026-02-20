@@ -8,14 +8,13 @@ import { t } from '../../stores/languageStore'
 import {
   playerStore,
   loginModalStore,
-  userStore,
   playerStoreActions,
   loginModalStoreActions,
-  userStoreActions,
   recommendationsStore,
   newReleasesStore,
   toastStore,
 } from '../../stores'
+import { accountStore, accountStoreActions } from '../../stores/accountStore'
 import {
   playerPageStore,
   playerPageStoreActions,
@@ -27,7 +26,6 @@ import {
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
 } from '../../stores/playerStore'
-import { accountStoreActions } from '../../stores/accountStore'
 import { getIframeUrl } from '../../utils/playerHelpers'
 import type { User } from '../../types'
 import './PhonePlayer.css'
@@ -84,7 +82,7 @@ const PhonePlayer = () => {
   // Player.js initialization
   createEffect(() => {
     const currentVideoId = playerStore.currentEpisode?.videoId
-    const _userId = userStore.user?._id
+    const _userId = accountStore.user?._id
     setIframeLoaded(false)
   })
 
@@ -122,8 +120,8 @@ const PhonePlayer = () => {
   })
 
   const handleLoginSuccess = (user: User) => {
-    userStoreActions.setUser(user)
-    userStoreActions.setLoading(false)
+    accountStoreActions.setUser(user)
+    accountStoreActions.setLoading(false)
     accountStoreActions.initializeUserData(user)
     loginModalStoreActions.close()
   }
@@ -380,7 +378,7 @@ const PhonePlayer = () => {
               seriesName={playerStore.series?.name || ''}
               episodeNumber={playerStore.currentEpisode!.episodeNumber}
               episodeTitle={playerStore.currentEpisode!.title}
-              userBalance={userStore.user?.balance || 0}
+              userBalance={accountStore.user?.balance || 0}
               isPurchasing={playerPageStore.isPurchasing}
               onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t())}
               onCancel={playerPageStoreActions.hidePurchasePopup}

@@ -10,12 +10,11 @@ import { t } from '../stores/languageStore'
 import {
   playerStore,
   loginModalStore,
-  userStore,
   playerStoreActions,
   loginModalStoreActions,
-  userStoreActions,
   toastStore,
 } from '../stores'
+import { accountStore, accountStoreActions } from '../stores/accountStore'
 import {
   playerPageStore,
   playerPageStoreActions,
@@ -34,7 +33,6 @@ import {
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
 } from '../stores/playerStore'
-import { accountStoreActions } from '../stores/accountStore'
 import { isEpisodePurchased } from '../services/dataService'
 import {
   formatTime,
@@ -186,8 +184,8 @@ const Player = () => {
         <LoginModal
           onClose={loginModalStoreActions.close}
           onLoginSuccess={(user) => {
-            userStoreActions.setUser(user)
-            userStoreActions.setLoading(false)
+            accountStoreActions.setUser(user)
+            accountStoreActions.setLoading(false)
             accountStoreActions.initializeUserData(user)
             loginModalStoreActions.close()
           }}
@@ -200,7 +198,7 @@ const Player = () => {
           seriesName={playerStore.series?.name || ''}
           episodeNumber={playerStore.currentEpisode!.episodeNumber}
           episodeTitle={playerStore.currentEpisode!.title}
-          userBalance={userStore.user?.balance || 0}
+          userBalance={accountStore.user?.balance || 0}
           isPurchasing={playerPageStore.isPurchasing}
           onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t())}
           onCancel={playerPageStoreActions.hidePurchasePopup}
@@ -617,7 +615,7 @@ interface EpisodeSidebarProps {
 }
 
 const EpisodeSidebar = (props: EpisodeSidebarProps) => {
-  const purchases = () => userStore.user?.purchases
+  const purchases = () => accountStore.user?.purchases
 
   const ranges = () => getEpisodeRangeOptions()
 

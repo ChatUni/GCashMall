@@ -1,8 +1,8 @@
-// Extended player store actions - business logic for the Player page
-// This module combines the base player store from index.ts with player page UI state
+// Player store - all player-related state and business logic
+// Following Rule #7: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { Episode, User, FavoriteUserItem, WatchListItem } from '../types'
+import type { Series, Episode, User, FavoriteUserItem, WatchListItem } from '../types'
 import {
   addToWatchList,
   addToFavorites,
@@ -16,10 +16,75 @@ import {
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
-import { playerStoreActions as basePlayerStoreActions, loginModalStoreActions, getPlayerStore, getUserStore } from './index'
+import { loginModalStoreActions } from './index'
+import { accountStore } from './accountStore'
 
-// Re-export playerStore from index.ts
-export { playerStore } from './index'
+// ======================
+// Base Player Store (data layer)
+// ======================
+
+interface PlayerState {
+  series: Series | null
+  episodes: Episode[]
+  currentEpisode: Episode | null
+  loading: boolean
+  isPlaying: boolean
+  showControls: boolean
+  currentTime: number
+  duration: number
+  volume: number
+  playbackSpeed: number
+  showSpeedSelector: boolean
+  selectedLanguage: string
+  episodeRange: [number, number]
+  hoveredEpisodeId: string | null
+  showPurchaseDialog: boolean
+  purchaseLoading: boolean
+}
+
+const getPlayerInitialState = (): PlayerState => ({
+  series: null,
+  episodes: [],
+  currentEpisode: null,
+  loading: true,
+  isPlaying: false,
+  showControls: true,
+  currentTime: 0,
+  duration: 0,
+  volume: 1,
+  playbackSpeed: 1,
+  showSpeedSelector: false,
+  selectedLanguage: 'English',
+  episodeRange: [1, 40] as [number, number],
+  hoveredEpisodeId: null,
+  showPurchaseDialog: false,
+  purchaseLoading: false,
+})
+
+const [playerState, setPlayerState] = createStore<PlayerState>(getPlayerInitialState())
+
+export const playerStore = playerState
+
+const basePlayerStoreActions = {
+  setSeries: (series: Series | null) => setPlayerState({ series }),
+  setEpisodes: (episodes: Episode[]) => setPlayerState({ episodes }),
+  setCurrentEpisode: (currentEpisode: Episode | null) => setPlayerState({ currentEpisode }),
+  setLoading: (loading: boolean) => setPlayerState({ loading }),
+  setIsPlaying: (isPlaying: boolean) => setPlayerState({ isPlaying }),
+  setShowControls: (showControls: boolean) => setPlayerState({ showControls }),
+  setCurrentTime: (currentTime: number) => setPlayerState({ currentTime }),
+  setDuration: (duration: number) => setPlayerState({ duration }),
+  setVolume: (volume: number) => setPlayerState({ volume }),
+  setPlaybackSpeed: (playbackSpeed: number) => setPlayerState({ playbackSpeed }),
+  setShowSpeedSelector: (showSpeedSelector: boolean) => setPlayerState({ showSpeedSelector }),
+  setSelectedLanguage: (selectedLanguage: string) => setPlayerState({ selectedLanguage }),
+  setEpisodeRange: (episodeRange: [number, number]) => setPlayerState({ episodeRange }),
+  setHoveredEpisodeId: (hoveredEpisodeId: string | null) => setPlayerState({ hoveredEpisodeId }),
+  setShowPurchaseDialog: (showPurchaseDialog: boolean) => setPlayerState({ showPurchaseDialog }),
+  setPurchaseLoading: (purchaseLoading: boolean) => setPlayerState({ purchaseLoading }),
+  reset: () => setPlayerState(getPlayerInitialState()),
+  getState: () => playerState,
+}
 
 // Constants
 export const HIDE_FAVORITE_MODAL_KEY = 'hideFavoriteModal'
@@ -111,44 +176,36 @@ export const playerPageStore = playerPageState
 // ======================
 
 export const checkSeriesFavorited = (seriesId: string | undefined): boolean => {
-  const userState = getUserStore()
-  if (!seriesId || !userState.user?.favorites || userState.user.favorites.length === 0) return false
-  return userState.user.favorites.some((item: FavoriteUserItem) => String(item.seriesId) === String(seriesId))
+  if (!seriesId || !accountStore.user?.favorites || accountStore.user.favorites.length === 0) return false
+  return accountStore.user.favorites.some((item: FavoriteUserItem) => String(item.seriesId) === String(seriesId))
 }
 
 export const checkIsSeriesOwner = (): boolean => {
-  const playerState = getPlayerStore()
-  const userState = getUserStore()
-  const uploaderId = playerState.series?.uploaderId
-  const userId = userState.user?._id
+  const uploaderId = playerStore.series?.uploaderId
+  const userId = accountStore.user?._id
   if (!uploaderId || !userId) return false
   return String(uploaderId) === String(userId)
 }
 
 export const checkEpisodePurchased = (episodeId: string, episodeNumber: number): boolean => {
-  const playerState = getPlayerStore()
-  const userState = getUserStore()
-  const seriesId = playerState.series?._id
+  const seriesId = playerStore.series?._id
   if (!seriesId) return false
   if (checkIsSeriesOwner()) return true
-  return isEpisodePurchased(seriesId, episodeId, userState.user?.purchases, episodeNumber)
+  return isEpisodePurchased(seriesId, episodeId, accountStore.user?.purchases, episodeNumber)
 }
 
 export const isCurrentEpisodePurchased = (): boolean => {
-  const playerState = getPlayerStore()
-  const episode = playerState.currentEpisode
+  const episode = playerStore.currentEpisode
   if (!episode) return false
   return checkEpisodePurchased(episode._id, episode.episodeNumber)
 }
 
 export const getFilteredEpisodes = (): Episode[] => {
-  const playerState = getPlayerStore()
-  return filterEpisodesByRange(playerState.episodes, playerState.episodeRange)
+  return filterEpisodesByRange(playerStore.episodes, playerStore.episodeRange)
 }
 
 export const getEpisodeRangeOptions = (): [number, number][] => {
-  const playerState = getPlayerStore()
-  return getEpisodeRanges(playerState.episodes.length)
+  return getEpisodeRanges(playerStore.episodes.length)
 }
 
 // ======================
@@ -436,21 +493,19 @@ export const handleFullscreen = (videoRef: { current: HTMLVideoElement | null })
 export const showControlsTemporarily = (
   timeoutRef: { current: ReturnType<typeof setTimeout> | null },
 ) => {
-  const playerState = getPlayerStore()
   basePlayerStoreActions.setShowControls(true)
   if (timeoutRef.current) {
     clearTimeout(timeoutRef.current)
   }
   timeoutRef.current = setTimeout(() => {
-    if (playerState.isPlaying) {
+    if (playerStore.isPlaying) {
       basePlayerStoreActions.setShowControls(false)
     }
   }, 3000)
 }
 
 export const hideControlsIfPlaying = () => {
-  const playerState = getPlayerStore()
-  if (playerState.isPlaying) {
+  if (playerStore.isPlaying) {
     basePlayerStoreActions.setShowControls(false)
   }
 }
@@ -486,43 +541,41 @@ export const playerPageStoreActions = {
 
   // Handle episode selection from URL or watch list
   selectEpisodeFromUrlOrWatchList: (episodeNumberFromUrl: string | null) => {
-    const playerState = getPlayerStore()
-    const userState = getUserStore()
     const seriesId = playerPageState.currentSeriesId
 
-    if (playerState.episodes.length === 0 || playerState.loading || !seriesId) return
+    if (playerStore.episodes.length === 0 || playerStore.loading || !seriesId) return
 
     if (episodeNumberFromUrl) {
       const episodeNum = parseInt(episodeNumberFromUrl, 10)
-      if (!playerState.currentEpisode || playerState.currentEpisode.episodeNumber !== episodeNum) {
-        const episode = findEpisodeByNumber(playerState.episodes, episodeNum)
+      if (!playerStore.currentEpisode || playerStore.currentEpisode.episodeNumber !== episodeNum) {
+        const episode = findEpisodeByNumber(playerStore.episodes, episodeNum)
         if (episode) {
           basePlayerStoreActions.setCurrentEpisode(episode)
         }
       }
-    } else if (!playerState.currentEpisode) {
-      const watchList = userState.user?.watchList
+    } else if (!playerStore.currentEpisode) {
+      const watchList = accountStore.user?.watchList
       let lastWatchedEpisode: Episode | null = null
       if (watchList && watchList.length > 0) {
         const watchListItem = watchList.find((item: WatchListItem) => String(item.seriesId) === String(seriesId))
         if (watchListItem) {
-          lastWatchedEpisode = findEpisodeByNumber(playerState.episodes, watchListItem.episodeNumber) || null
+          lastWatchedEpisode = findEpisodeByNumber(playerStore.episodes, watchListItem.episodeNumber) || null
         }
       }
       if (lastWatchedEpisode) {
         basePlayerStoreActions.setCurrentEpisode(lastWatchedEpisode)
-      } else if (playerState.episodes.length > 0) {
-        basePlayerStoreActions.setCurrentEpisode(playerState.episodes[0])
+      } else if (playerStore.episodes.length > 0) {
+        basePlayerStoreActions.setCurrentEpisode(playerStore.episodes[0])
       }
     }
 
     if (
       playerPageState.watchListUpdatedForSeriesId !== seriesId &&
-      playerState.currentEpisode &&
+      playerStore.currentEpisode &&
       isLoggedIn()
     ) {
       setPlayerPageState({ watchListUpdatedForSeriesId: seriesId })
-      playerPageStoreActions.updateWatchList(seriesId, playerState.currentEpisode.episodeNumber)
+      playerPageStoreActions.updateWatchList(seriesId, playerStore.currentEpisode.episodeNumber)
     }
   },
 
@@ -577,14 +630,12 @@ export const playerPageStoreActions = {
 
   // Handle purchase confirmation
   handlePurchaseConfirm: async (t: { player: { insufficientBalance: string; purchaseSuccess: string; purchaseFailed: string } }) => {
-    const playerState = getPlayerStore()
-    const userState = getUserStore()
     const seriesId = playerPageState.currentSeriesId
-    const episode = playerState.currentEpisode
+    const episode = playerStore.currentEpisode
 
     if (!seriesId || !episode) return
 
-    const userBalance = userState.user?.balance || 0
+    const userBalance = accountStore.user?.balance || 0
     if (userBalance < EPISODE_PRICE) {
       setPlayerPageState({
         showPurchasePopup: false,

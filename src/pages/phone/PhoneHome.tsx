@@ -4,7 +4,6 @@ import {
   videoFeedStoreActions,
   loginModalStore,
   loginModalStoreActions,
-  userStoreActions,
 } from '../../stores'
 import { accountStoreActions } from '../../stores/accountStore'
 import { fetchVideoFeed, loadMoreVideos } from '../../services/dataService'
@@ -91,8 +90,8 @@ const PhoneHome = () => {
   }
 
   const handleLoginSuccess = (user: import('../../types').User) => {
-    userStoreActions.setUser(user)
-    userStoreActions.setLoading(false)
+    accountStoreActions.setUser(user)
+    accountStoreActions.setLoading(false)
     accountStoreActions.initializeUserData(user)
     loginModalStoreActions.close()
   }

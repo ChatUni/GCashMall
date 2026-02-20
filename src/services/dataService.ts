@@ -7,7 +7,6 @@ import {
   recommendationsStoreActions,
   newReleasesStoreActions,
   playerStoreActions,
-  userStoreActions,
   toastStoreActions,
   videoFeedStoreActions,
 } from '../stores'
@@ -130,8 +129,8 @@ export const checkLoginStatus = async (): Promise<boolean> => {
   if (isLoggedIn()) {
     const storedUser = getStoredUser()
     if (storedUser) {
-      userStoreActions.setUser(storedUser)
-      userStoreActions.setLoading(false)
+      accountStoreActions.setUser(storedUser)
+      accountStoreActions.setLoading(false)
       return true
     }
   }
@@ -139,22 +138,22 @@ export const checkLoginStatus = async (): Promise<boolean> => {
   try {
     const response = await apiGet<User>('user')
     if (response.success && response.data) {
-      userStoreActions.setUser(response.data)
-      userStoreActions.setLoading(false)
+      accountStoreActions.setUser(response.data)
+      accountStoreActions.setLoading(false)
       return true
     }
   } catch {
     // User not logged in
   }
 
-  userStoreActions.setLoading(false)
+  accountStoreActions.setLoading(false)
   return false
 }
 
 // Logout
 export const logout = () => {
   clearAuthData()
-  userStoreActions.logout()
+  accountStoreActions.reset()
 }
 
 // Series list
@@ -188,7 +187,7 @@ export const addToWatchList = async (seriesId: string, episodeNumber: number) =>
       saveAuthData(token, result.data)
     }
     // Update user store (delegates to accountStore - single source of truth)
-    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -201,7 +200,7 @@ export const addToFavorites = async (seriesId: string) => {
     if (token) {
       saveAuthData(token, result.data)
     }
-    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -213,7 +212,7 @@ export const removeFromFavorites = async (seriesId: string) => {
     if (token) {
       saveAuthData(token, result.data)
     }
-    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
   }
   return result
 }
@@ -251,7 +250,7 @@ export const purchaseEpisodeSimple = async (seriesId: string, episodeNumber: num
         ],
       }
       saveAuthData(token, updatedUser)
-      userStoreActions.setUser(updatedUser)
+      accountStoreActions.setUser(updatedUser)
       // Also update the separate balance field in accountStore (used by WalletSection)
       accountStoreActions.setBalance(result.data.balance)
     }
@@ -287,7 +286,7 @@ export const updateProfile = async (data: ProfileUpdateData) => {
     if (token) {
       saveAuthData(token, response.data)
     }
-    userStoreActions.setUser(response.data)
+    accountStoreActions.setUser(response.data)
     return { success: true, data: response.data }
   }
   return { success: false, error: response.error }
@@ -322,7 +321,7 @@ export const uploadAvatar = async (base64Image: string) => {
     if (token) {
       saveAuthData(token, updateResponse.data)
     }
-    userStoreActions.setUser(updateResponse.data)
+    accountStoreActions.setUser(updateResponse.data)
     return { success: true, data: updateResponse.data }
   }
 
@@ -331,9 +330,9 @@ export const uploadAvatar = async (base64Image: string) => {
 
 export const removeAvatar = async () => {
   await apiPost('removeAvatar', {})
-  const state = userStoreActions.getState()
+  const state = accountStoreActions.getState()
   if (state.user) {
-    userStoreActions.setUser({ ...state.user, avatar: null })
+    accountStoreActions.setUser({ ...state.user, avatar: null })
   }
 }
 
@@ -428,7 +427,7 @@ export const purchaseEpisode = async (
     if (token) {
       saveAuthData(token, result.data)
     }
-    userStoreActions.setUser(result.data)
+    accountStoreActions.setUser(result.data)
     // Also update myPurchases in accountStore if purchases exist in user data
     if (result.data.purchases) {
       accountStoreActions.setMyPurchases(result.data.purchases)

@@ -1,4 +1,5 @@
-import { createSignal, onMount, Show, For } from 'solid-js'
+import { createSignal, onMount, Show, For, type Component } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
@@ -13,7 +14,6 @@ import {
   navItems,
   walletAmounts,
   type AccountTab,
-  type Transaction,
   getCombinedTransactions,
   formatTransactionDateTime,
   getStatusClass,
@@ -55,8 +55,18 @@ import {
   getStatusText,
 } from '../services/accountService'
 import { toastStore } from '../stores'
-import type { PurchaseItem, Series, User } from '../types'
+import type { Series, User } from '../types'
 import './Account.css'
+
+const tabComponents: Record<string, Component> = {
+  overview: OverviewSection,
+  watchHistory: WatchHistorySection,
+  favorites: FavoritesSection,
+  settings: SettingsSection,
+  wallet: WalletSection,
+  myPurchases: MyPurchasesSection,
+  mySeries: MySeriesSection,
+}
 
 const Account = () => {
   const navigate = useNavigate()
@@ -88,102 +98,14 @@ const Account = () => {
 
   const onLoginSuccess = async (user: User) => handleLoginSuccess(user)
 
-  const onSaveProfile = () => handleSaveProfile(t().account)
-
-  const onChangePassword = () => handleChangePassword(t().account)
-
-  const onSetPassword = () => handleSetPassword(t().account)
-
-  const onAvatarUpload = (e: Event & { currentTarget: HTMLInputElement; target: Element }) => handleAvatarUpload(e, t().account)
-
   return (
     <div class="account-page">
       <TopBar />
       <Show when={!accountStore.loading} fallback={<div class="loading">Loading...</div>}>
         <div class="account-layout">
-          <AccountSidebar
-            user={accountStore.user}
-            activeTab={accountStore.activeTab}
-            onTabClick={onTabClick}
-            onLogout={onLogout}
-          />
+          <AccountSidebar onTabClick={onTabClick} onLogout={onLogout} />
           <main class="account-content">
-            <Show when={accountStore.activeTab === 'overview'}>
-              <OverviewSection
-                user={accountStore.user}
-                hasPassword={accountStore.user?.hasPassword ?? true}
-                profileForm={accountStore.profileForm}
-                profileErrors={accountStore.profileErrors}
-                profileSaving={accountStore.profileSaving}
-                originalProfile={accountStore.originalProfile}
-                passwordForm={accountStore.passwordForm}
-                passwordErrors={accountStore.passwordErrors}
-                passwordChanging={accountStore.passwordChanging}
-                avatarError={accountStore.avatarError}
-                avatarUploading={accountStore.avatarUploading}
-                onSaveProfile={onSaveProfile}
-                onChangePassword={onChangePassword}
-                onSetPassword={onSetPassword}
-                onAvatarUpload={onAvatarUpload}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'watchHistory'}>
-              <WatchHistorySection
-                items={accountStore.user?.watchList || []}
-                onClearHistory={clearWatchHistory}
-                onRemoveItem={removeFromWatchList}
-                onNavigate={navigate}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'favorites'}>
-              <FavoritesSection
-                items={accountStore.user?.favorites || []}
-                onClearFavorites={clearFavorites}
-                onRemoveItem={removeFromFavorites}
-                onNavigate={navigate}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'settings'}>
-              <SettingsSection
-                language={languageStore.language}
-                playbackSpeed={accountStore.playbackSpeed}
-                autoplay={accountStore.autoplay}
-                notifications={accountStore.notifications}
-                onLanguageChange={languageStoreActions.setLanguage}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'wallet'}>
-              <WalletSection
-                balance={accountStore.balance}
-                walletTab={accountStore.walletTab}
-                showTopUpPopup={accountStore.showTopUpPopup}
-                selectedTopUpAmount={accountStore.selectedTopUpAmount}
-                showWithdrawPopup={accountStore.showWithdrawPopup}
-                selectedWithdrawAmount={accountStore.selectedWithdrawAmount}
-                withdrawing={accountStore.withdrawing}
-                transactions={accountStore.transactions}
-                purchases={accountStore.myPurchases}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'myPurchases'}>
-              <MyPurchasesSection
-                purchases={accountStore.myPurchases}
-                loading={accountStore.myPurchasesLoading}
-                onNavigate={navigate}
-              />
-            </Show>
-            <Show when={accountStore.activeTab === 'mySeries'}>
-              <MySeriesSection
-                series={accountStore.mySeries}
-                loading={accountStore.mySeriesLoading}
-                editingSeriesId={accountStore.editingSeriesId}
-                showShelveModal={accountStore.showShelveModal}
-                pendingShelveSeries={accountStore.pendingShelveSeries}
-                showUnshelveModal={accountStore.showUnshelveModal}
-                pendingUnshelveSeries={accountStore.pendingUnshelveSeries}
-                onNavigate={navigate}
-              />
-            </Show>
+            <Dynamic component={tabComponents[accountStore.activeTab]} />
           </main>
         </div>
       </Show>
@@ -202,11 +124,9 @@ const Account = () => {
   )
 }
 
-// Pure sub-components
+// Sub-components that subscribe directly to stores
 
 interface AccountSidebarProps {
-  user: { nickname?: string; email?: string; avatar?: string | null } | null
-  activeTab: AccountTab
   onTabClick: (tab: AccountTab) => void
   onLogout: () => void
 }
@@ -215,13 +135,13 @@ const AccountSidebar = (props: AccountSidebarProps) => (
   <aside class="account-sidebar">
     <div class="sidebar-profile">
       <div class="sidebar-avatar">
-        <Show when={props.user?.avatar} fallback={<span class="avatar-emoji">👤</span>}>
-          <img src={props.user!.avatar!} alt={props.user?.nickname} />
+        <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji">👤</span>}>
+          <img src={accountStore.user!.avatar!} alt={accountStore.user?.nickname} />
         </Show>
       </div>
       <div class="sidebar-user-info">
-        <span class="sidebar-username">{props.user?.nickname || 'Guest'}</span>
-        <span class="sidebar-email">{props.user?.email || ''}</span>
+        <span class="sidebar-username">{accountStore.user?.nickname || 'Guest'}</span>
+        <span class="sidebar-email">{accountStore.user?.email || ''}</span>
       </div>
     </div>
 
@@ -229,7 +149,7 @@ const AccountSidebar = (props: AccountSidebarProps) => (
       <For each={navItems}>
         {(item) => (
           <button
-            class={`nav-item ${props.activeTab === item.key ? 'active' : ''}`}
+            class={`nav-item ${accountStore.activeTab === item.key ? 'active' : ''}`}
             onClick={() => props.onTabClick(item.key)}
           >
             <span class="nav-icon">{item.icon}</span>
@@ -246,28 +166,15 @@ const AccountSidebar = (props: AccountSidebarProps) => (
   </aside>
 )
 
-interface OverviewSectionProps {
-  user: { avatar?: string | null } | null
-  hasPassword: boolean
-  profileForm: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
-  profileErrors: { emailError: string; phoneError: string; birthdayError: string }
-  profileSaving: boolean
-  originalProfile: { nickname: string; email: string; phoneNumber: string; gender: string; birthday: string }
-  passwordForm: { currentPassword: string; newPassword: string; confirmPassword: string }
-  passwordErrors: { currentPasswordError: string; newPasswordError: string; confirmPasswordError: string }
-  passwordChanging: boolean
-  avatarError: string
-  avatarUploading: boolean
-  onSaveProfile: () => void
-  onChangePassword: () => void
-  onSetPassword: () => void
-  onAvatarUpload: (e: Event & { currentTarget: HTMLInputElement; target: Element }) => void
-}
-
-const OverviewSection = (props: OverviewSectionProps) => {
+function OverviewSection() {
   const overview = () => t().account.overview as Record<string, string>
   const login = () => t().login as Record<string, string>
-  const profileHasChanges = () => hasProfileChanges(props.profileForm, props.originalProfile)
+  const profileHasChanges = () => hasProfileChanges(accountStore.profileForm, accountStore.originalProfile)
+
+  const onSaveProfile = () => handleSaveProfile(t().account)
+  const onChangePassword = () => handleChangePassword(t().account)
+  const onSetPassword = () => handleSetPassword(t().account)
+  const onAvatarUpload = (e: Event & { currentTarget: HTMLInputElement; target: Element }) => handleAvatarUpload(e, t().account)
 
   return (
     <div class="content-section overview-section">
@@ -284,7 +191,7 @@ const OverviewSection = (props: OverviewSectionProps) => {
             type="text"
             name="nickname"
             autoComplete="nickname"
-            value={props.profileForm.nickname}
+            value={accountStore.profileForm.nickname}
             onChange={(v) => accountStoreActions.updateProfileField('nickname', v)}
             placeholder={overview().nicknamePlaceholder}
           />
@@ -293,33 +200,33 @@ const OverviewSection = (props: OverviewSectionProps) => {
             type="email"
             name="email"
             autoComplete="email"
-            value={props.profileForm.email}
+            value={accountStore.profileForm.email}
             onChange={(v) => {
               accountStoreActions.updateProfileField('email', v)
-              if (props.profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '')
+              if (accountStore.profileErrors.emailError) accountStoreActions.updateProfileError('emailError', '')
             }}
             placeholder={overview().emailPlaceholder}
-            error={props.profileErrors.emailError}
+            error={accountStore.profileErrors.emailError}
           />
           <ProfileField
             label={overview().phoneNumber}
             type="tel"
             name="phone"
             autoComplete="tel"
-            value={props.profileForm.phoneNumber}
+            value={accountStore.profileForm.phoneNumber}
             onChange={(v) => {
               accountStoreActions.updateProfileField('phoneNumber', v)
-              if (props.profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '')
+              if (accountStore.profileErrors.phoneError) accountStoreActions.updateProfileError('phoneError', '')
             }}
             placeholder={overview().phonePlaceholder}
-            error={props.profileErrors.phoneError}
+            error={accountStore.profileErrors.phoneError}
           />
           <div class="form-field">
             <label>{overview().gender}</label>
             <select
               name="gender"
               autocomplete="sex"
-              value={props.profileForm.gender}
+              value={accountStore.profileForm.gender}
               onChange={(e) => accountStoreActions.updateProfileField('gender', e.currentTarget.value)}
             >
               <option value="not_specified">{overview().genderNotSpecified}</option>
@@ -333,20 +240,20 @@ const OverviewSection = (props: OverviewSectionProps) => {
             type="date"
             name="birthday"
             autoComplete="bday"
-            value={props.profileForm.birthday}
+            value={accountStore.profileForm.birthday}
             onChange={(v) => {
               accountStoreActions.updateProfileField('birthday', v)
-              if (props.profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '')
+              if (accountStore.profileErrors.birthdayError) accountStoreActions.updateProfileError('birthdayError', '')
             }}
-            error={props.profileErrors.birthdayError}
+            error={accountStore.profileErrors.birthdayError}
           />
         </div>
         <button
           class="btn-primary"
-          onClick={props.onSaveProfile}
-          disabled={!profileHasChanges() || props.profileSaving}
+          onClick={onSaveProfile}
+          disabled={!profileHasChanges() || accountStore.profileSaving}
         >
-          {props.profileSaving ? '...' : overview().save}
+          {accountStore.profileSaving ? '...' : overview().save}
         </button>
       </div>
 
@@ -354,71 +261,71 @@ const OverviewSection = (props: OverviewSectionProps) => {
         <h3 class="card-title">{overview().profilePicture}</h3>
         <div class="avatar-section">
           <div class="avatar-preview">
-            <Show when={props.user?.avatar} fallback={<span class="avatar-emoji-large">👤</span>}>
-              <img src={props.user!.avatar!} alt="Avatar" />
+            <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji-large">👤</span>}>
+              <img src={accountStore.user!.avatar!} alt="Avatar" />
             </Show>
           </div>
           <div class="avatar-actions">
-            <label class={`btn-primary upload-btn ${props.avatarUploading ? 'disabled' : ''}`}>
-              {props.avatarUploading ? '...' : overview().uploadAvatar}
+            <label class={`btn-primary upload-btn ${accountStore.avatarUploading ? 'disabled' : ''}`}>
+              {accountStore.avatarUploading ? '...' : overview().uploadAvatar}
               <input
                 type="file"
                 accept="image/*"
-                onChange={props.onAvatarUpload}
+                onChange={onAvatarUpload}
                 hidden
-                disabled={props.avatarUploading}
+                disabled={accountStore.avatarUploading}
               />
             </label>
           </div>
-          <Show when={props.avatarError}>
-            <span class="field-error">{props.avatarError}</span>
+          <Show when={accountStore.avatarError}>
+            <span class="field-error">{accountStore.avatarError}</span>
           </Show>
           <p class="avatar-hint">{overview().avatarHint}</p>
         </div>
       </div>
 
       <div class="section-card">
-        <h3 class="card-title">{props.hasPassword ? overview().changePassword : login().setPassword || 'Set Password'}</h3>
+        <h3 class="card-title">{(accountStore.user?.hasPassword ?? true) ? overview().changePassword : login().setPassword || 'Set Password'}</h3>
         <div class="form-grid password-form">
-          <Show when={props.hasPassword}>
+          <Show when={accountStore.user?.hasPassword ?? true}>
             <PasswordField
               label={overview().currentPassword}
-              value={props.passwordForm.currentPassword}
+              value={accountStore.passwordForm.currentPassword}
               onChange={(v) => {
                 accountStoreActions.updatePasswordField('currentPassword', v)
-                if (props.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
+                if (accountStore.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
               }}
               placeholder={overview().currentPasswordPlaceholder}
-              error={props.passwordErrors.currentPasswordError}
+              error={accountStore.passwordErrors.currentPasswordError}
             />
           </Show>
           <PasswordField
             label={overview().newPassword}
-            value={props.passwordForm.newPassword}
+            value={accountStore.passwordForm.newPassword}
             onChange={(v) => {
               accountStoreActions.updatePasswordField('newPassword', v)
-              if (props.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '')
+              if (accountStore.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '')
             }}
             placeholder={overview().newPasswordPlaceholder}
-            error={props.passwordErrors.newPasswordError}
+            error={accountStore.passwordErrors.newPasswordError}
           />
           <PasswordField
             label={overview().confirmPassword}
-            value={props.passwordForm.confirmPassword}
+            value={accountStore.passwordForm.confirmPassword}
             onChange={(v) => {
               accountStoreActions.updatePasswordField('confirmPassword', v)
-              if (props.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '')
+              if (accountStore.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '')
             }}
             placeholder={overview().confirmPasswordPlaceholder}
-            error={props.passwordErrors.confirmPasswordError}
+            error={accountStore.passwordErrors.confirmPasswordError}
           />
         </div>
         <button
           class="btn-primary"
-          onClick={props.hasPassword ? props.onChangePassword : props.onSetPassword}
-          disabled={props.passwordChanging}
+          onClick={(accountStore.user?.hasPassword ?? true) ? onChangePassword : onSetPassword}
+          disabled={accountStore.passwordChanging}
         >
-          {props.passwordChanging ? '...' : (props.hasPassword ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
+          {accountStore.passwordChanging ? '...' : ((accountStore.user?.hasPassword ?? true) ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
         </button>
       </div>
     </div>
@@ -478,25 +385,17 @@ const PasswordField = (props: PasswordFieldProps) => (
   </div>
 )
 
-interface WatchHistorySectionProps {
-  items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]
-  onClearHistory: () => Promise<{ success: boolean; error?: string }>
-  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
-  onNavigate: (path: string) => void
-}
-
-const WatchHistorySection = (props: WatchHistorySectionProps) => {
+function WatchHistorySection() {
+  const navigate = useNavigate()
   const watchHistory = () => t().account.watchHistory as Record<string, string>
-
-  // Sort items using shared helper
-  const sortedItems = () => getSortedWatchHistoryItems(props.items)
+  const sortedItems = () => getSortedWatchHistoryItems(accountStore.user?.watchList || [])
 
   return (
     <div class="content-section history-section">
       <div class="section-header-row">
         <h1 class="page-title">{watchHistory().title}</h1>
         <div class="header-actions">
-          <button class="btn-secondary" onClick={props.onClearHistory}>
+          <button class="btn-secondary" onClick={clearWatchHistory}>
             {watchHistory().clearHistory}
           </button>
         </div>
@@ -508,7 +407,7 @@ const WatchHistorySection = (props: WatchHistorySectionProps) => {
           title={watchHistory().emptyTitle}
           subtext={watchHistory().emptySubtext}
           buttonText={watchHistory().exploreButton}
-          onButtonClick={() => props.onNavigate('/series')}
+          onButtonClick={() => navigate('/series')}
         />
       }>
         <div class="content-grid">
@@ -517,10 +416,10 @@ const WatchHistorySection = (props: WatchHistorySectionProps) => {
               <HistoryCard
                 seriesId={item.seriesId}
                 episodeNumber={item.episodeNumber}
-                onClick={() => props.onNavigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
+                onClick={() => navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
                 onRemove={(e) => {
                   e.stopPropagation()
-                  props.onRemoveItem(item.seriesId)
+                  removeFromWatchList(item.seriesId)
                 }}
               />
             )}
@@ -580,18 +479,10 @@ const HistoryCard = (props: HistoryCardProps) => {
   )
 }
 
-interface FavoritesSectionProps {
-  items: { seriesId: string; seriesName: string; seriesCover: string; seriesTags?: string[]; addedAt: Date }[]
-  onClearFavorites: () => Promise<{ success: boolean; error?: string }>
-  onRemoveItem: (seriesId: string) => Promise<{ success: boolean; error?: string }>
-  onNavigate: (path: string) => void
-}
-
-const FavoritesSection = (props: FavoritesSectionProps) => {
+function FavoritesSection() {
+  const navigate = useNavigate()
   const favorites = () => t().account.favorites as Record<string, string>
-
-  // Sort items using shared helper
-  const sortedItems = () => getSortedFavoritesItems(props.items)
+  const sortedItems = () => getSortedFavoritesItems(accountStore.user?.favorites || [])
 
   return (
     <div class="content-section favorites-section">
@@ -599,7 +490,7 @@ const FavoritesSection = (props: FavoritesSectionProps) => {
         <h1 class="page-title">{favorites().title}</h1>
         <Show when={sortedItems().length > 0}>
           <div class="header-actions">
-            <button class="btn-secondary" onClick={props.onClearFavorites}>
+            <button class="btn-secondary" onClick={clearFavorites}>
               {favorites().clearFavorites || 'Clear Favorites'}
             </button>
           </div>
@@ -612,7 +503,7 @@ const FavoritesSection = (props: FavoritesSectionProps) => {
           title={favorites().emptyTitle}
           subtext={favorites().emptySubtext}
           buttonText={favorites().exploreButton}
-          onButtonClick={() => props.onNavigate('/series')}
+          onButtonClick={() => navigate('/series')}
         />
       }>
         <div class="content-grid">
@@ -623,10 +514,10 @@ const FavoritesSection = (props: FavoritesSectionProps) => {
                 seriesName={item.seriesName}
                 seriesCover={item.seriesCover}
                 seriesTags={item.seriesTags}
-                onClick={() => props.onNavigate(`/player/${item.seriesId}`)}
+                onClick={() => navigate(`/player/${item.seriesId}`)}
                 onRemove={(e) => {
                   e.stopPropagation()
-                  props.onRemoveItem(item.seriesId)
+                  removeFromFavorites(item.seriesId)
                 }}
               />
             )}
@@ -689,15 +580,7 @@ const EmptyState = (props: EmptyStateProps) => (
   </div>
 )
 
-interface SettingsSectionProps {
-  language: string
-  playbackSpeed: string
-  autoplay: boolean
-  notifications: boolean
-  onLanguageChange: (lang: Language) => void
-}
-
-const SettingsSection = (props: SettingsSectionProps) => {
+function SettingsSection() {
   const settings = () => t().account.settings as Record<string, string>
 
   return (
@@ -711,8 +594,8 @@ const SettingsSection = (props: SettingsSectionProps) => {
           <label class="setting-label">{settings().language}</label>
           <select
             class="setting-control"
-            value={props.language}
-            onChange={(e) => props.onLanguageChange(e.currentTarget.value as Language)}
+            value={languageStore.language}
+            onChange={(e) => languageStoreActions.setLanguage(e.currentTarget.value as Language)}
           >
             <option value="en">English</option>
             <option value="zh">中文</option>
@@ -723,7 +606,7 @@ const SettingsSection = (props: SettingsSectionProps) => {
           <label class="setting-label">{settings().playbackSpeed}</label>
           <select
             class="setting-control"
-            value={props.playbackSpeed}
+            value={accountStore.playbackSpeed}
             onChange={(e) => accountStoreActions.setPlaybackSpeed(e.currentTarget.value)}
           >
             <option value="0.5x">0.5x</option>
@@ -738,7 +621,7 @@ const SettingsSection = (props: SettingsSectionProps) => {
           <label class="toggle">
             <input
               type="checkbox"
-              checked={props.autoplay}
+              checked={accountStore.autoplay}
               onChange={(e) => accountStoreActions.setAutoplay(e.currentTarget.checked)}
             />
             <span class="toggle-slider"></span>
@@ -750,7 +633,7 @@ const SettingsSection = (props: SettingsSectionProps) => {
           <label class="toggle">
             <input
               type="checkbox"
-              checked={props.notifications}
+              checked={accountStore.notifications}
               onChange={(e) => accountStoreActions.setNotifications(e.currentTarget.checked)}
             />
             <span class="toggle-slider"></span>
@@ -761,31 +644,15 @@ const SettingsSection = (props: SettingsSectionProps) => {
   )
 }
 
-interface WalletSectionProps {
-  balance: number
-  walletTab: 'topup' | 'withdraw'
-  showTopUpPopup: boolean
-  selectedTopUpAmount: number | null
-  showWithdrawPopup: boolean
-  selectedWithdrawAmount: number | null
-  withdrawing: boolean
-  transactions: Transaction[]
-  purchases: PurchaseItem[]
-}
-
-const WalletSection = (props: WalletSectionProps) => {
+function WalletSection() {
   const wallet = () => t().account.wallet as Record<string, string>
 
   const onTopUpClick = (amount: number) => handleTopUpClick(amount)
-
   const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t().account)
-
   const onConfirmTopUp = () => handleConfirmTopUp(t().account)
-
   const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
 
-  // Use shared helpers for combined transactions
-  const combinedTransactions = () => getCombinedTransactions(props.transactions, props.purchases)
+  const combinedTransactions = () => getCombinedTransactions(accountStore.transactions, accountStore.myPurchases)
 
   return (
     <div class="content-section wallet-section">
@@ -800,7 +667,7 @@ const WalletSection = (props: WalletSectionProps) => {
           <span class="balance-label">{wallet().currentBalance}</span>
           <div class="balance-amount">
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="gcash-logo" />
-            <span>{props.balance.toFixed(2)}</span>
+            <span>{accountStore.balance.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -808,13 +675,13 @@ const WalletSection = (props: WalletSectionProps) => {
       {/* Wallet Tabs */}
       <div class="wallet-tabs">
         <button
-          class={`wallet-tab ${props.walletTab === 'topup' ? 'active' : ''}`}
+          class={`wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`}
           onClick={() => accountStoreActions.setWalletTab('topup')}
         >
           {wallet().topUp}
         </button>
         <button
-          class={`wallet-tab ${props.walletTab === 'withdraw' ? 'active' : ''}`}
+          class={`wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`}
           onClick={() => accountStoreActions.setWalletTab('withdraw')}
         >
           {wallet().withdraw || 'Withdraw'}
@@ -825,22 +692,22 @@ const WalletSection = (props: WalletSectionProps) => {
       <div class="section-card amount-section">
         <div class="amount-section-header">
           <h3 class="card-title">
-            {props.walletTab === 'topup'
+            {accountStore.walletTab === 'topup'
               ? (wallet().selectTopUpAmount || 'Select Top Up Amount')
               : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')
             }
           </h3>
-          <Show when={props.walletTab === 'withdraw' && props.balance > 0}>
+          <Show when={accountStore.walletTab === 'withdraw' && accountStore.balance > 0}>
             <button
               class="btn-withdraw-all"
-              onClick={() => onWithdrawClick(props.balance)}
+              onClick={() => onWithdrawClick(accountStore.balance)}
             >
               {wallet().withdrawAll || 'Withdraw All'}
             </button>
           </Show>
         </div>
         <p class="amount-description">
-          {props.walletTab === 'topup'
+          {accountStore.walletTab === 'topup'
             ? wallet().topUpDescription
             : (wallet().withdrawDescription || 'Select an amount to withdraw from your wallet')
           }
@@ -849,9 +716,9 @@ const WalletSection = (props: WalletSectionProps) => {
           <For each={walletAmounts}>
             {(amount) => (
               <button
-                class={`amount-button ${props.walletTab === 'withdraw' && amount > props.balance ? 'disabled' : ''}`}
-                onClick={() => props.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
-                disabled={props.walletTab === 'withdraw' && amount > props.balance}
+                class={`amount-button ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`}
+                onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
+                disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}
               >
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="amount-logo" />
                 <span class="amount-value">{amount}</span>
@@ -914,7 +781,7 @@ const WalletSection = (props: WalletSectionProps) => {
       </div>
 
       {/* Top Up Confirmation Popup */}
-      <Show when={props.showTopUpPopup && props.selectedTopUpAmount}>
+      <Show when={accountStore.showTopUpPopup && accountStore.selectedTopUpAmount}>
         <div class="popup-overlay" onClick={closeTopUpPopup}>
           <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
@@ -922,7 +789,7 @@ const WalletSection = (props: WalletSectionProps) => {
             <p class="popup-message">{wallet().addToWallet}</p>
             <div class="popup-amount">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
-              <span>{props.selectedTopUpAmount}</span>
+              <span>{accountStore.selectedTopUpAmount}</span>
             </div>
             <div class="popup-buttons">
               <button class="btn-confirm" onClick={onConfirmTopUp}>
@@ -937,7 +804,7 @@ const WalletSection = (props: WalletSectionProps) => {
       </Show>
 
       {/* Withdraw Confirmation Popup */}
-      <Show when={props.showWithdrawPopup && props.selectedWithdrawAmount}>
+      <Show when={accountStore.showWithdrawPopup && accountStore.selectedWithdrawAmount}>
         <div class="popup-overlay" onClick={closeWithdrawPopup}>
           <div class="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
@@ -945,17 +812,17 @@ const WalletSection = (props: WalletSectionProps) => {
             <p class="popup-message">{wallet().withdrawFromWallet || 'Withdraw from your wallet'}</p>
             <div class="popup-amount withdraw-amount">
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
-              <span>{props.selectedWithdrawAmount!.toFixed(2)}</span>
+              <span>{accountStore.selectedWithdrawAmount!.toFixed(2)}</span>
             </div>
             <div class="popup-buttons">
               <button
                 class="btn-withdraw-confirm"
                 onClick={onConfirmWithdraw}
-                disabled={props.withdrawing}
+                disabled={accountStore.withdrawing}
               >
-                {props.withdrawing ? '...' : (wallet().confirm || 'Confirm')}
+                {accountStore.withdrawing ? '...' : (wallet().confirm || 'Confirm')}
               </button>
-              <button class="btn-cancel" onClick={closeWithdrawPopup} disabled={props.withdrawing}>
+              <button class="btn-cancel" onClick={closeWithdrawPopup} disabled={accountStore.withdrawing}>
                 {wallet().cancel}
               </button>
             </div>
@@ -966,20 +833,13 @@ const WalletSection = (props: WalletSectionProps) => {
   )
 }
 
-interface MyPurchasesSectionProps {
-  purchases: PurchaseItem[]
-  loading: boolean
-  onNavigate: (path: string) => void
-}
-
-const MyPurchasesSection = (props: MyPurchasesSectionProps) => {
+function MyPurchasesSection() {
+  const navigate = useNavigate()
   const myPurchases = () => (t().account.myPurchases || {}) as Record<string, string>
-
-  // Group purchases by series using shared helper
-  const seriesList = () => groupPurchasesBySeries(props.purchases)
+  const seriesList = () => groupPurchasesBySeries(accountStore.myPurchases)
 
   return (
-    <Show when={!props.loading} fallback={
+    <Show when={!accountStore.myPurchasesLoading} fallback={
       <div class="content-section my-purchases-section">
         <div class="loading">Loading...</div>
       </div>
@@ -996,14 +856,14 @@ const MyPurchasesSection = (props: MyPurchasesSectionProps) => {
             title={myPurchases().emptyTitle || 'No purchases yet'}
             subtext={myPurchases().emptySubtext || 'Browse series and purchase episodes to watch'}
             buttonText={myPurchases().exploreButton || 'Explore Series'}
-            onButtonClick={() => props.onNavigate('/series')}
+            onButtonClick={() => navigate('/series')}
           />
         }>
           <div class="purchases-list">
             <For each={seriesList()}>
               {(seriesGroup) => (
                 <div class="purchase-series-group">
-                  <div class="purchase-series-header" onClick={() => props.onNavigate(`/player/${seriesGroup.seriesId}`)}>
+                  <div class="purchase-series-header" onClick={() => navigate(`/player/${seriesGroup.seriesId}`)}>
                     <div class="purchase-series-cover">
                       <Show when={seriesGroup.seriesCover} fallback={<div class="purchase-series-placeholder">🎬</div>}>
                         <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
@@ -1021,7 +881,7 @@ const MyPurchasesSection = (props: MyPurchasesSectionProps) => {
                       {(episode) => (
                         <div
                           class="purchase-episode-card"
-                          onClick={() => props.onNavigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
+                          onClick={() => navigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
                         >
                           <div class="purchase-episode-thumbnail">
                             <Show when={episode.episodeThumbnail} fallback={<div class="purchase-episode-placeholder">▶️</div>}>
@@ -1053,32 +913,22 @@ const MyPurchasesSection = (props: MyPurchasesSectionProps) => {
   )
 }
 
-interface MySeriesSectionProps {
-  series: Series[]
-  loading: boolean
-  editingSeriesId: string | null
-  showShelveModal: boolean
-  pendingShelveSeries: Series | null
-  showUnshelveModal: boolean
-  pendingUnshelveSeries: Series | null
-  onNavigate: (path: string) => void
-}
-
-const MySeriesSection = (props: MySeriesSectionProps) => {
+function MySeriesSection() {
+  const navigate = useNavigate()
   const mySeries = () => (t().account.mySeries || {}) as Record<string, string>
 
   return (
-    <Show when={!props.loading} fallback={
+    <Show when={!accountStore.mySeriesLoading} fallback={
       <div class="content-section my-series-section">
         <div class="loading">Loading...</div>
       </div>
     }>
       {/* Show SeriesEditContent when editing or adding */}
-      <Show when={props.editingSeriesId} fallback={
+      <Show when={accountStore.editingSeriesId} fallback={
         <div class="content-section my-series-section">
           <div class="section-header">
             <h1 class="page-title">{mySeries().title || 'My Series'}</h1>
-            <Show when={props.series.length > 0} fallback={
+            <Show when={accountStore.mySeries.length > 0} fallback={
               <p class="page-subtitle">{mySeries().subtitle || 'Series you have created'}</p>
             }>
               <button class="btn-primary add-series-btn" onClick={handleAddSeries}>
@@ -1087,7 +937,7 @@ const MySeriesSection = (props: MySeriesSectionProps) => {
             </Show>
           </div>
 
-          <Show when={props.series.length > 0} fallback={
+          <Show when={accountStore.mySeries.length > 0} fallback={
             <EmptyState
               icon="🎬"
               title={mySeries().emptyTitle || 'No series yet'}
@@ -1097,13 +947,13 @@ const MySeriesSection = (props: MySeriesSectionProps) => {
             />
           }>
             <div class="content-grid">
-              <For each={props.series}>
+              <For each={accountStore.mySeries}>
                 {(seriesItem) => (
                   <MySeriesCard
                     series={seriesItem}
                     onShelve={() => handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)}
                     onEdit={() => handleEditSeries(seriesItem)}
-                    onClick={() => props.onNavigate(`/player/${seriesItem._id}`)}
+                    onClick={() => navigate(`/player/${seriesItem._id}`)}
                     translations={mySeries()}
                   />
                 )}
@@ -1112,9 +962,9 @@ const MySeriesSection = (props: MySeriesSectionProps) => {
           </Show>
 
           {/* Shelve Confirmation Modal */}
-          <Show when={props.showShelveModal && props.pendingShelveSeries}>
+          <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
             <ShelveConfirmationModal
-              seriesName={props.pendingShelveSeries!.name || 'Untitled Series'}
+              seriesName={accountStore.pendingShelveSeries!.name || 'Untitled Series'}
               title={mySeries().shelveConfirmTitle || 'Confirm Shelve'}
               message={mySeries().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}
               confirmLabel={mySeries().shelve || 'Shelve'}
@@ -1125,9 +975,9 @@ const MySeriesSection = (props: MySeriesSectionProps) => {
           </Show>
 
           {/* Unshelve Confirmation Modal */}
-          <Show when={props.showUnshelveModal && props.pendingUnshelveSeries}>
+          <Show when={accountStore.showUnshelveModal && accountStore.pendingUnshelveSeries}>
             <UnshelveConfirmationModal
-              seriesName={props.pendingUnshelveSeries!.name || 'Untitled Series'}
+              seriesName={accountStore.pendingUnshelveSeries!.name || 'Untitled Series'}
               title={mySeries().unshelveConfirmTitle || 'Confirm Unshelve'}
               message={mySeries().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}
               confirmLabel={mySeries().unshelve || 'Unshelve'}
@@ -1140,12 +990,12 @@ const MySeriesSection = (props: MySeriesSectionProps) => {
       }>
         <div class="content-section my-series-section">
           <h1 class="page-title">
-            {props.editingSeriesId === 'new'
+            {accountStore.editingSeriesId === 'new'
               ? (mySeries().addSeriesTitle || 'Add Series')
               : (mySeries().editSeriesTitle || 'Edit Series')}
           </h1>
           <SeriesEditContent
-            seriesId={props.editingSeriesId!}
+            seriesId={accountStore.editingSeriesId!}
             onCancel={handleCancelEdit}
             onSaveComplete={handleSaveComplete}
           />

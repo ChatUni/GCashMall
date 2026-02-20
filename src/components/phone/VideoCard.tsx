@@ -1,7 +1,8 @@
 import { createSignal, createEffect, Show, For } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { t } from '../../stores/languageStore'
-import { videoFeedStore, userStore, loginModalStoreActions, videoFeedStoreActions } from '../../stores'
+import { videoFeedStore, loginModalStoreActions, videoFeedStoreActions } from '../../stores'
+import { accountStore } from '../../stores/accountStore'
 import { addToFavorites, removeFromFavorites } from '../../services/dataService'
 import { isLoggedIn } from '../../utils/api'
 import type { Series } from '../../types'
@@ -48,8 +49,8 @@ const VideoCard = (props: VideoCardProps) => {
 
   // Check if series is favorited
   const isFavorited = () => {
-    if (!userStore.user?.favorites) return false
-    return userStore.user.favorites.some(
+    if (!accountStore.user?.favorites) return false
+    return accountStore.user.favorites.some(
       (fav) => String(fav.seriesId) === String(props.series._id),
     )
   }
