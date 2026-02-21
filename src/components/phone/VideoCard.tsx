@@ -14,37 +14,37 @@ interface VideoCardProps {
   index: number
 }
 
+const BUNNY_LIBRARY_ID = import.meta.env.VITE_BUNNY_LIBRARY_ID
+
+// Get video ID from a series - prefer series videoId, fallback to first episode
+const getVideoIdFromSeries = (series: Series) => {
+  if (series.videoId) return series.videoId
+  if (series.episodes && series.episodes.length > 0 && series.episodes[0].videoId) {
+    return series.episodes[0].videoId
+  }
+  return null
+}
+
+// Build iframe src URL for the given video
+const buildIframeSrc = (videoId: string | null, isMuted: boolean) => {
+  if (!videoId) return null
+  return `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${videoId}?autoplay=true&loop=true&muted=${isMuted}&preload=true`
+}
+
 const VideoCard = (props: VideoCardProps) => {
   const navigate = useNavigate()
 
-  let iframeRef: HTMLIFrameElement | undefined
   let lastTapTime = 0
   const [showPlayIcon, setShowPlayIcon] = createSignal(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = createSignal(false)
   const [showHeartAnimation, setShowHeartAnimation] = createSignal(false)
   const [isPaused, setIsPaused] = createSignal(false)
 
-  // Get video ID - prefer series videoId, fallback to first episode
-  const getVideoId = () => {
-    if (props.series.videoId) {
-      return props.series.videoId
-    }
-    if (props.series.episodes && props.series.episodes.length > 0 && props.series.episodes[0].videoId) {
-      return props.series.episodes[0].videoId
-    }
-    return null
-  }
-
-  const videoId = () => getVideoId()
-  const libraryId = import.meta.env.VITE_BUNNY_LIBRARY_ID
-
-  // Build video URL with autoplay based on isActive state and not manually paused
-  const shouldAutoplay = () => props.isActive && !isPaused()
+  // Derive video URL only for the active card (single iframe across all cards)
   const videoUrl = () => {
-    const vid = videoId()
-    return vid
-      ? `https://iframe.mediadelivery.net/embed/${libraryId}/${vid}?autoplay=${shouldAutoplay()}&loop=true&muted=${videoFeedStore.isMuted}&preload=true`
-      : null
+    if (!props.isActive || isPaused()) return null
+    const videoId = getVideoIdFromSeries(props.series)
+    return buildIframeSrc(videoId, videoFeedStore.isMuted)
   }
 
   // Check if series is favorited
@@ -192,8 +192,9 @@ const VideoCard = (props: VideoCardProps) => {
 
   return (
     <div class="video-card" data-index={props.index}>
-      {/* Video Player */}
+      {/* Video Player / Cover */}
       <div class="video-card-player" onClick={handleVideoTap}>
+        {/* Single iframe - only rendered in the active card */}
         <Show
           when={videoUrl()}
           fallback={
@@ -203,7 +204,6 @@ const VideoCard = (props: VideoCardProps) => {
           }
         >
           <iframe
-            ref={iframeRef}
             src={videoUrl()!}
             class="video-card-iframe"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"

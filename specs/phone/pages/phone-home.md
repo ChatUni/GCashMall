@@ -172,11 +172,9 @@ The Phone Home page is a TikTok-style vertical swipe video feed, featuring full-
 
 ## Video Playback
 
-### Autoplay Logic
-- Video plays automatically when scrolled into view
-- Previous video pauses when scrolled away
-- Use Intersection Observer API
-- Threshold: 0.5 (50% visible triggers play)
+### Autoplay and iframe Logic
+- Video always auto plays
+- Only 1 iframe, when current video/series changes, set the src of the video element in the iframe
 
 ### Mute/Unmute
 - Default: muted (for autoplay compliance)
@@ -189,13 +187,12 @@ The Phone Home page is a TikTok-style vertical swipe video feed, featuring full-
 ## Data Loading
 
 ### Initial Load
-- Fetch video feed from API (recommendations or curated list)
-- Load first 5-10 videos initially
+- Fetch video feed from API (random videos/series from recommended series which contain videos)
+- Load first 5 videos initially
 - Show loading skeleton while fetching
 
 ### Infinite Scroll
-- Load more videos when approaching end of list
-- Trigger load when 2-3 videos from end
+- Load another 5 videos when the current position is length of list - 2
 - Show loading indicator at bottom
 - Append new videos to feed
 
@@ -239,10 +236,6 @@ The Phone Home page is a TikTok-style vertical swipe video feed, featuring full-
 - Show heart animation on double tap
 
 ## Performance Optimizations
-
-### Video Preloading
-- Preload next video while current plays
-- Unload videos more than 2 positions away
 
 ### Network Optimization
 - Adaptive quality based on connection

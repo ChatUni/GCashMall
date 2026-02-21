@@ -1,4 +1,4 @@
-import { Show, For, onMount, onCleanup } from 'solid-js'
+import { Show, For, createEffect } from 'solid-js'
 import {
   videoFeedStore,
   videoFeedStoreActions,
@@ -23,71 +23,35 @@ const initializeData = () => {
 
 const PhoneHome = () => {
   let containerRef: HTMLDivElement | undefined
-  let observerRef: IntersectionObserver | undefined
 
   // Initialize data on first render
   initializeData()
 
-  // Handle scroll to detect current video
+  // Handle scroll to detect current video and trigger infinite scroll
   const handleScroll = () => {
     if (!containerRef) return
 
     const scrollTop = containerRef.scrollTop
     const cardHeight = containerRef.clientHeight
     const newIndex = Math.round(scrollTop / cardHeight)
+    const videos = videoFeedStore.videos
 
-    if (newIndex !== videoFeedStore.currentIndex && newIndex >= 0 && newIndex < videoFeedStore.videos.length) {
+    if (newIndex !== videoFeedStore.currentIndex && newIndex >= 0 && newIndex < videos.length) {
       videoFeedStoreActions.setCurrentIndex(newIndex)
     }
 
-    // Load more when approaching end
-    if (newIndex >= videoFeedStore.videos.length - 3 && videoFeedStore.hasMore && !videoFeedStore.loading) {
+    // Load more when current position is length - 2
+    if (newIndex >= videos.length - 2 && videoFeedStore.hasMore && !videoFeedStore.loading) {
       loadMoreVideos()
     }
   }
 
-  // Set up scroll listener and intersection observer
-  onMount(() => {
+  // Attach scroll listener after render
+  createEffect(() => {
     if (containerRef) {
       containerRef.addEventListener('scroll', handleScroll, { passive: true })
     }
-
-    setupIntersectionObserver()
   })
-
-  onCleanup(() => {
-    if (containerRef) {
-      containerRef.removeEventListener('scroll', handleScroll)
-    }
-    if (observerRef) {
-      observerRef.disconnect()
-    }
-  })
-
-  const setupIntersectionObserver = () => {
-    if (observerRef) {
-      observerRef.disconnect()
-    }
-
-    observerRef = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            const index = parseInt(entry.target.getAttribute('data-index') || '0', 10)
-            videoFeedStoreActions.setCurrentIndex(index)
-          }
-        })
-      },
-      {
-        root: containerRef,
-        threshold: 0.5,
-      },
-    )
-
-    // Observe all video cards
-    const cards = containerRef?.querySelectorAll('.video-card')
-    cards?.forEach((card) => observerRef?.observe(card))
-  }
 
   const handleLoginSuccess = (user: import('../../types').User) => {
     accountStoreActions.setUser(user)

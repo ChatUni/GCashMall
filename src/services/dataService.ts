@@ -45,7 +45,7 @@ export const fetchNewReleases = async () => {
 }
 
 // Video feed for TikTok-style home page
-export const fetchVideoFeed = async (page: number = 1, limit: number = 10) => {
+export const fetchVideoFeed = async (page: number = 1, limit: number = 5) => {
   videoFeedStoreActions.setLoading(true)
   try {
     // Use recommendations API for video feed (can be replaced with dedicated endpoint)
