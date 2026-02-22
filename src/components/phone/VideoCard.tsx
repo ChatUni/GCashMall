@@ -35,14 +35,18 @@ const VideoCard = (props: VideoCardProps) => {
   const navigate = useNavigate()
 
   let lastTapTime = 0
+  let iframeRef: HTMLIFrameElement | undefined
   const [showPlayIcon, setShowPlayIcon] = createSignal(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = createSignal(false)
   const [showHeartAnimation, setShowHeartAnimation] = createSignal(false)
   const [isPaused, setIsPaused] = createSignal(false)
+  const [iframeLoaded, setIframeLoaded] = createSignal(false)
 
-  // Derive video URL only for the active card (single iframe across all cards)
+  // Derive whether iframe should be active
+  const shouldPlay = () => props.isActive && !isPaused()
+
+  // Derive video URL
   const videoUrl = () => {
-    if (!props.isActive || isPaused()) return null
     const videoId = getVideoIdFromSeries(props.series)
     return buildIframeSrc(videoId, videoFeedStore.isMuted)
   }
@@ -56,9 +60,25 @@ const VideoCard = (props: VideoCardProps) => {
   }
 
   // Reset pause state when video becomes active (swipe to this video)
+  // Separate effect: only reads isActive, only writes isPaused
   createEffect(() => {
     if (props.isActive) {
       setIsPaused(false)
+    }
+  })
+
+  // Set iframe src when shouldPlay or videoUrl changes
+  // Separate effect: only reads shouldPlay/videoUrl, only writes iframeLoaded/iframeRef.src
+  createEffect(() => {
+    const playing = shouldPlay()
+    const src = videoUrl()
+
+    if (playing && iframeRef && src) {
+      setIframeLoaded(false)
+      iframeRef.src = src
+    } else if (iframeRef) {
+      iframeRef.removeAttribute('src')
+      setIframeLoaded(false)
     }
   })
 
@@ -194,22 +214,24 @@ const VideoCard = (props: VideoCardProps) => {
     <div class="video-card" data-index={props.index}>
       {/* Video Player / Cover */}
       <div class="video-card-player" onClick={handleVideoTap}>
-        {/* Single iframe - only rendered in the active card */}
-        <Show
-          when={videoUrl()}
-          fallback={
-            <div class="video-card-placeholder">
-              <img src={props.series.cover} alt={props.series.name} class="video-card-cover" />
-            </div>
-          }
-        >
-          <iframe
-            src={videoUrl()!}
-            class="video-card-iframe"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-            allowfullscreen
-          />
+        {/* Cover image shown when iframe is not active or not yet loaded */}
+        <Show when={!shouldPlay() || !iframeLoaded()}>
+          <div class="video-card-placeholder">
+            <img src={props.series.cover} alt={props.series.name} class="video-card-cover" />
+          </div>
         </Show>
+
+        {/* Iframe - always rendered, src set imperatively via createEffect */}
+        <iframe
+          ref={iframeRef}
+          class="video-card-iframe"
+          style={{ display: shouldPlay() ? 'block' : 'none' }}
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+          allowfullscreen
+          onLoad={() => {
+            if (shouldPlay()) setIframeLoaded(true)
+          }}
+        />
 
         {/* Play Icon Overlay */}
         <Show when={showPlayIcon()}>

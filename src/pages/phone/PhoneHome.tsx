@@ -1,4 +1,4 @@
-import { Show, For, createEffect } from 'solid-js'
+import { Show, For } from 'solid-js'
 import {
   videoFeedStore,
   videoFeedStoreActions,
@@ -22,17 +22,14 @@ const initializeData = () => {
 }
 
 const PhoneHome = () => {
-  let containerRef: HTMLDivElement | undefined
-
   // Initialize data on first render
   initializeData()
 
   // Handle scroll to detect current video and trigger infinite scroll
-  const handleScroll = () => {
-    if (!containerRef) return
-
-    const scrollTop = containerRef.scrollTop
-    const cardHeight = containerRef.clientHeight
+  const handleScroll = (e: Event) => {
+    const container = e.currentTarget as HTMLDivElement
+    const scrollTop = container.scrollTop
+    const cardHeight = container.clientHeight
     const newIndex = Math.round(scrollTop / cardHeight)
     const videos = videoFeedStore.videos
 
@@ -46,12 +43,10 @@ const PhoneHome = () => {
     }
   }
 
-  // Attach scroll listener after render
-  createEffect(() => {
-    if (containerRef) {
-      containerRef.addEventListener('scroll', handleScroll, { passive: true })
-    }
-  })
+  // Ref callback: attach scroll listener when container element is mounted
+  const setContainerRef = (el: HTMLDivElement) => {
+    el.addEventListener('scroll', handleScroll, { passive: true })
+  }
 
   const handleLoginSuccess = (user: import('../../types').User) => {
     accountStoreActions.setUser(user)
@@ -85,7 +80,7 @@ const PhoneHome = () => {
             </div>
           }
         >
-          <div class="phone-home-container" ref={containerRef}>
+          <div class="phone-home-container" ref={setContainerRef}>
             <For each={videoFeedStore.videos}>
               {(series, index) => (
                 <VideoCard
