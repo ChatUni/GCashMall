@@ -32,8 +32,8 @@
     <preference name="android-minSdkVersion" value="22" />
     <preference name="android-targetSdkVersion" value="34" />
     <preference name="android-compileSdkVersion" value="35" />
-    <preference name="AndroidInsecureFileModeEnabled" value="true" />
-    <preference name="Scheme" value="http" />
+    <preference name="AndroidInsecureFileModeEnabled" value="false" />
+    <preference name="Scheme" value="https" />
     <preference name="Hostname" value="localhost" />
     <preference name="MixedContentMode" value="0" />
 </widget>

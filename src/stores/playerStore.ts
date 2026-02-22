@@ -295,12 +295,23 @@ export const initializePlayerJsWithTrialLimit = (
   isPurchased: boolean,
   onTimeLimitReached: () => void,
 ): (() => void) => {
-  if (!videoId || !iframeRef.current) {
-    return () => {}
-  }
+  if (!videoId || !iframeRef.current) return () => {}
 
   const isPurchasedRef = { current: isPurchased }
   const dialogShownRef = { current: false }
+
+  const enforceTimeLimit = (currentSeconds: number, pauseFn: () => void) => {
+    if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
+      pauseFn()
+      if (!dialogShownRef.current) {
+        dialogShownRef.current = true
+        onTimeLimitReached()
+        setTimeout(() => {
+          dialogShownRef.current = false
+        }, 500)
+      }
+    }
+  }
 
   const initPlayer = () => {
     const windowWithPlayerJs = window as WindowWithPlayerJs
@@ -324,22 +335,13 @@ export const initializePlayerJsWithTrialLimit = (
           if (!data || typeof (data as TimeUpdateData).seconds !== 'number') return
           const currentSeconds = (data as TimeUpdateData).seconds
 
-          // Enforce trial time limit if episode is not purchased
-          // Use ref to get current purchased status (not stale closure value)
-          if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
+          enforceTimeLimit(currentSeconds, () => {
             player.pause()
-            player.setCurrentTime(TIME_LIMIT - 0.1) // Set slightly before limit to prevent immediate re-trigger
-            if (!dialogShownRef.current) {
-              dialogShownRef.current = true
-              onTimeLimitReached()
-              // Reset the flag after a short delay to allow showing again if needed
-              setTimeout(() => {
-                dialogShownRef.current = false
-              }, 500)
-            }
-          }
+            player.setCurrentTime(TIME_LIMIT - 0.1)
+          })
         })
       })
+
     } catch (error) {
       console.error('Failed to initialize Player.js:', error)
     }
@@ -352,7 +354,12 @@ export const initializePlayerJsWithTrialLimit = (
   } else {
     const script = document.createElement('script')
     script.src = 'https://cdn.embed.ly/player-0.1.0.min.js'
-    script.onload = initPlayer
+    script.onload = () => {
+      initPlayer()
+    }
+    script.onerror = (err) => {
+      console.error('Failed to load Player.js script:', err)
+    }
     document.head.appendChild(script)
   }
 

@@ -84,7 +84,8 @@ const PhonePlayer = () => {
   // purchase ref. If we reset iframeLoaded on user change, the iframe doesn't actually
   // reload (same video), onLoad never fires, and the purchase status never updates.
   createEffect(() => {
-    void playerStore.currentEpisode?.videoId
+    const videoId = playerStore.currentEpisode?.videoId
+    void videoId
     setIframeLoaded(false)
   })
 
@@ -333,12 +334,19 @@ const PhonePlayer = () => {
                         onClick={() => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
                       >
                         <img
-                          src={`https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`}
+                          src={
+                            episode.thumbnail
+                              || (episode.videoId
+                                ? `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
+                                : playerStore.series?.cover || '/placeholder.jpg')
+                          }
                           alt={`Episode ${episode.episodeNumber}`}
                           class="phone-episode-thumb-img"
                           onError={(e) => {
-                            ;(e.target as HTMLImageElement).src =
-                              playerStore.series?.cover || '/placeholder.jpg'
+                            const img = e.target as HTMLImageElement
+                            if (img.dataset.fallback) return
+                            img.dataset.fallback = 'true'
+                            img.src = playerStore.series?.cover || '/placeholder.jpg'
                           }}
                         />
                         <span class="phone-episode-badge">
