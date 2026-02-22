@@ -1,6 +1,6 @@
 [build]
   functions = "netlify/functions"
-  publish = "dist"
+  publish = "www"
 
 [dev]
   port = 8888
