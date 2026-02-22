@@ -52,6 +52,35 @@
   object-fit: cover;
 }
 
+/* Loading Overlay - shown on cover during scroll/swipe while video loads */
+.video-card-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 3;
+}
+
+.video-card-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: videoCardSpin 0.8s linear infinite;
+}
+
+@keyframes videoCardSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Play Icon Overlay */
 .video-card-play-overlay {
   position: absolute;

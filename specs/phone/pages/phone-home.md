@@ -176,6 +176,11 @@ The Phone Home page is a TikTok-style vertical swipe video feed, featuring full-
 - Video always auto plays
 - Only 1 iframe, when current video/series changes, set the src of the video element in the iframe
 
+### Scroll/Swipe
+- after scroll/swipe
+  - show the series cover with loading indicator
+  - when video is loaded, start playing the video, do not show the thumbnail of the video
+
 ### Mute/Unmute
 - Default: muted (for autoplay compliance)
 - Tap volume icon to toggle

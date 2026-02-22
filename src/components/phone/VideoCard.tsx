@@ -1,4 +1,4 @@
-import { createSignal, createEffect, Show, For } from 'solid-js'
+import { createSignal, createEffect, onMount, onCleanup, Show, For } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { t } from '../../stores/languageStore'
 import { videoFeedStore, loginModalStoreActions, videoFeedStoreActions } from '../../stores'
@@ -36,11 +36,12 @@ const VideoCard = (props: VideoCardProps) => {
 
   let lastTapTime = 0
   let iframeRef: HTMLIFrameElement | undefined
+  let iframeLoadTimer: ReturnType<typeof setTimeout> | undefined
   const [showPlayIcon, setShowPlayIcon] = createSignal(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = createSignal(false)
   const [showHeartAnimation, setShowHeartAnimation] = createSignal(false)
   const [isPaused, setIsPaused] = createSignal(false)
-  const [iframeLoaded, setIframeLoaded] = createSignal(false)
+  const [videoPlaying, setVideoPlaying] = createSignal(false)
 
   // Derive whether iframe should be active
   const shouldPlay = () => props.isActive && !isPaused()
@@ -59,6 +60,42 @@ const VideoCard = (props: VideoCardProps) => {
     )
   }
 
+  // Listen for Bunny player postMessage events to detect when video is actually playing
+  const handleBunnyMessage = (event: MessageEvent) => {
+    if (!iframeRef || event.source !== iframeRef.contentWindow) return
+
+    try {
+      const raw = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      // Bunny player fires 'play'/'playing' when video playback starts
+      if (raw.event === 'play' || raw.event === 'playing') {
+        clearTimeout(iframeLoadTimer)
+        setVideoPlaying(true)
+      }
+    } catch {
+      // Ignore non-JSON messages
+    }
+  }
+
+  // Called when iframe finishes loading - use as fallback with delay
+  const handleIframeLoad = () => {
+    if (!shouldPlay()) return
+    // Wait for video to start playing before removing cover.
+    // The postMessage listener may fire first and clear this timer.
+    clearTimeout(iframeLoadTimer)
+    iframeLoadTimer = setTimeout(() => {
+      if (shouldPlay()) setVideoPlaying(true)
+    }, 1500)
+  }
+
+  onMount(() => {
+    window.addEventListener('message', handleBunnyMessage)
+  })
+
+  onCleanup(() => {
+    window.removeEventListener('message', handleBunnyMessage)
+    clearTimeout(iframeLoadTimer)
+  })
+
   // Reset pause state when video becomes active (swipe to this video)
   // Separate effect: only reads isActive, only writes isPaused
   createEffect(() => {
@@ -68,17 +105,19 @@ const VideoCard = (props: VideoCardProps) => {
   })
 
   // Set iframe src when shouldPlay or videoUrl changes
-  // Separate effect: only reads shouldPlay/videoUrl, only writes iframeLoaded/iframeRef.src
+  // Separate effect: only reads shouldPlay/videoUrl, only writes videoPlaying/iframeRef.src
   createEffect(() => {
     const playing = shouldPlay()
     const src = videoUrl()
 
     if (playing && iframeRef && src) {
-      setIframeLoaded(false)
+      clearTimeout(iframeLoadTimer)
+      setVideoPlaying(false)
       iframeRef.src = src
     } else if (iframeRef) {
+      clearTimeout(iframeLoadTimer)
       iframeRef.removeAttribute('src')
-      setIframeLoaded(false)
+      setVideoPlaying(false)
     }
   })
 
@@ -215,9 +254,15 @@ const VideoCard = (props: VideoCardProps) => {
       {/* Video Player / Cover */}
       <div class="video-card-player" onClick={handleVideoTap}>
         {/* Cover image shown when iframe is not active or not yet loaded */}
-        <Show when={!shouldPlay() || !iframeLoaded()}>
+        <Show when={!shouldPlay() || !videoPlaying()}>
           <div class="video-card-placeholder">
             <img src={props.series.cover} alt={props.series.name} class="video-card-cover" />
+            {/* Loading indicator shown while video is loading after scroll/swipe */}
+            <Show when={shouldPlay() && !videoPlaying()}>
+              <div class="video-card-loading-overlay">
+                <div class="video-card-loading-spinner" />
+              </div>
+            </Show>
           </div>
         </Show>
 
@@ -228,9 +273,7 @@ const VideoCard = (props: VideoCardProps) => {
           style={{ display: shouldPlay() ? 'block' : 'none' }}
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowfullscreen
-          onLoad={() => {
-            if (shouldPlay()) setIframeLoaded(true)
-          }}
+          onLoad={handleIframeLoad}
         />
 
         {/* Play Icon Overlay */}
