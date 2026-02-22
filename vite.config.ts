@@ -6,7 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  base: './',
   build: {
     target: 'esnext',
+    outDir: 'www',
   },
 })

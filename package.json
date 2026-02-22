@@ -10,6 +10,7 @@
     "plugins": {}
   },
   "scripts": {
+    "postinstall": "node scripts/cordova-android-jdk-fix.cjs",
     "dev": "vite",
     "dev:vite": "vite",
     "build": "vite build",
@@ -23,18 +24,19 @@
     "cordova:emulate": "npm run build && npx cordova emulate android"
   },
   "dependencies": {
+    "@solidjs/router": "^0.15.3",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^6.0.0",
     "nodemailer": "^7.0.12",
-    "solid-js": "^1.9.5",
-    "@solidjs/router": "^0.15.3"
+    "solid-js": "^1.9.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/youtube": "^0.1.2",
+    "baseline-browser-mapping": "^2.10.0",
     "cordova": "^13.0.0",
     "cordova-android": "^14.0.1",
     "eslint": "^9.39.1",

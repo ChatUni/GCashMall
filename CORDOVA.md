@@ -178,7 +178,7 @@ This error occurs when Android SDK tools (apkanalyzer, avdmanager) run with JDK 
 Exception in thread "main" java.lang.NoClassDefFoundError: javax/xml/bind/annotation/XmlSchema
 ```
 
-**Solution**: This project includes an automatic patch via `postinstall` script ([`scripts/cordova-android-jdk-fix.js`](scripts/cordova-android-jdk-fix.js)) that forces these tools to use JDK 17.
+**Solution**: This project includes an automatic patch via `postinstall` script ([`scripts/cordova-android-jdk-fix.cjs`](scripts/cordova-android-jdk-fix.cjs)) that forces these tools to use JDK 17.
 
 The patch is applied automatically after `npm install`. If you still encounter the error:
 
@@ -190,7 +190,7 @@ The patch is applied automatically after `npm install`. If you still encounter t
 
 2. Re-run the patch manually:
    ```bash
-   node scripts/cordova-android-jdk-fix.js
+   node scripts/cordova-android-jdk-fix.cjs
    ```
 
 3. Run the Cordova command again:
