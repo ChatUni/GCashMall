@@ -217,6 +217,7 @@ const getGenres = async (params) => {
 
 const saveSeries = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
+  await validateUploadPermission(userId)
   validateSaveSeriesBody(body)
 
   try {
@@ -884,6 +885,18 @@ const validateAuth = async (authHeader) => {
     return decoded.id
   } catch (error) {
     throw new Error('Invalid or expired token')
+  }
+}
+
+// Validate that the authenticated user has upload permission
+const validateUploadPermission = async (userId) => {
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) {
+    throw new Error('User not found')
+  }
+
+  if (!users[0].allowUpload) {
+    throw new Error('You do not have permission to upload series')
   }
 }
 
@@ -1556,6 +1569,7 @@ const buildUserResponse = (user) => ({
   sex: user.sex || null,
   dob: user.dob || null,
   hasPassword: !!user.password,
+  allowUpload: !!user.allowUpload,
   watchList: user.watchList || [],
   favorites: user.favorites || [],
   purchases: user.purchases || [],

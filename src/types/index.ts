@@ -131,6 +131,7 @@ export interface User {
   watchList?: WatchListItem[]
   favorites?: FavoriteUserItem[]
   purchaseHistory?: PurchaseHistoryItem[]
+  allowUpload?: boolean
   google_id?: string
   facebook_id?: string
   twitter_id?: string

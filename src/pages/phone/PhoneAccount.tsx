@@ -10,7 +10,7 @@ import type { Language } from '../../i18n'
 import {
   accountStore,
   accountStoreActions,
-  phoneNavItems,
+  getFilteredPhoneNavItems,
   walletAmounts,
   type AccountTab,
   getCombinedTransactions,
@@ -146,7 +146,7 @@ const PhoneAccount = () => {
               </div>
             </Show>
             <div class="phone-account-tabs">
-              <For each={phoneNavItems}>
+              <For each={getFilteredPhoneNavItems()}>
                 {(item) => (
                   <button class={`phone-account-tab ${accountStore.activeTab === item.key ? 'active' : ''}`} onClick={() => onTabClick(item.key)}>
                     <span class="phone-tab-icon">{item.icon}</span>

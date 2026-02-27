@@ -475,6 +475,8 @@ Section card with form fields:
 
 ### 7. My Series
 
+This section is only visible to users with upload permission (user.allowUpload == true)
+
 #### Section Container
 - **Class**: `.my-series-section`
 - **Padding Bottom**: 40px

@@ -11,7 +11,7 @@ import type { Language } from '../i18n'
 import {
   accountStore,
   accountStoreActions,
-  navItems,
+  getFilteredNavItems,
   walletAmounts,
   type AccountTab,
   getCombinedTransactions,
@@ -146,7 +146,7 @@ const AccountSidebar = (props: AccountSidebarProps) => (
     </div>
 
     <nav class="account-nav">
-      <For each={navItems}>
+      <For each={getFilteredNavItems()}>
         {(item) => (
           <button
             class={`nav-item ${accountStore.activeTab === item.key ? 'active' : ''}`}

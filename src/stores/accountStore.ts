@@ -506,6 +506,13 @@ export const phoneNavItems: { key: AccountTab; icon: string }[] = [
   { key: 'contact', icon: '✉️' },
 ]
 
+// Derived nav items filtered by user permissions
+export const getFilteredNavItems = () =>
+  navItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
+
+export const getFilteredPhoneNavItems = () =>
+  phoneNavItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
+
 export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]
 
 // Helper function to generate reference ID
