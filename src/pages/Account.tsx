@@ -440,6 +440,7 @@ interface HistoryCardProps {
 const HistoryCard = (props: HistoryCardProps) => {
   // Fetch series data for display
   const [series, setSeries] = createSignal<{ name: string; cover: string; tags?: string[] } | null>(null)
+  const [notFound, setNotFound] = createSignal(false)
 
   onMount(async () => {
     try {
@@ -447,35 +448,40 @@ const HistoryCard = (props: HistoryCardProps) => {
       const data = await response.json()
       if (data.success && data.data) {
         setSeries(data.data)
+      } else {
+        setNotFound(true)
       }
     } catch (error) {
       console.error('Failed to fetch series:', error)
+      setNotFound(true)
     }
   })
 
   return (
-    <div class="history-card series-card" onClick={props.onClick}>
-      <div class="series-card-poster">
-        <Show when={series()?.cover} fallback={<div class="series-card-placeholder" />}>
-          <img src={series()!.cover} alt={series()?.name || 'Series'} class="series-card-image" />
-        </Show>
-        <div class="series-card-overlay">
-          <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21" />
-          </svg>
+    <Show when={!notFound()}>
+      <div class="history-card series-card" onClick={props.onClick}>
+        <div class="series-card-poster">
+          <Show when={series()?.cover} fallback={<div class="series-card-placeholder" />}>
+            <img src={series()!.cover} alt={series()?.name || 'Series'} class="series-card-image" />
+          </Show>
+          <div class="series-card-overlay">
+            <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </div>
+          <span class="episode-badge">EP {props.episodeNumber}</span>
+          <button class="remove-btn" onClick={props.onRemove}>
+            ✕
+          </button>
         </div>
-        <span class="episode-badge">EP {props.episodeNumber}</span>
-        <button class="remove-btn" onClick={props.onRemove}>
-          ✕
-        </button>
+        <div class="series-card-info">
+          <h3 class="series-card-title">{series()?.name || `Series ${props.seriesId}`}</h3>
+          <Show when={series()?.tags && series()!.tags!.length > 0}>
+            <span class="series-card-tag">{series()!.tags![0]}</span>
+          </Show>
+        </div>
       </div>
-      <div class="series-card-info">
-        <h3 class="series-card-title">{series()?.name || `Series ${props.seriesId}`}</h3>
-        <Show when={series()?.tags && series()!.tags!.length > 0}>
-          <span class="series-card-tag">{series()!.tags![0]}</span>
-        </Show>
-      </div>
-    </div>
+    </Show>
   )
 }
 

@@ -340,28 +340,36 @@ interface PhoneHistoryCardProps {
 
 const PhoneHistoryCard = (props: PhoneHistoryCardProps) => {
   const [series, setSeries] = createSignal<{ name: string; cover: string; tags?: string[] } | null>(null)
+  const [notFound, setNotFound] = createSignal(false)
 
   onMount(async () => {
     try {
       const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${props.seriesId}`)
       const data = await response.json()
-      if (data.success && data.data) setSeries(data.data)
+      if (data.success && data.data) {
+        setSeries(data.data)
+      } else {
+        setNotFound(true)
+      }
     } catch (error) {
       console.error('Failed to fetch series:', error)
+      setNotFound(true)
     }
   })
 
   return (
-    <div class="phone-history-item" onClick={props.onClick}>
-      <div class="phone-history-cover">
-        <Show when={series()?.cover} fallback={<div class="phone-history-placeholder">🎬</div>}>
-          <img src={series()!.cover} alt={series()!.name || 'Series'} />
-        </Show>
-        <span class="phone-history-ep">EP {props.episodeNumber}</span>
+    <Show when={!notFound()}>
+      <div class="phone-history-item" onClick={props.onClick}>
+        <div class="phone-history-cover">
+          <Show when={series()?.cover} fallback={<div class="phone-history-placeholder">🎬</div>}>
+            <img src={series()!.cover} alt={series()!.name || 'Series'} />
+          </Show>
+          <span class="phone-history-ep">EP {props.episodeNumber}</span>
+        </div>
+        <span class="phone-history-name">{series()?.name || `Series ${props.seriesId}`}</span>
+        <button class="phone-remove-btn" onClick={(e: MouseEvent) => props.onRemove(e, series()?.name || `Series ${props.seriesId}`)}>✕</button>
       </div>
-      <span class="phone-history-name">{series()?.name || `Series ${props.seriesId}`}</span>
-      <button class="phone-remove-btn" onClick={(e: MouseEvent) => props.onRemove(e, series()?.name || `Series ${props.seriesId}`)}>✕</button>
-    </div>
+    </Show>
   )
 }
 

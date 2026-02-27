@@ -365,6 +365,25 @@
   background-color: #d97706;
 }
 
+.save-modal-btn-danger {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.save-modal-btn-danger:hover {
+  background-color: #dc2626;
+}
+
+.series-edit-button-delete {
+  background-color: #ef4444;
+  color: #ffffff;
+  margin-left: auto;
+}
+
+.series-edit-button-delete:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

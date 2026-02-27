@@ -264,18 +264,61 @@ const validateSaveSeriesBody = (body) => {
   }
 }
 
-const deleteSeries = async (body) => {
+const deleteSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
   validateDeleteSeriesBody(body)
 
   try {
     const { id } = body
-    const result = await remove('series', { id })
+    const series = await getSeriesForDeletion(id)
+
+    validateSeriesUploader(series, userId)
+    await validateNoEpisodePurchased(id)
+
+    await remove('series', { _id: new ObjectId(id) })
+
     return {
       success: true,
-      data: result,
+      data: { message: 'Series deleted successfully' },
     }
   } catch (error) {
+    if (error.message.includes('not authorized') || error.message.includes('purchased')) {
+      return { success: false, error: error.message }
+    }
     throw new Error(`Failed to delete series: ${error.message}`)
+  }
+}
+
+const getSeriesForDeletion = async (id) => {
+  const seriesResult = await get('series', { _id: new ObjectId(id) }, {}, {}, 1)
+  if (!seriesResult || seriesResult.length === 0) {
+    throw new Error('Series not found')
+  }
+  return seriesResult[0]
+}
+
+const validateSeriesUploader = (series, userId) => {
+  if (String(series.uploaderId) !== String(userId)) {
+    throw new Error('You are not authorized to delete this series')
+  }
+}
+
+const validateNoEpisodePurchased = async (seriesId) => {
+  const usersWithPurchases = await get(
+    'users',
+    {
+      $or: [
+        { 'purchases.seriesId': seriesId },
+        { 'purchaseHistory.seriesId': seriesId },
+      ],
+    },
+    {},
+    {},
+    1,
+  )
+
+  if (usersWithPurchases && usersWithPurchases.length > 0) {
+    throw new Error('Cannot delete series: some episodes have been purchased by users')
   }
 }
 
@@ -564,7 +607,7 @@ const emailRegister = async (body) => {
     const token = generateToken({ email: newUser.email, id: result.insertedId })
 
     // Return user without password
-    const userResponse = buildUserResponse({
+    const userResponse = await buildUserResponse({
       ...newUser,
       _id: result.insertedId,
     })
@@ -714,7 +757,7 @@ const googleLogin = async (body) => {
     }
 
     // Return user without password
-    const userResponse = buildUserResponse(user)
+    const userResponse = await buildUserResponse(user)
 
     return {
       success: true,
@@ -766,7 +809,7 @@ const login = async (body) => {
     }
 
     // Return user without password
-    const userResponse = buildUserResponse(user)
+    const userResponse = await buildUserResponse(user)
 
     return {
       success: true,
@@ -866,7 +909,7 @@ const updateProfile = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update profile: ${error.message}`)
@@ -964,7 +1007,7 @@ const updateProfilePicture = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update profile picture: ${error.message}`)
@@ -1017,7 +1060,7 @@ const updatePassword = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to update password: ${error.message}`)
@@ -1079,7 +1122,7 @@ const setPassword = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to set password: ${error.message}`)
@@ -1302,7 +1345,7 @@ const addToWatchList = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to add to watch list: ${error.message}`)
@@ -1347,7 +1390,7 @@ const clearWatchHistory = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to clear watch history: ${error.message}`)
@@ -1387,7 +1430,7 @@ const removeFromWatchList = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to remove from watch list: ${error.message}`)
@@ -1437,7 +1480,7 @@ const addToFavorites = async (body, authHeader) => {
       // Already in favorites, just return success
       return {
         success: true,
-        data: buildUserResponse(currentUser),
+        data: await buildUserResponse(currentUser),
       }
     }
 
@@ -1461,7 +1504,7 @@ const addToFavorites = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to add to favorites: ${error.message}`)
@@ -1511,7 +1554,7 @@ const removeFromFavorites = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to remove from favorites: ${error.message}`)
@@ -1552,30 +1595,58 @@ const clearFavorites = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to clear favorites: ${error.message}`)
   }
 }
 
+// Filter items whose seriesId no longer exists in the series collection
+const filterDeletedSeriesItems = async (items) => {
+  if (!items || items.length === 0) return []
+
+  const seriesIds = [...new Set(items.map((item) => item.seriesId).filter(Boolean))]
+  if (seriesIds.length === 0) return items
+
+  const objectIds = seriesIds
+    .map((id) => {
+      try {
+        return new ObjectId(id)
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+
+  const existingSeries = await get('series', { _id: { $in: objectIds } }, { _id: 1 }, {})
+  const existingIds = new Set(existingSeries.map((s) => String(s._id)))
+
+  return items.filter((item) => existingIds.has(String(item.seriesId)))
+}
+
 // Helper to build user response without sensitive fields
-const buildUserResponse = (user) => ({
-  _id: user._id,
-  email: user.email,
-  nickname: user.nickname || 'Guest',
-  avatar: user.avatar || null,
-  phone: user.phone || null,
-  sex: user.sex || null,
-  dob: user.dob || null,
-  hasPassword: !!user.password,
-  allowUpload: !!user.allowUpload,
-  watchList: user.watchList || [],
-  favorites: user.favorites || [],
-  purchases: user.purchases || [],
-  balance: user.balance || 0,
-  transactions: user.transactions || [],
-})
+const buildUserResponse = async (user) => {
+  const filteredWatchList = await filterDeletedSeriesItems(user.watchList || [])
+  const filteredFavorites = await filterDeletedSeriesItems(user.favorites || [])
+
+  return {
+    _id: user._id,
+    email: user.email,
+    nickname: user.nickname || 'Guest',
+    avatar: user.avatar || null,
+    phone: user.phone || null,
+    sex: user.sex || null,
+    dob: user.dob || null,
+    hasPassword: !!user.password,
+    allowUpload: !!user.allowUpload,
+    watchList: filteredWatchList,
+    favorites: filteredFavorites,
+    purchases: user.purchases || [],
+    balance: user.balance || 0,
+    transactions: user.transactions || [],
+  }
+}
 
 const uploadImage = async (body) => {
   validateUploadImageBody(body)
@@ -2000,7 +2071,7 @@ const addPurchase = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to add purchase: ${error.message}`)
@@ -2068,7 +2139,7 @@ const topUp = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to top up: ${error.message}`)
@@ -2137,7 +2208,7 @@ const withdraw = async (body, authHeader) => {
 
     return {
       success: true,
-      data: buildUserResponse(updateData),
+      data: await buildUserResponse(updateData),
     }
   } catch (error) {
     throw new Error(`Failed to withdraw: ${error.message}`)

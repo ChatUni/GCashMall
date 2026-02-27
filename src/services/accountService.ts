@@ -1,7 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDelete, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
+import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
@@ -741,7 +741,7 @@ export const shelveSeries = async (seriesId: string, skipConfirm: boolean = fals
 // Delete series
 export const deleteSeries = async (seriesId: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    const response = await apiDelete<{ success: boolean }>('series', { id: seriesId })
+    const response = await apiDeleteWithAuth<{ message: string }>('series', { id: seriesId })
 
     if (response.success) {
       // Remove the series from the list

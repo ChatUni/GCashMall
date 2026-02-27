@@ -1042,6 +1042,8 @@
   position: fixed;
   top: 80px;
   right: 24px;
+  left: auto;
+  bottom: auto;
   padding: 14px 24px;
   border-radius: 8px;
   font-size: 14px;
@@ -1050,6 +1052,9 @@
   z-index: 1100;
   animation: toastFlyIn 0.3s ease forwards;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  height: auto;
+  width: auto;
+  max-width: 400px;
 }
 
 .toast-success {

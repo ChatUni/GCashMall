@@ -20,6 +20,8 @@ import {
   handleEpisodeVideoChange,
   handleAddEpisode,
 } from '../services/seriesEditService'
+import { deleteSeries } from '../services/accountService'
+import { toastStoreActions } from '../stores'
 import './SeriesEdit.css'
 
 // Track initialization per series ID
@@ -41,6 +43,10 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
 
   // Cancel confirmation modal state
   const [showCancelModal, setShowCancelModal] = createSignal(false)
+
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = createSignal(false)
+  const [deleting, setDeleting] = createSignal(false)
 
   // Initialize data (not in effect)
   const initKey = () => id() || 'new'
@@ -78,6 +84,36 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
 
   const handleSaveCancel = () => {
     setShowSaveModal(false)
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    setShowDeleteModal(false)
+    setDeleting(true)
+    const seriesT = t().seriesEdit as Record<string, string>
+    try {
+      const result = await deleteSeries(id()!)
+      if (result.success) {
+        toastStoreActions.show(seriesT.deleteSuccess || 'Series deleted successfully.', 'success')
+        setTimeout(() => {
+          initializedIds.delete(initKey())
+          props.onSaveComplete()
+        }, 1500)
+      } else {
+        toastStoreActions.show(result.error || seriesT.deleteFailed || 'Failed to delete series.', 'error')
+      }
+    } catch {
+      toastStoreActions.show(seriesT.deleteFailed || 'Failed to delete series.', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
   }
 
   return (
@@ -141,9 +177,13 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
           <ActionButtons
             onCancel={handleCancelClick}
             onSave={handleSaveClick}
+            onDelete={isEditMode() ? handleDeleteClick : undefined}
             saving={seriesEditStore.saving}
+            deleting={deleting()}
             cancelLabel={t().seriesEdit.cancel}
             saveLabel={t().seriesEdit.save}
+            deleteLabel={(t().seriesEdit as Record<string, string>).deleteSeries || 'Delete Series'}
+            deletingLabel={(t().seriesEdit as Record<string, string>).deleting || 'Deleting...'}
           />
         </form>
 
@@ -177,6 +217,18 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
             cancelLabel={(t().seriesEdit as Record<string, string>).keepEditing || 'Keep Editing'}
             onConfirm={handleCancelConfirm}
             onCancel={handleCancelCancel}
+          />
+        </Show>
+
+        {/* Delete Confirmation Modal */}
+        <Show when={showDeleteModal()}>
+          <DeleteConfirmationModal
+            title={(t().seriesEdit as Record<string, string>).deleteConfirmTitle || 'Confirm Delete'}
+            message={(t().seriesEdit as Record<string, string>).deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}
+            confirmLabel={(t().seriesEdit as Record<string, string>).deleteSeries || 'Delete Series'}
+            cancelLabel={t().seriesEdit.cancel}
+            onConfirm={handleDeleteConfirm}
+            onCancel={handleDeleteCancel}
           />
         </Show>
       </div>
@@ -339,9 +391,13 @@ const ShelvedField = (props: ShelvedFieldProps) => (
 interface ActionButtonsProps {
   onCancel: () => void
   onSave: () => void
+  onDelete?: () => void
   saving: boolean
+  deleting?: boolean
   cancelLabel: string
   saveLabel: string
+  deleteLabel?: string
+  deletingLabel?: string
 }
 
 const ActionButtons = (props: ActionButtonsProps) => (
@@ -350,7 +406,7 @@ const ActionButtons = (props: ActionButtonsProps) => (
       type="button"
       class="series-edit-button series-edit-button-cancel"
       onClick={props.onCancel}
-      disabled={props.saving}
+      disabled={props.saving || props.deleting}
     >
       {props.cancelLabel}
     </button>
@@ -358,10 +414,20 @@ const ActionButtons = (props: ActionButtonsProps) => (
       type="button"
       class="series-edit-button series-edit-button-save"
       onClick={props.onSave}
-      disabled={props.saving}
+      disabled={props.saving || props.deleting}
     >
       {props.saving ? '...' : props.saveLabel}
     </button>
+    <Show when={props.onDelete}>
+      <button
+        type="button"
+        class="series-edit-button series-edit-button-delete"
+        onClick={() => props.onDelete?.()}
+        disabled={props.saving || props.deleting}
+      >
+        {props.deleting ? props.deletingLabel : props.deleteLabel}
+      </button>
+    </Show>
   </div>
 )
 
@@ -434,6 +500,33 @@ const CancelConfirmationModal = (props: CancelConfirmationModalProps) => (
       <p class="save-modal-message">{props.message}</p>
       <div class="save-modal-buttons">
         <button class="save-modal-btn save-modal-btn-warning" onClick={props.onConfirm}>
+          {props.confirmLabel}
+        </button>
+        <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>
+          {props.cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+interface DeleteConfirmationModalProps {
+  title: string
+  message: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => (
+  <div class="save-modal-overlay" onClick={props.onCancel}>
+    <div class="save-modal" onClick={(e) => e.stopPropagation()}>
+      <div class="save-modal-icon">🗑️</div>
+      <h2 class="save-modal-title">{props.title}</h2>
+      <p class="save-modal-message">{props.message}</p>
+      <div class="save-modal-buttons">
+        <button class="save-modal-btn save-modal-btn-danger" onClick={props.onConfirm}>
           {props.confirmLabel}
         </button>
         <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>

@@ -244,6 +244,25 @@ return the updated series
 
 return the created/updated series
 
+## Delete Series
+
+### Input
+
+- series id *
+
+### Prerequisite
+
+- already logged in
+- the logged in user is the uploader of the series 
+
+### Action
+
+- if no episode has been purchased by any user, delete the series
+
+### Output
+
+return the success/fail message
+
 ## Purchase Episode
 
 Episode Cost = 1 GCash

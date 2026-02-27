@@ -96,7 +96,7 @@ const apiHandlers = {
   },
   delete: {
     todo: (body) => deleteTodo(body),
-    series: (body) => deleteSeries(body),
+    series: (body, authHeader) => deleteSeries(body, authHeader),
   },
 }
 

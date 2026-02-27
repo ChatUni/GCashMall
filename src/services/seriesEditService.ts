@@ -3,6 +3,7 @@
 
 import { apiGet, apiPostWithAuth } from '../utils/api'
 import { seriesEditStoreActions, type EpisodeFormData, createNewEpisode } from '../stores/seriesEditStore'
+import { toastStoreActions } from '../stores'
 import type { Series, Genre, Episode } from '../types'
 
 // Initialize series edit form
@@ -115,10 +116,10 @@ export const saveSeriesWithConfirmation = async (
     if (!result.success) {
       throw new Error(result.error || 'Failed to save series')
     }
-    seriesEditStoreActions.setSuccess(t.saveSuccess)
+    toastStoreActions.show(t.saveSuccess || 'Series saved successfully.', 'success')
     setTimeout(onSuccess, 1500)
   } catch (err) {
-    seriesEditStoreActions.setError(err instanceof Error ? err.message : t.saveError)
+    toastStoreActions.show(err instanceof Error ? err.message : (t.saveError || 'Failed to save series.'), 'error')
   } finally {
     seriesEditStoreActions.setSaving(false)
     seriesEditStoreActions.setUploadProgress({ show: false, message: '', current: 0, total: 0 })
