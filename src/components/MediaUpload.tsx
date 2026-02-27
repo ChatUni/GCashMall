@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Show, Switch, Match } from 'solid-js'
 import './MediaUpload.css'
 
 type MediaMode = 'image' | 'video'
@@ -157,13 +157,13 @@ interface PreviewContentProps {
   videoId?: string
 }
 
-const PreviewContent = (props: PreviewContentProps) => {
-  if (props.mode === 'image' && props.previewUrl) {
-    return <img src={props.previewUrl} alt="Preview" class="media-upload-image" />
-  }
-
-  return <VideoThumbnail previewUrl={props.previewUrl} videoId={props.videoId} />
-}
+const PreviewContent = (props: PreviewContentProps) => (
+  <Switch fallback={<VideoThumbnail previewUrl={props.previewUrl} videoId={props.videoId} />}>
+    <Match when={props.mode === 'image' && props.previewUrl}>
+      <img src={props.previewUrl!} alt="Preview" class="media-upload-image" />
+    </Match>
+  </Switch>
+)
 
 interface VideoThumbnailProps {
   previewUrl: string | null
