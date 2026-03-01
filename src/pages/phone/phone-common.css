@@ -119,10 +119,95 @@
   height: 32px;
 }
 
+.phone-popup-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.phone-popup-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: phone-popup-spin 0.8s linear infinite;
+}
+
+@keyframes phone-popup-spin {
+  to { transform: rotate(360deg); }
+}
+
+.phone-popup-loading-text {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
 .phone-popup-buttons {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Phone Payment Method Selection */
+.phone-payment-method-section {
+  margin-bottom: 16px;
+}
+
+.phone-payment-method-label {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 10px 0;
+}
+
+.phone-payment-method-icons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.phone-payment-method-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #242428;
+  border: 2px solid #242428;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #9ca3af;
+}
+
+.phone-payment-method-btn:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.phone-payment-method-btn.selected {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.phone-payment-method-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.phone-payment-method-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.phone-payment-method-text {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* ============================================

@@ -4,7 +4,13 @@ import { v2 as cloudinary } from 'cloudinary'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import Stripe from 'stripe'
 import { sendPasswordResetEmail } from './email.js'
+
+// Configure Stripe
+const stripe = process.env.STRIPE_PRIVATE_KEY
+  ? new Stripe(process.env.STRIPE_PRIVATE_KEY)
+  : null
 
 // Configure Cloudinary
 cloudinary.config({
@@ -2102,6 +2108,114 @@ const topUp = async (body, authHeader) => {
   validateTopUpBody(body)
 
   try {
+    const { amount, paymentType, callbackUrl, referenceId } = body
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // If payment type is Stripe, generate a Stripe checkout session
+    if (paymentType === 'Stripe') {
+      const paymentUrl = await createStripeCheckoutSession(amount, callbackUrl, userId, referenceId)
+      return {
+        success: true,
+        data: { paymentUrl },
+      }
+    }
+
+    // For GUSD payment type, process immediately
+    return await processTopUp(currentUser, amount, paymentType || 'GUSD', referenceId)
+  } catch (error) {
+    throw new Error(`Failed to top up: ${error.message}`)
+  }
+}
+
+// Create Stripe checkout session and return the payment URL
+const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenceId) => {
+  if (!stripe) {
+    throw new Error('Stripe is not configured')
+  }
+
+  const txnReferenceId = referenceId || generateReferenceId()
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Top Up',
+          },
+          unit_amount: Math.round(amount * 100), // Stripe expects cents
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&topup_amount=${amount}&topup_ref=${txnReferenceId}`,
+    cancel_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=cancelled`,
+    metadata: {
+      userId,
+      amount: String(amount),
+      referenceId: txnReferenceId,
+    },
+  })
+
+  return session.url
+}
+
+// Generate a unique reference ID
+const generateReferenceId = () => {
+  return `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+}
+
+// Process the top up (add balance and create transaction)
+const processTopUp = async (currentUser, amount, method, referenceId) => {
+  const currentBalance = currentUser.balance || 0
+  const transactions = currentUser.transactions || []
+
+  // Create transaction record
+  const transaction = {
+    id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    referenceId: referenceId || generateReferenceId(),
+    type: 'topup',
+    method: method,
+    amount,
+    transactionId: '',
+    status: 'success',
+    createdAt: new Date(),
+  }
+
+  // Add transaction to history (prepend)
+  transactions.unshift(transaction)
+
+  // Update user with new balance and transaction
+  const updateData = {
+    ...currentUser,
+    balance: currentBalance + amount,
+    transactions,
+    updatedAt: new Date(),
+  }
+
+  await save('users', updateData)
+
+  return {
+    success: true,
+    data: await buildUserResponse(updateData),
+  }
+}
+
+// Complete Stripe top up after successful payment callback
+const completeStripeTopUp = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateCompleteStripeTopUpBody(body)
+
+  try {
     const { amount, referenceId } = body
 
     // Get current user
@@ -2111,38 +2225,40 @@ const topUp = async (body, authHeader) => {
     }
 
     const currentUser = users[0]
-    const currentBalance = currentUser.balance || 0
-    const transactions = currentUser.transactions || []
 
-    // Create transaction record
-    const transaction = {
-      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      type: 'topup',
-      amount,
-      status: 'success',
-      createdAt: new Date(),
+    // Check if this referenceId has already been processed (prevent double processing)
+    const existingTxn = (currentUser.transactions || []).find(
+      (t) => t.referenceId === referenceId,
+    )
+    if (existingTxn) {
+      // Already processed, just return the current user data
+      return {
+        success: true,
+        data: await buildUserResponse(currentUser),
+      }
     }
 
-    // Add transaction to history
-    transactions.unshift(transaction)
-
-    // Update user with new balance and transaction
-    const updateData = {
-      ...currentUser,
-      balance: currentBalance + amount,
-      transactions,
-      updatedAt: new Date(),
-    }
-
-    await save('users', updateData)
-
-    return {
-      success: true,
-      data: await buildUserResponse(updateData),
-    }
+    return await processTopUp(currentUser, amount, 'Stripe', referenceId)
   } catch (error) {
-    throw new Error(`Failed to top up: ${error.message}`)
+    throw new Error(`Failed to complete Stripe top up: ${error.message}`)
+  }
+}
+
+const validateCompleteStripeTopUpBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+
+  if (!body.referenceId) {
+    throw new Error('Reference ID is required')
   }
 }
 
@@ -2157,6 +2273,18 @@ const validateTopUpBody = (body) => {
 
   if (typeof body.amount !== 'number' || body.amount <= 0) {
     throw new Error('Amount must be a positive number')
+  }
+
+  if (!body.paymentType) {
+    throw new Error('Payment type is required')
+  }
+
+  if (!['Stripe', 'GUSD'].includes(body.paymentType)) {
+    throw new Error('Payment type must be Stripe or GUSD')
+  }
+
+  if (!body.callbackUrl) {
+    throw new Error('Callback URL is required')
   }
 }
 
@@ -2387,6 +2515,7 @@ export {
   getMyPurchases,
   addPurchase,
   topUp,
+  completeStripeTopUp,
   withdraw,
   purchaseEpisode,
 }

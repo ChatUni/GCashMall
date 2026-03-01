@@ -42,6 +42,7 @@ import {
   getMyPurchases,
   addPurchase,
   topUp,
+  completeStripeTopUp,
   withdraw,
   purchaseEpisode,
 } from './utils/handlers.js'
@@ -91,6 +92,7 @@ const apiHandlers = {
     shelveSeries: (body, authHeader) => shelveSeries(body, authHeader),
     addPurchase: (body, authHeader) => addPurchase(body, authHeader),
     topUp: (body, authHeader) => topUp(body, authHeader),
+    completeStripeTopUp: (body, authHeader) => completeStripeTopUp(body, authHeader),
     withdraw: (body, authHeader) => withdraw(body, authHeader),
     purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
   },

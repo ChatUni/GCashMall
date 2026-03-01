@@ -4,6 +4,9 @@
 import { createStore } from 'solid-js/store'
 import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
 
+// Payment method types
+export type PaymentMethod = 'stripe' | 'gusd'
+
 // Transaction types
 export type TransactionType = 'topup' | 'withdraw'
 export type TransactionStatus = 'success' | 'failed' | 'processing'
@@ -12,7 +15,9 @@ export interface Transaction {
   id: string
   referenceId: string
   type: TransactionType
+  method?: string
   amount: number
+  transactionId?: string
   status: TransactionStatus
   createdAt: Date
 }
@@ -110,9 +115,11 @@ interface AccountState {
   selectedTopUpAmount: number | null
   showWithdrawPopup: boolean
   selectedWithdrawAmount: number | null
+  topUpLoading: boolean
   withdrawing: boolean
   transactions: Transaction[]
   transactionFilter: TransactionFilter
+  selectedPaymentMethod: PaymentMethod | null
   showCustomAmountPopup: boolean
   customAmountInput: string
   
@@ -215,9 +222,11 @@ const getInitialState = (): AccountState => ({
   selectedTopUpAmount: null,
   showWithdrawPopup: false,
   selectedWithdrawAmount: null,
+  topUpLoading: false,
   withdrawing: false,
   transactions: [],
   transactionFilter: 'all',
+  selectedPaymentMethod: null,
   showCustomAmountPopup: false,
   customAmountInput: '',
   
@@ -374,6 +383,10 @@ export const accountStoreActions = {
     ),
   setTransactionFilter: (transactionFilter: TransactionFilter) =>
     setAccountState({ transactionFilter }),
+  setSelectedPaymentMethod: (selectedPaymentMethod: PaymentMethod | null) =>
+    setAccountState({ selectedPaymentMethod }),
+  setTopUpLoading: (topUpLoading: boolean) =>
+    setAccountState({ topUpLoading }),
   setShowCustomAmountPopup: (showCustomAmountPopup: boolean) =>
     setAccountState({ showCustomAmountPopup }),
   setCustomAmountInput: (customAmountInput: string) =>
@@ -455,11 +468,13 @@ export const accountStoreActions = {
       birthday: user.dob || '',
     }
     // Convert transactions from user data (dates may be strings from JSON)
-    const transactions: Transaction[] = (user.transactions || []).map((t: Transaction | { id: string; referenceId: string; type: TransactionType; amount: number; status: TransactionStatus; createdAt: string | Date }) => ({
+    const transactions: Transaction[] = (user.transactions || []).map((t: Transaction | { id: string; referenceId: string; type: TransactionType; method?: string; amount: number; transactionId?: string; status: TransactionStatus; createdAt: string | Date }) => ({
       id: t.id,
       referenceId: t.referenceId,
       type: t.type,
+      method: t.method,
       amount: t.amount,
+      transactionId: t.transactionId,
       status: t.status,
       createdAt: typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt,
     }))

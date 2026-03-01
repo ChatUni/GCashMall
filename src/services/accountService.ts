@@ -588,21 +588,36 @@ export const removeFavorite = async (itemId: string) => {
 }
 
 // Top up
-export const topUp = async (amount: number): Promise<{ success: boolean; error?: string }> => {
+export const topUp = async (amount: number, paymentType: string, callbackUrl: string): Promise<{ success: boolean; error?: string; paymentUrl?: string }> => {
   const referenceId = generateReferenceId()
   
   try {
-    const response = await apiPostWithAuth<User>('topUp', { amount, referenceId })
+    const response = await apiPostWithAuth<User | { paymentUrl: string }>('topUp', {
+      amount,
+      paymentType,
+      callbackUrl,
+      referenceId,
+    })
     
     if (response.success && response.data) {
-      // Update user data from server response (includes new balance and transactions)
+      // If Stripe returns a payment URL, navigate to it
+      if ('paymentUrl' in response.data && response.data.paymentUrl) {
+        accountStoreActions.setShowTopUpPopup(false)
+        accountStoreActions.setSelectedTopUpAmount(null)
+        accountStoreActions.setSelectedPaymentMethod(null)
+        return { success: true, paymentUrl: response.data.paymentUrl }
+      }
+
+      // For GUSD, update user data from server response (includes new balance and transactions)
+      const userData = response.data as User
       const token = localStorage.getItem('gcashmall_token')
       if (token) {
-        saveAuthData(token, response.data)
+        saveAuthData(token, userData)
       }
-      accountStoreActions.initializeUserData(response.data)
+      accountStoreActions.initializeUserData(userData)
       accountStoreActions.setShowTopUpPopup(false)
       accountStoreActions.setSelectedTopUpAmount(null)
+      accountStoreActions.setSelectedPaymentMethod(null)
       return { success: true }
     }
     
@@ -611,6 +626,36 @@ export const topUp = async (amount: number): Promise<{ success: boolean; error?:
     console.error('Error topping up:', error)
     return { success: false, error: 'Failed to top up' }
   }
+}
+
+// Complete Stripe top up after redirect back from Stripe
+export const completeStripeTopUp = async (amount: number, referenceId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await apiPostWithAuth<User>('completeStripeTopUp', {
+      amount,
+      referenceId,
+    })
+    
+    if (response.success && response.data) {
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      return { success: true }
+    }
+    
+    return { success: false, error: response.error || 'Failed to complete top up' }
+  } catch (error) {
+    console.error('Error completing Stripe top up:', error)
+    return { success: false, error: 'Failed to complete top up' }
+  }
+}
+
+// Build the callback URL for the Wallet section of the Account page
+const buildWalletCallbackUrl = (): string => {
+  const baseUrl = window.location.origin
+  return `${baseUrl}/account?tab=wallet`
 }
 
 // Withdraw
@@ -983,11 +1028,24 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
   const state = accountStoreActions.getState()
   const wallet = t.wallet as Record<string, string> | undefined
   
-  if (state.selectedTopUpAmount) {
-    const result = await topUp(state.selectedTopUpAmount)
+  if (state.selectedTopUpAmount && state.selectedPaymentMethod) {
+    const paymentType = state.selectedPaymentMethod === 'stripe' ? 'Stripe' : 'GUSD'
+    const callbackUrl = buildWalletCallbackUrl()
+    
+    accountStoreActions.setTopUpLoading(true)
+    const result = await topUp(state.selectedTopUpAmount, paymentType, callbackUrl)
     if (result.success) {
-      toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      if (result.paymentUrl) {
+        // Stripe: navigate to the payment page
+        window.location.href = result.paymentUrl
+      } else {
+        // GUSD: immediate success
+        accountStoreActions.setTopUpLoading(false)
+        closeTopUpPopup()
+        toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      }
     } else {
+      accountStoreActions.setTopUpLoading(false)
       toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
     }
   }
@@ -1008,10 +1066,43 @@ export const handleConfirmWithdraw = async (t: Record<string, unknown>) => {
   }
 }
 
+// Handle Stripe payment callback (after redirect back from Stripe)
+export const handleStripeCallback = async (
+  searchParams: URLSearchParams,
+  setSearchParams: (params: Record<string, string>) => void,
+  t: Record<string, unknown>,
+) => {
+  const topupStatus = searchParams.get('topup_status')
+  if (!topupStatus) return
+
+  const wallet = t.wallet as Record<string, string> | undefined
+
+  if (topupStatus === 'success') {
+    const amount = parseFloat(searchParams.get('topup_amount') || '0')
+    const referenceId = searchParams.get('topup_ref') || ''
+
+    if (amount > 0 && referenceId) {
+      const result = await completeStripeTopUp(amount, referenceId)
+      if (result.success) {
+        toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      } else {
+        toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
+      }
+    }
+  } else if (topupStatus === 'cancelled') {
+    toastStoreActions.show(wallet?.topUpFailed || 'Top up cancelled', 'error')
+  }
+
+  // Clean up URL params
+  setSearchParams({ tab: 'wallet' })
+}
+
 // Close top up popup
 export const closeTopUpPopup = () => {
   accountStoreActions.setShowTopUpPopup(false)
   accountStoreActions.setSelectedTopUpAmount(null)
+  accountStoreActions.setSelectedPaymentMethod(null)
+  accountStoreActions.setTopUpLoading(false)
 }
 
 // Close withdraw popup

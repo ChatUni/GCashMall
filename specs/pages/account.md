@@ -319,6 +319,8 @@ Section card with form fields:
   - Title: "Confirm Top Up" - 24px, blue (#3B82F6)
   - Message: "Add to your wallet" - 14px, gray
   - Amount: 48px, blue (#3B82F6), with logo
+  - Method: "Choose Payment Method" - 14px, gray
+  - Payment Method Icons: Stripe, GUSD (GCash Icon) - text below icon
 - **Buttons**:
   - Confirm: Blue (#3B82F6), hover: darker blue (#2563EB)
   - Cancel: Gray (#2A2A2E)
@@ -345,9 +347,11 @@ Section card with form fields:
 - **Top Up Flow**:
   1. Click amount button to select top up amount
   2. Confirmation popup appears
-  3. Click Confirm to add balance
-  4. Success toast notification appears
-  5. Balance updates immediately
+  3. Click Confirm to call the top up api with the amount, payment type and callback url (account page, Wallet section). Show a loading indicator after the call (do not dismiss the confirmation popup)
+  4. if top up api returns payment url, navigate to it. Otherwise, show error toast
+  5. when the payment callback url is hit:
+    - success/fail toast notification appears
+    - balance updates immediately
 - **Withdraw Flow**:
   1. Click amount button (only enabled if amount <= balance)
   2. Confirmation popup appears

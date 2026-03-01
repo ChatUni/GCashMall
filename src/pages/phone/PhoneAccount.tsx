@@ -39,6 +39,7 @@ import {
   handleConfirmWithdraw,
   closeTopUpPopup,
   closeWithdrawPopup,
+  handleStripeCallback,
   handleCustomAmountClick,
   handleCustomAmountConfirm,
   closeCustomAmountPopup,
@@ -86,6 +87,7 @@ const PhoneAccount = () => {
   }
 
   initializeAccountPage(getUrlSearchParams(), (params) => setSearchParams(params), navigate)
+  handleStripeCallback(getUrlSearchParams(), (params) => setSearchParams(params), t().account)
   syncTabFromUrl(getUrlSearchParams(), true)
 
   const onTabClick = (tab: AccountTab) => handleTabClick(tab, (params) => setSearchParams(params))
@@ -570,7 +572,7 @@ const PhoneWalletSection = () => {
         </Show>
       </div>
       <Show when={accountStore.showTopUpPopup && accountStore.selectedTopUpAmount}>
-        <div class="phone-popup-overlay" onClick={closeTopUpPopup}>
+        <div class="phone-popup-overlay" onClick={() => !accountStore.topUpLoading && closeTopUpPopup()}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
             <h3 class="phone-popup-title">{wallet().confirmTopUp || 'Confirm Top Up'}</h3>
@@ -579,9 +581,36 @@ const PhoneWalletSection = () => {
               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
               <span>{accountStore.selectedTopUpAmount}</span>
             </div>
+            <div class="phone-payment-method-section">
+              <p class="phone-payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
+              <div class="phone-payment-method-icons">
+                <button
+                  class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'stripe' ? 'selected' : ''}`}
+                  onClick={() => accountStoreActions.setSelectedPaymentMethod('stripe')}
+                >
+                  <svg class="phone-payment-method-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.89 5.592C5.108 22.95 7.689 24 11.326 24c2.6 0 4.704-.634 6.244-1.886 1.638-1.34 2.43-3.283 2.43-5.671 0-4.136-2.502-5.799-6.024-7.293z" />
+                  </svg>
+                  <span class="phone-payment-method-text">{wallet().stripe || 'Stripe'}</span>
+                </button>
+                <button
+                  class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
+                  onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}
+                >
+                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-payment-method-icon-img" />
+                  <span class="phone-payment-method-text">{wallet().gusd || 'GUSD'}</span>
+                </button>
+              </div>
+            </div>
+            <Show when={accountStore.topUpLoading}>
+              <div class="phone-popup-loading">
+                <div class="phone-popup-spinner" />
+                <p class="phone-popup-loading-text">{wallet().processing || 'Processing...'}</p>
+              </div>
+            </Show>
             <div class="phone-popup-buttons">
-              <button class="phone-popup-confirm" onClick={onConfirmTopUp}>{wallet().confirm || 'Confirm'}</button>
-              <button class="phone-popup-cancel" onClick={closeTopUpPopup}>{wallet().cancel || 'Cancel'}</button>
+              <button class="phone-popup-confirm" onClick={onConfirmTopUp} disabled={!accountStore.selectedPaymentMethod || accountStore.topUpLoading}>{wallet().confirm || 'Confirm'}</button>
+              <button class="phone-popup-cancel" onClick={closeTopUpPopup} disabled={accountStore.topUpLoading}>{wallet().cancel || 'Cancel'}</button>
             </div>
           </div>
         </div>

@@ -295,6 +295,8 @@ return updated user
 ### Input
 
 - amount * (number, must be positive)
+- payment type * (Stripe or GUSD)
+- callback url *
 - referenceId (optional, will be auto-generated if not provided)
 
 ### Prerequisite
@@ -305,11 +307,23 @@ return updated user
 ### Action
 
 - find the account based on the login
+- if payment type is Stripe:
+  - generate a payment link with:
+    - payment method types: ['card']
+    - mode: payment
+    - line item:
+      - currency: usd
+      - product: "Top Up"
+      - amount: amount
+      - quantity: 1
+    - success/cancel url: callback url
 - create a transaction record with:
   - id: unique transaction id
   - referenceId: unique reference id (format: GC{timestamp}{random})
   - type: "topup"
+  - method: Stripe or GUSD
   - amount: the input amount
+  - transactionId: 
   - status: "success"
   - createdAt: current timestamp
 - add the transaction to the user's transactions array (prepend)
