@@ -110,7 +110,7 @@ export const zh = {
       confirmTopUp: '确认充值',
       addToWallet: '添加到钱包',
       choosePaymentMethod: '选择支付方式',
-      stripe: 'Stripe',
+      creditCard: '信用卡',
       gusd: 'GUSD',
       confirm: '确认',
       cancel: '取消',

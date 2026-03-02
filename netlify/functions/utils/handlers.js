@@ -2118,8 +2118,8 @@ const topUp = async (body, authHeader) => {
 
     const currentUser = users[0]
 
-    // If payment type is Stripe, generate a Stripe checkout session
-    if (paymentType === 'Stripe') {
+    // If payment type is Credit Card, use Stripe sdk to generate a checkout session
+    if (paymentType === 'Credit Card') {
       const paymentUrl = await createStripeCheckoutSession(amount, callbackUrl, userId, referenceId)
       return {
         success: true,
@@ -2238,7 +2238,7 @@ const completeStripeTopUp = async (body, authHeader) => {
       }
     }
 
-    return await processTopUp(currentUser, amount, 'Stripe', referenceId)
+    return await processTopUp(currentUser, amount, 'Credit Card', referenceId)
   } catch (error) {
     throw new Error(`Failed to complete Stripe top up: ${error.message}`)
   }
@@ -2279,8 +2279,8 @@ const validateTopUpBody = (body) => {
     throw new Error('Payment type is required')
   }
 
-  if (!['Stripe', 'GUSD'].includes(body.paymentType)) {
-    throw new Error('Payment type must be Stripe or GUSD')
+  if (!['Credit Card', 'GUSD'].includes(body.paymentType)) {
+    throw new Error('Payment type must be Credit Card or GUSD')
   }
 
   if (!body.callbackUrl) {

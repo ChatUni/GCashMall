@@ -328,7 +328,7 @@ function OverviewSection() {
         <button
           class="btn-primary"
           onClick={(accountStore.user?.hasPassword ?? true) ? onChangePassword : onSetPassword}
-          disabled={accountStore.passwordChanging}
+          disabled={accountStore.passwordChanging || !accountStore.passwordForm.newPassword || !accountStore.passwordForm.confirmPassword}
         >
           {accountStore.passwordChanging ? '...' : ((accountStore.user?.hasPassword ?? true) ? overview().changePasswordBtn : (login().setPassword || 'Set Password'))}
         </button>
@@ -806,13 +806,13 @@ function WalletSection() {
               <p class="payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="payment-method-icons">
                 <button
-                  class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'stripe' ? 'selected' : ''}`}
-                  onClick={() => accountStoreActions.setSelectedPaymentMethod('stripe')}
+                  class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
+                  onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
                 >
                   <svg class="payment-method-icon" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.89 5.592C5.108 22.95 7.689 24 11.326 24c2.6 0 4.704-.634 6.244-1.886 1.638-1.34 2.43-3.283 2.43-5.671 0-4.136-2.502-5.799-6.024-7.293z" />
+                    <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
                   </svg>
-                  <span class="payment-method-text">{wallet().stripe || 'Stripe'}</span>
+                  <span class="payment-method-text">{wallet().creditCard || 'Credit Card'}</span>
                 </button>
                 <button
                   class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}

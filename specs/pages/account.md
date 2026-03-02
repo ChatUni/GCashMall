@@ -320,7 +320,7 @@ Section card with form fields:
   - Message: "Add to your wallet" - 14px, gray
   - Amount: 48px, blue (#3B82F6), with logo
   - Method: "Choose Payment Method" - 14px, gray
-  - Payment Method Icons: Stripe, GUSD (GCash Icon) - text below icon
+  - Payment Method Icons: Credit Card, GUSD (GCash Icon) - text below icon
 - **Buttons**:
   - Confirm: Blue (#3B82F6), hover: darker blue (#2563EB)
   - Cancel: Gray (#2A2A2E)

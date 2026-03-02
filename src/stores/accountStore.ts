@@ -5,7 +5,7 @@ import { createStore } from 'solid-js/store'
 import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
 
 // Payment method types
-export type PaymentMethod = 'stripe' | 'gusd'
+export type PaymentMethod = 'creditcard' | 'gusd'
 
 // Transaction types
 export type TransactionType = 'topup' | 'withdraw'
@@ -483,8 +483,8 @@ export const accountStoreActions = {
       isLoggedIn: true,
       loading: false,
       showLoginModal: false, // Close login modal on successful login
-      profileForm: profileData,
-      originalProfile: profileData,
+      profileForm: { ...profileData },
+      originalProfile: { ...profileData },
       balance: user.balance || 0,
       transactions,
       myPurchases: user.purchases || [],

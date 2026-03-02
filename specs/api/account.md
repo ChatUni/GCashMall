@@ -295,7 +295,7 @@ return updated user
 ### Input
 
 - amount * (number, must be positive)
-- payment type * (Stripe or GUSD)
+- payment type * (Credit Card or GUSD)
 - callback url *
 - referenceId (optional, will be auto-generated if not provided)
 
@@ -307,7 +307,7 @@ return updated user
 ### Action
 
 - find the account based on the login
-- if payment type is Stripe:
+- if payment type is Credit Card, use Stripe sdk to:
   - generate a payment link with:
     - payment method types: ['card']
     - mode: payment

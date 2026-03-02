@@ -600,7 +600,7 @@ export const topUp = async (amount: number, paymentType: string, callbackUrl: st
     })
     
     if (response.success && response.data) {
-      // If Stripe returns a payment URL, navigate to it
+      // If Credit Card payment returns a payment URL, navigate to it
       if ('paymentUrl' in response.data && response.data.paymentUrl) {
         accountStoreActions.setShowTopUpPopup(false)
         accountStoreActions.setSelectedTopUpAmount(null)
@@ -1029,14 +1029,14 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
   const wallet = t.wallet as Record<string, string> | undefined
   
   if (state.selectedTopUpAmount && state.selectedPaymentMethod) {
-    const paymentType = state.selectedPaymentMethod === 'stripe' ? 'Stripe' : 'GUSD'
+    const paymentType = state.selectedPaymentMethod === 'creditcard' ? 'Credit Card' : 'GUSD'
     const callbackUrl = buildWalletCallbackUrl()
     
     accountStoreActions.setTopUpLoading(true)
     const result = await topUp(state.selectedTopUpAmount, paymentType, callbackUrl)
     if (result.success) {
       if (result.paymentUrl) {
-        // Stripe: navigate to the payment page
+        // Credit Card: navigate to the Stripe payment page
         window.location.href = result.paymentUrl
       } else {
         // GUSD: immediate success
