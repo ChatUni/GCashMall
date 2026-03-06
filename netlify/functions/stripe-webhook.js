@@ -31,7 +31,12 @@ const generateReferenceId = () =>
   `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
 // Process the top up (add balance and create transaction)
-const processTopUpFromWebhook = async (userId, amount, method, referenceId) => {
+const processTopUpFromWebhook = async (
+  userId,
+  amount,
+  method,
+  referenceId,
+) => {
   const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
   if (!users || users.length === 0) {
     console.error('[stripe-webhook] User not found:', userId)
@@ -83,8 +88,8 @@ const processTopUpFromWebhook = async (userId, amount, method, referenceId) => {
   )
 }
 
-// Verify webhook signature
-const verifyWebhookSignature = (payload, signature) => {
+// Verify webhook signature using the raw body
+const verifyWebhookSignature = (rawBody, signature) => {
   if (!stripe) {
     throw new Error('Stripe is not configured')
   }
@@ -93,36 +98,7 @@ const verifyWebhookSignature = (payload, signature) => {
     throw new Error('Stripe webhook secret is not configured')
   }
 
-  return stripe.webhooks.constructEvent(payload, signature, WEBHOOK_SECRET)
-}
-
-// Extract the raw body from the Netlify event
-// Netlify may base64-encode the body without reliably setting isBase64Encoded
-const extractRawBody = (event) => {
-  if (event.isBase64Encoded) {
-    return Buffer.from(event.body, 'base64').toString('utf8')
-  }
-  return event.body
-}
-
-// Attempt webhook verification, falling back to base64-decoded body
-const verifyWebhookWithFallback = (event, signature) => {
-  const rawBody = extractRawBody(event)
-
-  try {
-    return verifyWebhookSignature(rawBody, signature)
-  } catch (firstError) {
-    // If isBase64Encoded was false, try base64 decoding anyway as a fallback
-    if (!event.isBase64Encoded) {
-      try {
-        const decoded = Buffer.from(event.body, 'base64').toString('utf8')
-        return verifyWebhookSignature(decoded, signature)
-      } catch {
-        // Throw the original error if fallback also fails
-      }
-    }
-    throw firstError
-  }
+  return stripe.webhooks.constructEvent(rawBody, signature, WEBHOOK_SECRET)
 }
 
 // Handle checkout.session.completed event
@@ -150,53 +126,27 @@ const validateWebhookMetadata = (userId, amount, referenceId) => {
   if (!referenceId) throw new Error('Missing referenceId in session metadata')
 }
 
-export const handler = async (event) => {
-  console.log('[stripe-webhook] === Incoming request ===')
-  console.log('[stripe-webhook] httpMethod:', event.httpMethod)
-  console.log('[stripe-webhook] isBase64Encoded:', event.isBase64Encoded)
-  console.log('[stripe-webhook] headers keys:', Object.keys(event.headers || {}))
-  console.log('[stripe-webhook] body type:', typeof event.body)
-  console.log('[stripe-webhook] body length:', event.body?.length)
-  console.log('[stripe-webhook] body first 200 chars:', event.body?.substring(0, 200))
-  console.log('[stripe-webhook] WEBHOOK_SECRET set:', !!WEBHOOK_SECRET)
-  console.log('[stripe-webhook] WEBHOOK_SECRET prefix:', WEBHOOK_SECRET?.substring(0, 10))
-  console.log('[stripe-webhook] stripe configured:', !!stripe)
-
-  if (event.httpMethod === 'OPTIONS') {
-    return createResponse(200, {})
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return createResponse(405, { error: 'Method not allowed' })
-  }
-
+// Netlify Functions v2 handler — receives the raw Request object
+// This preserves the exact request body bytes for Stripe signature verification
+export default async (req) => {
   try {
-    const signature = event.headers['stripe-signature']
-    console.log('[stripe-webhook] stripe-signature header:', signature)
+    const signature = req.headers.get('stripe-signature')
+    console.log('[stripe-webhook] stripe-signature:', signature)
 
     if (!signature) {
-      return createResponse(400, { error: 'Missing stripe-signature header' })
+      return new Response(JSON.stringify({ error: 'Missing stripe-signature header' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
-    // Log what we're passing to Stripe for verification
-    const rawBody = extractRawBody(event)
-    console.log('[stripe-webhook] rawBody type:', typeof rawBody)
-    console.log('[stripe-webhook] rawBody length:', rawBody?.length)
-    console.log('[stripe-webhook] rawBody first 200 chars:', rawBody?.substring(0, 200))
+    // Read the raw, unmodified request body — critical for signature verification
+    const rawBody = await req.text()
+    console.log('[stripe-webhook] rawBody length:', rawBody.length)
+    console.log('[stripe-webhook] rawBody first 100 chars:', rawBody.substring(0, 100))
 
-    // Also check what base64-decoded looks like if not already decoded
-    if (!event.isBase64Encoded) {
-      try {
-        const decoded = Buffer.from(event.body, 'base64').toString('utf8')
-        console.log('[stripe-webhook] base64-decoded length:', decoded?.length)
-        console.log('[stripe-webhook] base64-decoded first 200 chars:', decoded?.substring(0, 200))
-        console.log('[stripe-webhook] base64-decoded looks like JSON:', decoded?.startsWith('{'))
-      } catch (e) {
-        console.log('[stripe-webhook] base64 decode failed:', e.message)
-      }
-    }
-
-    const webhookEvent = verifyWebhookWithFallback(event, signature)
+    const webhookEvent = verifyWebhookSignature(rawBody, signature)
+    console.log('[stripe-webhook] Signature verified, event type:', webhookEvent.type)
 
     switch (webhookEvent.type) {
       case 'checkout.session.completed':
@@ -206,18 +156,16 @@ export const handler = async (event) => {
         console.log('[stripe-webhook] Unhandled event type:', webhookEvent.type)
     }
 
-    return createResponse(200, { received: true })
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     console.error('[stripe-webhook] Error:', error.message)
     console.error('[stripe-webhook] Error stack:', error.stack)
-    return createResponse(400, { error: error.message })
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
-
-const createResponse = (statusCode, data) => ({
-  statusCode,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(data),
-})
