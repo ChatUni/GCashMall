@@ -6,8 +6,6 @@ const stripe = process.env.STRIPE_PRIVATE_KEY
   ? new Stripe(process.env.STRIPE_PRIVATE_KEY)
   : null
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
-
 // Build user response without sensitive fields (same as handlers.js)
 const buildUserResponseForWebhook = (user) => ({
   _id: user._id,
@@ -88,17 +86,14 @@ const processTopUpFromWebhook = async (
   )
 }
 
-// Verify webhook signature using the raw body
-const verifyWebhookSignature = (rawBody, signature) => {
+// Retrieve the event directly from Stripe API to verify authenticity
+// This avoids signature verification issues caused by Netlify reformatting the body
+const retrieveVerifiedEvent = async (eventId) => {
   if (!stripe) {
     throw new Error('Stripe is not configured')
   }
 
-  if (!WEBHOOK_SECRET) {
-    throw new Error('Stripe webhook secret is not configured')
-  }
-
-  return stripe.webhooks.constructEvent(rawBody, signature, WEBHOOK_SECRET)
+  return stripe.events.retrieve(eventId)
 }
 
 // Handle checkout.session.completed event
@@ -126,27 +121,40 @@ const validateWebhookMetadata = (userId, amount, referenceId) => {
   if (!referenceId) throw new Error('Missing referenceId in session metadata')
 }
 
-// Netlify Functions v2 handler — receives the raw Request object
-// This preserves the exact request body bytes for Stripe signature verification
+// Validate the incoming request has required Stripe headers
+const validateWebhookRequest = (req) => {
+  const signature = req.headers.get('stripe-signature')
+  if (!signature) {
+    throw new Error('Missing stripe-signature header')
+  }
+  return signature
+}
+
+// Parse the event ID from the webhook body
+const parseEventId = (body) => {
+  if (!body || !body.id || !body.id.startsWith('evt_')) {
+    throw new Error('Invalid webhook payload: missing or invalid event id')
+  }
+  return body.id
+}
+
+// Netlify Functions v2 handler
+// Netlify's middleware reformats the JSON body, breaking Stripe signature verification.
+// Instead, we extract the event ID from the payload and retrieve it directly from
+// Stripe's API, which guarantees authenticity (only real Stripe events can be retrieved).
 export default async (req) => {
   try {
-    const signature = req.headers.get('stripe-signature')
-    console.log('[stripe-webhook] stripe-signature:', signature)
+    // Verify stripe-signature header is present (basic check that request came through Stripe)
+    validateWebhookRequest(req)
 
-    if (!signature) {
-      return new Response(JSON.stringify({ error: 'Missing stripe-signature header' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    // Parse the body to get the event ID
+    const body = await req.json()
+    const eventId = parseEventId(body)
+    console.log('[stripe-webhook] Received event ID:', eventId)
 
-    // Read the raw, unmodified request body — critical for signature verification
-    const rawBody = await req.text()
-    console.log('[stripe-webhook] rawBody length:', rawBody.length)
-    console.log('[stripe-webhook] rawBody first 100 chars:', rawBody.substring(0, 100))
-
-    const webhookEvent = verifyWebhookSignature(rawBody, signature)
-    console.log('[stripe-webhook] Signature verified, event type:', webhookEvent.type)
+    // Retrieve the event directly from Stripe API — this guarantees authenticity
+    const webhookEvent = await retrieveVerifiedEvent(eventId)
+    console.log('[stripe-webhook] Verified event type:', webhookEvent.type)
 
     switch (webhookEvent.type) {
       case 'checkout.session.completed':
@@ -162,7 +170,6 @@ export default async (req) => {
     })
   } catch (error) {
     console.error('[stripe-webhook] Error:', error.message)
-    console.error('[stripe-webhook] Error stack:', error.stack)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
