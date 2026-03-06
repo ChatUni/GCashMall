@@ -96,6 +96,35 @@ const verifyWebhookSignature = (payload, signature) => {
   return stripe.webhooks.constructEvent(payload, signature, WEBHOOK_SECRET)
 }
 
+// Extract the raw body from the Netlify event
+// Netlify may base64-encode the body without reliably setting isBase64Encoded
+const extractRawBody = (event) => {
+  if (event.isBase64Encoded) {
+    return Buffer.from(event.body, 'base64').toString('utf8')
+  }
+  return event.body
+}
+
+// Attempt webhook verification, falling back to base64-decoded body
+const verifyWebhookWithFallback = (event, signature) => {
+  const rawBody = extractRawBody(event)
+
+  try {
+    return verifyWebhookSignature(rawBody, signature)
+  } catch (firstError) {
+    // If isBase64Encoded was false, try base64 decoding anyway as a fallback
+    if (!event.isBase64Encoded) {
+      try {
+        const decoded = Buffer.from(event.body, 'base64').toString('utf8')
+        return verifyWebhookSignature(decoded, signature)
+      } catch {
+        // Throw the original error if fallback also fails
+      }
+    }
+    throw firstError
+  }
+}
+
 // Handle checkout.session.completed event
 const handleCheckoutSessionCompleted = async (session) => {
   if (session.payment_status !== 'paid') {
@@ -136,12 +165,7 @@ export const handler = async (event) => {
       return createResponse(400, { error: 'Missing stripe-signature header' })
     }
 
-    // Netlify may base64-encode the raw body; decode it for Stripe signature verification
-    const rawBody = event.isBase64Encoded
-      ? Buffer.from(event.body, 'base64').toString('utf8')
-      : event.body
-
-    const webhookEvent = verifyWebhookSignature(rawBody, signature)
+    const webhookEvent = verifyWebhookWithFallback(event, signature)
 
     switch (webhookEvent.type) {
       case 'checkout.session.completed':
