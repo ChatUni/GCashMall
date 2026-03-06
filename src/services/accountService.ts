@@ -629,11 +629,11 @@ export const topUp = async (amount: number, paymentType: string, callbackUrl: st
 }
 
 // Complete Stripe top up after redirect back from Stripe
-export const completeStripeTopUp = async (amount: number, referenceId: string): Promise<{ success: boolean; error?: string }> => {
+// Calls API with session_id to retrieve and verify the Stripe session data
+export const completeStripeTopUp = async (sessionId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await apiPostWithAuth<User>('completeStripeTopUp', {
-      amount,
-      referenceId,
+      sessionId,
     })
     
     if (response.success && response.data) {
@@ -1067,6 +1067,7 @@ export const handleConfirmWithdraw = async (t: Record<string, unknown>) => {
 }
 
 // Handle Stripe payment callback (after redirect back from Stripe)
+// On success_url, calls API to retrieve the session/transaction data
 export const handleStripeCallback = async (
   searchParams: URLSearchParams,
   setSearchParams: (params: Record<string, string>) => void,
@@ -1078,11 +1079,10 @@ export const handleStripeCallback = async (
   const wallet = t.wallet as Record<string, string> | undefined
 
   if (topupStatus === 'success') {
-    const amount = parseFloat(searchParams.get('topup_amount') || '0')
-    const referenceId = searchParams.get('topup_ref') || ''
+    const sessionId = searchParams.get('session_id') || ''
 
-    if (amount > 0 && referenceId) {
-      const result = await completeStripeTopUp(amount, referenceId)
+    if (sessionId) {
+      const result = await completeStripeTopUp(sessionId)
       if (result.success) {
         toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
       } else {

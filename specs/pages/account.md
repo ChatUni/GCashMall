@@ -350,6 +350,7 @@ Section card with form fields:
   3. Click Confirm to call the top up api with the amount, payment type and callback url (account page, Wallet section). Show a loading indicator after the call (do not dismiss the confirmation popup)
   4. if top up api returns payment url, navigate to it. Otherwise, show error toast
   5. when the payment callback url is hit:
+    - for success_url, call api to retrieve the session/transaction data
     - success/fail toast notification appears
     - balance updates immediately
 - **Withdraw Flow**:

@@ -308,7 +308,7 @@ return updated user
 
 - find the account based on the login
 - if payment type is Credit Card, use Stripe sdk to:
-  - generate a payment link with:
+  - create a payment session with:
     - payment method types: ['card']
     - mode: payment
     - line item:
@@ -317,18 +317,20 @@ return updated user
       - amount: amount
       - quantity: 1
     - success/cancel url: callback url
-- create a transaction record with:
-  - id: unique transaction id
-  - referenceId: unique reference id (format: GC{timestamp}{random})
-  - type: "topup"
-  - method: Stripe or GUSD
-  - amount: the input amount
-  - transactionId: 
-  - status: "success"
-  - createdAt: current timestamp
-- add the transaction to the user's transactions array (prepend)
-- add the amount to the user's balance
-- **persist the updated balance and transactions to the database**
+  - use webhook to handle checkout.session.completed event
+- Upon successful payment (session.payment_status === 'paid' or payment type == GUSD):
+  - create a transaction record with:
+    - id: unique transaction id
+    - referenceId: unique reference id (format: GC{timestamp}{random})
+    - type: "topup"
+    - method: Stripe or GUSD
+    - amount: the input amount
+    - transactionId: 
+    - status: "success"
+    - createdAt: current timestamp
+  - add the transaction to the user's transactions array
+  - add the amount to the user's balance
+  - update db
 
 ### Output
 

@@ -2157,7 +2157,7 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
         quantity: 1,
       },
     ],
-    success_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&topup_amount=${amount}&topup_ref=${txnReferenceId}`,
+    success_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=cancelled`,
     metadata: {
       userId,
@@ -2211,12 +2211,33 @@ const processTopUp = async (currentUser, amount, method, referenceId) => {
 }
 
 // Complete Stripe top up after successful payment callback
+// Retrieves the Stripe session to verify payment and get transaction data
 const completeStripeTopUp = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateCompleteStripeTopUpBody(body)
 
   try {
-    const { amount, referenceId } = body
+    const { sessionId } = body
+
+    if (!stripe) {
+      throw new Error('Stripe is not configured')
+    }
+
+    // Retrieve the checkout session from Stripe to verify payment
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
+
+    // Verify session metadata matches the authenticated user
+    if (session.metadata?.userId !== String(userId)) {
+      return { success: false, error: 'Session does not belong to this user' }
+    }
+
+    // Verify payment was successful
+    if (session.payment_status !== 'paid') {
+      return { success: false, error: 'Payment has not been completed' }
+    }
+
+    const amount = parseFloat(session.metadata.amount)
+    const referenceId = session.metadata.referenceId
 
     // Get current user
     const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
@@ -2227,18 +2248,20 @@ const completeStripeTopUp = async (body, authHeader) => {
     const currentUser = users[0]
 
     // Check if this referenceId has already been processed (prevent double processing)
+    // This may have been processed by the webhook already
     const existingTxn = (currentUser.transactions || []).find(
       (t) => t.referenceId === referenceId,
     )
     if (existingTxn) {
-      // Already processed, just return the current user data
+      // Already processed (likely by webhook), just return the current user data
       return {
         success: true,
         data: await buildUserResponse(currentUser),
       }
     }
 
-    return await processTopUp(currentUser, amount, 'Credit Card', referenceId)
+    // Process the top up (webhook may not have fired yet)
+    return await processTopUp(currentUser, amount, 'Stripe', referenceId)
   } catch (error) {
     throw new Error(`Failed to complete Stripe top up: ${error.message}`)
   }
@@ -2249,16 +2272,8 @@ const validateCompleteStripeTopUpBody = (body) => {
     throw new Error('Request body is required')
   }
 
-  if (body.amount === undefined || body.amount === null) {
-    throw new Error('Amount is required')
-  }
-
-  if (typeof body.amount !== 'number' || body.amount <= 0) {
-    throw new Error('Amount must be a positive number')
-  }
-
-  if (!body.referenceId) {
-    throw new Error('Reference ID is required')
+  if (!body.sessionId) {
+    throw new Error('Session ID is required')
   }
 }
 
