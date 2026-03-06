@@ -1,6 +1,7 @@
 import { createSignal, onMount, Show, For, type Component } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
+import paymentMethodsIcon from '../assets/payment-methods2.svg'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
@@ -809,10 +810,8 @@ function WalletSection() {
                   class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
                   onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
                 >
-                  <svg class="payment-method-icon" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-                    <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
-                  </svg>
-                  <span class="payment-method-text">{wallet().creditCard || 'Credit Card'}</span>
+                  <img src={paymentMethodsIcon} alt="Card" class="payment-method-icon-img" width="32" height="32" />
+                  <span class="payment-method-text">{wallet().creditCard || 'Card'}</span>
                 </button>
                 <button
                   class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}

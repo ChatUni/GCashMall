@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+  <!-- Back card - Apple Pay (shifted right) -->
+  <rect x="6" y="2" width="20" height="13" rx="2" ry="2" fill="#000000"/>
+  <!-- Apple icon -->
+  <g transform="translate(11, 4.5)">
+    <path d="M4.1,0.6 C4.1,0.2 4.4,0 4.7,0 C4.7,0.4 4.4,0.7 4.1,0.6z" fill="#ffffff"/>
+    <path d="M5,1 C4.6,1 4.3,1.2 3.9,1.2 C3.5,1.2 3.2,1 2.8,1 C2.1,1 1.2,1.6 1.2,3 C1.2,3.7 1.5,4.5 1.9,5.1 C2.2,5.5 2.5,5.9 2.9,5.9 C3.2,5.9 3.4,5.6 3.8,5.6 C4.2,5.6 4.4,5.9 4.7,5.9 C5.1,5.9 5.4,5.5 5.6,5.1 C5.9,4.7 6,4.3 6,4.3 C5.5,4.1 5,3.6 5,2.9 C5,2.3 5.4,1.9 5.7,1.7 C5.3,1.1 4.9,1 5,1z" fill="#ffffff"/>
+  </g>
+  <text x="17.5" y="9.5" font-family="Arial,sans-serif" font-size="3.5" font-weight="600" fill="#ffffff" letter-spacing="-0.2">Pay</text>
+
+  <!-- Middle card - Google Pay (shifted slightly left) -->
+  <g opacity="0.85">
+  <rect x="3" y="6.5" width="20" height="13" rx="2" ry="2" fill="#ffffff" stroke="#cccccc" stroke-width="0.5"/>
+  <!-- Google G -->
+  <g transform="translate(8.5, 10)">
+    <path d="M3.2,0 C4,0 4.7,0.3 5.2,0.8 L4.4,1.6 C4.1,1.3 3.7,1.1 3.2,1.1 C2.2,1.1 1.4,1.9 1.4,2.9 C1.4,3.9 2.2,4.7 3.2,4.7 C4,4.7 4.5,4.3 4.7,3.8 L3.2,3.8 L3.2,2.7 L5.9,2.7 C5.9,2.9 6,3.1 6,3.3 C6,4.8 4.9,5.9 3.2,5.9 C1.6,5.9 0.3,4.6 0.3,2.9 C0.3,1.3 1.6,0 3.2,0z" fill="#4285F4"/>
+    <path d="M3.2,0 C4,0 4.7,0.3 5.2,0.8 L4.4,1.6 C4.1,1.3 3.7,1.1 3.2,1.1 C2.5,1.1 1.9,1.5 1.6,2.1 L0.6,1.3 C1.1,0.5 2.1,0 3.2,0z" fill="#EA4335"/>
+    <path d="M0.6,1.3 C0.4,1.8 0.3,2.3 0.3,2.9 C0.3,3.5 0.4,4 0.6,4.5 L1.6,3.8 C1.5,3.5 1.4,3.2 1.4,2.9 C1.4,2.6 1.5,2.3 1.6,2.1 L0.6,1.3z" fill="#FBBC05"/>
+    <path d="M0.6,4.5 C1.1,5.3 2.1,5.9 3.2,5.9 C4,5.9 4.6,5.6 5,5.2 L4.1,4.5 C3.9,4.6 3.6,4.7 3.2,4.7 C2.4,4.7 1.7,4.2 1.6,3.8 L0.6,4.5z" fill="#34A853"/>
+  </g>
+  <text x="15.5" y="14.5" font-family="Arial,sans-serif" font-size="3.2" font-weight="bold" fill="#5f6368">Pay</text>
+  </g>
+
+  <!-- Front card - Credit Card (shifted left) -->
+  <g opacity="0.8">
+  <rect x="1" y="11" width="20" height="13" rx="2" ry="2" fill="#1565C0"/>
+  <!-- EMV chip -->
+  <rect x="3.5" y="14" width="5" height="3.5" rx="0.8" ry="0.8" fill="#D4AF37" stroke="#B8960C" stroke-width="0.2"/>
+  <line x1="3.5" y1="15.2" x2="8.5" y2="15.2" stroke="#B8960C" stroke-width="0.15"/>
+  <line x1="3.5" y1="16.3" x2="8.5" y2="16.3" stroke="#B8960C" stroke-width="0.15"/>
+  <line x1="6" y1="14" x2="6" y2="17.5" stroke="#B8960C" stroke-width="0.15"/>
+  <!-- Card number dots -->
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="4" cy="20" r="0.6"/><circle cx="5.8" cy="20" r="0.6"/><circle cx="7.6" cy="20" r="0.6"/><circle cx="9.4" cy="20" r="0.6"/>
+    <circle cx="12" cy="20" r="0.6"/><circle cx="13.8" cy="20" r="0.6"/><circle cx="15.6" cy="20" r="0.6"/><circle cx="17.4" cy="20" r="0.6"/>
+  </g>
+  <!-- Contactless waves -->
+  <g transform="translate(10.5, 14.5)" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" opacity="0.6">
+    <path d="M0,3 C1,2 1,1 0,0"/>
+    <path d="M1.2,3.6 C2.8,2 2.8,1 1.2,-0.5"/>
+  </g>
+  </g>
+</svg>

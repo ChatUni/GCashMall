@@ -111,7 +111,7 @@ export const en = {
       confirmTopUp: 'Confirm Top Up',
       addToWallet: 'Add to your wallet',
       choosePaymentMethod: 'Choose Payment Method',
-      creditCard: 'Credit Card',
+      creditCard: 'Card',
       gusd: 'GUSD',
       confirm: 'Confirm',
       cancel: 'Cancel',
