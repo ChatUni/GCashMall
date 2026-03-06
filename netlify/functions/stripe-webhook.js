@@ -136,7 +136,12 @@ export const handler = async (event) => {
       return createResponse(400, { error: 'Missing stripe-signature header' })
     }
 
-    const webhookEvent = verifyWebhookSignature(event.body, signature)
+    // Netlify may base64-encode the raw body; decode it for Stripe signature verification
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body, 'base64').toString('utf8')
+      : event.body
+
+    const webhookEvent = verifyWebhookSignature(rawBody, signature)
 
     switch (webhookEvent.type) {
       case 'checkout.session.completed':
