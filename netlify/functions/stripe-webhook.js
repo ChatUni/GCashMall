@@ -151,6 +151,17 @@ const validateWebhookMetadata = (userId, amount, referenceId) => {
 }
 
 export const handler = async (event) => {
+  console.log('[stripe-webhook] === Incoming request ===')
+  console.log('[stripe-webhook] httpMethod:', event.httpMethod)
+  console.log('[stripe-webhook] isBase64Encoded:', event.isBase64Encoded)
+  console.log('[stripe-webhook] headers keys:', Object.keys(event.headers || {}))
+  console.log('[stripe-webhook] body type:', typeof event.body)
+  console.log('[stripe-webhook] body length:', event.body?.length)
+  console.log('[stripe-webhook] body first 200 chars:', event.body?.substring(0, 200))
+  console.log('[stripe-webhook] WEBHOOK_SECRET set:', !!WEBHOOK_SECRET)
+  console.log('[stripe-webhook] WEBHOOK_SECRET prefix:', WEBHOOK_SECRET?.substring(0, 10))
+  console.log('[stripe-webhook] stripe configured:', !!stripe)
+
   if (event.httpMethod === 'OPTIONS') {
     return createResponse(200, {})
   }
@@ -161,8 +172,28 @@ export const handler = async (event) => {
 
   try {
     const signature = event.headers['stripe-signature']
+    console.log('[stripe-webhook] stripe-signature header:', signature)
+
     if (!signature) {
       return createResponse(400, { error: 'Missing stripe-signature header' })
+    }
+
+    // Log what we're passing to Stripe for verification
+    const rawBody = extractRawBody(event)
+    console.log('[stripe-webhook] rawBody type:', typeof rawBody)
+    console.log('[stripe-webhook] rawBody length:', rawBody?.length)
+    console.log('[stripe-webhook] rawBody first 200 chars:', rawBody?.substring(0, 200))
+
+    // Also check what base64-decoded looks like if not already decoded
+    if (!event.isBase64Encoded) {
+      try {
+        const decoded = Buffer.from(event.body, 'base64').toString('utf8')
+        console.log('[stripe-webhook] base64-decoded length:', decoded?.length)
+        console.log('[stripe-webhook] base64-decoded first 200 chars:', decoded?.substring(0, 200))
+        console.log('[stripe-webhook] base64-decoded looks like JSON:', decoded?.startsWith('{'))
+      } catch (e) {
+        console.log('[stripe-webhook] base64 decode failed:', e.message)
+      }
     }
 
     const webhookEvent = verifyWebhookWithFallback(event, signature)
@@ -178,6 +209,7 @@ export const handler = async (event) => {
     return createResponse(200, { received: true })
   } catch (error) {
     console.error('[stripe-webhook] Error:', error.message)
+    console.error('[stripe-webhook] Error stack:', error.stack)
     return createResponse(400, { error: error.message })
   }
 }
