@@ -1,9 +1,22 @@
+// Production site URL used as OAuth redirect in Cordova
+// (Cordova's window.location.origin is app://localhost which Google rejects)
+export const PRODUCTION_ORIGIN = 'https://gcashtv.netlify.app'
+
+// Mobile OAuth redirect page hosted on the production site
+// Google redirects here, then this page redirects to gcashmall:// custom URL scheme
+export const MOBILE_OAUTH_REDIRECT = `${PRODUCTION_ORIGIN}/oauth-mobile.html`
+
 declare global {
   interface Window {
     cordova?: {
       platformId: string
       version: string
+      InAppBrowser?: {
+        open: (url: string, target: string, options?: string) => { close: () => void }
+      }
     }
+    // Custom URL scheme plugin handler
+    handleOpenURL?: (url: string) => void
   }
 }
 
@@ -57,4 +70,91 @@ export const exitApp = (): void => {
       nav.app.exitApp()
     }
   }
+}
+
+// OAuth via system browser (Safari/Chrome) + custom URL scheme callback
+// Google blocks embedded WebViews (disallowed_useragent), so we must use the system browser.
+//
+// Flow:
+// 1. Open Google OAuth in system browser with redirect_uri = MOBILE_OAUTH_REDIRECT
+// 2. User authenticates in Safari/Chrome
+// 3. Google redirects to oauth-mobile.html?code=...
+// 4. oauth-mobile.html redirects to gcashmall://oauth?code=...
+// 5. Custom URL scheme plugin fires handleOpenURL with the code
+// 6. Promise resolves with the authorization code
+
+// Pending OAuth callback resolver
+let oauthResolve: ((code: string) => void) | null = null
+let oauthReject: ((error: Error) => void) | null = null
+
+// Register the custom URL scheme handler (called once at app startup)
+export const initOAuthHandler = (): void => {
+  window.handleOpenURL = (url: string) => {
+    // Must wrap in setTimeout to avoid iOS blocking issue
+    // (handleOpenURL is called before the app is fully in foreground)
+    setTimeout(() => handleCustomUrl(url), 0)
+  }
+}
+
+// Handle incoming custom URL scheme
+const handleCustomUrl = (url: string): void => {
+  if (!url.startsWith('gcashmall://oauth')) return
+
+  const code = extractCodeFromUrl(url)
+  if (code && oauthResolve) {
+    oauthResolve(code)
+  } else if (oauthReject) {
+    oauthReject(new Error('No authorization code found in callback URL'))
+  }
+  cleanupOAuthState()
+}
+
+// Open OAuth in system browser and wait for custom URL scheme callback
+export const openOAuthSystemBrowser = (authUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // Clean up any previous pending OAuth
+    cleanupOAuthState()
+
+    oauthResolve = resolve
+    oauthReject = reject
+
+    // Open in system browser (_system target opens Safari/Chrome, not a WebView)
+    openSystemBrowser(authUrl)
+
+    // Timeout after 5 minutes (user might have abandoned)
+    setTimeout(() => {
+      if (oauthResolve) {
+        cleanupOAuthState()
+        reject(new Error('OAuth timed out'))
+      }
+    }, 5 * 60 * 1000)
+  })
+}
+
+// Open URL in system browser (Safari on iOS, Chrome on Android)
+const openSystemBrowser = (url: string): void => {
+  if (isCordova() && window.cordova?.InAppBrowser) {
+    // _system target opens the OS default browser, not an embedded WebView
+    window.cordova.InAppBrowser.open(url, '_system', '')
+  } else {
+    window.open(url, '_blank')
+  }
+}
+
+// Extract authorization code from OAuth callback URL
+const extractCodeFromUrl = (url: string): string | null => {
+  try {
+    // Handle both https:// and custom scheme gcashmall:// URLs
+    const queryString = url.includes('?') ? url.split('?')[1] : ''
+    const params = new URLSearchParams(queryString)
+    return params.get('code')
+  } catch {
+    return null
+  }
+}
+
+// Clean up OAuth promise state
+const cleanupOAuthState = (): void => {
+  oauthResolve = null
+  oauthReject = null
 }

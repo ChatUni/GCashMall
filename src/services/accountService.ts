@@ -1,6 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
+import { isCordova, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
@@ -43,9 +44,10 @@ const handleOAuthCallback = async (
   let redirectPath = ''
   
   try {
+    const redirectUri = isCordova() ? MOBILE_OAUTH_REDIRECT : `${window.location.origin}/account`
     const response = await apiPost<{ id: string; name: string; email: string; picture: string }>(
       `${oauthType}Auth`,
-      { code, redirectUri: `${window.location.origin}/account` }
+      { code, redirectUri }
     )
 
     if (response.success && response.data) {

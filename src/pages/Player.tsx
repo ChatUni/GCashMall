@@ -262,6 +262,7 @@ const VideoPlayer = () => {
               ref={(el) => { videoRef = el }}
               src={playerStore.currentEpisode!.videoUrl}
               poster={playerStore.currentEpisode!.thumbnail}
+              playsinline
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
               onClick={onPlayPause}

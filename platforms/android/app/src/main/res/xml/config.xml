@@ -36,4 +36,10 @@
     <preference name="Scheme" value="https" />
     <preference name="Hostname" value="localhost" />
     <preference name="MixedContentMode" value="0" />
+    <feature name="InAppBrowser">
+        <param name="android-package" value="org.apache.cordova.inappbrowser.InAppBrowser" />
+    </feature>
+    <feature name="LaunchMyApp">
+        <param name="android-package" value="nl.xservices.plugins.LaunchMyApp" />
+    </feature>
 </widget>

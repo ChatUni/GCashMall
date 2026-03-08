@@ -189,7 +189,7 @@ const VideoThumbnail = (props: VideoThumbnailProps) => {
         </Show>
       }
     >
-      <video src={props.previewUrl!} class="media-upload-video-thumbnail" muted />
+      <video src={props.previewUrl!} class="media-upload-video-thumbnail" muted playsinline />
     </Show>
   )
 }
@@ -250,7 +250,7 @@ const VideoPlayer = (props: VideoPlayerProps) => {
           when={props.videoId}
           fallback={
             <Show when={props.mediaUrl}>
-              <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay />
+              <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay playsinline />
             </Show>
           }
         >
@@ -263,7 +263,7 @@ const VideoPlayer = (props: VideoPlayerProps) => {
         </Show>
       }
     >
-      <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay />
+      <video src={props.mediaUrl!} class="media-upload-video-player" controls autoplay playsinline />
     </Show>
   )
 }

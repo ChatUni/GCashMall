@@ -8,7 +8,15 @@
       "android",
       "ios"
     ],
-    "plugins": {}
+    "plugins": {
+      "cordova-plugin-inappbrowser": {},
+      "cordova-plugin-customurlscheme": {
+        "URL_SCHEME": "gcashmall",
+        "ANDROID_SCHEME": " ",
+        "ANDROID_HOST": " ",
+        "ANDROID_PATHPREFIX": "/"
+      }
+    }
   },
   "scripts": {
     "postinstall": "node scripts/cordova-android-jdk-fix.cjs",
@@ -47,6 +55,8 @@
     "cordova": "^13.0.0",
     "cordova-android": "^14.0.1",
     "cordova-ios": "^7.1.1",
+    "cordova-plugin-customurlscheme": "^5.0.2",
+    "cordova-plugin-inappbrowser": "^6.0.0",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "netlify-cli": "^23.12.2",

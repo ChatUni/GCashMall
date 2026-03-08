@@ -8,6 +8,7 @@ import {
   saveAuthData,
   apiPost,
 } from '../utils/api'
+import { isCordova, openOAuthSystemBrowser, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
 import { loginModalStore } from '../stores'
 import type { OAuthType, ResetPasswordResponse, User } from '../types'
 import './LoginModal.css'
@@ -212,18 +213,25 @@ const LoginModal = (props: LoginModalProps) => {
     }
   }
 
-  // Get OAuth redirect URL - use stored redirectPath or current location
+  // Get OAuth redirect URL
+  // In Cordova: use mobile OAuth redirect page (hosted on production)
+  //   which bridges Google callback → gcashmall:// custom URL scheme
+  // In web: use current origin /account
   const getOAuthRedirectUrl = () => {
     // Store the redirect destination in sessionStorage so we can retrieve it after OAuth callback
     const redirectTo = loginModalStore.redirectPath || location.pathname + location.search
     sessionStorage.setItem('oauth_redirect', redirectTo)
-    // OAuth callback always goes to /account which handles the OAuth flow
+
+    if (isCordova()) {
+      // Cordova: redirect to the mobile bridge page
+      return MOBILE_OAUTH_REDIRECT
+    }
+    // Web: OAuth callback goes to /account which handles the OAuth flow
     return `${window.location.origin}/account`
   }
 
-  const handleOAuthSignIn = (provider: OAuthType) => {
-    const redirectUrl = getOAuthRedirectUrl()
-
+  // Build the OAuth authorization URL
+  const buildOAuthUrl = (provider: OAuthType, redirectUrl: string): string | null => {
     const oauthConfigs: Record<OAuthType, { clientIdEnv: string; authUrl: string; scope: string }> = {
       google: {
         clientIdEnv: 'VITE_GOOGLE_CLIENT_ID',
@@ -235,19 +243,96 @@ const LoginModal = (props: LoginModalProps) => {
     const config = oauthConfigs[provider]
     if (!config) {
       console.error(`${provider} OAuth not supported`)
-      return
+      return null
     }
 
     const clientId = import.meta.env[config.clientIdEnv]
-
     if (!clientId) {
       console.error(`${provider} client ID not configured`)
-      return
+      return null
     }
 
-    const authUrl = `${config.authUrl}?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=code&scope=${encodeURIComponent(config.scope)}`
+    return `${config.authUrl}?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=code&scope=${encodeURIComponent(config.scope)}`
+  }
 
-    window.location.href = authUrl
+  // Process OAuth code received from InAppBrowser (Cordova only)
+  const processOAuthCode = async (code: string, provider: OAuthType, redirectUrl: string) => {
+    setEmailError('')
+    setLoading(true)
+
+    try {
+      // Exchange code for user info via server
+      const authResponse = await apiPost<{ id: string; name: string; email: string; picture: string }>(
+        `${provider}Auth`,
+        { code, redirectUri: redirectUrl },
+      )
+
+      if (!authResponse.success || !authResponse.data) {
+        setEmailError(authResponse.error || 'OAuth authentication failed')
+        return
+      }
+
+      const { id: oauthId, name, email: oauthEmail, picture } = authResponse.data
+
+      // Check if user exists
+      const checkResponse = await checkEmail(oauthEmail)
+
+      if (checkResponse.success && checkResponse.data?.exists) {
+        // Existing user - login with OAuth
+        const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', {
+          email: oauthEmail,
+          oauthId,
+          oauthType: provider,
+        })
+        if (loginResponse.success && loginResponse.data) {
+          saveAuthData(loginResponse.data.token, loginResponse.data.user)
+          props.onLoginSuccess(loginResponse.data.user)
+        } else {
+          setEmailError(loginResponse.error || 'Login failed')
+        }
+      } else {
+        // New user - register with OAuth info
+        const registerResponse = await emailRegister({
+          email: oauthEmail,
+          nickname: name,
+          photoUrl: picture,
+          oauthId,
+          oauthType: provider,
+        })
+        if (registerResponse.success && registerResponse.data) {
+          saveAuthData(registerResponse.data.token, registerResponse.data.user)
+          props.onLoginSuccess(registerResponse.data.user)
+        } else {
+          setEmailError(registerResponse.error || 'Registration failed')
+        }
+      }
+    } catch (error) {
+      console.error('OAuth processing error:', error)
+      setEmailError('OAuth authentication failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOAuthSignIn = (provider: OAuthType) => {
+    const redirectUrl = getOAuthRedirectUrl()
+    const authUrl = buildOAuthUrl(provider, redirectUrl)
+    if (!authUrl) return
+
+    if (isCordova()) {
+      // Cordova: open in system browser (Safari/Chrome), receive code via custom URL scheme
+      openOAuthSystemBrowser(authUrl)
+        .then((code: string) => processOAuthCode(code, provider, redirectUrl))
+        .catch((err: Error) => {
+          if (err.message !== 'OAuth timed out') {
+            console.error('OAuth system browser error:', err)
+            setEmailError('OAuth authentication failed')
+          }
+        })
+    } else {
+      // Web: redirect to OAuth provider, /account page handles the callback
+      window.location.href = authUrl
+    }
   }
 
   const handleForgetPassword = () => {
