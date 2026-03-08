@@ -6,13 +6,20 @@ export const PRODUCTION_ORIGIN = 'https://gcashtv.netlify.app'
 // Google redirects here, then this page redirects to gcashmall:// custom URL scheme
 export const MOBILE_OAUTH_REDIRECT = `${PRODUCTION_ORIGIN}/oauth-mobile.html`
 
+// InAppBrowser reference returned by cordova.InAppBrowser.open()
+interface InAppBrowserRef {
+  close: () => void
+  addEventListener: (event: string, callback: (event: { url: string }) => void) => void
+  removeEventListener: (event: string, callback: (event: { url: string }) => void) => void
+}
+
 declare global {
   interface Window {
     cordova?: {
       platformId: string
       version: string
       InAppBrowser?: {
-        open: (url: string, target: string, options?: string) => { close: () => void }
+        open: (url: string, target: string, options?: string) => InAppBrowserRef
       }
     }
     // Custom URL scheme plugin handler
@@ -157,4 +164,77 @@ const extractCodeFromUrl = (url: string): string | null => {
 const cleanupOAuthState = (): void => {
   oauthResolve = null
   oauthReject = null
+}
+
+// Stripe checkout result after InAppBrowser flow
+export type StripeCheckoutResult =
+  | { status: 'success'; sessionId: string }
+  | { status: 'cancelled' }
+
+// Open Stripe checkout in InAppBrowser and monitor URL for callback redirect
+// When Stripe redirects to the success/cancel URL, intercept it, close the browser,
+// and return the result to the caller (mirrors the OAuth pattern).
+export const openStripeInAppBrowser = (
+  stripeUrl: string,
+  callbackOrigin: string,
+): Promise<StripeCheckoutResult> => {
+  return new Promise((resolve, reject) => {
+    if (!isCordova() || !window.cordova?.InAppBrowser) {
+      reject(new Error('InAppBrowser not available'))
+      return
+    }
+
+    let resolved = false
+
+    const browser = window.cordova.InAppBrowser.open(
+      stripeUrl,
+      '_blank',
+      'location=yes,clearcache=no,clearsessioncache=no',
+    )
+
+    const cleanup = () => {
+      browser.removeEventListener('loadstart', onLoadStart)
+      browser.removeEventListener('exit', onExit)
+    }
+
+    const onLoadStart = (event: { url: string }) => {
+      if (!event.url.startsWith(callbackOrigin)) return
+      if (resolved) return
+      resolved = true
+
+      const params = extractQueryParams(event.url)
+      const topupStatus = params.get('topup_status')
+
+      cleanup()
+      browser.close()
+
+      if (topupStatus === 'success') {
+        const sessionId = params.get('session_id') || ''
+        resolve({ status: 'success', sessionId })
+      } else {
+        resolve({ status: 'cancelled' })
+      }
+    }
+
+    const onExit = () => {
+      if (resolved) return
+      resolved = true
+      cleanup()
+      // Browser was closed without hitting callback — treat as cancelled
+      resolve({ status: 'cancelled' })
+    }
+
+    browser.addEventListener('loadstart', onLoadStart)
+    browser.addEventListener('exit', onExit)
+  })
+}
+
+// Extract query params from a URL (handles both regular and hash URLs)
+const extractQueryParams = (url: string): URLSearchParams => {
+  try {
+    const queryString = url.includes('?') ? url.split('?')[1] : ''
+    return new URLSearchParams(queryString)
+  } catch {
+    return new URLSearchParams()
+  }
 }

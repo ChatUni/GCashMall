@@ -1,7 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { isCordova, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
+import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
@@ -655,8 +655,10 @@ export const completeStripeTopUp = async (sessionId: string): Promise<{ success:
 }
 
 // Build the callback URL for the Wallet section of the Account page
+// On Cordova, use the production origin since the app origin (app://localhost)
+// is not a valid HTTP URL that Stripe can redirect to.
 const buildWalletCallbackUrl = (): string => {
-  const baseUrl = window.location.origin
+  const baseUrl = isCordova() ? PRODUCTION_ORIGIN : window.location.origin
   return `${baseUrl}/account?tab=wallet`
 }
 
@@ -1038,8 +1040,13 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
     const result = await topUp(state.selectedTopUpAmount, paymentType, callbackUrl)
     if (result.success) {
       if (result.paymentUrl) {
-        // Credit Card: navigate to the Stripe payment page
-        window.location.href = result.paymentUrl
+        if (isCordova()) {
+          // Cordova: open Stripe in InAppBrowser, intercept the redirect
+          await handleCordovaStripeCheckout(result.paymentUrl, callbackUrl, wallet)
+        } else {
+          // Web: navigate to the Stripe payment page (redirect flow)
+          window.location.href = result.paymentUrl
+        }
       } else {
         // GUSD: immediate success
         accountStoreActions.setTopUpLoading(false)
@@ -1050,6 +1057,42 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
       accountStoreActions.setTopUpLoading(false)
       toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
     }
+  }
+}
+
+// Handle Stripe checkout inside Cordova InAppBrowser
+// Opens Stripe in an in-app browser, intercepts the success/cancel redirect,
+// then completes the payment and updates the wallet in-app.
+const handleCordovaStripeCheckout = async (
+  paymentUrl: string,
+  callbackUrl: string,
+  wallet: Record<string, string> | undefined,
+) => {
+  try {
+    // Extract origin from callbackUrl for matching redirects
+    const callbackOrigin = new URL(callbackUrl).origin
+    const checkoutResult = await openStripeInAppBrowser(paymentUrl, callbackOrigin)
+
+    if (checkoutResult.status === 'success' && checkoutResult.sessionId) {
+      const completeResult = await completeStripeTopUp(checkoutResult.sessionId)
+      accountStoreActions.setTopUpLoading(false)
+      closeTopUpPopup()
+      if (completeResult.success) {
+        toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      } else {
+        toastStoreActions.show(completeResult.error || wallet?.topUpFailed || 'Failed to top up', 'error')
+      }
+    } else {
+      // User cancelled or closed the browser
+      accountStoreActions.setTopUpLoading(false)
+      closeTopUpPopup()
+      toastStoreActions.show(wallet?.topUpFailed || 'Top up cancelled', 'error')
+    }
+  } catch (error) {
+    console.error('Cordova Stripe checkout error:', error)
+    accountStoreActions.setTopUpLoading(false)
+    closeTopUpPopup()
+    toastStoreActions.show(wallet?.topUpFailed || 'Failed to top up', 'error')
   }
 }
 
