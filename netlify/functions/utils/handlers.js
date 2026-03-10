@@ -2190,19 +2190,29 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
   const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
   const orderId = generateGUSDOrderId(userId, referenceId)
 
+  const gusdNotifyUrl = process.env.GUSD_NOTIFY_URL
+  if (!gusdNotifyUrl) {
+    throw new Error('GUSD_NOTIFY_URL is not configured')
+  }
+
+  const gusdApiUrl = process.env.GUSD_API_URL
+  if (!gusdApiUrl) {
+    throw new Error('GUSD_API_URL is not configured')
+  }
+
   const requestBody = {
     price: String(amount),
     order_id: orderId,
     desc: `Top Up ${amount} GCash`,
-    notify_url: callbackUrl,
-    redirect_url: 'https://gcashtv.netlify.app/.netlify/functions/stripe-webhook',
+    notify_url: gusdNotifyUrl,
+    redirect_url: callbackUrl,
   }
 
   console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
   console.log('[GUSD] Headers: appid=%s, nonce=%s, timestamp=%s', appId, nonce, timestamp)
 
   const response = await fetch(
-    'https://stablecoin.gaiaonline.com/api/v1/bridge/create_pay_order',
+    gusdApiUrl,
     {
       method: 'POST',
       headers: {
@@ -2350,7 +2360,7 @@ const completeStripeTopUp = async (body, authHeader) => {
     }
 
     // Process the top up (webhook may not have fired yet)
-    return await processTopUp(currentUser, amount, 'Stripe', referenceId)
+    return await processTopUp(currentUser, amount, 'Credit Card', referenceId)
   } catch (error) {
     throw new Error(`Failed to complete Stripe top up: ${error.message}`)
   }

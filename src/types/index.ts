@@ -64,13 +64,20 @@ export type OAuthType = 'google'
 
 export type TransactionType = 'topup' | 'withdraw'
 export type TransactionStatus = 'success' | 'failed' | 'processing'
+export type TransactionMethod = 'Credit Card' | 'GUSD'
 
 export interface Transaction {
   id: string
   referenceId: string
+  bridge_order_id?: string | null
+  order_id?: string | null
+  gusd_user_id?: string | null
   type: TransactionType
+  method?: TransactionMethod
   amount: number
+  transactionId?: string
   status: TransactionStatus
+  pay_time?: string | null
   createdAt: Date
 }
 

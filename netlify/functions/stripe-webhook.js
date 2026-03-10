@@ -109,7 +109,7 @@ const handleCheckoutSessionCompleted = async (session) => {
   await processTopUpFromWebhook(
     userId,
     parseFloat(amount),
-    'Stripe',
+    'Credit Card',
     referenceId,
   )
 }
