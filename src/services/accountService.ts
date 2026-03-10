@@ -594,7 +594,7 @@ export const topUp = async (amount: number, paymentType: string, callbackUrl: st
   const referenceId = generateReferenceId()
   
   try {
-    const response = await apiPostWithAuth<User | { paymentUrl: string }>('topUp', {
+    const response = await apiPostWithAuth<User | { paymentUrl: string } | { data: { pay_url: string } }>('topUp', {
       amount,
       paymentType,
       callbackUrl,
@@ -610,13 +610,24 @@ export const topUp = async (amount: number, paymentType: string, callbackUrl: st
         return { success: true, paymentUrl: response.data.paymentUrl }
       }
 
-      // For GUSD, update user data from server response (includes new balance and transactions)
-      const userData = response.data as User
-      const token = localStorage.getItem('gcashmall_token')
-      if (token) {
-        saveAuthData(token, userData)
+      // For GUSD, the payment URL is under data.pay_url on the response object
+      const gusdData = response.data as { data?: { pay_url?: string } }
+      if (gusdData.data?.pay_url) {
+        accountStoreActions.setShowTopUpPopup(false)
+        accountStoreActions.setSelectedTopUpAmount(null)
+        accountStoreActions.setSelectedPaymentMethod(null)
+        return { success: true, paymentUrl: gusdData.data.pay_url }
       }
-      accountStoreActions.initializeUserData(userData)
+
+      // Fallback: update user data from server response (includes new balance and transactions)
+      const userData = response.data as User
+      if (userData._id) {
+        const token = localStorage.getItem('gcashmall_token')
+        if (token) {
+          saveAuthData(token, userData)
+        }
+        accountStoreActions.initializeUserData(userData)
+      }
       accountStoreActions.setShowTopUpPopup(false)
       accountStoreActions.setSelectedTopUpAmount(null)
       accountStoreActions.setSelectedPaymentMethod(null)
@@ -1040,15 +1051,15 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
     const result = await topUp(state.selectedTopUpAmount, paymentType, callbackUrl)
     if (result.success) {
       if (result.paymentUrl) {
-        if (isCordova()) {
-          // Cordova: open Stripe in InAppBrowser, intercept the redirect
+        if (isCordova() && paymentType === 'Credit Card') {
+          // Cordova + Credit Card: open Stripe in InAppBrowser, intercept the redirect
           await handleCordovaStripeCheckout(result.paymentUrl, callbackUrl, wallet)
         } else {
-          // Web: navigate to the Stripe payment page (redirect flow)
+          // Web (both Credit Card & GUSD) or Cordova + GUSD: navigate to payment page
           window.location.href = result.paymentUrl
         }
       } else {
-        // GUSD: immediate success
+        // No payment URL - immediate success (fallback)
         accountStoreActions.setTopUpLoading(false)
         closeTopUpPopup()
         toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')

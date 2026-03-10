@@ -318,7 +318,20 @@ return updated user
       - quantity: 1
     - success/cancel url: callback url
   - use webhook to handle checkout.session.completed event
-- Upon successful payment (session.payment_status === 'paid' or payment type == GUSD):
+- if payment type is GUSD:
+  - call the api POST https://stablecoin.gaiaonline.com/api/v1/bridge/create_pay_order with
+    - headers
+      - appid: GUSD_APPID
+      - nonce: random number
+      - timestamp
+      - signature: compute the HMAC-SHA256 hash using the secret GUSD_SECRET and message "appid={GUSD_APPID}&nonce= {nonce}&timestamp={timestamp}", then convert the result into a hex string
+    - body
+      - price: amount
+      - order_id: generate an order id
+      - desc
+      - notify_url: callback url
+      - redirect_url: https://gcashtv.netlify.app/.netlify/functions/stripe-webhook
+- Upon successful payment (for Credit Card, session.payment_status === 'paid'):
   - create a transaction record with:
     - id: unique transaction id
     - referenceId: unique reference id (format: GC{timestamp}{random})

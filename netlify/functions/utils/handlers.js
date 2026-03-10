@@ -2127,8 +2127,17 @@ const topUp = async (body, authHeader) => {
       }
     }
 
-    // For GUSD payment type, process immediately
-    return await processTopUp(currentUser, amount, paymentType || 'GUSD', referenceId)
+    // If payment type is GUSD, call the GUSD payment API
+    if (paymentType === 'GUSD') {
+      const gusdResponse = await createGUSDPayOrder(amount, callbackUrl, userId, referenceId)
+      return {
+        success: true,
+        data: gusdResponse,
+      }
+    }
+
+    // Fallback: unknown payment type
+    return { success: false, error: 'Unsupported payment type' }
   } catch (error) {
     throw new Error(`Failed to top up: ${error.message}`)
   }
@@ -2167,6 +2176,86 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
   })
 
   return session.url
+}
+
+// Create GUSD pay order via external API
+const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
+  const appId = process.env.GUSD_APPID
+  const secret = process.env.GUSD_SECRET
+
+  validateGUSDConfig(appId, secret)
+
+  const nonce = generateGUSDNonce()
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
+  const orderId = generateGUSDOrderId(userId, referenceId)
+
+  const requestBody = {
+    price: String(amount),
+    order_id: orderId,
+    desc: `Top Up ${amount} GCash`,
+    notify_url: callbackUrl,
+    redirect_url: 'https://gcashtv.netlify.app/.netlify/functions/stripe-webhook',
+  }
+
+  console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
+  console.log('[GUSD] Headers: appid=%s, nonce=%s, timestamp=%s', appId, nonce, timestamp)
+
+  const response = await fetch(
+    'https://stablecoin.gaiaonline.com/api/v1/bridge/create_pay_order',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        appid: String(appId),
+        nonce: String(nonce),
+        timestamp: String(timestamp),
+        signature: String(signature),
+      },
+      body: JSON.stringify(requestBody),
+    },
+  )
+
+  const responseText = await response.text()
+  console.log('[GUSD] Response status:', response.status, 'body:', responseText)
+
+  const data = parseGUSDResponse(responseText)
+
+  if (!response.ok || !data.data?.pay_url) {
+    throw new Error(data.message || data.msg || `GUSD API error (${response.status}): ${responseText.substring(0, 200)}`)
+  }
+
+  return data
+}
+
+const parseGUSDResponse = (responseText) => {
+  try {
+    return JSON.parse(responseText)
+  } catch {
+    throw new Error(`GUSD API returned invalid JSON: ${responseText.substring(0, 200)}`)
+  }
+}
+
+const validateGUSDConfig = (appId, secret) => {
+  if (!appId) {
+    throw new Error('GUSD_APPID is not configured')
+  }
+  if (!secret) {
+    throw new Error('GUSD_SECRET is not configured')
+  }
+}
+
+const generateGUSDNonce = () => {
+  return Math.floor(Math.random() * 1000000).toString()
+}
+
+const computeGUSDSignature = (appId, nonce, timestamp, secret) => {
+  const message = `appid=${appId}&nonce=${nonce}&timestamp=${timestamp}`
+  return crypto.createHmac('sha256', secret).update(message).digest('hex')
+}
+
+const generateGUSDOrderId = (userId, referenceId) => {
+  return `${referenceId || generateReferenceId()}_${userId}_${Date.now()}`
 }
 
 // Generate a unique reference ID
