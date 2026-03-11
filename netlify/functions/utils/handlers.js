@@ -2205,7 +2205,7 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     order_id: orderId,
     desc: `Top Up ${amount} GCash`,
     notify_url: gusdNotifyUrl,
-    redirect_url: callbackUrl,
+    redirect_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success`,
   }
 
   console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
