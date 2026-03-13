@@ -39,10 +39,10 @@ const parseGUSDOrderId = (orderId) => {
   return { userId, referenceId }
 }
 
-// Verify the GUSD webhook signature from body fields
+// Verify the GUSD webhook signature from request headers
 // Decrypts/verifies the signature using GUSD_SECRET and checks
 // that appid and timestamp in the message "appid={GUSD_APPID}&timestamp={timestamp}" are valid
-const verifyGUSDSignature = (body) => {
+const verifyGUSDSignature = (req) => {
   const secret = process.env.GUSD_SECRET
   const expectedAppId = process.env.GUSD_APPID
 
@@ -50,12 +50,12 @@ const verifyGUSDSignature = (body) => {
     throw new Error('GUSD_SECRET or GUSD_APPID is not configured')
   }
 
-  const signature = body.signature || ''
-  const appid = body.app_id || body.appid || ''
-  const timestamp = body.timestamp || ''
+  const signature = req.headers.get('signature') || ''
+  const appid = req.headers.get('appid') || req.headers.get('app_id') || ''
+  const timestamp = req.headers.get('timestamp') || ''
 
   if (!signature || !appid || !timestamp) {
-    console.error('[gusd-webhook] Missing signature fields: signature=%s, appid=%s, timestamp=%s', !!signature, !!appid, !!timestamp)
+    console.error('[gusd-webhook] Missing signature headers: signature=%s, appid=%s, timestamp=%s', !!signature, !!appid, !!timestamp)
     return false
   }
 
@@ -175,8 +175,8 @@ export default async (req) => {
     const body = await req.json()
     console.log('[gusd-webhook] Received callback body:', JSON.stringify(body))
 
-    // Verify signature from body - return 403 if verification fails
-    const signatureValid = verifyGUSDSignature(body)
+    // Verify signature from headers - return 403 if verification fails
+    const signatureValid = verifyGUSDSignature(req)
     if (!signatureValid) {
       console.error('[gusd-webhook] Signature verification failed')
       return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
