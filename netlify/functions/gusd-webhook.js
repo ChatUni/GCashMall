@@ -41,7 +41,7 @@ const parseGUSDOrderId = (orderId) => {
 
 // Verify the GUSD webhook signature from request headers
 // Decrypts/verifies the signature using GUSD_SECRET and checks
-// that appid and timestamp in the message "appid={GUSD_APPID}&timestamp={timestamp}" are valid
+// that appid, nonce and timestamp in the message "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}" are valid
 const verifyGUSDSignature = (req) => {
   const secret = process.env.GUSD_SECRET
   const expectedAppId = process.env.GUSD_APPID
@@ -52,10 +52,17 @@ const verifyGUSDSignature = (req) => {
 
   const signature = req.headers.get('signature') || ''
   const appid = req.headers.get('appid') || req.headers.get('app_id') || ''
+  const nonce = req.headers.get('nonce') || ''
   const timestamp = req.headers.get('timestamp') || ''
 
-  if (!signature || !appid || !timestamp) {
-    console.error('[gusd-webhook] Missing signature headers: signature=%s, appid=%s, timestamp=%s', !!signature, !!appid, !!timestamp)
+  if (!signature || !appid || !nonce || !timestamp) {
+    console.error(
+      '[gusd-webhook] Missing signature headers: signature=%s, appid=%s, nonce=%s, timestamp=%s',
+      !!signature,
+      !!appid,
+      !!nonce,
+      !!timestamp,
+    )
     return false
   }
 
@@ -65,8 +72,8 @@ const verifyGUSDSignature = (req) => {
     return false
   }
 
-  // Compute expected signature: HMAC-SHA256 of "appid={GUSD_APPID}&timestamp={timestamp}"
-  const message = `appid=${appid}&timestamp=${timestamp}`
+  // Compute expected signature: HMAC-SHA256 of "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}"
+  const message = `appid=${appid}&nonce=${nonce}&timestamp=${timestamp}`
   const expectedSignature = crypto
     .createHmac('sha256', secret)
     .update(message)
