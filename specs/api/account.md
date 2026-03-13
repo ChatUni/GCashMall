@@ -334,7 +334,7 @@ return updated user
       - redirect_url: callback url
       - failure_url: callback url
   - use webhook to handle server callback:
-    - http status code = 200 indicates payment success
+    - state === 'payment_processed' indicates payment success
     - decrypt the signature using the secret GUSD_SECRET, and verify the appid and timestamp in the decrypted message "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}". If verification failed, return 403
 - Upon successful payment:
   - create a transaction record with:

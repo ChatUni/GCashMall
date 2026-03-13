@@ -92,6 +92,9 @@ const verifyGUSDSignature = (req) => {
   }
 }
 
+// Check if the GUSD payment was successful
+const isPaymentSuccess = (body) => body && body.state === 'payment_processed'
+
 // Validate the GUSD callback body
 const validateGUSDCallbackBody = (body) => {
   if (!body) {
@@ -174,7 +177,7 @@ const logRequestHeaders = (req) => {
 }
 
 // Netlify Functions v2 handler
-// GUSD server callback: http status code = 200 indicates payment success
+// GUSD server callback: state === 'payment_processed' indicates payment success
 export default async (req) => {
   try {
     logRequestHeaders(req)
@@ -194,6 +197,15 @@ export default async (req) => {
 
     validateGUSDCallbackBody(body)
 
+    // Only process if state === 'payment_processed'
+    if (!isPaymentSuccess(body)) {
+      console.log('[gusd-webhook] Payment not yet processed, state:', body.state)
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     // Parse userId from order_id
     const { userId } = parseGUSDOrderId(body.order_id)
     if (!userId) {
@@ -209,7 +221,7 @@ export default async (req) => {
     // Process the top up with GUSD-specific fields
     await processGUSDTopUp(userId, amount, body)
 
-    // Return 200 to indicate success to GUSD
+    // Return 200 to acknowledge receipt
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
