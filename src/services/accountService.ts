@@ -665,6 +665,30 @@ export const completeStripeTopUp = async (sessionId: string): Promise<{ success:
   }
 }
 
+// Complete GUSD top up after redirect back from GUSD payment page
+// Calls API with order_id to retrieve the order/transaction data
+export const completeGUSDTopUp = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await apiPostWithAuth<User>('completeGUSDTopUp', {
+      orderId,
+    })
+
+    if (response.success && response.data) {
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) {
+        saveAuthData(token, response.data)
+      }
+      accountStoreActions.initializeUserData(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to complete top up' }
+  } catch (error) {
+    console.error('Error completing GUSD top up:', error)
+    return { success: false, error: 'Failed to complete top up' }
+  }
+}
+
 // Build the callback URL for the Wallet section of the Account page
 // On Cordova, use the production origin since the app origin (app://localhost)
 // is not a valid HTTP URL that Stripe can redirect to.
@@ -1122,8 +1146,9 @@ export const handleConfirmWithdraw = async (t: Record<string, unknown>) => {
   }
 }
 
-// Handle Stripe payment callback (after redirect back from Stripe)
-// On success_url, calls API to retrieve the session/transaction data
+// Handle payment callback (after redirect back from Stripe or GUSD)
+// For Credit Card (url contains session_id), call API to retrieve the session/transaction data
+// For GUSD (url contains order_id), call API to retrieve the order/transaction data
 export const handleStripeCallback = async (
   searchParams: URLSearchParams,
   setSearchParams: (params: Record<string, string>) => void,
@@ -1136,9 +1161,19 @@ export const handleStripeCallback = async (
 
   if (topupStatus === 'success') {
     const sessionId = searchParams.get('session_id') || ''
+    const orderId = searchParams.get('order_id') || ''
 
     if (sessionId) {
+      // Credit Card callback - retrieve session/transaction data
       const result = await completeStripeTopUp(sessionId)
+      if (result.success) {
+        toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      } else {
+        toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
+      }
+    } else if (orderId) {
+      // GUSD callback - retrieve order/transaction data
+      const result = await completeGUSDTopUp(orderId)
       if (result.success) {
         toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
       } else {

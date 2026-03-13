@@ -2205,7 +2205,8 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     order_id: orderId,
     desc: `Top Up ${amount} GCash`,
     notify_url: gusdNotifyUrl,
-    redirect_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success`,
+    redirect_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&order_id=${orderId}`,
+    failure_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=cancelled&order_id=${orderId}`,
   }
 
   console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
@@ -2363,6 +2364,78 @@ const completeStripeTopUp = async (body, authHeader) => {
     return await processTopUp(currentUser, amount, 'Credit Card', referenceId)
   } catch (error) {
     throw new Error(`Failed to complete Stripe top up: ${error.message}`)
+  }
+}
+
+// Complete GUSD top up after redirect back from GUSD payment page
+// Retrieves the order/transaction data by order_id
+const completeGUSDTopUp = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateCompleteGUSDTopUpBody(body)
+
+  try {
+    const { orderId } = body
+
+    // Parse userId from order_id and verify it matches the authenticated user
+    const { userId: orderUserId, referenceId } = parseGUSDOrderId(orderId)
+    if (!orderUserId || String(orderUserId) !== String(userId)) {
+      return { success: false, error: 'Order does not belong to this user' }
+    }
+
+    // Get current user
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    if (!users || users.length === 0) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const currentUser = users[0]
+
+    // Check if this referenceId has already been processed (by the webhook)
+    const existingTxn = (currentUser.transactions || []).find(
+      (t) => t.referenceId === referenceId,
+    )
+    if (existingTxn) {
+      // Already processed by webhook, just return the current user data
+      return {
+        success: true,
+        data: await buildUserResponse(currentUser),
+      }
+    }
+
+    // If the webhook hasn't processed it yet, we return the current user data
+    // The webhook will process the payment asynchronously
+    // Client should poll or the balance will update on next page load
+    return {
+      success: true,
+      data: await buildUserResponse(currentUser),
+    }
+  } catch (error) {
+    throw new Error(`Failed to complete GUSD top up: ${error.message}`)
+  }
+}
+
+// Parse userId and referenceId from the GUSD order_id
+// Order ID format: {referenceId}_{userId}_{timestamp}
+const parseGUSDOrderId = (orderId) => {
+  if (!orderId) return { userId: null, referenceId: null }
+
+  const parts = orderId.split('_')
+  if (parts.length < 3) return { userId: null, referenceId: null }
+
+  // referenceId is the first part, userId is the second part
+  const referenceId = parts[0]
+  const userId = parts[1]
+
+  return { userId, referenceId }
+}
+
+const validateCompleteGUSDTopUpBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.orderId) {
+    throw new Error('Order ID is required')
   }
 }
 
@@ -2630,6 +2703,7 @@ export {
   addPurchase,
   topUp,
   completeStripeTopUp,
+  completeGUSDTopUp,
   withdraw,
   purchaseEpisode,
 }

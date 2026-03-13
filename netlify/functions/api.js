@@ -43,6 +43,7 @@ import {
   addPurchase,
   topUp,
   completeStripeTopUp,
+  completeGUSDTopUp,
   withdraw,
   purchaseEpisode,
 } from './utils/handlers.js'
@@ -93,6 +94,7 @@ const apiHandlers = {
     addPurchase: (body, authHeader) => addPurchase(body, authHeader),
     topUp: (body, authHeader) => topUp(body, authHeader),
     completeStripeTopUp: (body, authHeader) => completeStripeTopUp(body, authHeader),
+    completeGUSDTopUp: (body, authHeader) => completeGUSDTopUp(body, authHeader),
     withdraw: (body, authHeader) => withdraw(body, authHeader),
     purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
   },

@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb'
+import crypto from 'crypto'
 import { get, save } from './utils/db.js'
 
 // Build user response without sensitive fields (same as handlers.js)
@@ -36,6 +37,52 @@ const parseGUSDOrderId = (orderId) => {
   const userId = parts[1]
 
   return { userId, referenceId }
+}
+
+// Verify the GUSD webhook signature from body fields
+// Decrypts/verifies the signature using GUSD_SECRET and checks
+// that appid and timestamp in the message "appid={GUSD_APPID}&timestamp={timestamp}" are valid
+const verifyGUSDSignature = (body) => {
+  const secret = process.env.GUSD_SECRET
+  const expectedAppId = process.env.GUSD_APPID
+
+  if (!secret || !expectedAppId) {
+    throw new Error('GUSD_SECRET or GUSD_APPID is not configured')
+  }
+
+  const signature = body.signature || ''
+  const appid = body.app_id || body.appid || ''
+  const timestamp = body.timestamp || ''
+
+  if (!signature || !appid || !timestamp) {
+    console.error('[gusd-webhook] Missing signature fields: signature=%s, appid=%s, timestamp=%s', !!signature, !!appid, !!timestamp)
+    return false
+  }
+
+  // Verify appid matches
+  if (String(appid) !== String(expectedAppId)) {
+    console.error('[gusd-webhook] appid mismatch:', appid, 'expected:', expectedAppId)
+    return false
+  }
+
+  // Compute expected signature: HMAC-SHA256 of "appid={GUSD_APPID}&timestamp={timestamp}"
+  const message = `appid=${appid}&timestamp=${timestamp}`
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(message)
+    .digest('hex')
+
+  // Compare signatures (timing-safe comparison)
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex'),
+    )
+  } catch {
+    // If buffers are different lengths, timingSafeEqual throws
+    console.error('[gusd-webhook] Signature comparison failed (length mismatch)')
+    return false
+  }
 }
 
 // Validate the GUSD callback body
@@ -110,12 +157,33 @@ const processGUSDTopUp = async (userId, amount, body) => {
   )
 }
 
+// Log request headers for debugging
+const logRequestHeaders = (req) => {
+  const headers = {}
+  req.headers.forEach((value, key) => {
+    headers[key] = value
+  })
+  console.log('[gusd-webhook] Request headers:', JSON.stringify(headers))
+}
+
 // Netlify Functions v2 handler
 // GUSD server callback: http status code = 200 indicates payment success
 export default async (req) => {
   try {
+    logRequestHeaders(req)
+
     const body = await req.json()
-    console.log('[gusd-webhook] Received callback:', JSON.stringify(body))
+    console.log('[gusd-webhook] Received callback body:', JSON.stringify(body))
+
+    // Verify signature from body - return 403 if verification fails
+    const signatureValid = verifyGUSDSignature(body)
+    if (!signatureValid) {
+      console.error('[gusd-webhook] Signature verification failed')
+      return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     validateGUSDCallbackBody(body)
 

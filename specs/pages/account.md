@@ -350,7 +350,8 @@ Section card with form fields:
   3. Click Confirm to call the top up api with the amount, payment type and callback url (account page, Wallet section). Show a loading indicator after the call (do not dismiss the confirmation popup)
   4. if top up api returns payment url (for GUSD, it's under data.pay_url on the response object), navigate to it. Otherwise, show error toast
   5. when the payment callback url is hit:
-    - for success_url, call api to retrieve the session/transaction data
+    - for Credit Card (url contains session id), call api to retrieve the session/transaction data
+    - for GUSD (url contains order id), call api to retrieve the order/transaction data
     - success/fail toast notification appears
     - balance updates immediately
 - **Withdraw Flow**:
