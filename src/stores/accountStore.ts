@@ -38,7 +38,7 @@ const createStore = <T>(initialState: T) => {
   return { getState, setState, subscribe }
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'affiliate'
 
 export interface ProfileFormState {
   nickname: string
@@ -64,6 +64,41 @@ export interface PasswordErrorsState {
   currentPasswordError: string
   newPasswordError: string
   confirmPasswordError: string
+}
+
+// Affiliate types
+export type AffiliateStatus = 'pending' | 'approved' | 'rejected'
+
+export interface AffiliateReferral {
+  id: string
+  referredUserId: string
+  referredUserEmail: string
+  referredUserNickname: string
+  status: 'registered' | 'purchased'
+  totalPurchases: number
+  commission: number
+  createdAt: Date
+}
+
+export interface AffiliateWithdrawal {
+  id: string
+  amount: number
+  status: 'pending' | 'approved' | 'rejected' | 'completed'
+  requestedAt: Date
+  processedAt?: Date
+}
+
+export interface AffiliateState {
+  isAffiliate: boolean
+  affiliateStatus: AffiliateStatus | null
+  affiliateCode: string
+  totalEarnings: number
+  availableBalance: number
+  pendingBalance: number
+  totalReferrals: number
+  referrals: AffiliateReferral[]
+  withdrawals: AffiliateWithdrawal[]
+  commissionRate: number // percentage, e.g., 10 means 10%
 }
 
 interface AccountState {
@@ -113,6 +148,14 @@ interface AccountState {
   withdrawing: boolean
   transactions: Transaction[]
   
+  // Affiliate
+  affiliate: AffiliateState
+  affiliateLoading: boolean
+  affiliateApplying: boolean
+  affiliateWithdrawing: boolean
+  showAffiliateWithdrawPopup: boolean
+  selectedAffiliateWithdrawAmount: number | null
+  
   // UI
   showLoginModal: boolean
 }
@@ -141,6 +184,19 @@ const initialPasswordErrors: PasswordErrorsState = {
   currentPasswordError: '',
   newPasswordError: '',
   confirmPasswordError: '',
+}
+
+const initialAffiliateState: AffiliateState = {
+  isAffiliate: false,
+  affiliateStatus: null,
+  affiliateCode: '',
+  totalEarnings: 0,
+  availableBalance: 0,
+  pendingBalance: 0,
+  totalReferrals: 0,
+  referrals: [],
+  withdrawals: [],
+  commissionRate: 10, // 10% default commission rate
 }
 
 const initialState: AccountState = {
@@ -184,6 +240,14 @@ const initialState: AccountState = {
   selectedWithdrawAmount: null,
   withdrawing: false,
   transactions: [],
+  
+  // Affiliate
+  affiliate: initialAffiliateState,
+  affiliateLoading: false,
+  affiliateApplying: false,
+  affiliateWithdrawing: false,
+  showAffiliateWithdrawPopup: false,
+  selectedAffiliateWithdrawAmount: null,
   
   showLoginModal: false,
 }
@@ -340,6 +404,33 @@ export const accountStoreActions = {
       ),
     })),
   
+  // Affiliate
+  setAffiliate: (affiliate: AffiliateState) =>
+    accountStore.setState((prev) => ({ ...prev, affiliate })),
+  setAffiliateLoading: (affiliateLoading: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, affiliateLoading })),
+  setAffiliateApplying: (affiliateApplying: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, affiliateApplying })),
+  setAffiliateWithdrawing: (affiliateWithdrawing: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, affiliateWithdrawing })),
+  setShowAffiliateWithdrawPopup: (showAffiliateWithdrawPopup: boolean) =>
+    accountStore.setState((prev) => ({ ...prev, showAffiliateWithdrawPopup })),
+  setSelectedAffiliateWithdrawAmount: (selectedAffiliateWithdrawAmount: number | null) =>
+    accountStore.setState((prev) => ({ ...prev, selectedAffiliateWithdrawAmount })),
+  updateAffiliateBalance: (availableBalance: number, pendingBalance: number) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      affiliate: { ...prev.affiliate, availableBalance, pendingBalance },
+    })),
+  addAffiliateWithdrawal: (withdrawal: AffiliateWithdrawal) =>
+    accountStore.setState((prev) => ({
+      ...prev,
+      affiliate: {
+        ...prev.affiliate,
+        withdrawals: [withdrawal, ...prev.affiliate.withdrawals],
+      },
+    })),
+  
   // Initialize user data
   initializeUserData: (user: User) => {
     const profileData: ProfileFormState = {
@@ -386,6 +477,7 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'wallet', icon: '💰' },
   { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
+  { key: 'affiliate', icon: '🤝' },
 ]
 
 export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]

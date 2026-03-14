@@ -25,6 +25,7 @@ export const en = {
       wallet: 'Wallet',
       myPurchases: 'My Purchases',
       mySeries: 'My Series',
+      affiliate: 'Affiliate',
       logout: 'Logout',
     },
     overview: {
@@ -157,6 +158,94 @@ export const en = {
       unshelveConfirmMessage: 'Are you sure you want to unshelve this series? It will become visible to all users.',
       cancel: 'Cancel',
       edit: 'Edit',
+    },
+    affiliate: {
+      title: 'Affiliate Program',
+      subtitle: 'Earn commissions by referring new users',
+      // Not an affiliate yet
+      notAffiliate: {
+        title: 'Join Our Affiliate Program',
+        description: 'Become an affiliate and earn commissions when your referrals make purchases. Share your unique referral link and start earning today!',
+        benefits: [
+          'Earn {rate}% commission on all purchases made by your referrals',
+          'Get paid directly to your wallet',
+          'Track your earnings and referrals in real-time',
+          'No limit on how much you can earn',
+        ],
+        applyButton: 'Apply Now',
+        applying: 'Applying...',
+      },
+      // Pending status
+      pending: {
+        title: 'Application Pending',
+        description: 'Your affiliate application is being reviewed. We will notify you once it has been approved.',
+        submittedAt: 'Submitted at',
+      },
+      // Rejected status
+      rejected: {
+        title: 'Application Rejected',
+        description: 'Unfortunately, your affiliate application was not approved. You can reapply after addressing any issues.',
+        reapplyButton: 'Reapply',
+      },
+      // Approved - Dashboard
+      dashboard: {
+        referralCode: 'Your Referral Code',
+        referralLink: 'Your Referral Link',
+        copyLink: 'Copy Link',
+        linkCopied: 'Link copied!',
+        commissionRate: 'Commission Rate',
+        stats: {
+          totalEarnings: 'Total Earnings',
+          availableBalance: 'Available Balance',
+          pendingBalance: 'Pending Balance',
+          totalReferrals: 'Total Referrals',
+        },
+        withdrawButton: 'Withdraw',
+        withdrawAll: 'Withdraw All',
+      },
+      // Referrals table
+      referrals: {
+        title: 'Your Referrals',
+        emptyTitle: 'No referrals yet',
+        emptySubtext: 'Share your referral link to start earning commissions',
+        columns: {
+          user: 'User',
+          status: 'Status',
+          purchases: 'Purchases',
+          commission: 'Commission',
+          date: 'Date',
+        },
+        statusRegistered: 'Registered',
+        statusPurchased: 'Purchased',
+      },
+      // Withdrawals table
+      withdrawals: {
+        title: 'Withdrawal History',
+        emptyTitle: 'No withdrawals yet',
+        emptySubtext: 'Your withdrawal history will appear here',
+        columns: {
+          amount: 'Amount',
+          status: 'Status',
+          requestedAt: 'Requested',
+          processedAt: 'Processed',
+        },
+        statusPending: 'Pending',
+        statusApproved: 'Approved',
+        statusRejected: 'Rejected',
+        statusCompleted: 'Completed',
+      },
+      // Withdraw popup
+      withdrawPopup: {
+        title: 'Withdraw Earnings',
+        message: 'Transfer earnings to your wallet',
+        availableBalance: 'Available Balance',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+        success: 'Withdrawal successful! Funds added to your wallet.',
+        failed: 'Withdrawal failed. Please try again.',
+        insufficientBalance: 'Insufficient balance',
+        minWithdraw: 'Minimum withdrawal amount is {amount}',
+      },
     },
   },
   series: {

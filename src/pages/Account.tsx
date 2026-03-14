@@ -5,7 +5,7 @@ import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
 import { useLanguage } from '../context/LanguageContext'
-import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab, type Transaction } from '../stores/accountStore'
+import { useAccountStore, accountStoreActions, navItems, walletAmounts, type AccountTab, type Transaction, type AffiliateState, type AffiliateReferral, type AffiliateWithdrawal } from '../stores/accountStore'
 import {
   initializeAccountData,
   fetchAccountUserData,
@@ -260,6 +260,17 @@ console.log(state)
               loading={state.mySeriesLoading}
               editingSeriesId={state.editingSeriesId}
               onNavigate={navigate}
+              t={t}
+            />
+          )}
+          {state.activeTab === 'affiliate' && (
+            <AffiliateSection
+              affiliate={state.affiliate}
+              loading={state.affiliateLoading}
+              applying={state.affiliateApplying}
+              withdrawing={state.affiliateWithdrawing}
+              showWithdrawPopup={state.showAffiliateWithdrawPopup}
+              selectedWithdrawAmount={state.selectedAffiliateWithdrawAmount}
               t={t}
             />
           )}
@@ -1682,5 +1693,397 @@ const UnshelveConfirmationModal: React.FC<UnshelveConfirmationModalProps> = ({
     </div>
   </div>
 )
+
+// Affiliate Section Component
+interface AffiliateSectionProps {
+  affiliate: AffiliateState
+  loading: boolean
+  applying: boolean
+  withdrawing: boolean
+  showWithdrawPopup: boolean
+  selectedWithdrawAmount: number | null
+  t: Record<string, Record<string, unknown>>
+}
+
+const AffiliateSection: React.FC<AffiliateSectionProps> = ({
+  affiliate,
+  loading,
+  applying,
+  withdrawing,
+  showWithdrawPopup,
+  selectedWithdrawAmount,
+  t,
+}) => {
+  const affiliateT = (t.account?.affiliate || {}) as Record<string, unknown>
+  const [linkCopied, setLinkCopied] = React.useState(false)
+
+  // Generate referral link
+  const referralLink = affiliate.affiliateCode
+    ? `${window.location.origin}?ref=${affiliate.affiliateCode}`
+    : ''
+
+  // Handle apply for affiliate
+  const handleApply = async () => {
+    accountStoreActions.setAffiliateApplying(true)
+    // Simulate API call - in real implementation, call the API
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // For demo, auto-approve
+    accountStoreActions.setAffiliate({
+      ...affiliate,
+      isAffiliate: true,
+      affiliateStatus: 'approved',
+      affiliateCode: `REF${Date.now().toString(36).toUpperCase()}`,
+      commissionRate: 10,
+    })
+    accountStoreActions.setAffiliateApplying(false)
+    toastStoreActions.show('Affiliate application approved!', 'success')
+  }
+
+  // Handle copy link
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(referralLink)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  // Handle withdraw
+  const handleWithdrawClick = (amount?: number) => {
+    const withdrawAmount = amount || affiliate.availableBalance
+    if (withdrawAmount <= 0) {
+      toastStoreActions.show((affiliateT.withdrawPopup as Record<string, string>)?.insufficientBalance || 'Insufficient balance', 'error')
+      return
+    }
+    accountStoreActions.setSelectedAffiliateWithdrawAmount(withdrawAmount)
+    accountStoreActions.setShowAffiliateWithdrawPopup(true)
+  }
+
+  const handleConfirmWithdraw = async () => {
+    if (!selectedWithdrawAmount) return
+    accountStoreActions.setAffiliateWithdrawing(true)
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Update balances
+    const newAvailable = affiliate.availableBalance - selectedWithdrawAmount
+    accountStoreActions.updateAffiliateBalance(newAvailable, affiliate.pendingBalance)
+    // Add to main wallet balance
+    accountStoreActions.addBalance(selectedWithdrawAmount)
+    // Add withdrawal record
+    accountStoreActions.addAffiliateWithdrawal({
+      id: `wd_${Date.now()}`,
+      amount: selectedWithdrawAmount,
+      status: 'completed',
+      requestedAt: new Date(),
+      processedAt: new Date(),
+    })
+    accountStoreActions.setAffiliateWithdrawing(false)
+    accountStoreActions.setShowAffiliateWithdrawPopup(false)
+    accountStoreActions.setSelectedAffiliateWithdrawAmount(null)
+    toastStoreActions.show((affiliateT.withdrawPopup as Record<string, string>)?.success || 'Withdrawal successful!', 'success')
+  }
+
+  const handleCloseWithdrawPopup = () => {
+    accountStoreActions.setShowAffiliateWithdrawPopup(false)
+    accountStoreActions.setSelectedAffiliateWithdrawAmount(null)
+  }
+
+  // Format date
+  const formatDate = (date: Date) => {
+    const d = new Date(date)
+    return d.toLocaleDateString()
+  }
+
+  if (loading) {
+    return (
+      <div className="content-section affiliate-section">
+        <div className="loading">Loading...</div>
+      </div>
+    )
+  }
+
+  // Not an affiliate yet - show apply card
+  if (!affiliate.isAffiliate || affiliate.affiliateStatus === null) {
+    const notAffiliateT = (affiliateT.notAffiliate || {}) as Record<string, unknown>
+    const benefits = (notAffiliateT.benefits || []) as string[]
+    
+    return (
+      <div className="content-section affiliate-section">
+        <div className="section-header">
+          <h1 className="page-title">{affiliateT.title as string || 'Affiliate Program'}</h1>
+          <p className="page-subtitle">{affiliateT.subtitle as string || 'Earn commissions by referring new users'}</p>
+        </div>
+
+        <div className="affiliate-apply-card">
+          <div className="affiliate-apply-icon">🤝</div>
+          <h2 className="affiliate-apply-title">{notAffiliateT.title as string || 'Join Our Affiliate Program'}</h2>
+          <p className="affiliate-apply-description">{notAffiliateT.description as string}</p>
+          <ul className="affiliate-benefits">
+            {benefits.map((benefit, index) => (
+              <li key={index}>{(benefit as string).replace('{rate}', String(affiliate.commissionRate))}</li>
+            ))}
+          </ul>
+          <button
+            className="affiliate-apply-btn"
+            onClick={handleApply}
+            disabled={applying}
+          >
+            {applying ? (notAffiliateT.applying as string || 'Applying...') : (notAffiliateT.applyButton as string || 'Apply Now')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Pending status
+  if (affiliate.affiliateStatus === 'pending') {
+    const pendingT = (affiliateT.pending || {}) as Record<string, string>
+    
+    return (
+      <div className="content-section affiliate-section">
+        <div className="section-header">
+          <h1 className="page-title">{affiliateT.title as string || 'Affiliate Program'}</h1>
+        </div>
+
+        <div className="affiliate-pending-card">
+          <div className="affiliate-pending-icon">⏳</div>
+          <h2 className="affiliate-pending-title">{pendingT.title || 'Application Pending'}</h2>
+          <p className="affiliate-pending-description">{pendingT.description}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Rejected status
+  if (affiliate.affiliateStatus === 'rejected') {
+    const rejectedT = (affiliateT.rejected || {}) as Record<string, string>
+    
+    return (
+      <div className="content-section affiliate-section">
+        <div className="section-header">
+          <h1 className="page-title">{affiliateT.title as string || 'Affiliate Program'}</h1>
+        </div>
+
+        <div className="affiliate-rejected-card">
+          <div className="affiliate-rejected-icon">❌</div>
+          <h2 className="affiliate-rejected-title">{rejectedT.title || 'Application Rejected'}</h2>
+          <p className="affiliate-rejected-description">{rejectedT.description}</p>
+          <button className="affiliate-reapply-btn" onClick={handleApply}>
+            {rejectedT.reapplyButton || 'Reapply'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Approved - Show dashboard
+  const dashboardT = (affiliateT.dashboard || {}) as Record<string, unknown>
+  const statsT = (dashboardT.stats || {}) as Record<string, string>
+  const referralsT = (affiliateT.referrals || {}) as Record<string, unknown>
+  const referralsColumnsT = (referralsT.columns || {}) as Record<string, string>
+  const withdrawalsT = (affiliateT.withdrawals || {}) as Record<string, unknown>
+  const withdrawalsColumnsT = (withdrawalsT.columns || {}) as Record<string, string>
+  const withdrawPopupT = (affiliateT.withdrawPopup || {}) as Record<string, string>
+
+  return (
+    <div className="content-section affiliate-section">
+      <div className="section-header">
+        <h1 className="page-title">{affiliateT.title as string || 'Affiliate Program'}</h1>
+        <p className="page-subtitle">{affiliateT.subtitle as string || 'Earn commissions by referring new users'}</p>
+      </div>
+
+      <div className="affiliate-dashboard">
+        {/* Referral Code Card */}
+        <div className="affiliate-referral-card">
+          <div className="affiliate-referral-header">
+            <div className="affiliate-referral-code-section">
+              <span className="affiliate-referral-label">{dashboardT.referralCode as string || 'Your Referral Code'}</span>
+              <span className="affiliate-referral-code">{affiliate.affiliateCode}</span>
+            </div>
+            <div className="affiliate-commission-badge">
+              <span className="affiliate-commission-label">{dashboardT.commissionRate as string || 'Commission Rate'}</span>
+              <span className="affiliate-commission-rate">{affiliate.commissionRate}%</span>
+            </div>
+          </div>
+          <div className="affiliate-link-section">
+            <input
+              type="text"
+              className="affiliate-link-input"
+              value={referralLink}
+              readOnly
+            />
+            <button
+              className={`affiliate-copy-btn ${linkCopied ? 'copied' : ''}`}
+              onClick={handleCopyLink}
+            >
+              {linkCopied ? (dashboardT.linkCopied as string || 'Link copied!') : (dashboardT.copyLink as string || 'Copy Link')}
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="affiliate-stats-grid">
+          <div className="affiliate-stat-card">
+            <div className="affiliate-stat-icon">💰</div>
+            <div className="affiliate-stat-value earnings">{affiliate.totalEarnings.toFixed(2)}</div>
+            <div className="affiliate-stat-label">{statsT.totalEarnings || 'Total Earnings'}</div>
+          </div>
+          <div className="affiliate-stat-card">
+            <div className="affiliate-stat-icon">💵</div>
+            <div className="affiliate-stat-value available">{affiliate.availableBalance.toFixed(2)}</div>
+            <div className="affiliate-stat-label">{statsT.availableBalance || 'Available Balance'}</div>
+          </div>
+          <div className="affiliate-stat-card">
+            <div className="affiliate-stat-icon">⏳</div>
+            <div className="affiliate-stat-value pending">{affiliate.pendingBalance.toFixed(2)}</div>
+            <div className="affiliate-stat-label">{statsT.pendingBalance || 'Pending Balance'}</div>
+          </div>
+          <div className="affiliate-stat-card">
+            <div className="affiliate-stat-icon">👥</div>
+            <div className="affiliate-stat-value">{affiliate.totalReferrals}</div>
+            <div className="affiliate-stat-label">{statsT.totalReferrals || 'Total Referrals'}</div>
+          </div>
+        </div>
+
+        {/* Withdraw Buttons */}
+        <div className="affiliate-withdraw-section">
+          <button
+            className="affiliate-withdraw-all-btn"
+            onClick={() => handleWithdrawClick()}
+            disabled={affiliate.availableBalance <= 0 || withdrawing}
+          >
+            {dashboardT.withdrawAll as string || 'Withdraw All'}
+          </button>
+          <button
+            className="affiliate-withdraw-btn"
+            onClick={() => handleWithdrawClick()}
+            disabled={affiliate.availableBalance <= 0 || withdrawing}
+          >
+            {dashboardT.withdrawButton as string || 'Withdraw'}
+          </button>
+        </div>
+
+        {/* Referrals Table */}
+        <div className="affiliate-referrals-section">
+          <h3 className="affiliate-section-title">{referralsT.title as string || 'Your Referrals'}</h3>
+          {affiliate.referrals.length === 0 ? (
+            <div className="affiliate-empty-state">
+              <div className="affiliate-empty-icon">👥</div>
+              <h4 className="affiliate-empty-title">{referralsT.emptyTitle as string || 'No referrals yet'}</h4>
+              <p className="affiliate-empty-subtext">{referralsT.emptySubtext as string || 'Share your referral link to start earning commissions'}</p>
+            </div>
+          ) : (
+            <div className="affiliate-table-container">
+              <table className="affiliate-table">
+                <thead>
+                  <tr>
+                    <th>{referralsColumnsT.user || 'User'}</th>
+                    <th>{referralsColumnsT.status || 'Status'}</th>
+                    <th>{referralsColumnsT.purchases || 'Purchases'}</th>
+                    <th>{referralsColumnsT.commission || 'Commission'}</th>
+                    <th>{referralsColumnsT.date || 'Date'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {affiliate.referrals.map((referral: AffiliateReferral) => (
+                    <tr key={referral.id}>
+                      <td>
+                        <div className="affiliate-user-cell">
+                          <span className="affiliate-user-nickname">{referral.referredUserNickname}</span>
+                          <span className="affiliate-user-email">{referral.referredUserEmail}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`affiliate-status-badge ${referral.status}`}>
+                          {referral.status === 'registered'
+                            ? (referralsT.statusRegistered as string || 'Registered')
+                            : (referralsT.statusPurchased as string || 'Purchased')}
+                        </span>
+                      </td>
+                      <td>{referral.totalPurchases.toFixed(2)}</td>
+                      <td className="affiliate-commission-cell">{referral.commission.toFixed(2)}</td>
+                      <td className="affiliate-date-cell">{formatDate(referral.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Withdrawals Table */}
+        <div className="affiliate-withdrawals-section">
+          <h3 className="affiliate-section-title">{withdrawalsT.title as string || 'Withdrawal History'}</h3>
+          {affiliate.withdrawals.length === 0 ? (
+            <div className="affiliate-empty-state">
+              <div className="affiliate-empty-icon">📋</div>
+              <h4 className="affiliate-empty-title">{withdrawalsT.emptyTitle as string || 'No withdrawals yet'}</h4>
+              <p className="affiliate-empty-subtext">{withdrawalsT.emptySubtext as string || 'Your withdrawal history will appear here'}</p>
+            </div>
+          ) : (
+            <div className="affiliate-table-container">
+              <table className="affiliate-table">
+                <thead>
+                  <tr>
+                    <th>{withdrawalsColumnsT.amount || 'Amount'}</th>
+                    <th>{withdrawalsColumnsT.status || 'Status'}</th>
+                    <th>{withdrawalsColumnsT.requestedAt || 'Requested'}</th>
+                    <th>{withdrawalsColumnsT.processedAt || 'Processed'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {affiliate.withdrawals.map((withdrawal: AffiliateWithdrawal) => (
+                    <tr key={withdrawal.id}>
+                      <td className="affiliate-commission-cell">{withdrawal.amount.toFixed(2)}</td>
+                      <td>
+                        <span className={`affiliate-withdrawal-status ${withdrawal.status}`}>
+                          {withdrawal.status === 'pending' && (withdrawalsT.statusPending as string || 'Pending')}
+                          {withdrawal.status === 'approved' && (withdrawalsT.statusApproved as string || 'Approved')}
+                          {withdrawal.status === 'rejected' && (withdrawalsT.statusRejected as string || 'Rejected')}
+                          {withdrawal.status === 'completed' && (withdrawalsT.statusCompleted as string || 'Completed')}
+                        </span>
+                      </td>
+                      <td className="affiliate-date-cell">{formatDate(withdrawal.requestedAt)}</td>
+                      <td className="affiliate-date-cell">{withdrawal.processedAt ? formatDate(withdrawal.processedAt) : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Withdraw Popup */}
+      {showWithdrawPopup && selectedWithdrawAmount && (
+        <div className="affiliate-withdraw-overlay" onClick={handleCloseWithdrawPopup}>
+          <div className="affiliate-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="affiliate-withdraw-modal-icon">💸</div>
+            <h2 className="affiliate-withdraw-modal-title">{withdrawPopupT.title || 'Withdraw Earnings'}</h2>
+            <p className="affiliate-withdraw-modal-message">{withdrawPopupT.message || 'Transfer earnings to your wallet'}</p>
+            <div className="affiliate-withdraw-modal-balance">
+              <div className="affiliate-withdraw-modal-balance-label">{withdrawPopupT.availableBalance || 'Available Balance'}</div>
+              <div className="affiliate-withdraw-modal-balance-value">{selectedWithdrawAmount.toFixed(2)}</div>
+            </div>
+            <div className="affiliate-withdraw-modal-buttons">
+              <button
+                className="affiliate-withdraw-modal-confirm"
+                onClick={handleConfirmWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing ? '...' : (withdrawPopupT.confirm || 'Confirm')}
+              </button>
+              <button
+                className="affiliate-withdraw-modal-cancel"
+                onClick={handleCloseWithdrawPopup}
+                disabled={withdrawing}
+              >
+                {withdrawPopupT.cancel || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default Account

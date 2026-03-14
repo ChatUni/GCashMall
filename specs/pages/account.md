@@ -51,6 +51,7 @@ The Account page is a comprehensive user profile and settings management interfa
 | wallet | 💰 | Wallet |
 | myPurchases | 🛒 | My Purchases |
 | mySeries | 🎬 | My Series |
+| affiliate | 🤝 | Affiliate |
 
 ### Navigation Styling
 - **Item Padding**: 13px 14px
@@ -690,6 +691,297 @@ When adding or editing a series, the content pane switches to show the SeriesEdi
 - **Cancel**: Returns to the My Series list view
 - **Save Complete**: Returns to the My Series list view and refreshes the series list
 
+### 8. Affiliate (分销推广)
+
+The Affiliate section allows users to join the affiliate program and earn commissions by referring new users.
+
+#### Header
+- **Title**: "Affiliate Program" / "分销推广" - White (#FFFFFF), 28px, font-weight 600
+- **Subtitle**: "Earn commissions by referring new users" / "推荐新用户赚取佣金" - Gray (#9CA3AF), 15px
+
+#### States
+
+The affiliate section has four possible states based on the user's affiliate status:
+
+##### State 1: Not an Affiliate (Default)
+
+Shows an apply card encouraging users to join the affiliate program.
+
+###### Apply Card
+- **Class**: `.affiliate-apply-card`
+- **Background**: Gradient (#1E3A5F to #0D1B2A)
+- **Border**: 1px solid #3B82F6
+- **Border Radius**: 16px
+- **Padding**: 40px
+- **Text Align**: center
+- **Max Width**: 600px
+- **Margin**: 0 auto
+
+###### Content
+- **Icon**: 🤝 (64px, margin-bottom 20px)
+- **Title**: "Join Our Affiliate Program" / "加入分销计划"
+  - Font: 24px, font-weight 600, White (#FFFFFF)
+- **Description**: Explains the affiliate program benefits
+  - Font: 15px, Gray (#9CA3AF), line-height 1.6
+- **Benefits List** (`.affiliate-benefits`):
+  - List style: none
+  - Each item has ✓ prefix in green (#22C55E)
+  - Benefits:
+    - Earn {rate}% commission on all purchases made by your referrals
+    - Get paid directly to your wallet
+    - Track your earnings and referrals in real-time
+    - No limit on how much you can earn
+- **Apply Button** (`.affiliate-apply-btn`):
+  - Background: Blue (#3B82F6)
+  - Color: White (#FFFFFF)
+  - Padding: 14px 32px
+  - Border Radius: 8px
+  - Font: 16px, font-weight 600
+  - Hover: Darker blue (#2563EB), translateY(-2px)
+  - Disabled state: Gray (#4B5563), cursor not-allowed
+
+##### State 2: Pending Approval
+
+Shows when the user has applied but is awaiting approval.
+
+###### Pending Card
+- **Class**: `.affiliate-pending-card`
+- **Background**: #121214
+- **Border**: 1px solid #F59E0B (amber)
+- **Border Radius**: 16px
+- **Padding**: 40px
+- **Text Align**: center
+- **Max Width**: 500px
+
+###### Content
+- **Icon**: ⏳ (64px)
+- **Title**: "Application Pending" / "申请审核中" - Amber (#F59E0B), 24px
+- **Description**: Explains the application is being reviewed
+
+##### State 3: Rejected
+
+Shows when the affiliate application was rejected.
+
+###### Rejected Card
+- **Class**: `.affiliate-rejected-card`
+- **Background**: #121214
+- **Border**: 1px solid #EF4444 (red)
+- **Border Radius**: 16px
+- **Padding**: 40px
+- **Text Align**: center
+- **Max Width**: 500px
+
+###### Content
+- **Icon**: ❌ (64px)
+- **Title**: "Application Rejected" / "申请未通过" - Red (#EF4444), 24px
+- **Description**: Explains the rejection and option to reapply
+- **Reapply Button**: Red (#EF4444), hover: darker red (#DC2626)
+
+##### State 4: Approved (Dashboard)
+
+Shows the full affiliate dashboard when the user is an approved affiliate.
+
+###### Dashboard Container
+- **Class**: `.affiliate-dashboard`
+- **Display**: flex column
+- **Gap**: 24px
+
+###### Referral Code Card
+- **Class**: `.affiliate-referral-card`
+- **Background**: Gradient (#1E3A5F to #0D1B2A)
+- **Border**: 1px solid #3B82F6
+- **Border Radius**: 16px
+- **Padding**: 24px
+
+**Header Section** (`.affiliate-referral-header`):
+- Display: flex, justify-content: space-between, align-items: center
+- **Referral Code Section**:
+  - Label: "YOUR REFERRAL CODE" / "您的推荐码" - 12px, Gray (#9CA3AF), uppercase
+  - Code: 24px, font-weight 700, Blue (#3B82F6), monospace font
+- **Commission Badge** (`.affiliate-commission-badge`):
+  - Background: rgba(34, 197, 94, 0.2)
+  - Border: 1px solid #22C55E
+  - Border Radius: 20px
+  - Padding: 8px 16px
+  - Label: "Commission Rate" / "佣金比例" - 12px, Gray
+  - Rate: 18px, font-weight 700, Green (#22C55E)
+
+**Link Section** (`.affiliate-link-section`):
+- Display: flex, gap: 12px
+- **Link Input**: Read-only input showing the referral URL
+  - Background: #0D1B2A
+  - Border: 1px solid #2A2A2E
+  - Border Radius: 8px
+  - Padding: 12px 16px
+  - Font: 14px, monospace, Gray (#9CA3AF)
+- **Copy Button** (`.affiliate-copy-btn`):
+  - Background: Blue (#3B82F6)
+  - Padding: 12px 20px
+  - Border Radius: 8px
+  - Text: "Copy Link" / "复制链接"
+  - Copied state: Green (#22C55E), text changes to "Link copied!" / "链接已复制！"
+
+###### Stats Grid
+- **Class**: `.affiliate-stats-grid`
+- **Display**: grid
+- **Grid Template Columns**: repeat(4, 1fr)
+- **Gap**: 16px
+
+**Stat Card** (`.affiliate-stat-card`):
+- Background: #121214
+- Border Radius: 12px
+- Padding: 20px
+- Text Align: center
+- Box Shadow: 0 4px 20px rgba(0, 0, 0, 0.3)
+
+| Stat | Icon | Color | Label |
+|------|------|-------|-------|
+| Total Earnings | 💰 | Green (#22C55E) | 累计收益 |
+| Available Balance | 💵 | Blue (#3B82F6) | 可提现余额 |
+| Pending Balance | ⏳ | Amber (#F59E0B) | 待结算余额 |
+| Total Referrals | 👥 | White (#FFFFFF) | 推荐人数 |
+
+###### Withdraw Section
+- **Class**: `.affiliate-withdraw-section`
+- **Display**: flex, justify-content: flex-end, gap: 12px
+- **Margin Top**: 16px
+
+**Buttons**:
+- **Withdraw All** (`.affiliate-withdraw-all-btn`):
+  - Background: transparent
+  - Border: 1px solid #3B82F6
+  - Color: Blue (#3B82F6)
+  - Hover: Background rgba(59, 130, 246, 0.1)
+- **Withdraw** (`.affiliate-withdraw-btn`):
+  - Background: Blue (#3B82F6)
+  - Color: White (#FFFFFF)
+  - Hover: Darker blue (#2563EB)
+- Both disabled when available balance <= 0
+
+###### Referrals Table
+- **Class**: `.affiliate-referrals-section`
+- **Background**: #121214
+- **Border Radius**: 12px
+- **Padding**: 20px
+
+**Title**: "Your Referrals" / "我的推荐" - 18px, font-weight 600, White
+
+**Table Columns**:
+| Column | Label (EN) | Label (ZH) |
+|--------|------------|------------|
+| User | User | 用户 |
+| Status | Status | 状态 |
+| Purchases | Purchases | 购买金额 |
+| Commission | Commission | 佣金 |
+| Date | Date | 日期 |
+
+**Status Badges**:
+- Registered: Blue background (rgba(59, 130, 246, 0.2)), Blue text (#3B82F6)
+- Purchased: Green background (rgba(34, 197, 94, 0.2)), Green text (#22C55E)
+
+**Empty State**:
+- Icon: 👥 (48px, 50% opacity)
+- Title: "No referrals yet" / "暂无推荐"
+- Subtext: "Share your referral link to start earning commissions" / "分享您的推荐链接开始赚取佣金"
+
+###### Withdrawals Table
+- **Class**: `.affiliate-withdrawals-section`
+- **Background**: #121214
+- **Border Radius**: 12px
+- **Padding**: 20px
+
+**Title**: "Withdrawal History" / "提现记录" - 18px, font-weight 600, White
+
+**Table Columns**:
+| Column | Label (EN) | Label (ZH) |
+|--------|------------|------------|
+| Amount | Amount | 金额 |
+| Status | Status | 状态 |
+| Requested | Requested | 申请时间 |
+| Processed | Processed | 处理时间 |
+
+**Status Badges**:
+- Pending: Amber background (rgba(245, 158, 11, 0.2)), Amber text (#F59E0B)
+- Approved: Blue background (rgba(59, 130, 246, 0.2)), Blue text (#3B82F6)
+- Rejected: Red background (rgba(239, 68, 68, 0.2)), Red text (#EF4444)
+- Completed: Green background (rgba(34, 197, 94, 0.2)), Green text (#22C55E)
+
+**Empty State**:
+- Icon: 📋 (48px, 50% opacity)
+- Title: "No withdrawals yet" / "暂无提现记录"
+- Subtext: "Your withdrawal history will appear here" / "您的提现记录将显示在这里"
+
+#### Withdraw Confirmation Popup
+
+- **Overlay**: Fixed, black 80% opacity
+- **Modal** (`.affiliate-withdraw-modal`):
+  - Background: #1A1A1E
+  - Border Radius: 16px
+  - Padding: 32px
+  - Max Width: 400px
+  - Text Align: center
+  - Animation: slideUp 0.3s ease
+
+**Content**:
+- **Icon**: 💸 (48px)
+- **Title**: "Withdraw Earnings" / "提现收益" - 24px, Blue (#3B82F6)
+- **Message**: "Transfer earnings to your wallet" / "将收益转入您的钱包" - 14px, Gray
+- **Balance Display**:
+  - Background: #242428
+  - Border Radius: 12px
+  - Padding: 16px
+  - Label: "Available Balance" / "可提现余额" - 12px, Gray
+  - Value: 32px, font-weight 700, Green (#22C55E)
+
+**Buttons**:
+- **Confirm**: Blue (#3B82F6), hover: darker blue (#2563EB)
+- **Cancel**: Gray (#2A2A2E), hover: lighter gray (#3A3A3E)
+- Both disabled while processing
+
+#### Interactions
+
+- **Apply Flow**:
+  1. User clicks "Apply Now" button
+  2. Button shows "Applying..." state
+  3. API call to apply for affiliate program
+  4. On success: Status changes to approved (for demo) or pending (for production)
+  5. Dashboard is displayed
+
+- **Copy Link**:
+  1. User clicks "Copy Link" button
+  2. Referral URL is copied to clipboard
+  3. Button text changes to "Link copied!" for 2 seconds
+  4. Button returns to normal state
+
+- **Withdraw Flow**:
+  1. User clicks "Withdraw" or "Withdraw All" button
+  2. Confirmation popup appears with amount
+  3. User clicks "Confirm"
+  4. API call to process withdrawal
+  5. On success:
+     - Available balance is reduced
+     - Amount is added to main wallet balance
+     - Withdrawal record is added to history
+     - Success toast notification appears
+  6. Popup closes
+
+#### Responsive Design
+
+**1024px (Tablet)**:
+- Stats grid: 2 columns
+
+**768px (Mobile)**:
+- Apply/Pending/Rejected cards: padding 24px
+- Referral header: flex-direction column, gap 16px
+- Link section: flex-direction column
+- Stats grid: 2 columns
+- Withdraw section: flex-direction column, full-width buttons
+
+**480px (Small Mobile)**:
+- Stats grid: 1 column
+- Referral code: 18px
+- Stat values: 20px
+
 ## URL Parameters
 
 The page supports tab navigation via URL query parameter:
@@ -700,6 +992,7 @@ The page supports tab navigation via URL query parameter:
 - `?tab=wallet`
 - `?tab=myPurchases`
 - `?tab=mySeries`
+- `?tab=affiliate`
 
 ## Responsive Design
 

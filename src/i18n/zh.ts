@@ -25,6 +25,7 @@ export const zh = {
       wallet: '钱包',
       myPurchases: '我的购买',
       mySeries: '我的剧集',
+      affiliate: '分销推广',
       logout: '退出登录',
     },
     overview: {
@@ -156,6 +157,94 @@ export const zh = {
       unshelveConfirmMessage: '确定要上架此剧集吗？上架后所有用户都可以看到。',
       cancel: '取消',
       edit: '编辑',
+    },
+    affiliate: {
+      title: '分销推广',
+      subtitle: '推荐新用户赚取佣金',
+      // Not an affiliate yet
+      notAffiliate: {
+        title: '加入分销计划',
+        description: '成为分销商，当您推荐的用户购买时即可赚取佣金。分享您的专属推荐链接，立即开始赚钱！',
+        benefits: [
+          '推荐用户购买可获得 {rate}% 佣金',
+          '佣金直接转入您的钱包',
+          '实时追踪您的收益和推荐',
+          '收益无上限',
+        ],
+        applyButton: '立即申请',
+        applying: '申请中...',
+      },
+      // Pending status
+      pending: {
+        title: '申请审核中',
+        description: '您的分销申请正在审核中，审核通过后我们会通知您。',
+        submittedAt: '提交时间',
+      },
+      // Rejected status
+      rejected: {
+        title: '申请未通过',
+        description: '很抱歉，您的分销申请未通过审核。您可以在解决相关问题后重新申请。',
+        reapplyButton: '重新申请',
+      },
+      // Approved - Dashboard
+      dashboard: {
+        referralCode: '您的推荐码',
+        referralLink: '您的推荐链接',
+        copyLink: '复制链接',
+        linkCopied: '链接已复制！',
+        commissionRate: '佣金比例',
+        stats: {
+          totalEarnings: '累计收益',
+          availableBalance: '可提现余额',
+          pendingBalance: '待结算余额',
+          totalReferrals: '推荐人数',
+        },
+        withdrawButton: '提现',
+        withdrawAll: '全部提现',
+      },
+      // Referrals table
+      referrals: {
+        title: '我的推荐',
+        emptyTitle: '暂无推荐',
+        emptySubtext: '分享您的推荐链接开始赚取佣金',
+        columns: {
+          user: '用户',
+          status: '状态',
+          purchases: '购买金额',
+          commission: '佣金',
+          date: '日期',
+        },
+        statusRegistered: '已注册',
+        statusPurchased: '已购买',
+      },
+      // Withdrawals table
+      withdrawals: {
+        title: '提现记录',
+        emptyTitle: '暂无提现记录',
+        emptySubtext: '您的提现记录将显示在这里',
+        columns: {
+          amount: '金额',
+          status: '状态',
+          requestedAt: '申请时间',
+          processedAt: '处理时间',
+        },
+        statusPending: '处理中',
+        statusApproved: '已批准',
+        statusRejected: '已拒绝',
+        statusCompleted: '已完成',
+      },
+      // Withdraw popup
+      withdrawPopup: {
+        title: '提现收益',
+        message: '将收益转入您的钱包',
+        availableBalance: '可提现余额',
+        confirm: '确认',
+        cancel: '取消',
+        success: '提现成功！资金已转入您的钱包。',
+        failed: '提现失败，请重试。',
+        insufficientBalance: '余额不足',
+        minWithdraw: '最低提现金额为 {amount}',
+      },
     },
   },
   series: {
