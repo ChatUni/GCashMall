@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For } from 'solid-js'
+import { createSignal, onMount, Show, For, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../../assets/payment-methods2.svg'
@@ -70,6 +70,7 @@ import {
   handleSaveComplete,
   getStatusText,
   getPhoneTabTitle,
+  fetchRevenueData,
 } from '../../services/accountService'
 import { toastStore } from '../../stores'
 import type { User } from '../../types'
@@ -717,6 +718,15 @@ const PhoneMyPurchasesSection = () => {
 const PhoneMySeriesSection = () => {
   const navigate = useNavigate()
   const ms = () => (t().account.mySeries || {}) as Record<string, string>
+  const [activeSubTab, setActiveSubTab] = createSignal<'series' | 'revenue'>('series')
+
+  // Fetch revenue data when revenue tab is selected
+  createEffect(() => {
+    if (activeSubTab() === 'revenue' && !accountStore.revenueFetched && !accountStore.revenueLoading) {
+      accountStoreActions.setRevenueFetched(true)
+      fetchRevenueData()
+    }
+  })
 
   return (
     <Show when={!accountStore.mySeriesLoading} fallback={<div class="phone-loading">Loading...</div>}>
@@ -728,86 +738,243 @@ const PhoneMySeriesSection = () => {
           <SeriesEditContent seriesId={accountStore.editingSeriesId!} onCancel={handleCancelEdit} onSaveComplete={handleSaveComplete} />
         </div>
       }>
-        <Show when={accountStore.mySeries.length > 0} fallback={
-          <div class="phone-empty-state">
-            <span class="phone-empty-icon">🎬</span>
-            <p>{ms().emptyTitle || 'No series yet'}</p>
-            <p class="phone-empty-subtext">{ms().emptySubtext || 'Start creating your first series'}</p>
-            <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
+        <div class="phone-my-series">
+          {/* Sub-tabs for Series and Revenue */}
+          <div class="phone-my-series-tabs">
+            <button
+              class={`phone-my-series-tab ${activeSubTab() === 'series' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('series')}
+            >
+              🎬 {ms().title || 'My Series'}
+            </button>
+            <button
+              class={`phone-my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('revenue')}
+            >
+              💰 {ms().revenueTab || 'Revenue'}
+            </button>
           </div>
-        }>
-          <div class="phone-my-series">
-            <div class="phone-series-header">
-              <h2 class="phone-series-title">{ms().title || 'My Series'}</h2>
-              <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
+
+          {/* Series List Tab */}
+          <Show when={activeSubTab() === 'series'}>
+            <Show when={accountStore.mySeries.length > 0} fallback={
+              <div class="phone-empty-state">
+                <span class="phone-empty-icon">🎬</span>
+                <p>{ms().emptyTitle || 'No series yet'}</p>
+                <p class="phone-empty-subtext">{ms().emptySubtext || 'Start creating your first series'}</p>
+                <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
+              </div>
+            }>
+              <div class="phone-series-header">
+                <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
+              </div>
+              <div class="phone-series-list">
+                <For each={accountStore.mySeries}>
+                  {(si) => (
+                    <div class={`phone-series-item ${si.shelved ? 'shelved' : ''}`} onClick={() => navigate(`/player/${si._id}`)}>
+                      <div class="phone-series-item-cover">
+                        <Show when={si.cover} fallback={<div class="phone-series-item-placeholder">🎬</div>}>
+                          <img src={si.cover!} alt={si.name} />
+                        </Show>
+                        <Show when={si.shelved}><span class="phone-series-item-badge">{ms().shelved || 'Shelved'}</span></Show>
+                      </div>
+                      <div class="phone-series-item-info">
+                        <span class="phone-series-item-name">{si.name}</span>
+                        <span class="phone-series-item-tags">{si.tags?.slice(0, 2).join(' • ') || 'No tags'}</span>
+                      </div>
+                      <div class="phone-series-item-actions">
+                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleShelveClick(si._id, si.shelved || false, si) }} title={si.shelved ? (ms().unshelve || 'Unshelve') : (ms().shelve || 'Shelve')}>{si.shelved ? '📤' : '📥'}</button>
+                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleEditSeries(si) }} title={ms().edit || 'Edit'}>✏️</button>
+                        <button class="phone-series-action-btn phone-series-action-btn-delete" onClick={(e) => { e.stopPropagation(); openDeleteSeriesModal(si) }} title={ms().delete || 'Delete'}>🗑️</button>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Show>
+
+          {/* Revenue Tab */}
+          <Show when={activeSubTab() === 'revenue'}>
+            <PhoneRevenueSection translations={ms()} />
+          </Show>
+
+          {/* Modals */}
+          <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
+            <div class="phone-modal-overlay" onClick={cancelShelve}>
+              <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
+                <span class="phone-modal-icon">📥</span>
+                <h3 class="phone-modal-title">{ms().shelveConfirmTitle || 'Confirm Shelve'}</h3>
+                <div class="phone-modal-series">{accountStore.pendingShelveSeries!.name || 'Untitled Series'}</div>
+                <p class="phone-modal-message">{ms().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}</p>
+                <div class="phone-modal-buttons">
+                  <button class="phone-modal-confirm" onClick={confirmShelve}>{ms().shelve || 'Shelve'}</button>
+                  <button class="phone-modal-cancel" onClick={cancelShelve}>{ms().cancel || 'Cancel'}</button>
+                </div>
+              </div>
             </div>
-            <div class="phone-series-list">
-              <For each={accountStore.mySeries}>
-                {(si) => (
-                  <div class={`phone-series-item ${si.shelved ? 'shelved' : ''}`} onClick={() => navigate(`/player/${si._id}`)}>
-                    <div class="phone-series-item-cover">
-                      <Show when={si.cover} fallback={<div class="phone-series-item-placeholder">🎬</div>}>
-                        <img src={si.cover!} alt={si.name} />
-                      </Show>
-                      <Show when={si.shelved}><span class="phone-series-item-badge">{ms().shelved || 'Shelved'}</span></Show>
+          </Show>
+          <Show when={accountStore.showUnshelveModal && accountStore.pendingUnshelveSeries}>
+            <div class="phone-modal-overlay" onClick={cancelUnshelve}>
+              <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
+                <span class="phone-modal-icon">📤</span>
+                <h3 class="phone-modal-title">{ms().unshelveConfirmTitle || 'Confirm Unshelve'}</h3>
+                <div class="phone-modal-series">{accountStore.pendingUnshelveSeries!.name || 'Untitled Series'}</div>
+                <p class="phone-modal-message">{ms().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}</p>
+                <div class="phone-modal-buttons">
+                  <button class="phone-modal-confirm" onClick={confirmUnshelve}>{ms().unshelve || 'Unshelve'}</button>
+                  <button class="phone-modal-cancel" onClick={cancelUnshelve}>{ms().cancel || 'Cancel'}</button>
+                </div>
+              </div>
+            </div>
+          </Show>
+          <Show when={accountStore.showDeleteSeriesModal && accountStore.pendingDeleteSeries}>
+            <div class="phone-modal-overlay" onClick={cancelDeleteSeries}>
+              <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
+                <span class="phone-modal-icon">🗑️</span>
+                <h3 class="phone-modal-title">{ms().deleteConfirmTitle || 'Confirm Delete'}</h3>
+                <div class="phone-modal-series">{accountStore.pendingDeleteSeries!.name || 'Untitled Series'}</div>
+                <p class="phone-modal-message">{ms().deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}</p>
+                <div class="phone-modal-buttons">
+                  <button class="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteSeries}>{ms().delete || 'Delete'}</button>
+                  <button class="phone-modal-cancel" onClick={cancelDeleteSeries}>{ms().cancel || 'Cancel'}</button>
+                </div>
+              </div>
+            </div>
+          </Show>
+        </div>
+      </Show>
+    </Show>
+  )
+}
+
+// Phone Revenue Section Component
+interface PhoneRevenueSectionProps {
+  translations: Record<string, string>
+}
+
+const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
+  const [expandedSeries, setExpandedSeries] = createSignal<string | null>(null)
+
+  const toggleSeriesExpand = (seriesId: string) => {
+    setExpandedSeries(prev => prev === seriesId ? null : seriesId)
+  }
+
+  return (
+    <Show when={!accountStore.revenueLoading} fallback={<div class="phone-loading">Loading...</div>}>
+      <Show when={accountStore.revenueData} fallback={
+        <div class="phone-empty-state">
+          <span class="phone-empty-icon">💰</span>
+          <p>{props.translations.noRevenue || 'No revenue yet'}</p>
+          <p class="phone-empty-subtext">{props.translations.noRevenueSubtext || 'Upload series and start earning from episode sales'}</p>
+          <button class="phone-add-series-btn" onClick={handleAddSeries}>{props.translations.addSeries || 'Add Series'}</button>
+        </div>
+      }>
+        {/* Revenue Summary Cards */}
+        <div class="phone-revenue-summary">
+          <div class="phone-revenue-card phone-revenue-total">
+            <span class="phone-revenue-card-icon">💵</span>
+            <div class="phone-revenue-card-info">
+              <span class="phone-revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
+              <span class="phone-revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                {accountStore.revenueData!.totalRevenue.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="phone-revenue-card phone-revenue-share">
+            <span class="phone-revenue-card-icon">🎯</span>
+            <div class="phone-revenue-card-info">
+              <span class="phone-revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
+              <span class="phone-revenue-card-value highlight">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="phone-revenue-card phone-revenue-pending">
+            <span class="phone-revenue-card-icon">⏳</span>
+            <div class="phone-revenue-card-info">
+              <span class="phone-revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
+              <span class="phone-revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                {accountStore.revenueData!.pendingPayout.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="phone-revenue-card phone-revenue-paid">
+            <span class="phone-revenue-card-icon">✅</span>
+            <div class="phone-revenue-card-info">
+              <span class="phone-revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
+              <span class="phone-revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                {accountStore.revenueData!.paidOut.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Series Revenue List */}
+        <div class="phone-revenue-series-section">
+          <h3 class="phone-revenue-section-title">{props.translations.seriesRevenue || 'Series Revenue'}</h3>
+          <Show when={accountStore.revenueData!.series.length > 0} fallback={
+            <p class="phone-no-revenue-text">{props.translations.noRevenue || 'No revenue yet'}</p>
+          }>
+            <div class="phone-revenue-series-list">
+              <For each={accountStore.revenueData!.series}>
+                {(seriesRevenue) => (
+                  <div class="phone-revenue-series-item">
+                    <div class="phone-revenue-series-header" onClick={() => toggleSeriesExpand(seriesRevenue.seriesId)}>
+                      <div class="phone-revenue-series-cover">
+                        <Show when={seriesRevenue.seriesCover} fallback={<div class="phone-revenue-series-placeholder">🎬</div>}>
+                          <img src={seriesRevenue.seriesCover} alt={seriesRevenue.seriesName} />
+                        </Show>
+                      </div>
+                      <div class="phone-revenue-series-info">
+                        <span class="phone-revenue-series-name">{seriesRevenue.seriesName}</span>
+                        <div class="phone-revenue-series-stats">
+                          <span class="phone-revenue-stat">
+                            {props.translations.totalSales || 'Sales'}: {seriesRevenue.totalSales}
+                          </span>
+                          <span class="phone-revenue-stat highlight">
+                            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-stat-logo" />
+                            {seriesRevenue.creatorShare.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <span class="phone-revenue-expand-icon">{expandedSeries() === seriesRevenue.seriesId ? '▲' : '▼'}</span>
                     </div>
-                    <div class="phone-series-item-info">
-                      <span class="phone-series-item-name">{si.name}</span>
-                      <span class="phone-series-item-tags">{si.tags?.slice(0, 2).join(' • ') || 'No tags'}</span>
-                    </div>
-                    <div class="phone-series-item-actions">
-                      <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleShelveClick(si._id, si.shelved || false, si) }} title={si.shelved ? (ms().unshelve || 'Unshelve') : (ms().shelve || 'Shelve')}>{si.shelved ? '📤' : '📥'}</button>
-                      <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleEditSeries(si) }} title={ms().edit || 'Edit'}>✏️</button>
-                      <button class="phone-series-action-btn phone-series-action-btn-delete" onClick={(e) => { e.stopPropagation(); openDeleteSeriesModal(si) }} title={ms().delete || 'Delete'}>🗑️</button>
-                    </div>
+                    
+                    {/* Episode Details */}
+                    <Show when={expandedSeries() === seriesRevenue.seriesId}>
+                      <div class="phone-revenue-episodes-list">
+                        <For each={seriesRevenue.episodes}>
+                          {(episode) => (
+                            <div class="phone-revenue-episode-item">
+                              <div class="phone-revenue-episode-info">
+                                <span class="phone-revenue-episode-number">EP {episode.episodeNumber}</span>
+                                <Show when={episode.episodeTitle}>
+                                  <span class="phone-revenue-episode-title">{episode.episodeTitle}</span>
+                                </Show>
+                              </div>
+                              <div class="phone-revenue-episode-stats">
+                                <span class="phone-revenue-episode-sales">{episode.totalSales} {props.translations.sales || 'sales'}</span>
+                                <span class="phone-revenue-episode-share highlight">
+                                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-episode-logo" />
+                                  {episode.creatorShare.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </For>
+                      </div>
+                    </Show>
                   </div>
                 )}
               </For>
             </div>
-            <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
-              <div class="phone-modal-overlay" onClick={cancelShelve}>
-                <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                  <span class="phone-modal-icon">📥</span>
-                  <h3 class="phone-modal-title">{ms().shelveConfirmTitle || 'Confirm Shelve'}</h3>
-                  <div class="phone-modal-series">{accountStore.pendingShelveSeries!.name || 'Untitled Series'}</div>
-                  <p class="phone-modal-message">{ms().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}</p>
-                  <div class="phone-modal-buttons">
-                    <button class="phone-modal-confirm" onClick={confirmShelve}>{ms().shelve || 'Shelve'}</button>
-                    <button class="phone-modal-cancel" onClick={cancelShelve}>{ms().cancel || 'Cancel'}</button>
-                  </div>
-                </div>
-              </div>
-            </Show>
-            <Show when={accountStore.showUnshelveModal && accountStore.pendingUnshelveSeries}>
-              <div class="phone-modal-overlay" onClick={cancelUnshelve}>
-                <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                  <span class="phone-modal-icon">📤</span>
-                  <h3 class="phone-modal-title">{ms().unshelveConfirmTitle || 'Confirm Unshelve'}</h3>
-                  <div class="phone-modal-series">{accountStore.pendingUnshelveSeries!.name || 'Untitled Series'}</div>
-                  <p class="phone-modal-message">{ms().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}</p>
-                  <div class="phone-modal-buttons">
-                    <button class="phone-modal-confirm" onClick={confirmUnshelve}>{ms().unshelve || 'Unshelve'}</button>
-                    <button class="phone-modal-cancel" onClick={cancelUnshelve}>{ms().cancel || 'Cancel'}</button>
-                  </div>
-                </div>
-              </div>
-            </Show>
-            <Show when={accountStore.showDeleteSeriesModal && accountStore.pendingDeleteSeries}>
-              <div class="phone-modal-overlay" onClick={cancelDeleteSeries}>
-                <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                  <span class="phone-modal-icon">🗑️</span>
-                  <h3 class="phone-modal-title">{ms().deleteConfirmTitle || 'Confirm Delete'}</h3>
-                  <div class="phone-modal-series">{accountStore.pendingDeleteSeries!.name || 'Untitled Series'}</div>
-                  <p class="phone-modal-message">{ms().deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}</p>
-                  <div class="phone-modal-buttons">
-                    <button class="phone-modal-confirm phone-modal-confirm-delete" onClick={confirmDeleteSeries}>{ms().delete || 'Delete'}</button>
-                    <button class="phone-modal-cancel" onClick={cancelDeleteSeries}>{ms().cancel || 'Cancel'}</button>
-                  </div>
-                </div>
-              </div>
-            </Show>
-          </div>
-        </Show>
+          </Show>
+        </div>
       </Show>
     </Show>
   )

@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, ch
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
-import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem } from '../types'
+import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (
@@ -794,6 +794,27 @@ export const fetchMySeries = async (): Promise<{ success: boolean; error?: strin
     return { success: false, error: 'Failed to fetch my series' }
   } finally {
     accountStoreActions.setMySeriesLoading(false)
+  }
+}
+
+// Fetch revenue data for creator's series
+export const fetchRevenueData = async (): Promise<{ success: boolean; error?: string }> => {
+  accountStoreActions.setRevenueLoading(true)
+
+  try {
+    const response = await apiGetWithAuth<RevenueData>('myRevenue')
+
+    if (response.success && response.data) {
+      accountStoreActions.setRevenueData(response.data)
+      return { success: true }
+    }
+
+    return { success: false, error: response.error || 'Failed to fetch revenue data' }
+  } catch (error) {
+    console.error('Error fetching revenue data:', error)
+    return { success: false, error: 'Failed to fetch revenue data' }
+  } finally {
+    accountStoreActions.setRevenueLoading(false)
   }
 }
 

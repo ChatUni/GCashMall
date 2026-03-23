@@ -490,7 +490,39 @@ This section is only visible to users with upload permission (user.allowUpload =
 #### Header
 - **Layout**: `.section-header` - Standard section header
 - **Title**: "My Series" - White (#FFFFFF), 28px, font-weight 600
-- **Conditional Content** (below title):
+
+#### Sub-Tabs Navigation
+- **Class**: `.my-series-tabs`
+- **Display**: flex, gap 0
+- **Margin**: 16px 0
+- **Background**: #1A1A1E
+- **Border Radius**: 8px
+- **Padding**: 4px
+- **Width**: fit-content
+
+##### Tab Button
+- **Class**: `.my-series-tab`
+- **Padding**: 10px 24px
+- **Border Radius**: 6px
+- **Font**: 14px, font-weight 500
+- **Color**: Gray (#9CA3AF)
+- **Background**: transparent
+- **Border**: none
+- **Cursor**: pointer
+- **Transition**: all 0.2s ease
+
+##### Active Tab
+- **Class**: `.my-series-tab.active`
+- **Background**: #3B82F6 (blue)
+- **Color**: White (#FFFFFF)
+
+##### Tab Options
+1. **My Series Tab**: Shows the series list (default)
+2. **Revenue Tab**: Shows revenue sharing information
+
+#### My Series Tab Content
+
+##### Conditional Content (below tabs):
   - **When series list is empty**: Show subtitle "Series you have created" - Gray (#9CA3AF), 15px
   - **When series list has items**: Show "Add Series" button instead of subtitle
     - Class: `.add-series-btn`
@@ -584,6 +616,191 @@ This section is only visible to users with upload permission (user.allowUpload =
 - on Unshelve button click: show Unshelve Confirmation Modal, then call unshelve series API with the selected series
 - on edit click: show the series edit page (in the content pane) in edit mode with the selected series
 - on add series click (from empty state): show the series edit page (in the content pane) in add mode
+
+#### Revenue Tab Content
+
+The Revenue tab displays revenue sharing information for creators. Platform shares 50% of episode sales revenue with creators.
+
+##### Revenue Section Container
+- **Class**: `.revenue-section`
+- **Padding**: 20px 0
+
+##### Revenue Summary Cards
+- **Class**: `.revenue-summary`
+- **Display**: grid
+- **Grid Template Columns**: repeat(4, 1fr)
+- **Gap**: 16px
+- **Margin Bottom**: 32px
+
+###### Summary Card
+- **Class**: `.revenue-summary-card`
+- **Background**: #1A1A1E
+- **Border Radius**: 12px
+- **Padding**: 20px
+- **Text Align**: center
+
+###### Card Label
+- **Class**: `.revenue-label`
+- **Font Size**: 14px
+- **Color**: Gray (#9CA3AF)
+- **Margin Bottom**: 8px
+
+###### Card Value
+- **Class**: `.revenue-value`
+- **Font Size**: 24px
+- **Font Weight**: 700
+- **Color**: White (#FFFFFF)
+
+###### Summary Card Types
+1. **Total Revenue**: Shows total revenue from all episode sales
+2. **Your Share (50%)**: Shows creator's 50% share of total revenue
+3. **Pending Payout**: Shows amount pending to be paid out
+4. **Paid Out**: Shows total amount already paid to creator
+
+##### Series Revenue List
+- **Class**: `.revenue-series-list`
+- **Display**: flex column
+- **Gap**: 16px
+
+###### Series Revenue Item
+- **Class**: `.revenue-series-item`
+- **Background**: #1A1A1E
+- **Border Radius**: 12px
+- **Overflow**: hidden
+- **Cursor**: pointer
+- **Transition**: background-color 0.2s ease
+
+###### Series Revenue Header
+- **Class**: `.revenue-series-header`
+- **Display**: flex
+- **Align Items**: center
+- **Padding**: 16px
+- **Gap**: 16px
+
+###### Series Cover Image
+- **Class**: `.revenue-series-cover`
+- **Width**: 80px
+- **Height**: 80px
+- **Border Radius**: 8px
+- **Object Fit**: cover
+
+###### Series Info
+- **Class**: `.revenue-series-info`
+- **Flex**: 1
+
+###### Series Name
+- **Class**: `.revenue-series-name`
+- **Font Size**: 16px
+- **Font Weight**: 600
+- **Color**: White (#FFFFFF)
+- **Margin Bottom**: 8px
+
+###### Series Stats
+- **Class**: `.revenue-series-stats`
+- **Display**: flex
+- **Gap**: 24px
+
+###### Stat Item
+- **Class**: `.revenue-stat`
+- **Display**: flex column
+
+###### Stat Label
+- **Class**: `.revenue-stat-label`
+- **Font Size**: 12px
+- **Color**: Gray (#9CA3AF)
+
+###### Stat Value
+- **Class**: `.revenue-stat-value`
+- **Font Size**: 14px
+- **Font Weight**: 600
+- **Color**: White (#FFFFFF)
+
+###### Expand Icon
+- **Class**: `.revenue-expand-icon`
+- **Font Size**: 20px
+- **Color**: Gray (#9CA3AF)
+- **Transition**: transform 0.2s ease
+- **Expanded State**: transform rotate(180deg)
+
+###### Episode Details (Expandable)
+- **Class**: `.revenue-episodes`
+- **Background**: #242428
+- **Padding**: 16px
+- **Display**: none (hidden by default)
+- **Expanded State**: display block
+
+###### Episode Table
+- **Class**: `.revenue-episode-table`
+- **Width**: 100%
+- **Border Collapse**: collapse
+
+###### Table Header
+- **Class**: `.revenue-episode-table th`
+- **Text Align**: left
+- **Padding**: 8px 12px
+- **Font Size**: 12px
+- **Font Weight**: 600
+- **Color**: Gray (#9CA3AF)
+- **Border Bottom**: 1px solid #3A3A3E
+
+###### Table Row
+- **Class**: `.revenue-episode-table td`
+- **Padding**: 12px
+- **Font Size**: 14px
+- **Color**: White (#FFFFFF)
+- **Border Bottom**: 1px solid #2A2A2E
+
+###### Table Columns
+1. **Episode**: Episode number and title
+2. **Sales**: Number of purchases
+3. **Revenue**: Total revenue from episode
+4. **Your Share**: Creator's 50% share
+
+##### Revenue Empty State
+- **Class**: `.revenue-empty`
+- **Display**: flex column, center aligned
+- **Padding**: 60px 20px
+- **Text Align**: center
+
+###### Empty State Elements
+- **Icon**: 💰
+  - Font Size: 64px
+  - Opacity: 0.5
+  - Margin Bottom: 16px
+- **Title**: "No revenue yet"
+  - Font Size: 18px
+  - Font Weight: 600
+  - Color: White (#FFFFFF)
+  - Margin: 0 0 8px 0
+- **Subtitle**: "Revenue will appear here when users purchase your episodes"
+  - Font Size: 14px
+  - Color: Gray (#9CA3AF)
+
+##### Revenue Loading State
+- **Class**: `.revenue-loading`
+- **Display**: flex, center aligned
+- **Padding**: 60px 20px
+- **Color**: Gray (#9CA3AF)
+- **Font Size**: 16px
+
+##### Revenue Interactions
+
+- on tab click (Revenue): fetch revenue data from API (myRevenue endpoint)
+- on series item click: toggle expand/collapse episode details
+- data is fetched only once when tab is first selected (lazy loading)
+
+##### Revenue Responsive Design
+
+###### 1024px (Tablet)
+- Summary cards: 2 columns
+
+###### 768px (Mobile)
+- Summary cards: 2 columns
+- Series stats: wrap to multiple lines
+
+###### 480px (Small Mobile)
+- Summary cards: 1 column
+- Episode table: horizontal scroll
 
 ### Shelve Confirmation Modal
 

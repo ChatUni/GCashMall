@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For, type Component } from 'solid-js'
+import { createSignal, onMount, Show, For, type Component, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
@@ -56,6 +56,7 @@ import {
   handleCancelEdit,
   handleSaveComplete,
   getStatusText,
+  fetchRevenueData,
 } from '../services/accountService'
 import { toastStore } from '../stores'
 import type { Series, User } from '../types'
@@ -953,6 +954,15 @@ function MyPurchasesSection() {
 function MySeriesSection() {
   const navigate = useNavigate()
   const mySeries = () => (t().account.mySeries || {}) as Record<string, string>
+  const [activeSubTab, setActiveSubTab] = createSignal<'series' | 'revenue'>('series')
+
+  // Fetch revenue data when revenue tab is selected
+  createEffect(() => {
+    if (activeSubTab() === 'revenue' && !accountStore.revenueFetched && !accountStore.revenueLoading) {
+      accountStoreActions.setRevenueFetched(true)
+      fetchRevenueData()
+    }
+  })
 
   return (
     <Show when={!accountStore.mySeriesLoading} fallback={
@@ -965,37 +975,59 @@ function MySeriesSection() {
         <div class="content-section my-series-section">
           <div class="section-header">
             <h1 class="page-title">{mySeries().title || 'My Series'}</h1>
-            <Show when={accountStore.mySeries.length > 0} fallback={
-              <p class="page-subtitle">{mySeries().subtitle || 'Series you have created'}</p>
-            }>
+            <Show when={accountStore.mySeries.length > 0 && activeSubTab() === 'series'}>
               <button class="btn-primary add-series-btn" onClick={handleAddSeries}>
                 {mySeries().addSeries || 'Add Series'}
               </button>
             </Show>
           </div>
 
-          <Show when={accountStore.mySeries.length > 0} fallback={
-            <EmptyState
-              icon="🎬"
-              title={mySeries().emptyTitle || 'No series yet'}
-              subtext={mySeries().emptySubtext || 'Start creating your first series'}
-              buttonText={mySeries().addSeries || 'Add Series'}
-              onButtonClick={handleAddSeries}
-            />
-          }>
-            <div class="content-grid">
-              <For each={accountStore.mySeries}>
-                {(seriesItem) => (
-                  <MySeriesCard
-                    series={seriesItem}
-                    onShelve={() => handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)}
-                    onEdit={() => handleEditSeries(seriesItem)}
-                    onClick={() => navigate(`/player/${seriesItem._id}`)}
-                    translations={mySeries()}
-                  />
-                )}
-              </For>
-            </div>
+          {/* Sub-tabs for Series and Revenue */}
+          <div class="my-series-tabs">
+            <button
+              class={`my-series-tab ${activeSubTab() === 'series' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('series')}
+            >
+              {mySeries().title || 'My Series'}
+            </button>
+            <button
+              class={`my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('revenue')}
+            >
+              💰 {mySeries().revenueTab || 'Revenue'}
+            </button>
+          </div>
+
+          {/* Series List Tab */}
+          <Show when={activeSubTab() === 'series'}>
+            <Show when={accountStore.mySeries.length > 0} fallback={
+              <EmptyState
+                icon="🎬"
+                title={mySeries().emptyTitle || 'No series yet'}
+                subtext={mySeries().emptySubtext || 'Start creating your first series'}
+                buttonText={mySeries().addSeries || 'Add Series'}
+                onButtonClick={handleAddSeries}
+              />
+            }>
+              <div class="content-grid">
+                <For each={accountStore.mySeries}>
+                  {(seriesItem) => (
+                    <MySeriesCard
+                      series={seriesItem}
+                      onShelve={() => handleShelveClick(seriesItem._id, seriesItem.shelved || false, seriesItem)}
+                      onEdit={() => handleEditSeries(seriesItem)}
+                      onClick={() => navigate(`/player/${seriesItem._id}`)}
+                      translations={mySeries()}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Show>
+
+          {/* Revenue Tab */}
+          <Show when={activeSubTab() === 'revenue'}>
+            <RevenueSection translations={mySeries()} />
           </Show>
 
           {/* Shelve Confirmation Modal */}
@@ -1036,6 +1068,163 @@ function MySeriesSection() {
             onCancel={handleCancelEdit}
             onSaveComplete={handleSaveComplete}
           />
+        </div>
+      </Show>
+    </Show>
+  )
+}
+
+// Revenue Section Component
+interface RevenueSectionProps {
+  translations: Record<string, string>
+}
+
+const RevenueSection = (props: RevenueSectionProps) => {
+  const [expandedSeries, setExpandedSeries] = createSignal<string | null>(null)
+
+  const toggleSeriesExpand = (seriesId: string) => {
+    setExpandedSeries(prev => prev === seriesId ? null : seriesId)
+  }
+
+  return (
+    <Show when={!accountStore.revenueLoading} fallback={
+      <div class="loading">Loading...</div>
+    }>
+      <Show when={accountStore.revenueData} fallback={
+        <EmptyState
+          icon="💰"
+          title={props.translations.noRevenue || 'No revenue yet'}
+          subtext={props.translations.noRevenueSubtext || 'Upload series and start earning from episode sales'}
+          buttonText={props.translations.addSeries || 'Add Series'}
+          onButtonClick={handleAddSeries}
+        />
+      }>
+        {/* Revenue Summary Cards */}
+        <div class="revenue-summary">
+          <div class="revenue-card total-revenue">
+            <div class="revenue-card-icon">💵</div>
+            <div class="revenue-card-info">
+              <span class="revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
+              <span class="revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                {accountStore.revenueData!.totalRevenue.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="revenue-card your-share">
+            <div class="revenue-card-icon">🎯</div>
+            <div class="revenue-card-info">
+              <span class="revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
+              <span class="revenue-card-value highlight">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="revenue-card pending-payout">
+            <div class="revenue-card-icon">⏳</div>
+            <div class="revenue-card-info">
+              <span class="revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
+              <span class="revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                {accountStore.revenueData!.pendingPayout.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <div class="revenue-card paid-out">
+            <div class="revenue-card-icon">✅</div>
+            <div class="revenue-card-info">
+              <span class="revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
+              <span class="revenue-card-value">
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                {accountStore.revenueData!.paidOut.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Series Revenue List */}
+        <div class="section-card revenue-series-section">
+          <h3 class="card-title">{props.translations.seriesRevenue || 'Series Revenue'}</h3>
+          <Show when={accountStore.revenueData!.series.length > 0} fallback={
+            <p class="no-revenue-text">{props.translations.noRevenue || 'No revenue yet'}</p>
+          }>
+            <div class="revenue-series-list">
+              <For each={accountStore.revenueData!.series}>
+                {(seriesRevenue) => (
+                  <div class="revenue-series-item">
+                    <div class="revenue-series-header" onClick={() => toggleSeriesExpand(seriesRevenue.seriesId)}>
+                      <div class="revenue-series-cover">
+                        <Show when={seriesRevenue.seriesCover} fallback={<div class="revenue-series-placeholder">🎬</div>}>
+                          <img src={seriesRevenue.seriesCover} alt={seriesRevenue.seriesName} />
+                        </Show>
+                      </div>
+                      <div class="revenue-series-info">
+                        <h4 class="revenue-series-name">{seriesRevenue.seriesName}</h4>
+                        <div class="revenue-series-stats">
+                          <span class="revenue-stat">
+                            <span class="revenue-stat-label">{props.translations.totalSales || 'Total Sales'}:</span>
+                            <span class="revenue-stat-value">{seriesRevenue.totalSales}</span>
+                          </span>
+                          <span class="revenue-stat">
+                            <span class="revenue-stat-label">{props.translations.creatorShare || 'Creator Share'}:</span>
+                            <span class="revenue-stat-value highlight">
+                              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-stat-logo" />
+                              {seriesRevenue.creatorShare.toFixed(2)}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                      <button class="revenue-expand-btn">
+                        {expandedSeries() === seriesRevenue.seriesId
+                          ? (props.translations.hideDetails || 'Hide Details')
+                          : (props.translations.viewDetails || 'View Details')}
+                      </button>
+                    </div>
+                    
+                    {/* Episode Details */}
+                    <Show when={expandedSeries() === seriesRevenue.seriesId}>
+                      <div class="revenue-episodes-list">
+                        <table class="revenue-episodes-table">
+                          <thead>
+                            <tr>
+                              <th>{props.translations.episode || 'Episode'}</th>
+                              <th>{props.translations.totalSales || 'Total Sales'}</th>
+                              <th>{props.translations.totalRevenue || 'Total Revenue'}</th>
+                              <th>{props.translations.creatorShare || 'Creator Share'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <For each={seriesRevenue.episodes}>
+                              {(episode) => (
+                                <tr>
+                                  <td class="episode-cell">
+                                    <span class="episode-number">EP {episode.episodeNumber}</span>
+                                    <Show when={episode.episodeTitle}>
+                                      <span class="episode-title">{episode.episodeTitle}</span>
+                                    </Show>
+                                  </td>
+                                  <td class="sales-cell">{episode.totalSales} {props.translations.sales || 'sales'}</td>
+                                  <td class="revenue-cell">
+                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-table-logo" />
+                                    {episode.totalRevenue.toFixed(2)}
+                                  </td>
+                                  <td class="share-cell highlight">
+                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-table-logo" />
+                                    {episode.creatorShare.toFixed(2)}
+                                  </td>
+                                </tr>
+                              )}
+                            </For>
+                          </tbody>
+                        </table>
+                      </div>
+                    </Show>
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
         </div>
       </Show>
     </Show>

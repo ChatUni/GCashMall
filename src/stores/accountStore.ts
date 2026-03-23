@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { FavoriteItem, PurchaseItem, Series, User } from '../types'
+import type { FavoriteItem, PurchaseItem, Series, User, RevenueData } from '../types'
 
 // Payment method types
 export type PaymentMethod = 'creditcard' | 'gusd'
@@ -87,6 +87,11 @@ interface AccountState {
   mySeriesLoading: boolean
   editingSeries: Series | null
   editingSeriesId: string | null  // 'new' for adding, series._id for editing, null for list view
+  
+  // Revenue Sharing
+  revenueData: RevenueData | null
+  revenueLoading: boolean
+  revenueFetched: boolean
   
   // Profile form
   profileForm: ProfileFormState
@@ -200,6 +205,11 @@ const getInitialState = (): AccountState => ({
   editingSeries: null,
   editingSeriesId: null,
   
+  // Revenue Sharing
+  revenueData: null,
+  revenueLoading: false,
+  revenueFetched: false,
+  
   profileForm: { ...initialProfileForm },
   profileErrors: { ...initialProfileErrors },
   profileSaving: false,
@@ -300,6 +310,14 @@ export const accountStoreActions = {
     ),
   removeSeriesFromList: (seriesId: string) =>
     setAccountState('mySeries', (prev) => prev.filter((s) => s._id !== seriesId)),
+  
+  // Revenue Sharing
+  setRevenueData: (revenueData: RevenueData | null) =>
+    setAccountState({ revenueData }),
+  setRevenueLoading: (revenueLoading: boolean) =>
+    setAccountState({ revenueLoading }),
+  setRevenueFetched: (revenueFetched: boolean) =>
+    setAccountState({ revenueFetched }),
   
   // Profile form
   setProfileForm: (profileForm: ProfileFormState) => 

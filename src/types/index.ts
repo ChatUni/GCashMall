@@ -217,3 +217,31 @@ export interface SearchSuggestion {
   title: string
   tag: string
 }
+
+// Revenue sharing types
+export interface EpisodeRevenue {
+  episodeId: string
+  episodeNumber: number
+  episodeTitle: string
+  totalSales: number
+  totalRevenue: number
+  creatorShare: number
+}
+
+export interface SeriesRevenue {
+  seriesId: string
+  seriesName: string
+  seriesCover: string
+  episodes: EpisodeRevenue[]
+  totalSales: number
+  totalRevenue: number
+  creatorShare: number
+}
+
+export interface RevenueData {
+  series: SeriesRevenue[]
+  totalRevenue: number
+  totalCreatorShare: number
+  pendingPayout: number
+  paidOut: number
+}

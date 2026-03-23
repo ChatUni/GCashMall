@@ -500,6 +500,185 @@ Each field includes:
 - On Cancel confirm: return to series list
 - On Cancel cancel: stay in edit view
 
+### Sub-Tabs Navigation (My Series Section)
+
+The My Series section includes sub-tabs to switch between series list and revenue information.
+
+#### Tab Container
+- Horizontal flex layout
+- Background: #1A1A1E
+- Border radius: 8 pixel
+- Padding: 4 pixel
+- Width: fit-content
+- Margin: 16 pixel 0
+
+#### Tab Button
+- Padding: 10 pixel vertical, 20 pixel horizontal
+- Border radius: 6 pixel
+- Font size: 13 pixel
+- Font weight: 500
+- Color: Gray (#9CA3AF)
+- Background: transparent
+- Border: none
+- Cursor: pointer
+- Transition: all 0.2s ease
+
+#### Active Tab
+- Background: Blue (#3B82F6)
+- Color: White (#FFFFFF)
+
+#### Tab Options
+1. **My Series**: Shows the series list (default)
+2. **Revenue**: Shows revenue sharing information
+
+### Revenue Tab Content
+
+The Revenue tab displays revenue sharing information for creators. Platform shares 50% of episode sales revenue with creators.
+
+#### Revenue Section Container
+- Padding: 16 pixel 0
+
+#### Revenue Summary Cards
+- Display: grid
+- Grid Template Columns: repeat(2, 1fr)
+- Gap: 12 pixel
+- Margin Bottom: 24 pixel
+
+##### Summary Card
+- Background: #1A1A1E
+- Border radius: 12 pixel
+- Padding: 16 pixel
+- Text align: center
+
+##### Card Label
+- Font size: 12 pixel
+- Color: Gray (#9CA3AF)
+- Margin bottom: 6 pixel
+
+##### Card Value
+- Font size: 20 pixel
+- Font weight: 700
+- Color: White (#FFFFFF)
+
+##### Summary Card Types
+1. **Total Revenue**: Shows total revenue from all episode sales
+2. **Your Share (50%)**: Shows creator's 50% share of total revenue
+3. **Pending Payout**: Shows amount pending to be paid out
+4. **Paid Out**: Shows total amount already paid to creator
+
+#### Series Revenue List
+- Display: flex column
+- Gap: 12 pixel
+
+##### Series Revenue Item
+- Background: #1A1A1E
+- Border radius: 12 pixel
+- Overflow: hidden
+- Cursor: pointer
+- Transition: background-color 0.2s ease
+
+##### Series Revenue Header
+- Display: flex
+- Align items: center
+- Padding: 12 pixel
+- Gap: 12 pixel
+
+##### Series Cover Image
+- Width: 60 pixel
+- Height: 60 pixel
+- Border radius: 6 pixel
+- Object fit: cover
+
+##### Series Info
+- Flex: 1
+
+##### Series Name
+- Font size: 14 pixel
+- Font weight: 600
+- Color: White (#FFFFFF)
+- Margin bottom: 6 pixel
+
+##### Series Stats
+- Display: flex
+- Gap: 16 pixel
+- Flex wrap: wrap
+
+##### Stat Item
+- Display: flex column
+
+##### Stat Label
+- Font size: 11 pixel
+- Color: Gray (#9CA3AF)
+
+##### Stat Value
+- Font size: 13 pixel
+- Font weight: 600
+- Color: White (#FFFFFF)
+
+##### Expand Icon
+- Font size: 18 pixel
+- Color: Gray (#9CA3AF)
+- Transition: transform 0.2s ease
+- Expanded state: transform rotate(180deg)
+
+##### Episode Details (Expandable)
+- Background: #242428
+- Padding: 12 pixel
+- Display: none (hidden by default)
+- Expanded state: display block
+
+##### Episode List
+- Display: flex column
+- Gap: 8 pixel
+
+##### Episode Item
+- Display: flex
+- Justify content: space-between
+- Align items: center
+- Padding: 8 pixel
+- Background: #1A1A1E
+- Border radius: 6 pixel
+
+##### Episode Info
+- Font size: 13 pixel
+- Color: White (#FFFFFF)
+
+##### Episode Stats
+- Display: flex
+- Gap: 12 pixel
+- Font size: 12 pixel
+- Color: Gray (#9CA3AF)
+
+#### Revenue Empty State
+- Display: flex column, center aligned
+- Padding: 40 pixel 20 pixel
+- Text align: center
+
+##### Empty State Elements
+- Icon: 💰
+  - Font size: 48 pixel
+  - Opacity: 0.5
+  - Margin bottom: 12 pixel
+- Title: "No revenue yet"
+  - Font size: 16 pixel
+  - Font weight: 600
+  - Color: White (#FFFFFF)
+  - Margin: 0 0 6 pixel 0
+- Subtitle: "Revenue will appear here when users purchase your episodes"
+  - Font size: 13 pixel
+  - Color: Gray (#9CA3AF)
+
+#### Revenue Loading State
+- Display: flex, center aligned
+- Padding: 40 pixel 20 pixel
+- Color: Gray (#9CA3AF)
+- Font size: 14 pixel
+
+#### Revenue Interactions
+- On tab click (Revenue): fetch revenue data from API (myRevenue endpoint)
+- On series item click: toggle expand/collapse episode details
+- Data is fetched only once when tab is first selected (lazy loading)
+
 ## Settings Section (Logged In)
 
 ### Container

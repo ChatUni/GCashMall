@@ -1603,3 +1603,289 @@
   text-align: center;
   margin: 8px 0 0 0;
 }
+
+/* ===== Phone Revenue Sharing Section ===== */
+
+/* My Series Sub-tabs */
+.phone-my-series-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  background-color: #1a1a1e;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.phone-my-series-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.phone-my-series-tab.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Phone Revenue Summary */
+.phone-revenue-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.phone-revenue-card {
+  background-color: #1a1a1e;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.phone-revenue-card.phone-revenue-total {
+  border-left: 3px solid #3b82f6;
+}
+
+.phone-revenue-card.phone-revenue-share {
+  border-left: 3px solid #22c55e;
+}
+
+.phone-revenue-card.phone-revenue-pending {
+  border-left: 3px solid #f59e0b;
+}
+
+.phone-revenue-card.phone-revenue-paid {
+  border-left: 3px solid #a855f7;
+}
+
+.phone-revenue-card-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #242428;
+  border-radius: 10px;
+}
+
+.phone-revenue-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-revenue-card-label {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone-revenue-card-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.phone-revenue-card-value.highlight {
+  color: #22c55e;
+}
+
+.phone-revenue-logo {
+  width: 18px;
+  height: 18px;
+}
+
+/* Phone Revenue Series Section */
+.phone-revenue-series-section {
+  background-color: #1a1a1e;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.phone-revenue-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.phone-revenue-series-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.phone-revenue-series-item {
+  background-color: #242428;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.phone-revenue-series-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.phone-revenue-series-cover {
+  width: 48px;
+  height: 72px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #1a1a1e;
+  flex-shrink: 0;
+}
+
+.phone-revenue-series-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-revenue-series-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background-color: #1a1a1e;
+}
+
+.phone-revenue-series-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.phone-revenue-series-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone-revenue-series-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.phone-revenue-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.phone-revenue-stat.highlight {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.phone-revenue-stat-logo {
+  width: 14px;
+  height: 14px;
+}
+
+.phone-revenue-expand-icon {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 8px;
+}
+
+/* Phone Revenue Episodes List */
+.phone-revenue-episodes-list {
+  padding: 0 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phone-revenue-episode-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #1a1a1e;
+  border-radius: 8px;
+}
+
+.phone-revenue-episode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phone-revenue-episode-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.phone-revenue-episode-title {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.phone-revenue-episode-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.phone-revenue-episode-sales {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.phone-revenue-episode-share {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.phone-revenue-episode-share.highlight {
+  color: #22c55e;
+}
+
+.phone-revenue-episode-logo {
+  width: 14px;
+  height: 14px;
+}
+
+.phone-no-revenue-text {
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+  padding: 24px;
+}
