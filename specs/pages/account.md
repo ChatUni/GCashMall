@@ -756,6 +756,45 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
 3. **Revenue**: Total revenue from episode
 4. **Your Share**: Creator's 50% share
 
+###### Episode Cell Styling
+- **Class**: `.episode-cell`
+- Child elements use `display: block` and `position: static` for vertical stacking
+- **Episode Number** (`.episode-cell .episode-number`):
+  - Position: static (overrides Player.css absolute positioning)
+  - Display: block
+  - Font Weight: 600
+  - Color: Blue (#3B82F6)
+  - Margin Bottom: 2px
+  - Background: none (resets Player.css background)
+  - Padding: 0 (resets Player.css padding)
+- **Episode Title** (`.episode-cell .episode-title`):
+  - Position: static
+  - Display: block
+  - Font Size: 12px
+  - Color: Gray (#9CA3AF)
+
+###### Sales Cell Styling
+- **Class**: `.sales-cell`
+- Color: Gray (#9CA3AF)
+
+###### Revenue Cell Styling
+- **Class**: `.revenue-cell`
+- Font Weight: 600
+- White Space: nowrap
+- GCash logo: vertical-align middle, margin-right 6px
+
+###### Creator Share Cell Styling
+- **Class**: `.share-cell`
+- Font Weight: 600
+- White Space: nowrap
+- Color: Green (#22c55e) with `.highlight` class
+- GCash logo: vertical-align middle, margin-right 6px
+
+###### Table Logo
+- **Class**: `.revenue-table-logo`
+- Width: 16px
+- Height: 16px
+
 ##### Revenue Empty State
 - **Class**: `.revenue-empty`
 - **Display**: flex column, center aligned

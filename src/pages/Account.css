@@ -2262,18 +2262,21 @@
   background-color: rgba(59, 130, 246, 0.05);
 }
 
-.episode-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.episode-cell .episode-number,
+.episode-cell .episode-title {
+  display: block;
+  position: static;
 }
 
-.episode-number {
+.episode-cell .episode-number {
   font-weight: 600;
   color: #3b82f6;
+  margin-bottom: 2px;
+  background: none;
+  padding: 0;
 }
 
-.episode-title {
+.episode-cell .episode-title {
   font-size: 12px;
   color: #9ca3af;
 }
@@ -2284,10 +2287,14 @@
 
 .revenue-cell,
 .share-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.revenue-cell img,
+.share-cell img {
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 .share-cell.highlight {

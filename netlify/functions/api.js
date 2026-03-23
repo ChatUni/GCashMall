@@ -40,6 +40,7 @@ import {
   getMySeries,
   shelveSeries,
   getMyPurchases,
+  getMyRevenue,
   addPurchase,
   topUp,
   completeStripeTopUp,
@@ -65,6 +66,7 @@ const apiHandlers = {
     checkEmail: (params) => checkEmail(params),
     mySeries: (params, authHeader) => getMySeries(params, authHeader),
     myPurchases: (params, authHeader) => getMyPurchases(params, authHeader),
+    myRevenue: (params, authHeader) => getMyRevenue(params, authHeader),
   },
   post: {
     todo: (body) => saveTodo(body),

@@ -1984,6 +1984,119 @@ const getMyPurchases = async (params, authHeader) => {
   }
 }
 
+// Get My Revenue - get revenue data for the logged in creator
+const getMyRevenue = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
+  try {
+    // Get all series uploaded by this user
+    const mySeries = await get('series', { uploaderId: new ObjectId(userId) }, {}, {})
+    
+    if (!mySeries || mySeries.length === 0) {
+      return {
+        success: true,
+        data: {
+          series: [],
+          totalRevenue: 0,
+          totalCreatorShare: 0,
+          pendingPayout: 0,
+          paidOut: 0,
+        },
+      }
+    }
+
+    // Get all series IDs
+    const seriesIds = mySeries.map(s => String(s._id))
+
+    // Get all users who have purchases
+    const allUsers = await get('users', { 'purchases.0': { $exists: true } }, {}, {})
+
+    // Collect all purchases for this creator's series
+    const purchasesBySeriesAndEpisode = new Map()
+
+    for (const user of allUsers) {
+      const purchases = user.purchases || []
+      for (const purchase of purchases) {
+        if (seriesIds.includes(String(purchase.seriesId)) && purchase.status === 'success') {
+          const key = `${purchase.seriesId}-${purchase.episodeNumber}`
+          if (!purchasesBySeriesAndEpisode.has(key)) {
+            purchasesBySeriesAndEpisode.set(key, {
+              seriesId: purchase.seriesId,
+              seriesName: purchase.seriesName,
+              seriesCover: purchase.seriesCover,
+              episodeNumber: purchase.episodeNumber,
+              episodeTitle: purchase.episodeTitle,
+              totalSales: 0,
+              totalRevenue: 0,
+            })
+          }
+          const episodeData = purchasesBySeriesAndEpisode.get(key)
+          episodeData.totalSales += 1
+          episodeData.totalRevenue += purchase.price || 0
+        }
+      }
+    }
+
+    // Group by series
+    const seriesRevenueMap = new Map()
+
+    for (const [key, episodeData] of purchasesBySeriesAndEpisode) {
+      const seriesId = episodeData.seriesId
+      if (!seriesRevenueMap.has(seriesId)) {
+        seriesRevenueMap.set(seriesId, {
+          seriesId,
+          seriesName: episodeData.seriesName,
+          seriesCover: episodeData.seriesCover,
+          episodes: [],
+          totalSales: 0,
+          totalRevenue: 0,
+          creatorShare: 0,
+        })
+      }
+      const seriesData = seriesRevenueMap.get(seriesId)
+      seriesData.episodes.push({
+        episodeId: key,
+        episodeNumber: episodeData.episodeNumber,
+        episodeTitle: episodeData.episodeTitle,
+        totalSales: episodeData.totalSales,
+        totalRevenue: episodeData.totalRevenue,
+        creatorShare: episodeData.totalRevenue * 0.5, // 50% share
+      })
+      seriesData.totalSales += episodeData.totalSales
+      seriesData.totalRevenue += episodeData.totalRevenue
+      seriesData.creatorShare += episodeData.totalRevenue * 0.5
+    }
+
+    // Sort episodes by episode number within each series
+    for (const seriesData of seriesRevenueMap.values()) {
+      seriesData.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)
+    }
+
+    // Convert to array and calculate totals
+    const seriesRevenue = Array.from(seriesRevenueMap.values())
+    const totalRevenue = seriesRevenue.reduce((sum, s) => sum + s.totalRevenue, 0)
+    const totalCreatorShare = seriesRevenue.reduce((sum, s) => sum + s.creatorShare, 0)
+
+    // For now, all creator share is pending (paidOut would be tracked separately)
+    // In a real system, you'd track payouts in a separate collection
+    const pendingPayout = totalCreatorShare
+    const paidOut = 0
+
+    return {
+      success: true,
+      data: {
+        series: seriesRevenue,
+        totalRevenue,
+        totalCreatorShare,
+        pendingPayout,
+        paidOut,
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get my revenue: ${error.message}`)
+  }
+}
+
 // Add purchase - add a purchased episode to user's purchases
 const addPurchase = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
@@ -2700,6 +2813,7 @@ export {
   getMySeries,
   shelveSeries,
   getMyPurchases,
+  getMyRevenue,
   addPurchase,
   topUp,
   completeStripeTopUp,
