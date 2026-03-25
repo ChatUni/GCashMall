@@ -236,7 +236,7 @@ Section card with form fields:
 
 #### Header
 - **Title**: "Wallet"
-- **Subtitle**: "Manage your Gcash balance"
+- **Subtitle**: "Manage your balance"
 
 #### Balance Card
 - **Background**: Gradient (#1E3A5F to #0D1B2A)

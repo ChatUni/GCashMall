@@ -101,7 +101,7 @@ export const en = {
     },
     wallet: {
       title: 'Wallet',
-      subtitle: 'Manage your Gcash balance',
+      subtitle: 'Manage your balance',
       currentBalance: 'Current Balance',
       topUp: 'Top Up',
       topUpDescription: 'Select an amount to add to your wallet',
