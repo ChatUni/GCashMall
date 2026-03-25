@@ -1,4 +1,5 @@
 import PhoneLayout from '../../layouts/PhoneLayout'
+import { APP_DISPLAY_NAME } from '../../utils/config'
 import { t } from '../../stores/languageStore'
 import './PhoneAbout.css'
 
@@ -11,14 +12,14 @@ const PhoneAbout = () => {
         <div class="phone-about-logo">
           <img
             src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-            alt="GcashTV"
+            alt={APP_DISPLAY_NAME}
           />
         </div>
 
-        <h1 class="phone-about-title">{about().title || 'About GcashTV'}</h1>
+        <h1 class="phone-about-title">{about().title || `About ${APP_DISPLAY_NAME}`}</h1>
 
         <div class="phone-about-content">
-          <p>{about().description || 'GcashTV is your premier destination for streaming entertainment.'}</p>
+          <p>{about().description || `${APP_DISPLAY_NAME} is your premier destination for streaming entertainment.`}</p>
 
           <section class="phone-about-section">
             <h2>{about().missionTitle || 'Our Mission'}</h2>

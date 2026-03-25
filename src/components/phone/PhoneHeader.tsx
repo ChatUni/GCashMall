@@ -1,6 +1,7 @@
 import { Show } from 'solid-js'
 import type { JSX } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
+import { APP_DISPLAY_NAME } from '../../utils/config'
 import './PhoneHeader.css'
 
 interface PhoneHeaderProps {
@@ -39,7 +40,7 @@ const PhoneHeader = (props: PhoneHeaderProps) => {
             <div class="phone-header-logo" onClick={handleLogoClick}>
               <img
                 src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-                alt="GcashTV"
+                alt={APP_DISPLAY_NAME}
                 class="phone-logo-image"
               />
             </div>

@@ -1,3 +1,5 @@
+import { APP_DISPLAY_NAME } from '../utils/config'
+
 export const zh = {
   topBar: {
     searchPlaceholder: '输入剧集标题',
@@ -252,7 +254,7 @@ export const zh = {
     episodes: '剧集',
     share: '分享',
     addToFavorites: '添加到收藏',
-    breadcrumbHome: 'GcashTV',
+    breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: '解锁剧集',
     unlockMessage: '解锁此剧集以继续观看',
     yourBalance: '您的余额',
@@ -351,8 +353,8 @@ export const zh = {
   about: {
     tagline: '您的优质流媒体娱乐平台',
     missionTitle: '我们的使命',
-    missionText: 'GcashTV 致力于为您提供最佳的流媒体体验，拥有丰富的剧集和电影库。我们相信优质娱乐应该人人可及，通过 GCash 实现无缝支付集成。',
-    featuresTitle: '为什么选择 GcashTV',
+    missionText: `${APP_DISPLAY_NAME} 致力于为您提供最佳的流媒体体验，拥有丰富的剧集和电影库。我们相信优质娱乐应该人人可及，通过 GCash 实现无缝支付集成。`,
+    featuresTitle: `为什么选择 ${APP_DISPLAY_NAME}`,
     feature1Title: '独家内容',
     feature1Text: '访问各种独家剧集和电影，这些内容在其他地方找不到。',
     feature2Title: '便捷支付',
@@ -368,6 +370,6 @@ export const zh = {
     step2Text: '向您的 Gcash 钱包充值，解锁高级剧集和内容。',
     step3Title: '开始观看',
     step3Text: '浏览我们的内容库，解锁剧集，享受无限流媒体。',
-    footerText: '感谢您选择 GcashTV。祝您观影愉快！',
+    footerText: `感谢您选择 ${APP_DISPLAY_NAME}。祝您观影愉快！`,
   },
 }

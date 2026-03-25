@@ -1,6 +1,7 @@
 import { onMount } from 'solid-js'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
+import { APP_DISPLAY_NAME } from '../utils/config'
 import { t } from '../stores/languageStore'
 import './About.css'
 
@@ -22,11 +23,11 @@ const About = () => {
             <div class="about-logo">
               <img
                 src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-                alt="GCashTV"
+                alt={APP_DISPLAY_NAME}
                 class="about-logo-image"
               />
             </div>
-            <h1 class="about-title">GcashTV</h1>
+            <h1 class="about-title">{APP_DISPLAY_NAME}</h1>
             <p class="about-tagline">{about().tagline}</p>
           </div>
 

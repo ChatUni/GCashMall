@@ -1,3 +1,5 @@
+import { APP_DISPLAY_NAME } from '../utils/config'
+
 export const en = {
   topBar: {
     searchPlaceholder: 'Enter the title of the series',
@@ -253,7 +255,7 @@ export const en = {
     episodes: 'Episodes',
     share: 'Share',
     addToFavorites: 'Add to favorites',
-    breadcrumbHome: 'GcashTV',
+    breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: 'Unlock Episode',
     unlockMessage: 'Unlock this episode to continue watching',
     yourBalance: 'Your balance',
@@ -352,8 +354,8 @@ export const en = {
   about: {
     tagline: 'Your premium destination for streaming entertainment',
     missionTitle: 'Our Mission',
-    missionText: 'GcashTV is dedicated to bringing you the best streaming experience with a vast library of series and movies. We believe in making quality entertainment accessible to everyone, with seamless payment integration through Gcash.',
-    featuresTitle: 'Why Choose GcashTV',
+    missionText: `${APP_DISPLAY_NAME} is dedicated to bringing you the best streaming experience with a vast library of series and movies. We believe in making quality entertainment accessible to everyone, with seamless payment integration through Gcash.`,
+    featuresTitle: `Why Choose ${APP_DISPLAY_NAME}`,
     feature1Title: 'Exclusive Content',
     feature1Text: 'Access a wide variety of exclusive series and movies you won\'t find anywhere else.',
     feature2Title: 'Easy Payments',
@@ -369,6 +371,6 @@ export const en = {
     step2Text: 'Add funds to your Gcash wallet to unlock premium episodes and content.',
     step3Title: 'Start Watching',
     step3Text: 'Browse our library, unlock episodes, and enjoy unlimited streaming.',
-    footerText: 'Thank you for choosing GcashTV. Happy watching!',
+    footerText: `Thank you for choosing ${APP_DISPLAY_NAME}. Happy watching!`,
   },
 }

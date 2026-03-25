@@ -1,5 +1,6 @@
 import { createEffect, Show } from 'solid-js'
 import { useNavigate, useLocation } from '@solidjs/router'
+import { APP_DISPLAY_NAME } from '../utils/config'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
 import { topBarStore, topBarStoreActions } from '../stores/topBarStore'
@@ -54,7 +55,7 @@ const TopBar = () => {
               onClick={handleLogoClick}
             />
             <span class="app-name" onClick={handleLogoClick}>
-              GcashTV
+              {APP_DISPLAY_NAME}
             </span>
 
             {/* Genre Icon - Shown on tablet/mobile when nav-links are hidden */}

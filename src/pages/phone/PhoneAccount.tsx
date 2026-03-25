@@ -1,6 +1,7 @@
 import { createSignal, onMount, Show, For, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
+import { APP_DISPLAY_NAME } from '../../utils/config'
 import paymentMethodsIcon from '../../assets/payment-methods2.svg'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
@@ -999,17 +1000,17 @@ const PhoneAboutSection = () => {
   return (
     <div class="phone-about-section">
       <div class="phone-about-hero">
-        <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GcashTV Logo" class="phone-about-logo" />
-        <h1 class="phone-about-title">GcashTV</h1>
+        <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={`${APP_DISPLAY_NAME} Logo`} class="phone-about-logo" />
+        <h1 class="phone-about-title">{APP_DISPLAY_NAME}</h1>
         <p class="phone-about-tagline">{about().tagline || 'Your premium destination for streaming entertainment'}</p>
       </div>
       <div class="phone-about-card">
         <span class="phone-about-card-icon">🎯</span>
         <h2 class="phone-about-card-title">{about().missionTitle || 'Our Mission'}</h2>
-        <p class="phone-about-card-text">{about().missionText || 'GcashTV is dedicated to bringing you the best streaming experience with a vast library of series and movies.'}</p>
+        <p class="phone-about-card-text">{about().missionText || `${APP_DISPLAY_NAME} is dedicated to bringing you the best streaming experience with a vast library of series and movies.`}</p>
       </div>
       <div class="phone-about-card">
-        <h2 class="phone-about-card-title">{about().featuresTitle || 'Why Choose GcashTV'}</h2>
+        <h2 class="phone-about-card-title">{about().featuresTitle || `Why Choose ${APP_DISPLAY_NAME}`}</h2>
         <div class="phone-about-features">
           <For each={features()}>
             {(feature) => (
@@ -1038,7 +1039,7 @@ const PhoneAboutSection = () => {
           </For>
         </div>
       </div>
-      <p class="phone-about-footer">{about().footerText || 'Thank you for choosing GcashTV. Happy watching!'}</p>
+      <p class="phone-about-footer">{about().footerText || `Thank you for choosing ${APP_DISPLAY_NAME}. Happy watching!`}</p>
     </div>
   )
 }
