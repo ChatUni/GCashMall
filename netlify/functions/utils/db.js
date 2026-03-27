@@ -17,18 +17,18 @@ const connectDB = async () => {
     await client.connect()
     
     // Determine database name based on environment
-    const appName = 'GCashMall'
-    let dbName = appName
+    const appName = process.env.VITE_APP_DISPLAY_NAME
+    let dbName = appName.toLowerCase()
     
     if (process.env.NODE_ENV === 'production') {
-      dbName = `${appName}-dev`
+      dbName = `${dbName}`
     } else if (process.env.NODE_ENV === 'qa') {
-      dbName = `${appName}-qa`
+      dbName = `${dbName}-qa`
     } else {
       // local development
-      dbName = `${appName}-dev`
+      dbName = `${dbName}`
     }
-    
+    console.log(dbName)
     cachedDb = client.db(dbName)
     return cachedDb
   } catch (error) {
