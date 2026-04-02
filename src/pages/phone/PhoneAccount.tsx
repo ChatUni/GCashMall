@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For, createEffect } from 'solid-js'
+import { createSignal, Show, For, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../../utils/config'
@@ -298,7 +298,7 @@ const PhoneWatchHistorySection = () => {
         <div class="phone-history-list">
           <For each={sortedItems()}>
             {(item) => (
-              <PhoneHistoryCard seriesId={item.seriesId} episodeNumber={item.episodeNumber} onClick={() => navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)} onRemove={(e: MouseEvent, name: string) => { e.stopPropagation(); openDeleteHistoryItemModal(item.seriesId, name) }} />
+              <PhoneHistoryCard seriesName={item.seriesName} seriesCover={item.seriesCover} episodeNumber={item.episodeNumber} onClick={() => navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)} onRemove={(e: MouseEvent) => { e.stopPropagation(); openDeleteHistoryItemModal(item.seriesId, item.seriesName) }} />
             )}
           </For>
         </div>
@@ -337,46 +337,25 @@ const PhoneWatchHistorySection = () => {
 // ── History Card ──
 
 interface PhoneHistoryCardProps {
-  seriesId: string
+  seriesName: string
+  seriesCover: string
   episodeNumber: number
   onClick: () => void
-  onRemove: (e: MouseEvent, seriesName: string) => void
+  onRemove: (e: MouseEvent) => void
 }
 
-const PhoneHistoryCard = (props: PhoneHistoryCardProps) => {
-  const [series, setSeries] = createSignal<{ name: string; cover: string; tags?: string[] } | null>(null)
-  const [notFound, setNotFound] = createSignal(false)
-
-  onMount(async () => {
-    try {
-      const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${props.seriesId}`)
-      const data = await response.json()
-      if (data.success && data.data) {
-        setSeries(data.data)
-      } else {
-        setNotFound(true)
-      }
-    } catch (error) {
-      console.error('Failed to fetch series:', error)
-      setNotFound(true)
-    }
-  })
-
-  return (
-    <Show when={!notFound()}>
-      <div class="phone-history-item" onClick={props.onClick}>
-        <div class="phone-history-cover">
-          <Show when={series()?.cover} fallback={<div class="phone-history-placeholder">🎬</div>}>
-            <img src={series()!.cover} alt={series()!.name || 'Series'} />
-          </Show>
-          <span class="phone-history-ep">EP {props.episodeNumber}</span>
-        </div>
-        <span class="phone-history-name">{series()?.name || `Series ${props.seriesId}`}</span>
-        <button class="phone-remove-btn" onClick={(e: MouseEvent) => props.onRemove(e, series()?.name || `Series ${props.seriesId}`)}>✕</button>
-      </div>
-    </Show>
-  )
-}
+const PhoneHistoryCard = (props: PhoneHistoryCardProps) => (
+  <div class="phone-history-item" onClick={props.onClick}>
+    <div class="phone-history-cover">
+      <Show when={props.seriesCover} fallback={<div class="phone-history-placeholder">🎬</div>}>
+        <img src={props.seriesCover} alt={props.seriesName || 'Series'} />
+      </Show>
+      <span class="phone-history-ep">EP {props.episodeNumber}</span>
+    </div>
+    <span class="phone-history-name">{props.seriesName || 'Series'}</span>
+    <button class="phone-remove-btn" onClick={(e: MouseEvent) => props.onRemove(e)}>✕</button>
+  </div>
+)
 
 // ── Favorites Section ── subscribes directly to accountStore
 

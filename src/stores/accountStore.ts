@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { FavoriteItem, PurchaseItem, Series, User, RevenueData } from '../types'
+import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem } from '../types'
 
 // Payment method types
 export type PaymentMethod = 'creditcard' | 'gusd'
@@ -564,7 +564,7 @@ export const generateTransactionId = (): string => {
 // These compute derived values from the store state
 
 // Get sorted watch history items (most recent first by updatedAt)
-export const getSortedWatchHistoryItems = (items: { seriesId: string; episodeNumber: number; addedAt: Date; updatedAt: Date }[]) => {
+export const getSortedWatchHistoryItems = (items: WatchListItem[]) => {
   return [...items].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )

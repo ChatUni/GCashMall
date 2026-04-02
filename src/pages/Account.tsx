@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For, type Component, createEffect } from 'solid-js'
+import { createSignal, Show, For, type Component, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
@@ -421,7 +421,8 @@ function WatchHistorySection() {
           <For each={sortedItems()}>
             {(item) => (
               <HistoryCard
-                seriesId={item.seriesId}
+                seriesName={item.seriesName}
+                seriesCover={item.seriesCover}
                 episodeNumber={item.episodeNumber}
                 onClick={() => navigate(`/player/${item.seriesId}?episode=${item.episodeNumber}`)}
                 onRemove={(e) => {
@@ -438,59 +439,34 @@ function WatchHistorySection() {
 }
 
 interface HistoryCardProps {
-  seriesId: string
+  seriesName: string
+  seriesCover: string
   episodeNumber: number
   onClick: () => void
   onRemove: (e: MouseEvent) => void
 }
 
-const HistoryCard = (props: HistoryCardProps) => {
-  // Fetch series data for display
-  const [series, setSeries] = createSignal<{ name: string; cover: string; tags?: string[] } | null>(null)
-  const [notFound, setNotFound] = createSignal(false)
-
-  onMount(async () => {
-    try {
-      const response = await fetch(`${import.meta.env.DEV ? 'http://localhost:8888' : ''}/.netlify/functions/api?type=series&id=${props.seriesId}`)
-      const data = await response.json()
-      if (data.success && data.data) {
-        setSeries(data.data)
-      } else {
-        setNotFound(true)
-      }
-    } catch (error) {
-      console.error('Failed to fetch series:', error)
-      setNotFound(true)
-    }
-  })
-
-  return (
-    <Show when={!notFound()}>
-      <div class="history-card series-card" onClick={props.onClick}>
-        <div class="series-card-poster">
-          <Show when={series()?.cover} fallback={<div class="series-card-placeholder" />}>
-            <img src={series()!.cover} alt={series()?.name || 'Series'} class="series-card-image" />
-          </Show>
-          <div class="series-card-overlay">
-            <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          </div>
-          <span class="episode-badge">EP {props.episodeNumber}</span>
-          <button class="remove-btn" onClick={props.onRemove}>
-            ✕
-          </button>
-        </div>
-        <div class="series-card-info">
-          <h3 class="series-card-title">{series()?.name || `Series ${props.seriesId}`}</h3>
-          <Show when={series()?.tags && series()!.tags!.length > 0}>
-            <span class="series-card-tag">{series()!.tags![0]}</span>
-          </Show>
-        </div>
+const HistoryCard = (props: HistoryCardProps) => (
+  <div class="history-card series-card" onClick={props.onClick}>
+    <div class="series-card-poster">
+      <Show when={props.seriesCover} fallback={<div class="series-card-placeholder" />}>
+        <img src={props.seriesCover} alt={props.seriesName || 'Series'} class="series-card-image" />
+      </Show>
+      <div class="series-card-overlay">
+        <svg class="series-card-play-icon" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
       </div>
-    </Show>
-  )
-}
+      <span class="episode-badge">EP {props.episodeNumber}</span>
+      <button class="remove-btn" onClick={props.onRemove}>
+        ✕
+      </button>
+    </div>
+    <div class="series-card-info">
+      <h3 class="series-card-title">{props.seriesName || 'Series'}</h3>
+    </div>
+  </div>
+)
 
 function FavoritesSection() {
   const navigate = useNavigate()
