@@ -8,10 +8,10 @@ import { isCordova } from './cordova'
 
 export const getApiBaseUrl = (): string => {
   if (isCordova()) {
-    return 'https://gcashtv.netlify.app'
+    return import.meta.env.VITE_LOCAL_SERVER
   }
   if (import.meta.env.DEV) {
-    return 'http://localhost:8888'
+    return import.meta.env.VITE_LOCALHOST
   }
   return window.location.origin
 }

@@ -20,9 +20,10 @@ const TodoList = () => {
   })
 
   const getApiUrl = () => {
-    return window.location.hostname === 'localhost'
-      ? 'http://localhost:8888'
-      : window.location.origin
+    return import.meta.env.VITE_LOCALHOST
+    // return window.location.hostname === 'localhost'
+    //   ? import.meta.env.VITE_LOCALHOST
+    //   : window.location.origin
   }
 
   const fetchTodos = async () => {

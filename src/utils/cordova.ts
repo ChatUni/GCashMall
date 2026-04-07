@@ -1,6 +1,6 @@
 // Production site URL used as OAuth redirect in Cordova
 // (Cordova's window.location.origin is app://localhost which Google rejects)
-export const PRODUCTION_ORIGIN = 'https://gcashtv.netlify.app'
+export const PRODUCTION_ORIGIN = import.meta.env.VITE_LOCAL_SERVER as string
 
 // Mobile OAuth redirect page hosted on the production site
 // Google redirects here, then this page redirects to gcashmall:// custom URL scheme

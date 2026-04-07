@@ -1180,7 +1180,7 @@ const resetPassword = async (body) => {
       await save('users', updateData)
       
       // Build reset URL
-      const baseUrl = process.env.APP_URL || 'http://localhost:5173'
+      const baseUrl = process.env.VITE_LOCALHOST
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email.toLowerCase())}`
       
       // Send password reset email
