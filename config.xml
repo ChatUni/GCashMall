@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.gcashmall.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>GCashMall</name>
+<widget id="org.gaia.ganime" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>GAnime</name>
     <description>GCashMall - Online Store App</description>
     <author email="support@gcashmall.com" href="https://gcashmall.com">GCashMall Team</author>
     <content src="index.html" />
