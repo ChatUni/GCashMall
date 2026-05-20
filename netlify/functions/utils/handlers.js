@@ -2820,6 +2820,9 @@ export {
   completeGUSDTopUp,
   withdraw,
   purchaseEpisode,
+  getLikes,
+  likeSeries,
+  unlikeSeries,
 }
 
 // Database migration: update genre structure
@@ -2937,5 +2940,121 @@ const migrateGenres = async (body) => {
     }
   } catch (error) {
     throw new Error(`Migration failed: ${error.message}`)
+  }
+}
+
+// ── Like / Unlike ──
+
+const getLikes = async (params, authHeader) => {
+  validateGetLikesParams(params)
+
+  try {
+    const { seriesId } = params
+    const count = await countSeriesLikes(seriesId)
+
+    let isLiked = false
+    if (authHeader) {
+      try {
+        const userId = await validateAuth(authHeader)
+        isLiked = await hasUserLikedSeries(seriesId, userId)
+      } catch {
+        // Not logged in or invalid token – isLiked stays false
+      }
+    }
+
+    return {
+      success: true,
+      data: { count, isLiked },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get likes: ${error.message}`)
+  }
+}
+
+const validateGetLikesParams = (params) => {
+  if (!params || !params.seriesId) {
+    throw new Error('seriesId is required')
+  }
+}
+
+const countSeriesLikes = async (seriesId) => {
+  const likes = await get('likes', { seriesId }, {}, {})
+  return likes.length
+}
+
+const hasUserLikedSeries = async (seriesId, userId) => {
+  const existing = await get(
+    'likes',
+    { seriesId, userId: new ObjectId(userId).toString() },
+    {},
+    {},
+    1,
+  )
+  return existing.length > 0
+}
+
+const likeSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateLikeSeriesBody(body)
+
+  try {
+    const { seriesId } = body
+    const userIdStr = new ObjectId(userId).toString()
+
+    const existing = await get(
+      'likes',
+      { seriesId, userId: userIdStr },
+      {},
+      {},
+      1,
+    )
+
+    if (existing.length === 0) {
+      await save('likes', {
+        seriesId,
+        userId: userIdStr,
+        createdAt: new Date(),
+      })
+    }
+
+    const count = await countSeriesLikes(seriesId)
+
+    return {
+      success: true,
+      data: { count, isLiked: true },
+    }
+  } catch (error) {
+    throw new Error(`Failed to like series: ${error.message}`)
+  }
+}
+
+const unlikeSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateLikeSeriesBody(body)
+
+  try {
+    const { seriesId } = body
+    const userIdStr = new ObjectId(userId).toString()
+
+    await remove('likes', { seriesId, userId: userIdStr })
+
+    const count = await countSeriesLikes(seriesId)
+
+    return {
+      success: true,
+      data: { count, isLiked: false },
+    }
+  } catch (error) {
+    throw new Error(`Failed to unlike series: ${error.message}`)
+  }
+}
+
+const validateLikeSeriesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('seriesId is required')
   }
 }

@@ -132,7 +132,23 @@
 }
 
 .phone-action-btn.active {
-  color: #ef4444;
+  color: #FFD700;
+}
+
+.phone-like-btn {
+  flex-direction: column;
+  gap: 2px;
+  background: #1a1a1a;
+}
+
+.phone-like-btn:hover {
+  background: #2a2a2e;
+}
+
+.phone-like-count {
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
 }
 
 .phone-action-btn.locked {

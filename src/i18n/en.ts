@@ -277,6 +277,8 @@ export const en = {
     confirm: 'Confirm',
     expand: 'Show More',
     collapse: 'Show Less',
+    like: 'Like',
+    unlike: 'Unlike',
     purchaseDialog: {
       title: 'Purchase Required',
       message: 'You must purchase the episode in order to continue watching. It will cost {cost} GCash.',

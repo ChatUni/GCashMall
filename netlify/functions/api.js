@@ -47,6 +47,9 @@ import {
   completeGUSDTopUp,
   withdraw,
   purchaseEpisode,
+  getLikes,
+  likeSeries,
+  unlikeSeries,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -67,6 +70,7 @@ const apiHandlers = {
     mySeries: (params, authHeader) => getMySeries(params, authHeader),
     myPurchases: (params, authHeader) => getMyPurchases(params, authHeader),
     myRevenue: (params, authHeader) => getMyRevenue(params, authHeader),
+    likes: (params, authHeader) => getLikes(params, authHeader),
   },
   post: {
     todo: (body) => saveTodo(body),
@@ -99,6 +103,8 @@ const apiHandlers = {
     completeGUSDTopUp: (body, authHeader) => completeGUSDTopUp(body, authHeader),
     withdraw: (body, authHeader) => withdraw(body, authHeader),
     purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
+    likeSeries: (body, authHeader) => likeSeries(body, authHeader),
+    unlikeSeries: (body, authHeader) => unlikeSeries(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),

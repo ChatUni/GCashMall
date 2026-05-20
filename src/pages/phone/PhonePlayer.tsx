@@ -25,7 +25,7 @@ import {
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
 } from '../../stores/playerStore'
-import { getIframeUrl } from '../../utils/playerHelpers'
+import { getIframeUrl, formatLikeCount } from '../../utils/playerHelpers'
 import type { User } from '../../types'
 import './PhonePlayer.css'
 
@@ -200,6 +200,21 @@ const PhonePlayer = () => {
                   </span>
                 </div>
                 <div class="phone-player-actions">
+                  <button
+                    class={`phone-action-btn phone-action-btn-large phone-like-btn ${playerPageStore.isLiked ? 'active' : ''}`}
+                    onClick={playerPageStoreActions.handleLikeToggle}
+                  >
+                    <svg viewBox="0 0 24 24" width="28" height="28">
+                      <path
+                        fill={playerPageStore.isLiked ? '#FFD700' : 'none'}
+                        stroke={playerPageStore.isLiked ? '#FFD700' : 'currentColor'}
+                        stroke-width="2"
+                        d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
+                      />
+                    </svg>
+                    <span class="phone-like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+                  </button>
+
                   <button
                     class={`phone-action-btn phone-action-btn-large ${isFavorited() ? 'active' : ''}`}
                     onClick={playerPageStoreActions.handleFavoriteToggle}

@@ -217,6 +217,42 @@
   gap: 12px;
 }
 
+.like-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 48px;
+  height: 48px;
+  background: #1a1a1a;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: #9ca3af;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  flex-direction: column;
+}
+
+.like-button:hover {
+  transform: scale(1.05);
+  background-color: #2a2a2e;
+}
+
+.like-button.active {
+  color: #FFD700;
+}
+
+.like-button svg {
+  transition: transform 0.2s ease;
+}
+
+.like-count {
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
+}
+
 .favorite-button,
 .unlock-button {
   display: flex;

@@ -35,6 +35,7 @@ import {
 import { isEpisodePurchased } from '../services/dataService'
 import {
   formatTime,
+  formatLikeCount,
   getEpisodeThumbnailUrl,
   buildEpisodeTitle,
   getIframeUrl,
@@ -431,6 +432,22 @@ const EpisodeMetadata = () => {
         </div>
 
         <div class="metadata-buttons">
+          <button
+            class={`like-button ${playerPageStore.isLiked ? 'active' : ''}`}
+            onClick={playerPageStoreActions.handleLikeToggle}
+            title={playerPageStore.isLiked ? t().player.unlike : t().player.like}
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path
+                fill={playerPageStore.isLiked ? '#FFD700' : 'none'}
+                stroke={playerPageStore.isLiked ? '#FFD700' : '#9ca3af'}
+                stroke-width="2"
+                d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
+              />
+            </svg>
+            <span class="like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+          </button>
+
           <button
             class={`favorite-button ${isFavorited() ? 'active' : ''}`}
             onClick={playerPageStoreActions.handleFavoriteToggle}

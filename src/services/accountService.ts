@@ -5,6 +5,7 @@ import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBro
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
+import { playerPageStoreActions } from '../stores/playerStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
 
@@ -169,6 +170,7 @@ export const fetchAccountUserData = async () => {
 export const handleLogout = () => {
   clearAuthData()
   accountStoreActions.reset()
+  playerPageStoreActions.reset()
 }
 
 // Validate profile form

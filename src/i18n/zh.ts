@@ -276,6 +276,8 @@ export const zh = {
     confirm: '确认',
     expand: '展开',
     collapse: '收起',
+    like: '点赞',
+    unlike: '取消点赞',
     purchaseDialog: {
       title: '需要购买',
       message: '您需要购买此集才能继续观看。费用为 {cost} GCash。',

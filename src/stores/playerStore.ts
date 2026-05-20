@@ -13,6 +13,9 @@ import {
   fetchPlayerData,
   fetchRecommendations,
   fetchNewReleases,
+  fetchLikes,
+  likeSeries,
+  unlikeSeries,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -147,6 +150,9 @@ interface PlayerPageState {
   isDescriptionExpanded: boolean
   // Description truncation
   showExpandButton: boolean
+  // Like state
+  likeCount: number
+  isLiked: boolean
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -165,6 +171,8 @@ const getInitialState = (): PlayerPageState => ({
   showEpisodeList: true,
   isDescriptionExpanded: false,
   showExpandButton: false,
+  likeCount: 0,
+  isLiked: false,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -533,6 +541,7 @@ export const playerPageStoreActions = {
       })
       basePlayerStoreActions.reset()
       fetchPlayerData(seriesId)
+      playerPageStoreActions.loadLikes(seriesId)
     }
     if (fetchRecommendationsData) {
       if (!playerPageState.recommendationsFetched) {
@@ -795,6 +804,37 @@ export const playerPageStoreActions = {
   },
   setShowExpandButton: (show: boolean) => {
     setPlayerPageState({ showExpandButton: show })
+  },
+
+  // Like actions
+  loadLikes: async (seriesId: string) => {
+    try {
+      const data = await fetchLikes(seriesId)
+      setPlayerPageState({ likeCount: data.count, isLiked: data.isLiked })
+    } catch (error) {
+      console.error('Failed to load likes:', error)
+    }
+  },
+  handleLikeToggle: async () => {
+    if (!isLoggedIn()) {
+      loginModalStoreActions.open()
+      return
+    }
+
+    const seriesId = playerPageState.currentSeriesId
+    if (!seriesId) return
+
+    try {
+      if (playerPageState.isLiked) {
+        const data = await unlikeSeries(seriesId)
+        setPlayerPageState({ likeCount: data.count, isLiked: data.isLiked })
+      } else {
+        const data = await likeSeries(seriesId)
+        setPlayerPageState({ likeCount: data.count, isLiked: data.isLiked })
+      }
+    } catch (error) {
+      console.error('Failed to toggle like:', error)
+    }
   },
 
   // Reset all state

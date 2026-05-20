@@ -1,7 +1,7 @@
 // Data fetching services - called outside useEffect
 // Following Rule #5: Avoid calling APIs in useEffect
 
-import { apiGet, apiPost, apiPostWithAuth } from '../utils/api'
+import { apiGet, apiGetWithAuth, apiPost, apiPostWithAuth } from '../utils/api'
 import {
   featuredStoreActions,
   recommendationsStoreActions,
@@ -256,6 +256,37 @@ export const purchaseEpisodeSimple = async (seriesId: string, episodeNumber: num
     }
   }
   return result
+}
+
+// ── Likes ──
+
+interface LikesData {
+  count: number
+  isLiked: boolean
+}
+
+export const fetchLikes = async (seriesId: string): Promise<LikesData> => {
+  const result = await apiGetWithAuth<LikesData>('likes', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0, isLiked: false }
+}
+
+export const likeSeries = async (seriesId: string): Promise<LikesData> => {
+  const result = await apiPostWithAuth<LikesData>('likeSeries', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0, isLiked: true }
+}
+
+export const unlikeSeries = async (seriesId: string): Promise<LikesData> => {
+  const result = await apiPostWithAuth<LikesData>('unlikeSeries', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0, isLiked: false }
 }
 
 // Top up

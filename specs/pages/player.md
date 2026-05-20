@@ -174,6 +174,20 @@ Episode Cost = 1 GCash
 - **Gap**: 12px
 - **Align Items**: Center
 
+#### Like Button
+- **Size**: 48px × 48px
+- **Border Radius**: 50%
+- **Background**: #1A1A1A
+- **Color**: #9CA3AF (inactive), #EF4444 (active)
+- **Hover**: Background #2A2A2E, scale(1.05)
+- **Icon**: Thumb Up SVG (filled when active)
+- **Text**: The number of likes, if more than 1000, rounded to the nearest K or M with 1 decimal place (12.7k, 2.3m)
+- on load:
+  - call "number of likes" API to get number of likes
+- on click:
+  - inactive: call "like" API, change to active, update number of likes
+  - active: call "unlike" API, change to inactive, update number of likes
+
 #### Favorite Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%
