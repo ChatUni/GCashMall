@@ -811,6 +811,7 @@ export const playerPageStoreActions = {
     try {
       const data = await fetchLikes(seriesId)
       setPlayerPageState({ likeCount: data.count, isLiked: data.isLiked })
+      //setPlayerPageState({ likeCount: 43876, isLiked: true }) // TODO: revert hardcode - was { likeCount: data.count, isLiked: data.isLiked }
     } catch (error) {
       console.error('Failed to load likes:', error)
     }
