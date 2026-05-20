@@ -195,7 +195,7 @@ Appears at the end of each carousel.
 # You Might Like Section
 
 ## Overview
-A recommendation carousel section displaying series the user might enjoy based on their viewing history or preferences.
+A recommendation carousel section displaying series the user might enjoy based on their viewing history or preferences. For now, just retrieve the series with most likes (fill the list with random series if data not enough).
 
 ## Implementation
 Uses the Series Carousel Section component with:

@@ -253,6 +253,7 @@ export const zh = {
   player: {
     episodes: '剧集',
     share: '分享',
+    shareTitle: '分享这一集',
     addToFavorites: '添加到收藏',
     breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: '解锁剧集',

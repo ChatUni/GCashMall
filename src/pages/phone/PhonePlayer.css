@@ -386,3 +386,110 @@
   font-size: 10px;
   color: #22c55e;
 }
+
+/* Share Button */
+.phone-share-btn {
+  color: #9CA3AF;
+}
+
+.phone-share-btn:hover {
+  color: #3B82F6;
+}
+
+/* Share Popup Overlay */
+.phone-share-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.phone-share-popup {
+  background: #1A1A1E;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 20px 16px 32px;
+  animation: slideUpShare 0.3s ease;
+}
+
+.phone-share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.phone-share-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.phone-share-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.phone-share-close:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.phone-share-buttons {
+  display: flex;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.phone-share-btn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 72px;
+}
+
+.phone-share-btn-item:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.phone-share-btn-item span {
+  color: #9CA3AF;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+@keyframes slideUpShare {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

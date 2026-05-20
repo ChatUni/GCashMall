@@ -1,12 +1,18 @@
 [build]
   functions = "netlify/functions"
   publish = "www"
+  edge_functions = "netlify/edge-functions"
 
 [dev]
   port = 8888
   framework = "#custom"
   command = "npm run dev:vite"
   targetPort = 5173
+
+# Edge function for injecting OG meta tags on player pages (social bots only)
+[[edge_functions]]
+  function = "og-meta"
+  path = "/player/*"
 
 [[redirects]]
   from = "/api/*"

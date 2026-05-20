@@ -153,6 +153,8 @@ interface PlayerPageState {
   // Like state
   likeCount: number
   isLiked: boolean
+  // Share popup (phone only)
+  showSharePopup: boolean
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -173,6 +175,7 @@ const getInitialState = (): PlayerPageState => ({
   showExpandButton: false,
   likeCount: 0,
   isLiked: false,
+  showSharePopup: false,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -804,6 +807,17 @@ export const playerPageStoreActions = {
   },
   setShowExpandButton: (show: boolean) => {
     setPlayerPageState({ showExpandButton: show })
+  },
+
+  // Share popup (phone only)
+  showSharePopup: () => {
+    setPlayerPageState({ showSharePopup: true })
+  },
+  hideSharePopup: () => {
+    setPlayerPageState({ showSharePopup: false })
+  },
+  toggleSharePopup: () => {
+    setPlayerPageState("showSharePopup", (prev) => !prev)
   },
 
   // Like actions

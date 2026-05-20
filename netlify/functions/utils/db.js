@@ -106,4 +106,13 @@ const validateInput = (value, paramName) => {
   }
 }
 
-export { connectDB, get, save, remove, update }
+const aggregate = async (docName, pipeline = []) => {
+  validateInput(docName, 'docName')
+
+  const db = await connectDB()
+  const collection = db.collection(docName)
+
+  return await collection.aggregate(pipeline).toArray()
+}
+
+export { connectDB, get, save, remove, update, aggregate }

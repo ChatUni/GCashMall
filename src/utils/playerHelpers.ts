@@ -56,3 +56,40 @@ export const buildEpisodeTitle = (seriesName: string, episodeNumber: number): st
 export const getIframeUrl = (libraryId: string, videoId: string): string => {
   return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=true&loop=false&muted=false&preload=true`
 }
+
+// ── Share Utilities ──
+
+export const getShareUrl = (): string => {
+  return window.location.href
+}
+
+export const getShareText = (seriesName: string, episodeNumber?: number): string => {
+  if (episodeNumber) {
+    return `Check out ${seriesName} - EP ${episodeNumber.toString().padStart(2, '0')}!`
+  }
+  return `Check out ${seriesName}!`
+}
+
+export const openShareWindow = (url: string): void => {
+  window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer')
+}
+
+export const shareFacebook = (shareUrl: string): void => {
+  const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  openShareWindow(url)
+}
+
+export const shareTwitter = (shareUrl: string, text: string): void => {
+  const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`
+  openShareWindow(url)
+}
+
+export const sharePinterest = (shareUrl: string, text: string): void => {
+  const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(shareUrl)}&description=${encodeURIComponent(text)}`
+  openShareWindow(url)
+}
+
+export const shareWhatsApp = (shareUrl: string, text: string): void => {
+  const url = `https://wa.me/?text=${encodeURIComponent(`${text} ${shareUrl}`)}`
+  openShareWindow(url)
+}

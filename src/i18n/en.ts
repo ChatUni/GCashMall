@@ -254,6 +254,7 @@ export const en = {
   player: {
     episodes: 'Episodes',
     share: 'Share',
+    shareTitle: 'Share this episode',
     addToFavorites: 'Add to favorites',
     breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: 'Unlock Episode',

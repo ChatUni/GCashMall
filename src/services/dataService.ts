@@ -2,6 +2,7 @@
 // Following Rule #5: Avoid calling APIs in useEffect
 
 import { apiGet, apiGetWithAuth, apiPost, apiPostWithAuth } from '../utils/api'
+import { updateOgMeta } from '../utils/ogMeta'
 import {
   featuredStoreActions,
   recommendationsStoreActions,
@@ -91,7 +92,14 @@ export const fetchPlayerData = async (seriesId: string) => {
 
     if (seriesResponse.success && seriesResponse.data) {
       playerStoreActions.setSeries(seriesResponse.data)
-      
+
+      // Update OG meta tags for social sharing
+      updateOgMeta(
+        seriesResponse.data.name,
+        seriesResponse.data.description || '',
+        seriesResponse.data.cover || '',
+      )
+
       // Use episodes from series.episodes field
       const episodes = seriesResponse.data.episodes || []
       

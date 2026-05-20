@@ -1,4 +1,4 @@
-import { get, save, remove, update } from './db.js'
+import { get, save, remove, update, aggregate } from './db.js'
 import { ObjectId } from 'mongodb'
 import { v2 as cloudinary } from 'cloudinary'
 import bcrypt from 'bcryptjs'
@@ -378,23 +378,58 @@ const getFeaturedSeries = async (params) => {
 
 const getRecommendations = async (params) => {
   try {
-    // Get series with episodes only (either episodes array or videoId)
-    const filter = {
-      $or: [
-        { 'episodes.0': { $exists: true } },
-        { videoId: { $exists: true, $nin: [null, ''] } }
-      ]
-    }
-    const series = await get('series', filter, {}, {}, 20)
-    const shuffledSeries = shuffleArray(series).slice(0, 10)
-    const populatedSeries = await populateSeriesGenres(shuffledSeries)
+    const targetCount = 10
+    const seriesIds = await getSeriesIdsSortedByLikes(targetCount)
+    const series = await getSeriesByIds(seriesIds)
+    const orderedSeries = orderSeriesByIds(series, seriesIds)
+    const filledSeries = await backfillWithRandomSeries(
+      orderedSeries,
+      targetCount,
+    )
+    const populatedSeries = await populateSeriesGenres(filledSeries)
     return {
       success: true,
-      data: populatedSeries
+      data: populatedSeries,
     }
   } catch (error) {
     throw new Error(`Failed to get recommendations: ${error.message}`)
   }
+}
+
+const getSeriesIdsSortedByLikes = async (limit) => {
+  const pipeline = [
+    { $group: { _id: '$seriesId', likeCount: { $sum: 1 } } },
+    { $sort: { likeCount: -1 } },
+    { $limit: limit },
+  ]
+  const results = await aggregate('likes', pipeline)
+  return results.map((r) => r._id)
+}
+
+const getSeriesByIds = async (seriesIds) => {
+  if (seriesIds.length === 0) return []
+  return await get('series', { _id: { $in: seriesIds.map((id) => new ObjectId(id)) } })
+}
+
+const orderSeriesByIds = (series, seriesIds) => {
+  const seriesMap = new Map(series.map((s) => [s._id.toString(), s]))
+  return seriesIds.map((id) => seriesMap.get(id)).filter(Boolean)
+}
+
+const backfillWithRandomSeries = async (existingSeries, targetCount) => {
+  if (existingSeries.length >= targetCount) return existingSeries
+
+  const remaining = targetCount - existingSeries.length
+  const excludeIds = existingSeries.map((s) => s._id)
+  const randomSeries = await get(
+    'series',
+    { _id: { $nin: excludeIds } },
+    {},
+    {},
+    remaining * 2,
+  )
+  const shuffled = shuffleArray(randomSeries).slice(0, remaining)
+  return [...existingSeries, ...shuffled]
 }
 
 const getNewReleases = async (params) => {
