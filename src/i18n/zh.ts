@@ -279,6 +279,14 @@ export const zh = {
     collapse: '收起',
     like: '点赞',
     unlike: '取消点赞',
+    comments: {
+      title: '条评论',
+      placeholder: '添加评论...',
+      clear: '清除',
+      submit: '提交',
+      loading: '加载中...',
+      empty: '暂无评论，快来抢沙发！',
+    },
     purchaseDialog: {
       title: '需要购买',
       message: '您需要购买此集才能继续观看。费用为 {cost} GCash。',

@@ -5,6 +5,7 @@ import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
+import CommentSection from '../components/CommentSection'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../components/PlayerModals'
 import { t } from '../stores/languageStore'
 import {
@@ -89,6 +90,7 @@ const Player = () => {
             <div class="player-main">
               <VideoPlayer />
               <EpisodeMetadata />
+              <CommentSection />
             </div>
 
             <EpisodeSidebar />

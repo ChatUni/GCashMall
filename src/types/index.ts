@@ -209,6 +209,17 @@ export interface FeaturedSeries {
   isFeatured: boolean
 }
 
+export interface Comment {
+  _id: string
+  seriesId: string
+  episodeId: string
+  userId: string
+  userNickname: string
+  userAvatar: string | null
+  body: string
+  createdAt: string | Date
+}
+
 export type NavItemType = 'home' | 'genre' | 'account' | 'history'
 
 export interface SearchSuggestion {

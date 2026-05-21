@@ -2806,6 +2806,101 @@ const validatePurchaseEpisodeBody = (body) => {
   }
 }
 
+// ── Comments ──
+
+const getComments = async (params) => {
+  validateGetCommentsParams(params)
+
+  try {
+    const { seriesId, episodeId } = params
+    const page = parseInt(params.page) || 1
+    const pageSize = parseInt(params.pageSize) || 20
+
+    const filter = { seriesId, episodeId }
+    const skip = (page - 1) * pageSize
+
+    const comments = await get('comments', filter, {}, { createdAt: -1 }, pageSize, skip)
+    const totalCount = await countComments(filter)
+    const hasMore = skip + comments.length < totalCount
+
+    return {
+      success: true,
+      data: { comments, totalCount, hasMore },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get comments: ${error.message}`)
+  }
+}
+
+const countComments = async (filter) => {
+  const db = await (await import('./db.js')).connectDB()
+  return await db.collection('comments').countDocuments(filter)
+}
+
+const validateGetCommentsParams = (params) => {
+  if (!params || !params.seriesId) {
+    throw new Error('seriesId is required')
+  }
+  if (!params.episodeId) {
+    throw new Error('episodeId is required')
+  }
+}
+
+const addComment = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateAddCommentBody(body)
+
+  try {
+    const { seriesId, episodeId, body: commentBody } = body
+
+    const user = await getUserById(userId)
+
+    const comment = {
+      seriesId,
+      episodeId,
+      userId: String(userId),
+      userNickname: user.nickname || 'Guest',
+      userAvatar: user.avatar || null,
+      body: commentBody.trim(),
+      createdAt: new Date(),
+    }
+
+    const result = await save('comments', comment)
+
+    return {
+      success: true,
+      data: {
+        comment: { ...comment, _id: result.insertedId },
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to add comment: ${error.message}`)
+  }
+}
+
+const getUserById = async (userId) => {
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) {
+    throw new Error('User not found')
+  }
+  return users[0]
+}
+
+const validateAddCommentBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+  if (!body.seriesId) {
+    throw new Error('seriesId is required')
+  }
+  if (!body.episodeId) {
+    throw new Error('episodeId is required')
+  }
+  if (!body.body || typeof body.body !== 'string' || !body.body.trim()) {
+    throw new Error('Comment body is required and must be a non-empty string')
+  }
+}
+
 export {
   getTodos,
   saveTodo,
@@ -2858,6 +2953,8 @@ export {
   getLikes,
   likeSeries,
   unlikeSeries,
+  getComments,
+  addComment,
 }
 
 // Database migration: update genre structure

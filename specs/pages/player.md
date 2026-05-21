@@ -236,6 +236,24 @@ Episode Cost = 1 GCash
 - **Line Height**: 1.7
 - **Text Clamp**: 4 lines max
 
+### Comment Section
+
+- Title row
+  - "{n} Comments"
+  - Chevron icon (up/down) to collapse/open the Comment Section (align right)
+- Input row
+  - Avatar of the current user
+  - input box (bottom border only, light gray) with placeholder "Add a comment...", occupy all available space horizontally
+  - action icons (align right)
+    - clear text (X in a circle)
+    - submit (paper airplane pointing right)
+- Comment list, where each comment
+  - Avatar of the user column (the avatar icon align top in the column)
+  - comment column
+    - user name followed by date/time (23 mins ago, 13 days ago, 3 months ago...)
+    - comment body
+- Comments should be loaded incrementally while scrolling down (infinite scroll list, 20 each time)
+
 ## Episode List Panel (Right Sidebar)
 
 ### Container

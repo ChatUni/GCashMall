@@ -50,6 +50,8 @@ import {
   getLikes,
   likeSeries,
   unlikeSeries,
+  getComments,
+  addComment,
 } from './utils/handlers.js'
 
 const apiHandlers = {
@@ -71,6 +73,7 @@ const apiHandlers = {
     myPurchases: (params, authHeader) => getMyPurchases(params, authHeader),
     myRevenue: (params, authHeader) => getMyRevenue(params, authHeader),
     likes: (params, authHeader) => getLikes(params, authHeader),
+    comments: (params) => getComments(params),
   },
   post: {
     todo: (body) => saveTodo(body),
@@ -105,6 +108,7 @@ const apiHandlers = {
     purchaseEpisode: (body, authHeader) => purchaseEpisode(body, authHeader),
     likeSeries: (body, authHeader) => likeSeries(body, authHeader),
     unlikeSeries: (body, authHeader) => unlikeSeries(body, authHeader),
+    addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {
     todo: (body) => deleteTodo(body),

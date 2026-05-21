@@ -280,6 +280,14 @@ export const en = {
     collapse: 'Show Less',
     like: 'Like',
     unlike: 'Unlike',
+    comments: {
+      title: 'Comments',
+      placeholder: 'Add a comment...',
+      clear: 'Clear',
+      submit: 'Submit',
+      loading: 'Loading...',
+      empty: 'No comments yet. Be the first to comment!',
+    },
     purchaseDialog: {
       title: 'Purchase Required',
       message: 'You must purchase the episode in order to continue watching. It will cost {cost} GCash.',
