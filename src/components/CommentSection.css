@@ -220,3 +220,42 @@
 .comment-scroll-sentinel {
   height: 1px;
 }
+
+/* ── Mobile styles ── */
+
+@media (max-width: 768px) {
+  .comment-section {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    padding: 0 16px;
+  }
+
+  .comment-title-row {
+    margin-bottom: 12px;
+  }
+
+  .comment-title-text {
+    font-size: 15px;
+  }
+
+  .comment-input-row {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .comment-input-wrapper input {
+    font-size: 16px; /* prevents iOS auto-zoom on focus */
+  }
+
+  .comment-item {
+    gap: 8px;
+  }
+
+  .comment-text {
+    font-size: 13px;
+  }
+
+  .comment-list {
+    gap: 12px;
+  }
+}

@@ -2,6 +2,7 @@ import { createSignal, createEffect, onCleanup, Show, For, untrack } from 'solid
 import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
+import CommentSection from '../../components/CommentSection'
 import LoginModal from '../../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../../components/PlayerModals'
 import { t } from '../../stores/languageStore'
@@ -408,6 +409,9 @@ const PhonePlayer = () => {
                 </div>
               </div>
             </Show>
+
+            {/* Comments */}
+            <CommentSection />
 
             {/* Recommendations */}
             <PhoneSeriesCarousel
