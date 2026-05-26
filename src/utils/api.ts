@@ -7,14 +7,16 @@ import type {
 import { isCordova } from './cordova'
 
 export const getApiBaseUrl = (): string => {
-  if (isCordova()) {
-    return import.meta.env.VITE_LOCAL_SERVER
-  }
-  if (import.meta.env.DEV) {
-    return import.meta.env.VITE_LOCALHOST
-  }
-  return window.location.origin
+  const url = isCordova()
+    ? import.meta.env.VITE_LOCAL_SERVER
+    : import.meta.env.DEV
+      ? import.meta.env.VITE_LOCALHOST
+      : window.location.origin
+  return stripTrailingSlash(url)
 }
+
+const stripTrailingSlash = (url: string): string =>
+  url.endsWith('/') ? url.slice(0, -1) : url
 
 const buildUrl = (type: string, params?: Record<string, string | number>): string => {
   const baseUrl = getApiBaseUrl()

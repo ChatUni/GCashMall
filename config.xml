@@ -58,6 +58,9 @@
         <preference name="scheme" value="app" />
         <preference name="hostname" value="localhost" />
         <allow-navigation href="*" />
+        <edit-config file="*-Info.plist" mode="merge" target="ITSAppUsesNonExemptEncryption">
+            <false />
+        </edit-config>
         <edit-config file="*-Info.plist" mode="merge" target="NSAppTransportSecurity">
             <dict>
                 <key>NSAllowsArbitraryLoads</key>

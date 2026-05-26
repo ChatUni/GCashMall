@@ -58,6 +58,9 @@
     <icon height="180" src="res/ios/icon-180.png" width="180" />
     <icon height="1024" src="res/ios/icon-1024.png" width="1024" />
     <allow-navigation href="*" />
+    <edit-config file="*-Info.plist" mode="merge" target="ITSAppUsesNonExemptEncryption">
+        <false />
+    </edit-config>
     <edit-config file="*-Info.plist" mode="merge" target="NSAppTransportSecurity">
         <dict>
             <key>NSAllowsArbitraryLoads</key>
