@@ -287,6 +287,7 @@ export const en = {
       submit: 'Submit',
       loading: 'Loading...',
       empty: 'No comments yet. Be the first to comment!',
+      profaneError: 'Your comment contains inappropriate language. Please revise and try again.',
     },
     purchaseDialog: {
       title: 'Purchase Required',

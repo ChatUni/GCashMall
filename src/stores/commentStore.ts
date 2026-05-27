@@ -12,6 +12,7 @@ interface CommentState {
   collapsed: boolean
   inputText: string
   submitting: boolean
+  submitError: string | null
   currentSeriesId: string | null
   currentEpisodeId: string | null
   page: number
@@ -28,6 +29,7 @@ const getInitialState = (): CommentState => ({
   collapsed: false,
   inputText: '',
   submitting: false,
+  submitError: null,
   currentSeriesId: null,
   currentEpisodeId: null,
   page: 1,
@@ -62,6 +64,9 @@ const validateCommentBody = (text: string): boolean => {
   }
   return true
 }
+
+const isProfanityError = (error: string): boolean =>
+  error.toLowerCase().includes('profane')
 
 // ── Actions ──
 
@@ -169,7 +174,7 @@ export const commentStoreActions = {
     if (!validateCommentBody(state.inputText)) return
     if (!validateIds(state.currentSeriesId, state.currentEpisodeId)) return
 
-    setState({ submitting: true })
+    setState({ submitting: true, submitError: null })
 
     try {
       const result = await apiPostWithAuth<{ comment: Comment }>(
@@ -187,6 +192,8 @@ export const commentStoreActions = {
           totalCount: state.totalCount + 1,
           inputText: '',
         })
+      } else if (result.error && isProfanityError(result.error)) {
+        setState({ submitError: 'profane' })
       }
     } catch (error) {
       console.error('Failed to submit comment:', error)
@@ -194,6 +201,8 @@ export const commentStoreActions = {
       setState({ submitting: false })
     }
   },
+
+  clearSubmitError: () => setState({ submitError: null }),
 
   // UI actions
   setInputText: (text: string) => setState({ inputText: text }),

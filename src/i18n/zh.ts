@@ -286,6 +286,7 @@ export const zh = {
       submit: '提交',
       loading: '加载中...',
       empty: '暂无评论，快来抢沙发！',
+      profaneError: '您的评论包含不当言论，请修改后重试。',
     },
     purchaseDialog: {
       title: '需要购买',

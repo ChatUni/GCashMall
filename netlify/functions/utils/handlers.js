@@ -2849,6 +2849,7 @@ const validateGetCommentsParams = (params) => {
 const addComment = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateAddCommentBody(body)
+  await validateCommentProfanity(body.body)
 
   try {
     const { seriesId, episodeId, body: commentBody } = body
@@ -2884,6 +2885,15 @@ const getUserById = async (userId) => {
     throw new Error('User not found')
   }
   return users[0]
+}
+
+const validateCommentProfanity = async (text) => {
+  const { validateText } = await import('aedos')
+  const result = await validateText(text).detectProfaneWordsInText()
+  const foundWords = result?.data?.['founded-word'] || []
+  if (foundWords.length > 0) {
+    throw new Error('Comment contains profane words')
+  }
 }
 
 const validateAddCommentBody = (body) => {

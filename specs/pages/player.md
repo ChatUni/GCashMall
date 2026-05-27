@@ -254,6 +254,10 @@ Episode Cost = 1 GCash
     - comment body
 - Comments should be loaded incrementally while scrolling down (infinite scroll list, 20 each time)
 
+#### Comment filters
+
+- when saving comments, use Aedos package to detect and reject comment containing profane words. 
+
 ## Episode List Panel (Right Sidebar)
 
 ### Container

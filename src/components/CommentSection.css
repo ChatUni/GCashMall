@@ -95,6 +95,13 @@
   border-bottom-color: #3b82f6;
 }
 
+.comment-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .comment-input-actions {
   display: flex;
   gap: 4px;

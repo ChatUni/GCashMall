@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.3",
+    "aedos": "^1.1.4",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "jsonwebtoken": "^9.0.3",

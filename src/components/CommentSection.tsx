@@ -81,6 +81,13 @@ const CommentInput = () => {
     commentStoreActions.submit()
   }
 
+  const handleInput = (e: InputEvent & { currentTarget: HTMLInputElement }) => {
+    commentStoreActions.setInputText(e.currentTarget.value)
+    if (commentStore.submitError) {
+      commentStoreActions.clearSubmitError()
+    }
+  }
+
   return (
     <div class="comment-input-row">
       <UserAvatar
@@ -93,10 +100,13 @@ const CommentInput = () => {
           type="text"
           placeholder={t().player.comments.placeholder}
           value={commentStore.inputText}
-          onInput={(e) => commentStoreActions.setInputText(e.currentTarget.value)}
+          onInput={handleInput}
           onKeyDown={handleKeyDown}
           disabled={commentStore.submitting}
         />
+        <Show when={commentStore.submitError === 'profane'}>
+          <div class="comment-error">{t().player.comments.profaneError}</div>
+        </Show>
       </div>
       <div class="comment-input-actions">
         <button
