@@ -3,6 +3,12 @@
   publish = "www"
   edge_functions = "netlify/edge-functions"
 
+[functions]
+  # glin-profanity is a dual ESM/CJS package; the tracer only ships the import
+  # entry, but the runtime resolves the require entry (index.cjs). Force-include
+  # the whole package so both resolve.
+  included_files = ["node_modules/glin-profanity/**"]
+
 [dev]
   port = 8888
   framework = "#custom"
