@@ -3,6 +3,8 @@ import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../../utils/config'
 import paymentMethodsIcon from '../../assets/payment-methods2.svg'
+import applePayIcon from '../../assets/apple-pay-icon.svg'
+import { isIOS } from '../../utils/cordova'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import { SeriesEditContent } from '../SeriesEdit'
@@ -14,6 +16,7 @@ import {
   accountStoreActions,
   getFilteredPhoneNavItems,
   walletAmounts,
+  iapWalletAmounts,
   type AccountTab,
   getCombinedTransactions,
   getFilteredTransactions,
@@ -500,7 +503,7 @@ const PhoneWalletSection = () => {
           <button class={`phone-withdraw-all-btn ${accountStore.walletTab === 'topup' || accountStore.balance <= 0 ? 'invisible' : ''}`} onClick={() => onWithdrawClick(parseFloat(accountStore.balance.toFixed(2)))} disabled={accountStore.walletTab === 'topup' || accountStore.balance <= 0}>{wallet().withdrawAll || 'Withdraw All'}</button>
         </div>
         <div class="phone-wallet-amounts">
-          <For each={walletAmounts}>
+          <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
               <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}>
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-amount-logo" />
@@ -508,10 +511,12 @@ const PhoneWalletSection = () => {
               </button>
             )}
           </For>
-          <button class="phone-amount-btn phone-custom-amount-btn" onClick={handleCustomAmountClick}>
-            <span class="phone-custom-icon">✎</span>
-            <span>{wallet().custom || 'Custom'}</span>
-          </button>
+          <Show when={!isIOS()}>
+            <button class="phone-amount-btn phone-custom-amount-btn" onClick={handleCustomAmountClick}>
+              <span class="phone-custom-icon">✎</span>
+              <span>{wallet().custom || 'Custom'}</span>
+            </button>
+          </Show>
         </div>
       </div>
       <div class="phone-transaction-section">
@@ -566,13 +571,23 @@ const PhoneWalletSection = () => {
             <div class="phone-payment-method-section">
               <p class="phone-payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="phone-payment-method-icons">
-                <button
-                  class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
-                  onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
-                >
-                  <img src={paymentMethodsIcon} alt="Card" class="phone-payment-method-icon-img" width="28" height="28" />
-                  <span class="phone-payment-method-text">{wallet().creditCard || 'Card'}</span>
-                </button>
+                <Show when={isIOS()} fallback={
+                  <button
+                    class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
+                  >
+                    <img src={paymentMethodsIcon} alt="Card" class="phone-payment-method-icon-img" width="28" height="28" />
+                    <span class="phone-payment-method-text">{wallet().creditCard || 'Card'}</span>
+                  </button>
+                }>
+                  <button
+                    class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'applepay' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('applepay')}
+                  >
+                    <img src={applePayIcon} alt="Apple Pay" class="phone-payment-method-icon-img" width="28" height="28" />
+                    <span class="phone-payment-method-text">{wallet().applePay || 'Apple Pay'}</span>
+                  </button>
+                </Show>
                 <button
                   class={`phone-payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
                   onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}

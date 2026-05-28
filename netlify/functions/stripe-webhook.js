@@ -103,13 +103,15 @@ const handleCheckoutSessionCompleted = async (session) => {
     return
   }
 
-  const { userId, amount, referenceId } = session.metadata || {}
+  const { userId, amount, referenceId, paymentType } = session.metadata || {}
   validateWebhookMetadata(userId, amount, referenceId)
 
+  // Use paymentType from metadata (defaults to 'Credit Card' for backwards compatibility)
+  const method = paymentType || 'Credit Card'
   await processTopUpFromWebhook(
     userId,
     parseFloat(amount),
-    'Credit Card',
+    method,
     referenceId,
   )
 }

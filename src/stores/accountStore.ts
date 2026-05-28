@@ -5,7 +5,7 @@ import { createStore } from 'solid-js/store'
 import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem } from '../types'
 
 // Payment method types
-export type PaymentMethod = 'creditcard' | 'gusd'
+export type PaymentMethod = 'creditcard' | 'gusd' | 'applepay'
 
 // Transaction types
 export type TransactionType = 'topup' | 'withdraw'
@@ -547,6 +547,9 @@ export const getFilteredPhoneNavItems = () =>
   phoneNavItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
 
 export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]
+
+// iOS In-App Purchase tiers - must match App Store Connect product definitions
+export const iapWalletAmounts = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
 
 // Helper function to generate reference ID
 export const generateReferenceId = (): string => {

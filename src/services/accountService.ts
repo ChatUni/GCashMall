@@ -1,8 +1,9 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser } from '../utils/cordova'
+import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser, isIOS } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
+import { purchaseIAP, isIAPAvailable } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { playerPageStoreActions } from '../stores/playerStore'
@@ -1085,24 +1086,42 @@ export const handleWithdrawClick = (amount: number, t: Record<string, unknown>) 
   accountStoreActions.setShowWithdrawPopup(true)
 }
 
+// Map payment method selection to server-side payment type string
+const getPaymentType = (method: string): string => {
+  if (method === 'creditcard') return 'Credit Card'
+  if (method === 'applepay') return 'Apple Pay'
+  return 'GUSD'
+}
+
+// Check if payment method uses Stripe (needs InAppBrowser on Cordova)
+const isStripePaymentMethod = (method: string): boolean => {
+  return method === 'creditcard'
+}
+
 // Handle confirm top up with toast notification
 export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
   const state = accountStoreActions.getState()
   const wallet = t.wallet as Record<string, string> | undefined
   
   if (state.selectedTopUpAmount && state.selectedPaymentMethod) {
-    const paymentType = state.selectedPaymentMethod === 'creditcard' ? 'Credit Card' : 'GUSD'
+    // On iOS with Apple Pay, always use In-App Purchase flow (never Stripe)
+    if (state.selectedPaymentMethod === 'applepay' && isIOS()) {
+      await handleIAPTopUp(state.selectedTopUpAmount, wallet)
+      return
+    }
+
+    const paymentType = getPaymentType(state.selectedPaymentMethod)
     const callbackUrl = buildWalletCallbackUrl()
     
     accountStoreActions.setTopUpLoading(true)
     const result = await topUp(state.selectedTopUpAmount, paymentType, callbackUrl)
     if (result.success) {
       if (result.paymentUrl) {
-        if (isCordova() && paymentType === 'Credit Card') {
+        if (isCordova() && isStripePaymentMethod(state.selectedPaymentMethod)) {
           // Cordova + Credit Card: open Stripe in InAppBrowser, intercept the redirect
           await handleCordovaStripeCheckout(result.paymentUrl, callbackUrl, wallet)
         } else {
-          // Web (both Credit Card & GUSD) or Cordova + GUSD: navigate to payment page
+          // Web (all methods) or Cordova + GUSD: navigate to payment page
           window.location.href = result.paymentUrl
         }
       } else {
@@ -1115,6 +1134,90 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
       accountStoreActions.setTopUpLoading(false)
       toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
     }
+  }
+}
+
+// Handle iOS In-App Purchase top up flow
+// 1. Initiates native IAP purchase (Apple Pay sheet)
+// 2. On success, sends transaction to server for verification and balance update
+const handleIAPTopUp = async (
+  amount: number,
+  wallet: Record<string, string> | undefined,
+) => {
+  accountStoreActions.setTopUpLoading(true)
+
+  try {
+    // Step 1: Initiate IAP purchase via native Apple Pay sheet
+    const iapResult = await purchaseIAP(amount)
+
+    if (!iapResult.success) {
+      accountStoreActions.setTopUpLoading(false)
+      closeTopUpPopup()
+      // User cancelled or error
+      if (iapResult.error && !iapResult.error.includes('cancel')) {
+        toastStoreActions.show(iapResult.error || wallet?.topUpFailed || 'Purchase failed', 'error')
+      }
+      return
+    }
+
+    // Step 2: Verify the IAP transaction on the server and credit the wallet
+    const referenceId = generateReferenceId()
+    const verifyResult = await verifyIAPReceipt(
+      iapResult.transactionId || '',
+      iapResult.productId || '',
+      amount,
+      referenceId,
+    )
+
+    accountStoreActions.setTopUpLoading(false)
+    closeTopUpPopup()
+
+    if (verifyResult.success) {
+      toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+    } else {
+      toastStoreActions.show(verifyResult.error || wallet?.topUpFailed || 'Failed to verify purchase', 'error')
+    }
+  } catch (error) {
+    console.error('IAP top up error:', error)
+    accountStoreActions.setTopUpLoading(false)
+    closeTopUpPopup()
+    toastStoreActions.show(wallet?.topUpFailed || 'Failed to top up', 'error')
+  }
+}
+
+// Verify IAP receipt on the server and credit the user's wallet
+const verifyIAPReceipt = async (
+  transactionId: string,
+  productId: string,
+  amount: number,
+  referenceId: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await apiPostWithAuth<User>('verifyIAPReceipt', {
+      transactionId,
+      productId,
+      amount,
+      referenceId,
+    })
+
+    if (response.success && response.data) {
+      // Update local user data with new balance
+      const userData = response.data as User
+      if (userData._id) {
+        const token = localStorage.getItem('gcashmall_token')
+        if (token) {
+          saveAuthData(token, userData)
+        }
+        accountStoreActions.setUser(userData)
+        accountStoreActions.setBalance(userData.balance || 0)
+        accountStoreActions.setTransactions(userData.transactions || [])
+      }
+      return { success: true }
+    }
+    return { success: false, error: response.error || 'Failed to verify purchase' }
+  } catch (error) {
+    console.error('IAP receipt verification error:', error)
+    return { success: false, error: 'Failed to verify purchase' }
   }
 }
 

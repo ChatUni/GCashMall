@@ -14,36 +14,32 @@
 			<key>certificate</key>
 			<dict>
 				<key>SHA1</key>
-				<string>47CB7CD901CC8FFD668165C19BFE51AA9B16441C</string>
+				<string>DACFB06996DB285BD297BA80734B2FFF458CFC65</string>
 				<key>dateExpires</key>
-				<string>2026-08-18</string>
+				<string>2027-03-07</string>
 				<key>type</key>
-				<string>Cloud Managed Apple Distribution</string>
+				<string>Apple Development</string>
 			</dict>
 			<key>entitlements</key>
 			<dict>
 				<key>application-identifier</key>
 				<string>D2GB2M8C86.org.gaia.ganime</string>
-				<key>beta-reports-active</key>
-				<true/>
 				<key>com.apple.developer.team-identifier</key>
 				<string>D2GB2M8C86</string>
 				<key>get-task-allow</key>
-				<false/>
+				<true/>
 			</dict>
 			<key>name</key>
 			<string>GAnime.app</string>
 			<key>profile</key>
 			<dict>
 				<key>UUID</key>
-				<string>264ed921-aa0a-4916-a70b-e517d6f03ea3</string>
+				<string>57107c3a-55d1-45ce-aaae-918d81dc121a</string>
 				<key>dateExpires</key>
-				<string>2026-08-18</string>
+				<string>2027-05-27</string>
 				<key>name</key>
-				<string>iOS Team Store Provisioning Profile: org.gaia.ganime</string>
+				<string>iOS Team Provisioning Profile: org.gaia.ganime</string>
 			</dict>
-			<key>symbols</key>
-			<true/>
 			<key>team</key>
 			<dict>
 				<key>id</key>

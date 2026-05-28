@@ -1,7 +1,8 @@
 import { render } from 'solid-js/web'
 import './index.css'
 import App from './App'
-import { initOAuthHandler } from './utils/cordova'
+import { initOAuthHandler, onDeviceReady, isIOS } from './utils/cordova'
+import { initializeIAP } from './utils/iap'
 
 declare global {
   interface Window {
@@ -16,6 +17,13 @@ window.tap = <T,>(x: T): T => {
 
 // Register custom URL scheme handler for OAuth callbacks (gcashmall://oauth?code=...)
 initOAuthHandler()
+
+// Initialize In-App Purchase store on iOS after device is ready
+onDeviceReady(() => {
+  if (isIOS()) {
+    initializeIAP()
+  }
+})
 
 const root = document.getElementById('root')
 

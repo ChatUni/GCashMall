@@ -2,6 +2,8 @@ import { createSignal, Show, For, type Component, createEffect } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
+import applePayIcon from '../assets/apple-pay-icon.svg'
+import { isIOS } from '../utils/cordova'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
@@ -14,6 +16,7 @@ import {
   accountStoreActions,
   getFilteredNavItems,
   walletAmounts,
+  iapWalletAmounts,
   type AccountTab,
   type PaymentMethod,
   getCombinedTransactions,
@@ -702,7 +705,7 @@ function WalletSection() {
           }
         </p>
         <div class="amount-grid">
-          <For each={walletAmounts}>
+          <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
               <button
                 class={`amount-button ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`}
@@ -783,13 +786,23 @@ function WalletSection() {
             <div class="payment-method-section">
               <p class="payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="payment-method-icons">
-                <button
-                  class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
-                  onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
-                >
-                  <img src={paymentMethodsIcon} alt="Card" class="payment-method-icon-img" width="32" height="32" />
-                  <span class="payment-method-text">{wallet().creditCard || 'Card'}</span>
-                </button>
+                <Show when={isIOS()} fallback={
+                  <button
+                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
+                  >
+                    <img src={paymentMethodsIcon} alt="Card" class="payment-method-icon-img" width="32" height="32" />
+                    <span class="payment-method-text">{wallet().creditCard || 'Card'}</span>
+                  </button>
+                }>
+                  <button
+                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'applepay' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('applepay')}
+                  >
+                    <img src={applePayIcon} alt="Apple Pay" class="payment-method-icon-img" width="32" height="32" />
+                    <span class="payment-method-text">{wallet().applePay || 'Apple Pay'}</span>
+                  </button>
+                </Show>
                 <button
                   class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
                   onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}

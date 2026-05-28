@@ -113,6 +113,7 @@ export const zh = {
       addToWallet: '添加到钱包',
       choosePaymentMethod: '选择支付方式',
       creditCard: '银行卡',
+      applePay: 'Apple Pay',
       gusd: 'GUSD',
       confirm: '确认',
       cancel: '取消',

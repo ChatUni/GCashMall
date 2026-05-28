@@ -42,4 +42,7 @@
     <preference name="Scheme" value="https" />
     <preference name="Hostname" value="localhost" />
     <preference name="MixedContentMode" value="0" />
+    <feature name="InAppBillingPlugin">
+        <param name="android-package" value="cc.fovea.PurchasePlugin" />
+    </feature>
 </widget>

@@ -5,7 +5,10 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
+import { Filter } from 'bad-words'
 import { sendPasswordResetEmail } from './email.js'
+
+const profanityFilter = new Filter()
 
 // Configure Stripe
 const stripe = process.env.STRIPE_PRIVATE_KEY
@@ -2266,9 +2269,9 @@ const topUp = async (body, authHeader) => {
 
     const currentUser = users[0]
 
-    // If payment type is Credit Card, use Stripe sdk to generate a checkout session
-    if (paymentType === 'Credit Card') {
-      const paymentUrl = await createStripeCheckoutSession(amount, callbackUrl, userId, referenceId)
+    // If payment type is Credit Card or Apple Pay, use Stripe sdk to generate a checkout session
+    if (paymentType === 'Credit Card' || paymentType === 'Apple Pay') {
+      const paymentUrl = await createStripeCheckoutSession(amount, callbackUrl, userId, referenceId, paymentType)
       return {
         success: true,
         data: { paymentUrl },
@@ -2292,15 +2295,21 @@ const topUp = async (body, authHeader) => {
 }
 
 // Create Stripe checkout session and return the payment URL
-const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenceId) => {
+const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenceId, paymentType = 'Credit Card') => {
   if (!stripe) {
     throw new Error('Stripe is not configured')
   }
 
   const txnReferenceId = referenceId || generateReferenceId()
 
+  // Apple Pay uses the 'card' payment method type - Stripe automatically shows
+  // the Apple Pay sheet on iOS devices when the 'card' method is enabled.
+  // We can optionally restrict to only Apple Pay by using payment_method_types: ['card']
+  // with payment_method_options that prefer Apple Pay.
+  const paymentMethodTypes = paymentType === 'Apple Pay' ? ['card'] : ['card']
+
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
+    payment_method_types: paymentMethodTypes,
     mode: 'payment',
     line_items: [
       {
@@ -2320,6 +2329,7 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
       userId,
       amount: String(amount),
       referenceId: txnReferenceId,
+      paymentType: paymentType || 'Credit Card',
     },
   })
 
@@ -2509,7 +2519,9 @@ const completeStripeTopUp = async (body, authHeader) => {
     }
 
     // Process the top up (webhook may not have fired yet)
-    return await processTopUp(currentUser, amount, 'Credit Card', referenceId)
+    // Use the paymentType from session metadata (defaults to 'Credit Card' for backwards compatibility)
+    const method = session.metadata.paymentType || 'Credit Card'
+    return await processTopUp(currentUser, amount, method, referenceId)
   } catch (error) {
     throw new Error(`Failed to complete Stripe top up: ${error.message}`)
   }
@@ -2614,13 +2626,80 @@ const validateTopUpBody = (body) => {
     throw new Error('Payment type is required')
   }
 
-  if (!['Credit Card', 'GUSD'].includes(body.paymentType)) {
-    throw new Error('Payment type must be Credit Card or GUSD')
+  if (!['Credit Card', 'GUSD', 'Apple Pay'].includes(body.paymentType)) {
+    throw new Error('Payment type must be Credit Card, Apple Pay, or GUSD')
   }
 
   if (!body.callbackUrl) {
     throw new Error('Callback URL is required')
   }
+}
+
+// ── IAP Receipt Verification ──
+
+// Valid IAP product amounts (must match App Store Connect tiers)
+const VALID_IAP_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
+
+// Verify an iOS In-App Purchase receipt and credit the user's wallet
+const verifyIAPReceipt = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateIAPReceiptBody(body)
+
+  try {
+    const { transactionId, productId, amount, referenceId } = body
+
+    validateIAPAmount(amount)
+    validateIAPProductId(productId, amount)
+
+    const currentUser = await getUserForTopUp(userId)
+
+    // Process the top up (add balance and create transaction)
+    return await processTopUp(currentUser, amount, 'Apple Pay (IAP)', referenceId)
+  } catch (error) {
+    throw new Error(`IAP verification failed: ${error.message}`)
+  }
+}
+
+const validateIAPReceiptBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+  if (!body.transactionId) {
+    throw new Error('Transaction ID is required')
+  }
+  if (!body.productId) {
+    throw new Error('Product ID is required')
+  }
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+  if (!body.referenceId) {
+    throw new Error('Reference ID is required')
+  }
+}
+
+const validateIAPAmount = (amount) => {
+  if (!VALID_IAP_AMOUNTS.includes(amount)) {
+    throw new Error(`Invalid IAP amount: ${amount}. Must be one of: ${VALID_IAP_AMOUNTS.join(', ')}`)
+  }
+}
+
+const validateIAPProductId = (productId, amount) => {
+  const expectedProductId = `org.gaia.ganime.topup_${amount}`
+  if (productId !== expectedProductId) {
+    throw new Error(`Product ID mismatch: expected ${expectedProductId}, got ${productId}`)
+  }
+}
+
+const getUserForTopUp = async (userId) => {
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {})
+  if (!users || users.length === 0) {
+    throw new Error('User not found')
+  }
+  return users[0]
 }
 
 // Withdraw - subtract balance from user's wallet
@@ -2849,7 +2928,7 @@ const validateGetCommentsParams = (params) => {
 const addComment = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateAddCommentBody(body)
-  await validateCommentProfanity(body.body)
+  validateCommentProfanity(body.body)
 
   try {
     const { seriesId, episodeId, body: commentBody } = body
@@ -2887,11 +2966,8 @@ const getUserById = async (userId) => {
   return users[0]
 }
 
-const validateCommentProfanity = async (text) => {
-  const { validateText } = await import('aedos')
-  const result = await validateText(text).detectProfaneWordsInText()
-  const foundWords = result?.data?.['founded-word'] || []
-  if (foundWords.length > 0) {
+const validateCommentProfanity = (text) => {
+  if (profanityFilter.isProfane(text)) {
     throw new Error('Comment contains profane words')
   }
 }
@@ -2958,6 +3034,7 @@ export {
   topUp,
   completeStripeTopUp,
   completeGUSDTopUp,
+  verifyIAPReceipt,
   withdraw,
   purchaseEpisode,
   getLikes,

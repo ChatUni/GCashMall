@@ -114,6 +114,7 @@ export const en = {
       addToWallet: 'Add to your wallet',
       choosePaymentMethod: 'Choose Payment Method',
       creditCard: 'Card',
+      applePay: 'Apple Pay',
       gusd: 'GUSD',
       confirm: 'Confirm',
       cancel: 'Cancel',

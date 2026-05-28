@@ -5,7 +5,8 @@
   "type": "module",
   "cordova": {
     "platforms": [
-      "android"
+      "android",
+      "ios"
     ],
     "plugins": {
       "cordova-plugin-inappbrowser": {},
@@ -14,7 +15,8 @@
         "ANDROID_SCHEME": " ",
         "ANDROID_HOST": " ",
         "ANDROID_PATHPREFIX": "/"
-      }
+      },
+      "cordova-plugin-purchase": {}
     }
   },
   "scripts": {
@@ -39,7 +41,7 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.3",
-    "aedos": "^1.1.4",
+    "bad-words": "^4.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "jsonwebtoken": "^9.0.3",
@@ -58,6 +60,7 @@
     "cordova-ios": "^8.0.1",
     "cordova-plugin-customurlscheme": "^5.0.2",
     "cordova-plugin-inappbrowser": "^6.0.0",
+    "cordova-plugin-purchase": "^13.16.1",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "netlify-cli": "^23.12.2",
