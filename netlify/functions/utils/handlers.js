@@ -5,10 +5,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
-import { Filter } from 'bad-words'
 import { sendPasswordResetEmail } from './email.js'
-
-const profanityFilter = new Filter()
+import { containsProfanity } from './profanity.js'
 
 // Configure Stripe
 const stripe = process.env.STRIPE_PRIVATE_KEY
@@ -2967,7 +2965,7 @@ const getUserById = async (userId) => {
 }
 
 const validateCommentProfanity = (text) => {
-  if (profanityFilter.isProfane(text)) {
+  if (containsProfanity(text)) {
     throw new Error('Comment contains profane words')
   }
 }

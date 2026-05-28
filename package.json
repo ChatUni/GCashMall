@@ -41,9 +41,9 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.3",
-    "bad-words": "^4.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
+    "glin-profanity": "^3.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^6.0.0",
     "nodemailer": "^7.0.12",
