@@ -32,8 +32,10 @@ import {
   handleFullscreen,
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
+  TIME_LIMIT,
 } from '../stores/playerStore'
 import { isEpisodePurchased } from '../services/dataService'
+import { isIOS } from '../utils/cordova'
 import {
   formatTime,
   formatLikeCount,
@@ -194,6 +196,8 @@ const VideoPlayer = () => {
   let iframeRef: HTMLIFrameElement | undefined
   let controlsTimeoutRef: ReturnType<typeof setTimeout> | null = null
   const [iframeLoaded, setIframeLoaded] = createSignal(false)
+  // iOS only: true once the free preview has been spent for the current episode.
+  const [previewConsumed, setPreviewConsumed] = createSignal(false)
 
   const currentVideoId = () => playerStore.currentEpisode?.videoId
   const isPurchased = () => isCurrentEpisodePurchased()
@@ -202,6 +206,7 @@ const VideoPlayer = () => {
   createEffect(() => {
     const _vid = currentVideoId()
     setIframeLoaded(false)
+    setPreviewConsumed(false)
   })
 
   // Initialize Player.js with trial limit enforcement
@@ -229,6 +234,37 @@ const VideoPlayer = () => {
   createEffect(() => {
     if (!iframeLoaded()) return
     updatePlayerJsPurchaseStatus(currentVideoId(), isPurchased())
+  })
+
+  // iOS fallback for the preview time limit.
+  // Under the app:// WKWebView origin the Player.js <-> Bunny iframe postMessage bridge
+  // is unreliable, so its 'timeupdate' enforcement never fires. Enforce the limit with a
+  // wall-clock timer and stop playback by reloading the iframe with autoplay disabled —
+  // the one form of control that doesn't depend on the bridge.
+  createEffect(() => {
+    if (!isIOS()) return
+    const vid = currentVideoId()
+    const purchased = isPurchased()
+    if (!vid || purchased) return
+
+    const timer = setTimeout(() => {
+      if (untrack(isPurchased)) return
+      if (iframeRef) iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, vid, false)
+      setPreviewConsumed(true)
+      playerPageStoreActions.handleTimeLimitReached()
+    }, TIME_LIMIT * 1000)
+
+    onCleanup(() => clearTimeout(timer))
+  })
+
+  // iOS: resume playback after purchase by reloading the iframe that the fallback stopped.
+  createEffect(() => {
+    if (!isIOS()) return
+    const vid = currentVideoId()
+    const purchased = isPurchased()
+    if (purchased && vid && iframeRef && iframeRef.src.includes('autoplay=false')) {
+      iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, vid, true)
+    }
   })
 
   const handleMouseMove = () => {
@@ -313,6 +349,17 @@ const VideoPlayer = () => {
             allowfullscreen
             onLoad={() => setIframeLoaded(true)}
           />
+          {/* iOS: once the preview is spent, block the iframe's native replay and
+              reopen the purchase dialog instead. */}
+          <Show when={isIOS() && !isPurchased() && previewConsumed()}>
+            <div class="preview-lock" onClick={playerPageStoreActions.handleUnlockClick}>
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>{t().player.unlockMessage}</span>
+            </div>
+          </Show>
         </Show>
       </Show>
     </div>

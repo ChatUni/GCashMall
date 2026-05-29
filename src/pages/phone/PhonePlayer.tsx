@@ -25,7 +25,9 @@ import {
   checkEpisodePurchased,
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
+  TIME_LIMIT,
 } from '../../stores/playerStore'
+import { isIOS } from '../../utils/cordova'
 import {
   getIframeUrl,
   formatLikeCount,
@@ -48,6 +50,8 @@ const PhonePlayer = () => {
   let descriptionRef: HTMLParagraphElement | undefined
 
   const [iframeLoaded, setIframeLoaded] = createSignal(false)
+  // iOS only: true once the free preview has been spent for the current episode.
+  const [previewConsumed, setPreviewConsumed] = createSignal(false)
 
   // Initialize data
   createEffect(() => {
@@ -105,6 +109,7 @@ const PhonePlayer = () => {
     const videoId = playerStore.currentEpisode?.videoId
     void videoId
     setIframeLoaded(false)
+    setPreviewConsumed(false)
   })
 
   const handleIframeLoad = () => {
@@ -141,6 +146,38 @@ const PhonePlayer = () => {
 
     if (!loaded) return
     updatePlayerJsPurchaseStatus(currentVideoId, purchased)
+  })
+
+  // iOS fallback for the preview time limit.
+  // Under the app:// WKWebView origin the Player.js <-> Bunny iframe postMessage bridge
+  // is unreliable, so its 'timeupdate' enforcement never fires. Enforce the limit with a
+  // wall-clock timer and stop playback by reloading the iframe with autoplay disabled —
+  // the one form of control that doesn't depend on the bridge.
+  createEffect(() => {
+    if (!isIOS()) return
+    const episode = playerStore.currentEpisode
+    const purchased = isPurchased()
+    if (!episode?.videoId || purchased) return
+
+    const videoId = episode.videoId
+    const timer = setTimeout(() => {
+      if (untrack(isPurchased)) return
+      if (iframeRef) iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, videoId, false)
+      setPreviewConsumed(true)
+      playerPageStoreActions.handleTimeLimitReached()
+    }, TIME_LIMIT * 1000)
+
+    onCleanup(() => clearTimeout(timer))
+  })
+
+  // iOS: resume playback after purchase by reloading the iframe that the fallback stopped.
+  createEffect(() => {
+    if (!isIOS()) return
+    const episode = playerStore.currentEpisode
+    const purchased = isPurchased()
+    if (purchased && episode?.videoId && iframeRef && iframeRef.src.includes('autoplay=false')) {
+      iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId, true)
+    }
   })
 
   const handleLoginSuccess = (user: User) => {
@@ -202,6 +239,17 @@ const PhonePlayer = () => {
                   allowfullscreen
                   onLoad={handleIframeLoad}
                 />
+                {/* iOS: once the preview is spent, block the iframe's native replay and
+                    reopen the purchase dialog instead. */}
+                <Show when={isIOS() && !isPurchased() && previewConsumed()}>
+                  <div class="phone-preview-lock" onClick={playerPageStoreActions.handleUnlockClick}>
+                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <span>{t().player.unlockMessage}</span>
+                  </div>
+                </Show>
               </Show>
             </div>
 

@@ -38,6 +38,8 @@ interface CdvPurchaseProduct {
 interface CdvPurchaseTransaction {
   transactionId: string
   products: Array<{ id: string }>
+  isConsumed?: boolean
+  isPending?: boolean
   finish: () => void
 }
 
@@ -81,6 +83,7 @@ interface CdvPurchaseStore {
   restorePurchases: () => Promise<void>
   update: () => Promise<void>
   products: CdvPurchaseProduct[]
+  localTransactions: CdvPurchaseTransaction[]
   verbosity: number
   ApplicationUsername?: string
 }
@@ -134,6 +137,57 @@ let storeInitialized = false
 let storeReady = false
 let onPurchaseApproved: ((productId: string, transaction: CdvPurchaseTransaction) => void) | null = null
 let onPurchaseError: ((error: string) => void) | null = null
+// Approved transactions awaiting finish(), keyed by transactionId. A consumable that is
+// never finished stays "owned" (blocking re-purchase) and gets re-delivered on next launch.
+const pendingTransactions = new Map<string, CdvPurchaseTransaction>()
+// Verifies+credits an approved transaction with no purchase in flight (e.g. one re-delivered
+// at startup). Registered by the account service to avoid an import cycle. Returns true when
+// the server credited the wallet, in which case the transaction is finished.
+let reconcileHandler: ((productId: string, amount: number, transactionId: string) => Promise<boolean>) | null = null
+// transactionIds already reconciled this session, so the startup sweep and the approved
+// event don't process (and double-credit) the same transaction.
+const reconciledIds = new Set<string>()
+
+export const setIAPReconcileHandler = (
+  handler: (productId: string, amount: number, transactionId: string) => Promise<boolean>,
+): void => {
+  reconcileHandler = handler
+}
+
+// Credit an orphaned/re-delivered transaction (best effort) and ALWAYS finish it.
+// Finishing is unconditional on purpose: an unfinished consumable is marked "owned" by
+// StoreKit and permanently blocks re-purchase of that tier, which is worse than a missed
+// credit (real receipt validation + idempotent crediting is the production-grade follow-up).
+const reconcileTransaction = (productId: string, transaction: CdvPurchaseTransaction): void => {
+  const txnId = transaction.transactionId
+  if (!productId || !txnId || reconciledIds.has(txnId)) return
+  reconciledIds.add(txnId)
+  pendingTransactions.set(txnId, transaction)
+
+  const finish = () => finishTransaction(txnId)
+  if (!reconcileHandler) {
+    finish()
+    return
+  }
+  reconcileHandler(productId, getAmountFromProductId(productId), txnId)
+    .catch((err) => console.error('[IAP] Reconcile failed:', err))
+    .finally(finish)
+}
+
+// Finish any consumable transactions left unfinished by a previous run (e.g. an earlier
+// build that never called finish()). Without this they keep canPurchase=false forever.
+const reconcileStuckTransactions = (store: CdvPurchaseStore): void => {
+  const transactions = store.localTransactions || []
+  transactions
+    .filter((txn) => !txn.isConsumed && !txn.isPending)
+    .forEach((txn) => {
+      const productId = txn.products?.[0]?.id
+      if (productId) {
+        console.log('[IAP] Reconciling stuck transaction:', txn.transactionId, productId)
+        reconcileTransaction(productId, txn)
+      }
+    })
+}
 
 // ──────────────────────────────────────────────
 // Initialization
@@ -170,6 +224,8 @@ export const initializeIAP = (): void => {
       storeReady = true
       console.log('[IAP] Store initialized successfully')
       logProductStatus(store)
+      // Clear any consumables left unfinished by a previous run so they stop blocking purchases.
+      reconcileStuckTransactions(store)
     })
     .catch((err: unknown) => {
       console.error('[IAP] Store initialization failed:', err)
@@ -211,10 +267,21 @@ const setupEventHandlers = (store: CdvPurchaseStore): void => {
 // Handle approved transaction - notify the callback so the app can verify on server
 const handleApproved = (transaction: CdvPurchaseTransaction): void => {
   const productId = transaction.products?.[0]?.id
-  if (productId && onPurchaseApproved) {
+  // Keep the transaction so it can be finished after server verification.
+  if (transaction.transactionId) {
+    pendingTransactions.set(transaction.transactionId, transaction)
+  }
+  if (!productId) return
+
+  if (onPurchaseApproved) {
     onPurchaseApproved(productId, transaction)
     onPurchaseApproved = null
+    return
   }
+
+  // No purchase in flight: this transaction was re-delivered (an interrupted purchase or one
+  // left unfinished by an earlier build). Credit it and always finish it (see reconcileTransaction).
+  reconcileTransaction(productId, transaction)
 }
 
 // ──────────────────────────────────────────────
@@ -284,7 +351,10 @@ export const purchaseIAP = (amount: number): Promise<IAPPurchaseResult> => {
       return
     }
 
-    if (!product.canPurchase || !product.offers || product.offers.length === 0) {
+    // Need a concrete offer to order. We intentionally do NOT block on product.canPurchase:
+    // for consumables it reports false whenever a prior transaction is unfinished, which the
+    // reconcile logic clears — gating on it here is what produced the false "not available".
+    if (!product.offers || product.offers.length === 0) {
       resolve({ success: false, error: 'Product not available for purchase' })
       return
     }
@@ -315,16 +385,20 @@ export const purchaseIAP = (amount: number): Promise<IAPPurchaseResult> => {
   })
 }
 
-// Finish a transaction after server-side verification
-// MUST be called after successful server verification to consume the product
+// Finish a transaction after server-side verification.
+// MUST be called after successful server verification to consume the product, otherwise
+// the consumable stays "owned" and can't be purchased again.
 export const finishTransaction = (transactionId: string): void => {
-  const store = getStore()
-  if (!store) return
-
-  // The plugin auto-finishes on verified, but we also keep a reference
-  // In cordova-plugin-purchase v13+, finishing is done via transaction.finish()
-  // which should have been called in the approved handler after verification
-  console.log('[IAP] Finishing transaction:', transactionId)
+  if (!transactionId) return
+  const transaction = pendingTransactions.get(transactionId)
+  if (!transaction) return
+  try {
+    transaction.finish()
+    console.log('[IAP] Finished transaction:', transactionId)
+  } catch (err) {
+    console.error('[IAP] Failed to finish transaction:', transactionId, err)
+  }
+  pendingTransactions.delete(transactionId)
 }
 
 // Get the app receipt for server-side verification (iOS only)

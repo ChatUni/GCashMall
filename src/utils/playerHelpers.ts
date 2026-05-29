@@ -53,8 +53,8 @@ export const buildEpisodeTitle = (seriesName: string, episodeNumber: number): st
   return `${seriesName} - EP ${episodeNumber.toString().padStart(2, '0')}`
 }
 
-export const getIframeUrl = (libraryId: string, videoId: string): string => {
-  return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=true&loop=false&muted=false&preload=true`
+export const getIframeUrl = (libraryId: string, videoId: string, autoplay = true): string => {
+  return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=${autoplay}&loop=false&muted=false&preload=true`
 }
 
 // ── Share Utilities ──

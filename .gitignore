@@ -32,3 +32,6 @@ data
 www
 platforms
 plugins
+
+# iOS build output (archives, exported IPAs, xcodebuild derived data)
+build

@@ -3,7 +3,7 @@
 
 import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser, isIOS } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
-import { purchaseIAP, isIAPAvailable } from '../utils/iap'
+import { purchaseIAP, isIAPAvailable, finishTransaction, setIAPReconcileHandler } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { playerPageStoreActions } from '../stores/playerStore'
@@ -1160,12 +1160,16 @@ const handleIAPTopUp = async (
       return
     }
 
-    // Step 2: Verify the IAP transaction on the server and credit the wallet
+    // Step 2: Verify the IAP transaction on the server and credit the wallet.
+    // Use the amount derived from the actual purchased product (iapResult.amount) so the
+    // productId and amount sent to the server always agree — guards against a stale
+    // transaction for a different tier being delivered.
     const referenceId = generateReferenceId()
+    const purchasedAmount = iapResult.amount ?? amount
     const verifyResult = await verifyIAPReceipt(
       iapResult.transactionId || '',
       iapResult.productId || '',
-      amount,
+      purchasedAmount,
       referenceId,
     )
 
@@ -1173,6 +1177,9 @@ const handleIAPTopUp = async (
     closeTopUpPopup()
 
     if (verifyResult.success) {
+      // Consume the product so it can be purchased again; without this the consumable
+      // stays "owned" and the next purchase fails with "product not available".
+      finishTransaction(iapResult.transactionId || '')
       toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
     } else {
       toastStoreActions.show(verifyResult.error || wallet?.topUpFailed || 'Failed to verify purchase', 'error')
@@ -1219,6 +1226,16 @@ const verifyIAPReceipt = async (
     console.error('IAP receipt verification error:', error)
     return { success: false, error: 'Failed to verify purchase' }
   }
+}
+
+// Register the handler that drains orphaned IAP transactions (e.g. re-delivered at startup)
+// by crediting them on the server. Call once on app startup before initializeIAP().
+export const registerIAPReconciliation = (): void => {
+  setIAPReconcileHandler(async (productId, amount, transactionId) => {
+    const referenceId = generateReferenceId()
+    const result = await verifyIAPReceipt(transactionId, productId, amount, referenceId)
+    return result.success
+  })
 }
 
 // Handle Stripe checkout inside Cordova InAppBrowser

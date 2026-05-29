@@ -7,6 +7,8 @@ import crypto from 'crypto'
 import Stripe from 'stripe'
 import { sendPasswordResetEmail } from './email.js'
 import { containsProfanity } from './profanity.js'
+import { verifyAppleTransaction } from './appleIAP.js'
+import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 
 // Configure Stripe
 const stripe = process.env.STRIPE_PRIVATE_KEY
@@ -2431,7 +2433,7 @@ const generateReferenceId = () => {
 }
 
 // Process the top up (add balance and create transaction)
-const processTopUp = async (currentUser, amount, method, referenceId) => {
+const processTopUp = async (currentUser, amount, method, referenceId, transactionId = '') => {
   const currentBalance = currentUser.balance || 0
   const transactions = currentUser.transactions || []
 
@@ -2442,7 +2444,7 @@ const processTopUp = async (currentUser, amount, method, referenceId) => {
     type: 'topup',
     method: method,
     amount,
-    transactionId: '',
+    transactionId: transactionId || '',
     status: 'success',
     createdAt: new Date(),
   }
@@ -2651,8 +2653,26 @@ const verifyIAPReceipt = async (body, authHeader) => {
 
     const currentUser = await getUserForTopUp(userId)
 
-    // Process the top up (add balance and create transaction)
-    return await processTopUp(currentUser, amount, 'Apple Pay (IAP)', referenceId)
+    // Validate the transaction with Apple before crediting (no-op until creds are configured).
+    await verifyAppleTransaction(transactionId, productId)
+
+    // Idempotency: atomically reserve this transactionId in the global ledger. If it was
+    // already credited (to this or any user), skip re-crediting. The client finishes
+    // consumables unconditionally and may re-deliver a transaction, so the same transactionId
+    // can arrive more than once.
+    const reserved = await reserveTransaction(transactionId, userId, productId, amount)
+    if (!reserved) {
+      return { success: true, data: await buildUserResponse(currentUser) }
+    }
+
+    // Process the top up (add balance and create transaction). Release the reservation on
+    // failure so the purchase can be retried rather than being permanently marked credited.
+    try {
+      return await processTopUp(currentUser, amount, 'Apple Pay (IAP)', referenceId, transactionId)
+    } catch (creditError) {
+      await releaseTransaction(transactionId)
+      throw creditError
+    }
   } catch (error) {
     throw new Error(`IAP verification failed: ${error.message}`)
   }
