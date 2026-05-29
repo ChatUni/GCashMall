@@ -546,10 +546,10 @@ export const getFilteredNavItems = () =>
 export const getFilteredPhoneNavItems = () =>
   phoneNavItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
 
-export const walletAmounts = [1, 5, 10, 20, 50, 100, 200, 500]
+export const walletAmounts = [5, 10, 20, 50]
 
-// iOS In-App Purchase tiers - must match App Store Connect product definitions
-export const iapWalletAmounts = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
+// iOS In-App Purchase tiers - must be a subset of the registered IAP_TIERS / App Store Connect products
+export const iapWalletAmounts = [5, 10, 20, 50]
 
 // Helper function to generate reference ID
 export const generateReferenceId = (): string => {

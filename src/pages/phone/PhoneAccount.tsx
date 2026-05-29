@@ -45,9 +45,6 @@ import {
   closeTopUpPopup,
   closeWithdrawPopup,
   handleStripeCallback,
-  handleCustomAmountClick,
-  handleCustomAmountConfirm,
-  closeCustomAmountPopup,
   openClearHistoryModal,
   confirmClearHistory,
   cancelClearHistory,
@@ -480,7 +477,6 @@ const PhoneWalletSection = () => {
   const onWithdrawClick = (amount: number) => handleWithdrawClick(amount, t().account)
   const onConfirmTopUp = () => handleConfirmTopUp(t().account)
   const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
-  const onCustomAmountConfirm = () => handleCustomAmountConfirm(t().account)
   const combinedTransactions = () => getCombinedTransactions(accountStore.transactions, accountStore.myPurchases)
   const filteredTransactions = () => getFilteredTransactions(combinedTransactions(), accountStore.transactionFilter)
 
@@ -511,12 +507,6 @@ const PhoneWalletSection = () => {
               </button>
             )}
           </For>
-          <Show when={!isIOS()}>
-            <button class="phone-amount-btn phone-custom-amount-btn" onClick={handleCustomAmountClick}>
-              <span class="phone-custom-icon">✎</span>
-              <span>{wallet().custom || 'Custom'}</span>
-            </button>
-          </Show>
         </div>
       </div>
       <div class="phone-transaction-section">
@@ -623,23 +613,6 @@ const PhoneWalletSection = () => {
             <div class="phone-popup-buttons">
               <button class="phone-popup-confirm" onClick={onConfirmWithdraw} disabled={accountStore.withdrawing}>{accountStore.withdrawing ? '...' : (wallet().confirm || 'Confirm')}</button>
               <button class="phone-popup-cancel" onClick={closeWithdrawPopup} disabled={accountStore.withdrawing}>{wallet().cancel || 'Cancel'}</button>
-            </div>
-          </div>
-        </div>
-      </Show>
-      <Show when={accountStore.showCustomAmountPopup}>
-        <div class="phone-popup-overlay" onClick={closeCustomAmountPopup}>
-          <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
-            <h3 class="phone-popup-title">{accountStore.walletTab === 'topup' ? (wallet().customTopUp || 'Custom Top Up') : (wallet().customWithdraw || 'Custom Withdrawal')}</h3>
-            <p class="phone-popup-message">{accountStore.walletTab === 'topup' ? (wallet().enterTopUpAmount || 'Enter the amount to add') : (wallet().enterWithdrawAmount || 'Enter the amount to withdraw')}</p>
-            <div class="phone-custom-amount-input-wrapper">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
-              <input type="number" class="phone-custom-amount-input" value={accountStore.customAmountInput} onInput={(e) => accountStoreActions.setCustomAmountInput(e.currentTarget.value)} placeholder="0.00" min="0" step="0.01" />
-            </div>
-            <div class="phone-popup-buttons">
-              <button class="phone-popup-confirm" onClick={onCustomAmountConfirm}>{wallet().confirm || 'Confirm'}</button>
-              <button class="phone-popup-cancel" onClick={closeCustomAmountPopup}>{wallet().cancel || 'Cancel'}</button>
             </div>
           </div>
         </div>
