@@ -399,6 +399,32 @@ const getRecommendations = async (params) => {
   }
 }
 
+// Paginated feed of series that contain a playable video (for the phone home page)
+const getVideoFeed = async (params) => {
+  try {
+    const page = parseInt(params.page) || 1
+    const limit = parseInt(params.limit) || 5
+    const skip = (page - 1) * limit
+    const filter = seriesWithVideoFilter()
+    const series = await get('series', filter, {}, { createdAt: -1 }, limit, skip)
+    const populatedSeries = await populateSeriesGenres(series)
+    return {
+      success: true,
+      data: populatedSeries,
+    }
+  } catch (error) {
+    throw new Error(`Failed to get video feed: ${error.message}`)
+  }
+}
+
+// A series is playable when it has its own videoId or an episode with a videoId
+const seriesWithVideoFilter = () => ({
+  $or: [
+    { videoId: { $exists: true, $nin: [null, ''] } },
+    { 'episodes.videoId': { $exists: true, $nin: [null, ''] } },
+  ],
+})
+
 const getSeriesIdsSortedByLikes = async (limit) => {
   const pipeline = [
     { $group: { _id: '$seriesId', likeCount: { $sum: 1 } } },
@@ -3021,6 +3047,7 @@ export {
   deleteVideo,
   getFeaturedSeries,
   getRecommendations,
+  getVideoFeed,
   getNewReleases,
   getSearchSuggestions,
   getEpisodes,

@@ -49,20 +49,19 @@ export const fetchNewReleases = async () => {
 export const fetchVideoFeed = async (page: number = 1, limit: number = 5) => {
   videoFeedStoreActions.setLoading(true)
   try {
-    // Use recommendations API for video feed (can be replaced with dedicated endpoint)
-    const data = await apiGet<Series[]>('recommendations', { page, limit })
+    // Dedicated, paginated feed of series that contain a playable video
+    const data = await apiGet<Series[]>('videoFeed', { page, limit })
     if (data.success && data.data) {
-      // Filter series that have videoId for preview
-      const videosWithPreview = data.data.filter(series => series.videoId || (series.episodes && series.episodes.length > 0))
-      
+      const videos = data.data
+
       if (page === 1) {
-        videoFeedStoreActions.setVideos(videosWithPreview)
+        videoFeedStoreActions.setVideos(videos)
       } else {
-        videoFeedStoreActions.appendVideos(videosWithPreview)
+        videoFeedStoreActions.appendVideos(videos)
       }
-      
-      // Check if there are more videos to load
-      videoFeedStoreActions.setHasMore(videosWithPreview.length >= limit)
+
+      // A full page means there are likely more videos to load
+      videoFeedStoreActions.setHasMore(videos.length >= limit)
       videoFeedStoreActions.setPage(page)
     } else {
       videoFeedStoreActions.setHasMore(false)
