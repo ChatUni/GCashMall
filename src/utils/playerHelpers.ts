@@ -131,3 +131,11 @@ export const shareReddit = (shareUrl: string, text: string): void => {
   const url = `https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(text)}`
   openShareWindow(url)
 }
+
+// Email (web only) — opens the user's mail client via mailto. Not a popup window,
+// so it doesn't go through openShareWindow.
+export const shareEmail = (shareUrl: string, text: string): void => {
+  const subject = encodeURIComponent(text)
+  const body = encodeURIComponent(`${text}\n\n${shareUrl}`)
+  window.location.href = `mailto:?subject=${subject}&body=${body}`
+}
