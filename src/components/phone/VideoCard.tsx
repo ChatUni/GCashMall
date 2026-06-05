@@ -5,6 +5,7 @@ import { videoFeedStore, loginModalStoreActions, videoFeedStoreActions } from '.
 import { accountStore } from '../../stores/accountStore'
 import { addToFavorites, removeFromFavorites } from '../../services/dataService'
 import { isLoggedIn } from '../../utils/api'
+import { getPlayerShareUrl } from '../../utils/playerHelpers'
 import type { Series } from '../../types'
 import './VideoCard.css'
 
@@ -200,7 +201,7 @@ const VideoCard = (props: VideoCardProps) => {
   const handleShareClick = async (e: MouseEvent) => {
     e.stopPropagation()
 
-    const shareUrl = `${window.location.origin}/player/${props.series._id}`
+    const shareUrl = getPlayerShareUrl(props.series._id)
     const shareData = {
       title: props.series.name,
       text: props.series.description,

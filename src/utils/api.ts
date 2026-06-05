@@ -8,7 +8,7 @@ import { isCordova } from './cordova'
 
 export const getApiBaseUrl = (): string => {
   const url = isCordova()
-    ? import.meta.env.VITE_LOCAL_SERVER
+    ? import.meta.env.VITE_PROD_SERVER
     : import.meta.env.DEV
       ? import.meta.env.VITE_LOCALHOST
       : window.location.origin

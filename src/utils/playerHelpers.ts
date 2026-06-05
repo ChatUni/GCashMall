@@ -2,6 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import type { Episode } from '../types'
+import { isCordova, PRODUCTION_ORIGIN } from './cordova'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
 
@@ -60,7 +61,19 @@ export const getIframeUrl = (libraryId: string, videoId: string, autoplay = true
 // ── Share Utilities ──
 
 export const getShareUrl = (): string => {
-  return window.location.href
+  // Web uses path routing, so location.href is already a public, shareable URL.
+  // Cordova uses HashRouter under app://localhost (not shareable), so rebuild the
+  // equivalent public web URL: app://localhost/index.html#/player/<id> -> <site>/player/<id>
+  if (!isCordova()) return window.location.href
+  const route = window.location.hash.replace(/^#/, '') || '/'
+  return `${PRODUCTION_ORIGIN}${route}`
+}
+
+// Public, shareable URL for a series' player page. In Cordova the app origin is
+// app://localhost (not shareable), so fall back to the public site origin.
+export const getPlayerShareUrl = (seriesId: string): string => {
+  const origin = isCordova() ? PRODUCTION_ORIGIN : window.location.origin
+  return `${origin}/player/${seriesId}`
 }
 
 export const getShareText = (seriesName: string, episodeNumber?: number): string => {
