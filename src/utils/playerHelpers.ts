@@ -126,3 +126,8 @@ export const shareWhatsApp = (shareUrl: string, text: string): void => {
   const url = `https://wa.me/?text=${encodeURIComponent(`${text} ${shareUrl}`)}`
   openShareWindow(url)
 }
+
+export const shareReddit = (shareUrl: string, text: string): void => {
+  const url = `https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(text)}`
+  openShareWindow(url)
+}
