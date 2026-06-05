@@ -92,18 +92,24 @@ export const openShareWindow = (url: string): void => {
   window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer')
 }
 
+// Facebook (web only). On the Cordova app this button is replaced by the native
+// share sheet (shareNative): Facebook offers no web/URL way to share a link with
+// a preview into its iOS app — sharer.php is ignored by the app, its site is
+// blocked in embedded WebViews, and the universal link hijacks Safari redirects.
 export const shareFacebook = (shareUrl: string): void => {
-  // The native FB app hijacks facebook.com universal links (and ignores
-  // sharer.php), while FB blocks its site inside embedded WebViews. To share to
-  // Facebook in the actual web browser, open a redirect page on our own domain in
-  // Safari (_system); its JS redirect to sharer.php stays in Safari because JS
-  // redirects don't trigger universal links. Web opens sharer.php in a popup.
-  if (isCordova()) {
-    openSystemBrowser(`${PRODUCTION_ORIGIN}/fb-share.html?u=${encodeURIComponent(shareUrl)}`)
-    return
-  }
   const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
   openShareWindow(url)
+}
+
+// Native OS share sheet, used on Cordova in place of a Facebook button. The user
+// picks any target; Facebook's share extension builds the link preview from the
+// page's OG tags. Falls back to the Facebook web sharer if unavailable.
+export const shareNative = (shareUrl: string, text: string): void => {
+  if (navigator.share) {
+    navigator.share({ text, url: shareUrl }).catch(() => {})
+    return
+  }
+  shareFacebook(shareUrl)
 }
 
 export const shareTwitter = (shareUrl: string, text: string): void => {

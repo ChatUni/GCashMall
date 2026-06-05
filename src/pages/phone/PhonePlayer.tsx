@@ -27,13 +27,14 @@ import {
   updatePlayerJsPurchaseStatus,
   TIME_LIMIT,
 } from '../../stores/playerStore'
-import { isIOS } from '../../utils/cordova'
+import { isIOS, isCordova } from '../../utils/cordova'
 import {
   getIframeUrl,
   formatLikeCount,
   getShareUrl,
   getShareText,
   shareFacebook,
+  shareNative,
   shareTwitter,
   sharePinterest,
   shareWhatsApp,
@@ -490,18 +491,38 @@ const PhonePlayer = () => {
                   </button>
                 </div>
                 <div class="phone-share-buttons">
-                  <button
-                    class="phone-share-btn-item"
-                    onClick={() => { shareFacebook(shareUrl()); playerPageStoreActions.hideSharePopup() }}
-                  >
-                    <svg viewBox="0 0 24 24" width="32" height="32">
-                      <path
-                        fill="#1877F2"
-                        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-                      />
-                    </svg>
-                    <span>Facebook</span>
-                  </button>
+                  {/* Facebook has no web/URL way to share into its iOS app, so the
+                      Cordova app shows a generic Share button (native share sheet)
+                      instead; the web keeps the dedicated Facebook button. */}
+                  <Show when={isCordova()}>
+                    <button
+                      class="phone-share-btn-item"
+                      onClick={() => { shareNative(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    >
+                      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                      </svg>
+                      <span>Share</span>
+                    </button>
+                  </Show>
+                  <Show when={!isCordova()}>
+                    <button
+                      class="phone-share-btn-item"
+                      onClick={() => { shareFacebook(shareUrl()); playerPageStoreActions.hideSharePopup() }}
+                    >
+                      <svg viewBox="0 0 24 24" width="32" height="32">
+                        <path
+                          fill="#1877F2"
+                          d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+                        />
+                      </svg>
+                      <span>Facebook</span>
+                    </button>
+                  </Show>
                   <button
                     class="phone-share-btn-item"
                     onClick={() => { shareTwitter(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
