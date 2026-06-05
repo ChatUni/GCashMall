@@ -2,7 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import type { Episode } from '../types'
-import { isCordova, PRODUCTION_ORIGIN } from './cordova'
+import { isCordova, PRODUCTION_ORIGIN, openSystemBrowser } from './cordova'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
 
@@ -84,10 +84,24 @@ export const getShareText = (seriesName: string, episodeNumber?: number): string
 }
 
 export const openShareWindow = (url: string): void => {
+  // Cordova: open in the system browser (Safari / native app) so the user can
+  // return to GAnime via the app switcher. window.open('_blank') is hijacked by
+  // cordova-plugin-inappbrowser into an embedded WebView that traps the user on
+  // the share page (no working back button). Web keeps the sized popup window.
+  if (isCordova()) return openSystemBrowser(url)
   window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer')
 }
 
 export const shareFacebook = (shareUrl: string): void => {
+  // The native FB app hijacks facebook.com universal links (and ignores
+  // sharer.php), while FB blocks its site inside embedded WebViews. To share to
+  // Facebook in the actual web browser, open a redirect page on our own domain in
+  // Safari (_system); its JS redirect to sharer.php stays in Safari because JS
+  // redirects don't trigger universal links. Web opens sharer.php in a popup.
+  if (isCordova()) {
+    openSystemBrowser(`${PRODUCTION_ORIGIN}/fb-share.html?u=${encodeURIComponent(shareUrl)}`)
+    return
+  }
   const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
   openShareWindow(url)
 }

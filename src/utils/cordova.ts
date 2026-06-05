@@ -139,7 +139,7 @@ export const openOAuthSystemBrowser = (authUrl: string): Promise<string> => {
 }
 
 // Open URL in system browser (Safari on iOS, Chrome on Android)
-const openSystemBrowser = (url: string): void => {
+export const openSystemBrowser = (url: string): void => {
   if (isCordova() && window.cordova?.InAppBrowser) {
     // _system target opens the OS default browser, not an embedded WebView
     window.cordova.InAppBrowser.open(url, '_system', '')
