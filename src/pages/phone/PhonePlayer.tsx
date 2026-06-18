@@ -5,6 +5,7 @@ import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
 import CommentSection from '../../components/CommentSection'
 import LoginModal from '../../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../../components/PlayerModals'
+import { RatingSection, RatingModal } from '../../components/StarRating'
 import { t } from '../../stores/languageStore'
 import {
   playerStore,
@@ -328,6 +329,9 @@ const PhonePlayer = () => {
                 </div>
               </div>
 
+              {/* Star Rating */}
+              <RatingSection />
+
               {/* Tags */}
               <div class="phone-player-tags">
                 <For each={playerStore.series!.tags || []}>
@@ -613,6 +617,11 @@ const PhonePlayer = () => {
               }
               onClose={() => playerPageStoreActions.handleResultModalClose(navigate)}
             />
+          </Show>
+
+          {/* Rating Modal */}
+          <Show when={playerPageStore.showRatingModal}>
+            <RatingModal />
           </Show>
 
           {/* Toast */}
