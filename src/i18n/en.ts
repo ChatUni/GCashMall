@@ -281,6 +281,11 @@ export const en = {
     collapse: 'Show Less',
     like: 'Like',
     unlike: 'Unlike',
+    rating: {
+      title: 'Rate this series',
+      votes: 'votes',
+      selectPrompt: 'Select your rating',
+    },
     comments: {
       title: 'Comments',
       placeholder: 'Add a comment...',

@@ -7,6 +7,7 @@ import NewReleasesSection from '../components/NewReleasesSection'
 import LoginModal from '../components/LoginModal'
 import CommentSection from '../components/CommentSection'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../components/PlayerModals'
+import { RatingSection, RatingModal } from '../components/StarRating'
 import { t } from '../stores/languageStore'
 import {
   playerStore,
@@ -167,6 +168,11 @@ const Player = () => {
           onCancel={playerPageStoreActions.hideFavoriteModal}
           t={t().player}
         />
+      </Show>
+
+      {/* Rating Modal */}
+      <Show when={playerPageStore.showRatingModal}>
+        <RatingModal />
       </Show>
 
       {/* Toast */}
@@ -534,6 +540,8 @@ const EpisodeMetadata = () => {
           </Show>
         </div>
       </div>
+
+      <RatingSection />
 
       <div class="episode-tags">
         <For each={playerStore.series!.tags}>

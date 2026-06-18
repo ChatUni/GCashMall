@@ -296,6 +296,30 @@ export const unlikeSeries = async (seriesId: string): Promise<LikesData> => {
   return { count: 0, isLiked: false }
 }
 
+// ── Star Ratings ──
+
+interface RatingsData {
+  average: number
+  count: number
+  userRating: number
+}
+
+export const fetchRatings = async (seriesId: string): Promise<RatingsData> => {
+  const result = await apiGetWithAuth<RatingsData>('ratings', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { average: 0, count: 0, userRating: 0 }
+}
+
+export const rateSeries = async (seriesId: string, rating: number): Promise<RatingsData> => {
+  const result = await apiPostWithAuth<RatingsData>('rateSeries', { seriesId, rating })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { average: 0, count: 0, userRating: rating }
+}
+
 // Top up
 export const topUp = async (amount: number) => {
   await apiPost('topUp', { amount })

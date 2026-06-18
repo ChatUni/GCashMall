@@ -3085,6 +3085,8 @@ export {
   getLikes,
   likeSeries,
   unlikeSeries,
+  getRatings,
+  rateSeries,
   getComments,
   addComment,
 }
@@ -3320,5 +3322,112 @@ const validateLikeSeriesBody = (body) => {
 
   if (!body.seriesId) {
     throw new Error('seriesId is required')
+  }
+}
+
+// ── Star Rating ──
+
+const getRatings = async (params, authHeader) => {
+  validateGetRatingsParams(params)
+
+  try {
+    const { seriesId } = params
+    const summary = await getSeriesRatingSummary(seriesId)
+
+    let userRating = 0
+    if (authHeader) {
+      try {
+        const userId = await validateAuth(authHeader)
+        userRating = await getUserSeriesRating(seriesId, userId)
+      } catch {
+        // Not logged in or invalid token – userRating stays 0
+      }
+    }
+
+    return {
+      success: true,
+      data: { ...summary, userRating },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get ratings: ${error.message}`)
+  }
+}
+
+const validateGetRatingsParams = (params) => {
+  if (!params || !params.seriesId) {
+    throw new Error('seriesId is required')
+  }
+}
+
+// Returns { average, count } using a simple average of all user ratings
+const getSeriesRatingSummary = async (seriesId) => {
+  const ratings = await get('ratings', { seriesId }, {}, {})
+  const count = ratings.length
+  if (count === 0) return { average: 0, count: 0 }
+
+  const total = ratings.reduce((sum, r) => sum + (r.rating || 0), 0)
+  return { average: total / count, count }
+}
+
+const getUserSeriesRating = async (seriesId, userId) => {
+  const existing = await get(
+    'ratings',
+    { seriesId, userId: new ObjectId(userId).toString() },
+    {},
+    {},
+    1,
+  )
+  return existing.length > 0 ? existing[0].rating : 0
+}
+
+const rateSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateRateSeriesBody(body)
+
+  try {
+    const { seriesId, rating } = body
+    const userIdStr = new ObjectId(userId).toString()
+
+    const existing = await get('ratings', { seriesId, userId: userIdStr }, {}, {}, 1)
+
+    if (existing.length > 0) {
+      // Override the user's previous rating
+      await update(
+        'ratings',
+        { seriesId, userId: userIdStr },
+        { $set: { rating, updatedAt: new Date() } },
+      )
+    } else {
+      await save('ratings', {
+        seriesId,
+        userId: userIdStr,
+        rating,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    }
+
+    const summary = await getSeriesRatingSummary(seriesId)
+
+    return {
+      success: true,
+      data: { ...summary, userRating: rating },
+    }
+  } catch (error) {
+    throw new Error(`Failed to rate series: ${error.message}`)
+  }
+}
+
+const validateRateSeriesBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+
+  if (!body.seriesId) {
+    throw new Error('seriesId is required')
+  }
+
+  if (typeof body.rating !== 'number' || body.rating < 1 || body.rating > 5) {
+    throw new Error('rating must be a number between 1 and 5')
   }
 }

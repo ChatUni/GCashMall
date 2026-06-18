@@ -203,6 +203,15 @@ Episode Cost = 1 GCash
   - If `hideFavoriteModal` is not set or `'false'`:
     - Show Favorite Confirmation Modal (see Confirmation Popups section)
 
+#### Star System for the series
+- show the star section
+  - the rating number (1 decimal point)
+  - 5 star icons
+  - the number of votes
+- fill the star based on rating, e.g., if rating between 3 and 4, first 3 stars filled (gold). and if rating >= 3.5, the 4th star is half filled
+- for logged in users, on click, show a popup dialog with 5 stars with the rating the user gave last time (if any, e.g., the user gave 4 last time, then fill the first 4 stars initially), when mouse over a star, fill the star and all previous stars, also show the number of star the user hover over. when click, save the user rating (override his previous one), calculate the overall rating (Simple Average) and update the star section
+
+
 #### Unlock Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%

@@ -16,6 +16,8 @@ import {
   fetchLikes,
   likeSeries,
   unlikeSeries,
+  fetchRatings,
+  rateSeries,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -153,6 +155,12 @@ interface PlayerPageState {
   // Like state
   likeCount: number
   isLiked: boolean
+  // Rating state (star system)
+  ratingAverage: number
+  ratingCount: number
+  userRating: number
+  showRatingModal: boolean
+  hoveredRating: number
   // Share popup (phone only)
   showSharePopup: boolean
 }
@@ -175,6 +183,11 @@ const getInitialState = (): PlayerPageState => ({
   showExpandButton: false,
   likeCount: 0,
   isLiked: false,
+  ratingAverage: 0,
+  ratingCount: 0,
+  userRating: 0,
+  showRatingModal: false,
+  hoveredRating: 0,
   showSharePopup: false,
 })
 
@@ -545,6 +558,7 @@ export const playerPageStoreActions = {
       basePlayerStoreActions.reset()
       fetchPlayerData(seriesId)
       playerPageStoreActions.loadLikes(seriesId)
+      playerPageStoreActions.loadRatings(seriesId)
     }
     if (fetchRecommendationsData) {
       if (!playerPageState.recommendationsFetched) {
@@ -849,6 +863,53 @@ export const playerPageStoreActions = {
       }
     } catch (error) {
       console.error('Failed to toggle like:', error)
+    }
+  },
+
+  // Rating (star system) actions
+  loadRatings: async (seriesId: string) => {
+    try {
+      const data = await fetchRatings(seriesId)
+      setPlayerPageState({
+        ratingAverage: data.average,
+        ratingCount: data.count,
+        userRating: data.userRating,
+      })
+    } catch (error) {
+      console.error('Failed to load ratings:', error)
+    }
+  },
+  openRatingModal: () => {
+    if (!isLoggedIn()) {
+      loginModalStoreActions.open()
+      return
+    }
+    setPlayerPageState({
+      showRatingModal: true,
+      hoveredRating: 0,
+    })
+  },
+  closeRatingModal: () => {
+    setPlayerPageState({ showRatingModal: false, hoveredRating: 0 })
+  },
+  setHoveredRating: (rating: number) => {
+    setPlayerPageState({ hoveredRating: rating })
+  },
+  submitRating: async (rating: number) => {
+    const seriesId = playerPageState.currentSeriesId
+    if (!seriesId || rating < 1 || rating > 5) return
+
+    try {
+      const data = await rateSeries(seriesId, rating)
+      setPlayerPageState({
+        ratingAverage: data.average,
+        ratingCount: data.count,
+        userRating: data.userRating,
+        showRatingModal: false,
+        hoveredRating: 0,
+      })
+    } catch (error) {
+      console.error('Failed to submit rating:', error)
     }
   },
 

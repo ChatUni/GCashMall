@@ -1,0 +1,83 @@
+/* Read-only stars row */
+.stars-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.star-base {
+  display: block;
+}
+
+.star-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.star-fill svg {
+  display: block;
+}
+
+/* Rating section in episode metadata */
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rating-average {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.rating-votes {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Rating modal */
+.rating-modal {
+  text-align: center;
+}
+
+.rating-modal-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0 12px;
+}
+
+.rating-star-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.15s ease;
+}
+
+.rating-star-button:hover {
+  transform: scale(1.1);
+}
+
+.rating-modal-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  min-height: 22px;
+}
