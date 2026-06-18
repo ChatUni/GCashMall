@@ -71,6 +71,12 @@
                 <true />
             </dict>
         </edit-config>
+        <edit-config file="*-Info.plist" mode="merge" target="LSApplicationQueriesSchemes">
+            <array>
+                <string>instagram</string>
+                <string>instagram-stories</string>
+            </array>
+        </edit-config>
     </platform>
     <preference name="DisallowOverscroll" value="true" />
     <preference name="Orientation" value="default" />

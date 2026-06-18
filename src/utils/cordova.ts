@@ -24,8 +24,23 @@ declare global {
     }
     // Custom URL scheme plugin handler
     handleOpenURL?: (url: string) => void
+    // cordova-plugin-x-socialsharing
+    plugins?: {
+      socialsharing?: {
+        shareViaInstagram: (
+          message: string,
+          image: string | null,
+          onSuccess?: () => void,
+          onError?: (msg: string) => void,
+        ) => void
+      }
+    }
   }
 }
+
+// cordova-plugin-x-socialsharing instance (only present in the Cordova app)
+export const getSocialSharing = () =>
+  isCordova() ? window.plugins?.socialsharing : undefined
 
 export const isCordova = (): boolean => {
   return typeof window !== 'undefined' && !!window.cordova

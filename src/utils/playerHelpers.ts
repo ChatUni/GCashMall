@@ -2,7 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import type { Episode } from '../types'
-import { isCordova, PRODUCTION_ORIGIN, openSystemBrowser } from './cordova'
+import { isCordova, PRODUCTION_ORIGIN, openSystemBrowser, getSocialSharing } from './cordova'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
 
@@ -117,9 +117,17 @@ export const shareTwitter = (shareUrl: string, text: string): void => {
   openShareWindow(url)
 }
 
-export const sharePinterest = (shareUrl: string, text: string): void => {
-  const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(shareUrl)}&description=${encodeURIComponent(text)}`
-  openShareWindow(url)
+// Instagram has no web URL to prefill a post, so on the Cordova app we hand
+// Instagram the series poster image via the native share sheet (the user picks
+// feed/story and writes their own caption). On web there's no Instagram app, so
+// fall back to opening the Instagram site.
+export const shareInstagram = (imageUrl: string): void => {
+  const socialSharing = getSocialSharing()
+  if (socialSharing) {
+    socialSharing.shareViaInstagram('', imageUrl || null)
+    return
+  }
+  window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer')
 }
 
 export const shareWhatsApp = (shareUrl: string, text: string): void => {
