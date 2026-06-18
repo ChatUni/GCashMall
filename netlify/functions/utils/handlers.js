@@ -3087,6 +3087,8 @@ export {
   unlikeSeries,
   getRatings,
   rateSeries,
+  getShares,
+  shareSeries,
   getComments,
   addComment,
 }
@@ -3429,5 +3431,49 @@ const validateRateSeriesBody = (body) => {
 
   if (typeof body.rating !== 'number' || body.rating < 1 || body.rating > 5) {
     throw new Error('rating must be a number between 1 and 5')
+  }
+}
+
+// ── Shares ──
+
+const getShares = async (params) => {
+  validateSharesParams(params)
+
+  try {
+    const count = await countSeriesShares(params.seriesId)
+    return {
+      success: true,
+      data: { count },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get shares: ${error.message}`)
+  }
+}
+
+const shareSeries = async (body) => {
+  validateSharesParams(body)
+
+  try {
+    const { seriesId } = body
+    await save('shares', { seriesId, createdAt: new Date() })
+
+    const count = await countSeriesShares(seriesId)
+    return {
+      success: true,
+      data: { count },
+    }
+  } catch (error) {
+    throw new Error(`Failed to record share: ${error.message}`)
+  }
+}
+
+const countSeriesShares = async (seriesId) => {
+  const shares = await get('shares', { seriesId }, {}, {})
+  return shares.length
+}
+
+const validateSharesParams = (data) => {
+  if (!data || !data.seriesId) {
+    throw new Error('seriesId is required')
   }
 }

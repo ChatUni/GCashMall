@@ -281,6 +281,7 @@ const PhonePlayer = () => {
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                     </svg>
+                    <span class="phone-share-count">{formatLikeCount(playerPageStore.shareCount)}</span>
                   </button>
 
                   <button
@@ -500,7 +501,7 @@ const PhonePlayer = () => {
                       Share button that opens the native share sheet instead. */}
                   <button
                     class="phone-share-btn-item"
-                    onClick={() => { shareNative(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    onClick={() => playerPageStoreActions.handleShareAction(() => shareNative(shareUrl(), shareText()))}
                   >
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="18" cy="5" r="3" />
@@ -513,7 +514,7 @@ const PhonePlayer = () => {
                   </button>
                   <button
                     class="phone-share-btn-item"
-                    onClick={() => { shareTwitter(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    onClick={() => playerPageStoreActions.handleShareAction(() => shareTwitter(shareUrl(), shareText()))}
                   >
                     <svg viewBox="0 0 24 24" width="32" height="32">
                       <path
@@ -525,7 +526,7 @@ const PhonePlayer = () => {
                   </button>
                   <button
                     class="phone-share-btn-item"
-                    onClick={() => { sharePinterest(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    onClick={() => playerPageStoreActions.handleShareAction(() => sharePinterest(shareUrl(), shareText()))}
                   >
                     <svg viewBox="0 0 24 24" width="32" height="32">
                       <path
@@ -537,7 +538,7 @@ const PhonePlayer = () => {
                   </button>
                   <button
                     class="phone-share-btn-item"
-                    onClick={() => { shareWhatsApp(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    onClick={() => playerPageStoreActions.handleShareAction(() => shareWhatsApp(shareUrl(), shareText()))}
                   >
                     <svg viewBox="0 0 24 24" width="32" height="32">
                       <path
@@ -549,7 +550,7 @@ const PhonePlayer = () => {
                   </button>
                   <button
                     class="phone-share-btn-item"
-                    onClick={() => { shareReddit(shareUrl(), shareText()); playerPageStoreActions.hideSharePopup() }}
+                    onClick={() => playerPageStoreActions.handleShareAction(() => shareReddit(shareUrl(), shareText()))}
                   >
                     <svg viewBox="0 0 24 24" width="32" height="32">
                       <path

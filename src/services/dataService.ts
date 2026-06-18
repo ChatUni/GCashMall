@@ -320,6 +320,28 @@ export const rateSeries = async (seriesId: string, rating: number): Promise<Rati
   return { average: 0, count: 0, userRating: rating }
 }
 
+// ── Shares ──
+
+interface SharesData {
+  count: number
+}
+
+export const fetchShares = async (seriesId: string): Promise<SharesData> => {
+  const result = await apiGet<SharesData>('shares', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0 }
+}
+
+export const shareSeries = async (seriesId: string): Promise<SharesData> => {
+  const result = await apiPost<SharesData>('shareSeries', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0 }
+}
+
 // Top up
 export const topUp = async (amount: number) => {
   await apiPost('topUp', { amount })

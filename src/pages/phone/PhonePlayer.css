@@ -407,10 +407,18 @@
 /* Share Button */
 .phone-share-btn {
   color: #9CA3AF;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .phone-share-btn:hover {
   color: #3B82F6;
+}
+
+.phone-share-count {
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
 }
 
 /* Share Popup Overlay */

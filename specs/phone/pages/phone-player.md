@@ -108,6 +108,13 @@ This document focuses on mobile-specific UI/UX differences.
     - If `'true'`: directly perform add/remove action
     - Otherwise: show Favorite Confirmation Modal
 
+#### Share Button
+- Share icon (SVG)
+- On tap: open the share popup
+- Below the icon, show the number of shares
+  - On load: call the "number of shares" API to get the share count
+  - When the user shares via any target in the share popup, record the share, increment the count, and update the displayed number
+
 #### Lock/Unlock Button
 - Lock icon (SVG, 32x32)
 - Locked state (not purchased): gray stroke (#9CA3AF), no fill

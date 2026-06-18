@@ -54,6 +54,8 @@ import {
   unlikeSeries,
   getRatings,
   rateSeries,
+  getShares,
+  shareSeries,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -79,6 +81,7 @@ const apiHandlers = {
     myRevenue: (params, authHeader) => getMyRevenue(params, authHeader),
     likes: (params, authHeader) => getLikes(params, authHeader),
     ratings: (params, authHeader) => getRatings(params, authHeader),
+    shares: (params) => getShares(params),
     comments: (params) => getComments(params),
   },
   post: {
@@ -116,6 +119,7 @@ const apiHandlers = {
     likeSeries: (body, authHeader) => likeSeries(body, authHeader),
     unlikeSeries: (body, authHeader) => unlikeSeries(body, authHeader),
     rateSeries: (body, authHeader) => rateSeries(body, authHeader),
+    shareSeries: (body) => shareSeries(body),
     addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {

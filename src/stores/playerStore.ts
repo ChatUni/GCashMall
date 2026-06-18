@@ -18,6 +18,8 @@ import {
   unlikeSeries,
   fetchRatings,
   rateSeries,
+  fetchShares,
+  shareSeries,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -163,6 +165,7 @@ interface PlayerPageState {
   hoveredRating: number
   // Share popup (phone only)
   showSharePopup: boolean
+  shareCount: number
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -189,6 +192,7 @@ const getInitialState = (): PlayerPageState => ({
   showRatingModal: false,
   hoveredRating: 0,
   showSharePopup: false,
+  shareCount: 0,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -559,6 +563,7 @@ export const playerPageStoreActions = {
       fetchPlayerData(seriesId)
       playerPageStoreActions.loadLikes(seriesId)
       playerPageStoreActions.loadRatings(seriesId)
+      playerPageStoreActions.loadShares(seriesId)
     }
     if (fetchRecommendationsData) {
       if (!playerPageState.recommendationsFetched) {
@@ -832,6 +837,30 @@ export const playerPageStoreActions = {
   },
   toggleSharePopup: () => {
     setPlayerPageState("showSharePopup", (prev) => !prev)
+  },
+
+  // Share count actions
+  loadShares: async (seriesId: string) => {
+    try {
+      const data = await fetchShares(seriesId)
+      setPlayerPageState({ shareCount: data.count })
+    } catch (error) {
+      console.error('Failed to load shares:', error)
+    }
+  },
+  // Perform a share via the given target, record it, update the count and close the popup
+  handleShareAction: async (share: () => void) => {
+    share()
+    setPlayerPageState({ showSharePopup: false })
+
+    const seriesId = playerPageState.currentSeriesId
+    if (!seriesId) return
+    try {
+      const data = await shareSeries(seriesId)
+      setPlayerPageState({ shareCount: data.count })
+    } catch (error) {
+      console.error('Failed to record share:', error)
+    }
   },
 
   // Like actions
