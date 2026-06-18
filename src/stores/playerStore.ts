@@ -20,6 +20,7 @@ import {
   rateSeries,
   fetchShares,
   shareSeries,
+  recordView,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -166,6 +167,8 @@ interface PlayerPageState {
   // Share popup (phone only)
   showSharePopup: boolean
   shareCount: number
+  // View count
+  viewCount: number
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -193,6 +196,7 @@ const getInitialState = (): PlayerPageState => ({
   hoveredRating: 0,
   showSharePopup: false,
   shareCount: 0,
+  viewCount: 0,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -564,6 +568,7 @@ export const playerPageStoreActions = {
       playerPageStoreActions.loadLikes(seriesId)
       playerPageStoreActions.loadRatings(seriesId)
       playerPageStoreActions.loadShares(seriesId)
+      playerPageStoreActions.recordView(seriesId)
     }
     if (fetchRecommendationsData) {
       if (!playerPageState.recommendationsFetched) {
@@ -837,6 +842,16 @@ export const playerPageStoreActions = {
   },
   toggleSharePopup: () => {
     setPlayerPageState("showSharePopup", (prev) => !prev)
+  },
+
+  // View count actions - records a view on player load and stores the updated count
+  recordView: async (seriesId: string) => {
+    try {
+      const data = await recordView(seriesId)
+      setPlayerPageState({ viewCount: data.count })
+    } catch (error) {
+      console.error('Failed to record view:', error)
+    }
   },
 
   // Share count actions

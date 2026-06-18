@@ -342,6 +342,28 @@ export const shareSeries = async (seriesId: string): Promise<SharesData> => {
   return { count: 0 }
 }
 
+// ── Views ──
+
+interface ViewsData {
+  count: number
+}
+
+export const fetchViews = async (seriesId: string): Promise<ViewsData> => {
+  const result = await apiGet<ViewsData>('views', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0 }
+}
+
+export const recordView = async (seriesId: string): Promise<ViewsData> => {
+  const result = await apiPost<ViewsData>('recordView', { seriesId })
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { count: 0 }
+}
+
 // Top up
 export const topUp = async (amount: number) => {
   await apiPost('topUp', { amount })

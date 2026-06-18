@@ -495,6 +495,12 @@ const EpisodeMetadata = () => {
         </div>
 
         <div class="metadata-buttons">
+          <div class="view-count">
+            {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
+          </div>
+
+          <RatingSection />
+
           <button
             class={`like-button ${playerPageStore.isLiked ? 'active' : ''}`}
             onClick={playerPageStoreActions.handleLikeToggle}
@@ -540,8 +546,6 @@ const EpisodeMetadata = () => {
           </Show>
         </div>
       </div>
-
-      <RatingSection />
 
       <div class="episode-tags">
         <For each={playerStore.series!.tags}>

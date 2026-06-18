@@ -280,6 +280,7 @@ export const zh = {
     collapse: '收起',
     like: '点赞',
     unlike: '取消点赞',
+    views: '{count} 次播放',
     rating: {
       title: '为本剧评分',
       votes: '人评分',

@@ -257,17 +257,32 @@ const PhonePlayer = () => {
 
             {/* Episode Info */}
             <div class="phone-player-info">
-              <div class="phone-player-header">
-                <div class="phone-player-title-section">
-                  <h1 class="phone-player-title">{playerStore.series!.name}</h1>
-                  <span class="phone-player-episode">
-                    EP {playerStore.currentEpisode?.episodeNumber.toString().padStart(2, '0')}
-                    {playerStore.currentEpisode?.title
-                      ? ` - ${playerStore.currentEpisode.title}`
-                      : ''}
+              {/* Series Name */}
+              <h1 class="phone-player-title">{playerStore.series!.name}</h1>
+
+              {/* Episode Number and Name */}
+              <span class="phone-player-episode">
+                EP {playerStore.currentEpisode?.episodeNumber.toString().padStart(2, '0')}
+                {playerStore.currentEpisode?.title
+                  ? ` - ${playerStore.currentEpisode.title}`
+                  : ''}
+              </span>
+
+              {/* Tags */}
+              <div class="phone-player-tags">
+                <For each={playerStore.series!.tags || []}>
+                  {(tag) => <span class="phone-player-tag">{tag}</span>}
+                </For>
+                <For each={playerStore.series!.genre || []}>
+                  {(genre) => <span class="phone-player-tag">{genre.name}</span>}
+                </For>
+              </div>
+
+              {/* Action Buttons */}
+              <div class="phone-player-actions">
+                  <span class="phone-player-views">
+                    {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
                   </span>
-                </div>
-                <div class="phone-player-actions">
                   {/* Share Button */}
                   <button
                     class="phone-action-btn phone-action-btn-large phone-share-btn"
@@ -327,25 +342,10 @@ const PhonePlayer = () => {
                       </svg>
                     </button>
                   </Show>
-                </div>
               </div>
 
               {/* Star Rating */}
               <RatingSection />
-
-              {/* Tags */}
-              <div class="phone-player-tags">
-                <For each={playerStore.series!.tags || []}>
-                  {(tag) => (
-                    <span class="phone-player-tag">{tag}</span>
-                  )}
-                </For>
-                <For each={playerStore.series!.genre || []}>
-                  {(genre) => (
-                    <span class="phone-player-tag">{genre.name}</span>
-                  )}
-                </For>
-              </div>
 
               {/* Description */}
               <div class="phone-player-description-container">

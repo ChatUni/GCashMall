@@ -281,6 +281,7 @@ export const en = {
     collapse: 'Show Less',
     like: 'Like',
     unlike: 'Unlike',
+    views: '{count} views',
     rating: {
       title: 'Rate this series',
       votes: 'votes',

@@ -3089,6 +3089,8 @@ export {
   rateSeries,
   getShares,
   shareSeries,
+  getViews,
+  recordView,
   getComments,
   addComment,
 }
@@ -3473,6 +3475,50 @@ const countSeriesShares = async (seriesId) => {
 }
 
 const validateSharesParams = (data) => {
+  if (!data || !data.seriesId) {
+    throw new Error('seriesId is required')
+  }
+}
+
+// ── Views ──
+
+const getViews = async (params) => {
+  validateViewsParams(params)
+
+  try {
+    const count = await countSeriesViews(params.seriesId)
+    return {
+      success: true,
+      data: { count },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get views: ${error.message}`)
+  }
+}
+
+const recordView = async (body) => {
+  validateViewsParams(body)
+
+  try {
+    const { seriesId } = body
+    await save('views', { seriesId, createdAt: new Date() })
+
+    const count = await countSeriesViews(seriesId)
+    return {
+      success: true,
+      data: { count },
+    }
+  } catch (error) {
+    throw new Error(`Failed to record view: ${error.message}`)
+  }
+}
+
+const countSeriesViews = async (seriesId) => {
+  const views = await get('views', { seriesId }, {}, {})
+  return views.length
+}
+
+const validateViewsParams = (data) => {
   if (!data || !data.seriesId) {
     throw new Error('seriesId is required')
   }

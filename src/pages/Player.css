@@ -234,6 +234,19 @@
   gap: 12px;
 }
 
+.view-count {
+  display: flex;
+  align-items: center;
+  color: #9ca3af;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Rating sits inline in the buttons row between views and the like button */
+.metadata-buttons .rating-section {
+  margin: 0;
+}
+
 .like-button {
   display: flex;
   align-items: center;

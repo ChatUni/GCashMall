@@ -174,6 +174,9 @@ Episode Cost = 1 GCash
 - **Gap**: 12px
 - **Align Items**: Center
 
+#### Views
+- show the number of views
+
 #### Like Button
 - **Size**: 48px × 48px
 - **Border Radius**: 50%
