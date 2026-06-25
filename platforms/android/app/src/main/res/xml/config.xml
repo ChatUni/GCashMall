@@ -1,12 +1,18 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.gcashmall.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="org.gaia.ganime" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <feature name="InAppBrowser">
         <param name="android-package" value="org.apache.cordova.inappbrowser.InAppBrowser" />
     </feature>
     <feature name="LaunchMyApp">
         <param name="android-package" value="nl.xservices.plugins.LaunchMyApp" />
     </feature>
-    <name>GCashMall</name>
+    <feature name="InAppBillingPlugin">
+        <param name="android-package" value="cc.fovea.PurchasePlugin" />
+    </feature>
+    <feature name="SocialSharing">
+        <param name="android-package" value="nl.xservices.plugins.SocialSharing" />
+    </feature>
+    <name>GAnime</name>
     <description>GCashMall - Online Store App</description>
     <author email="support@gcashmall.com" href="https://gcashmall.com">GCashMall Team</author>
     <content src="index.html" />
@@ -35,17 +41,11 @@
     <preference name="ShowSplashScreenSpinner" value="false" />
     <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/android/xhdpi.png" />
     <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
-    <preference name="android-minSdkVersion" value="22" />
+    <preference name="android-minSdkVersion" value="23" />
     <preference name="android-targetSdkVersion" value="34" />
     <preference name="android-compileSdkVersion" value="35" />
     <preference name="AndroidInsecureFileModeEnabled" value="false" />
     <preference name="Scheme" value="https" />
     <preference name="Hostname" value="localhost" />
     <preference name="MixedContentMode" value="0" />
-    <feature name="InAppBillingPlugin">
-        <param name="android-package" value="cc.fovea.PurchasePlugin" />
-    </feature>
-    <feature name="SocialSharing">
-        <param name="android-package" value="nl.xservices.plugins.SocialSharing" />
-    </feature>
 </widget>

@@ -17,7 +17,7 @@
         <icon density="xxxhdpi" src="res/android/xxxhdpi.png" />
         <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/android/xhdpi.png" />
         <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
-        <preference name="android-minSdkVersion" value="22" />
+        <preference name="android-minSdkVersion" value="23" />
         <preference name="android-targetSdkVersion" value="34" />
         <preference name="android-compileSdkVersion" value="35" />
         <preference name="AndroidInsecureFileModeEnabled" value="false" />
