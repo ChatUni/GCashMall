@@ -46,6 +46,15 @@ export const isCordova = (): boolean => {
   return typeof window !== 'undefined' && !!window.cordova
 }
 
+// Show the "Coming soon..." splash in the browser (not Cordova) on the live
+// ganime.io domain when VITE_COMING_SOON=1. Client-side only — APIs are unaffected.
+export const shouldShowComingSoon = (): boolean => {
+  if (isCordova()) return false
+  if (import.meta.env.VITE_COMING_SOON !== '1') return false
+  const host = typeof window !== 'undefined' ? window.location.hostname : ''
+  return host === 'ganime.io' || host === 'www.ganime.io'
+}
+
 export const getPlatform = (): string => {
   if (isCordova() && window.cordova) {
     return window.cordova.platformId

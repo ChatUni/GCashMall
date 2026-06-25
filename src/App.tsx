@@ -1,7 +1,8 @@
 import { Router, HashRouter, Route } from '@solidjs/router'
 import { Show } from 'solid-js'
-import { isCordova } from './utils/cordova'
+import { isCordova, shouldShowComingSoon } from './utils/cordova'
 import { deviceStore } from './stores/deviceStore'
+import ComingSoon from './pages/ComingSoon'
 
 // Desktop Pages
 import Home from './pages/Home'
@@ -69,17 +70,19 @@ const routes = (
 // Use Router for web (needed for OAuth redirects with query params)
 const App = () => (
   <div class="App">
-    <Show
-      when={isCordova()}
-      fallback={
-        <Router root={(props) => props.children}>
+    <Show when={!shouldShowComingSoon()} fallback={<ComingSoon />}>
+      <Show
+        when={isCordova()}
+        fallback={
+          <Router root={(props) => props.children}>
+            {routes}
+          </Router>
+        }
+      >
+        <HashRouter root={(props) => props.children}>
           {routes}
-        </Router>
-      }
-    >
-      <HashRouter root={(props) => props.children}>
-        {routes}
-      </HashRouter>
+        </HashRouter>
+      </Show>
     </Show>
   </div>
 )
