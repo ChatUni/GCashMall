@@ -1,4 +1,4 @@
-import { createSignal, Show, For, type Component, createEffect } from 'solid-js'
+import { createSignal, Show, For, type Component, createEffect, onMount } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
@@ -10,6 +10,13 @@ import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
 import { t } from '../stores/languageStore'
 import { languageStore, languageStoreActions } from '../stores/languageStore'
+import {
+  systemSettingsStore,
+  systemSettingsStoreActions,
+  PREVIEW_LENGTH_OPTIONS,
+  CREATOR_SHARE_OPTIONS,
+  EPISODE_COST_OPTIONS,
+} from '../stores/systemSettingsStore'
 import type { Language } from '../i18n'
 import {
   accountStore,
@@ -631,6 +638,65 @@ function SettingsSection() {
             <span class="toggle-slider"></span>
           </label>
         </div>
+      </div>
+
+      <Show when={accountStore.user?.isAdmin}>
+        <SystemSettingsCard />
+      </Show>
+    </div>
+  )
+}
+
+// System Settings - admin only. Renders the three admin-configurable global settings.
+function SystemSettingsCard() {
+  const settings = () => t().account.settings as Record<string, string>
+
+  onMount(() => systemSettingsStoreActions.load())
+
+  return (
+    <div class="section-card">
+      <h3 class="card-title">{settings().systemSettings}</h3>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().previewLength}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.previewLength}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ previewLength: Number(e.currentTarget.value) })}
+        >
+          <For each={PREVIEW_LENGTH_OPTIONS}>
+            {(secs) => <option value={secs}>{secs} {settings().seconds}</option>}
+          </For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().creatorShare}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.creatorShare}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ creatorShare: Number(e.currentTarget.value) })}
+        >
+          <For each={CREATOR_SHARE_OPTIONS}>
+            {(pct) => <option value={pct}>{pct}%</option>}
+          </For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().episodeCost}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.episodeCost}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ episodeCost: Number(e.currentTarget.value) })}
+        >
+          <For each={EPISODE_COST_OPTIONS}>
+            {(cost) => <option value={cost}>{cost}</option>}
+          </For>
+        </select>
       </div>
     </div>
   )

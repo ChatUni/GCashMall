@@ -12,7 +12,7 @@ import {
   videoFeedStoreActions,
 } from '../stores'
 import { accountStoreActions } from '../stores/accountStore'
-import type { Series, WatchHistoryItem, FavoriteItem, Genre, User } from '../types'
+import type { Series, WatchHistoryItem, FavoriteItem, Genre, User, SystemSettings } from '../types'
 import { getStoredUser, isLoggedIn, clearAuthData, saveAuthData } from '../utils/api'
 
 // Featured series
@@ -362,6 +362,33 @@ export const recordView = async (seriesId: string): Promise<ViewsData> => {
     return result.data
   }
   return { count: 0 }
+}
+
+// ── System Settings ──
+
+const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+  previewLength: 3,
+  creatorShare: 50,
+  episodeCost: 0.1,
+}
+
+export const fetchSystemSettings = async (): Promise<SystemSettings> => {
+  const result = await apiGet<SystemSettings>('settings')
+  if (result.success && result.data) {
+    return result.data
+  }
+  return { ...DEFAULT_SYSTEM_SETTINGS }
+}
+
+// Admin only - persists the global system settings and returns the saved values
+export const saveSystemSettings = async (
+  settings: SystemSettings,
+): Promise<SystemSettings> => {
+  const result = await apiPostWithAuth<SystemSettings>('saveSettings', { ...settings })
+  if (result.success && result.data) {
+    return result.data
+  }
+  throw new Error(result.error || 'Failed to save settings')
 }
 
 // Top up

@@ -221,6 +221,13 @@ Section card with form fields:
 | Autoplay | Toggle | On/Off |
 | Notifications | Toggle | On/Off |
 
+#### System Settings Section (Admin only)
+| Setting | Control Type | Options | Default |
+|---------|--------------|---------|---------|
+| Preview Length | Select | 3 secs, 5 secs, 10 secs, 20 secs, 30 secs | 3 secs
+| Creator share % | Select | 25%, 30%, 40%, 50%, 60%, 75% | 50%
+| Episode Cost | Select | 0.1, 0.2, 0.3, 0.5, 0.75, 1 | 0.1
+
 - **Row Styling**: Flex between, padding 16px 0, border-bottom #242428
 - **Select Control Styling**: Flat dark theme (see Global Style Specification)
   - Background: #1A1A1E

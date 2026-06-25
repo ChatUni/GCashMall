@@ -100,6 +100,11 @@ export const en = {
       playbackSpeed: 'Playback Speed',
       autoplay: 'Autoplay',
       notifications: 'Notifications',
+      systemSettings: 'System Settings',
+      previewLength: 'Preview Length',
+      creatorShare: 'Creator share %',
+      episodeCost: 'Episode Cost',
+      seconds: 'secs',
     },
     wallet: {
       title: 'Wallet',

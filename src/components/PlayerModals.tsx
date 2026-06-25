@@ -1,5 +1,5 @@
 import { Show } from 'solid-js'
-import { EPISODE_PRICE } from '../services/playerPageService'
+import { systemSettingsStore } from '../stores/systemSettingsStore'
 import { toastStore } from '../stores'
 import './PlayerModals.css'
 
@@ -40,7 +40,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
           alt="GCash"
           class="popup-price-logo"
         />
-        <span>{EPISODE_PRICE.toFixed(2)}</span>
+        <span>{systemSettingsStore.episodeCost.toFixed(2)}</span>
       </div>
       <div class="popup-balance">
         {props.t.yourBalance}:

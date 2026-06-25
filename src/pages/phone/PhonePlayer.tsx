@@ -26,8 +26,8 @@ import {
   checkEpisodePurchased,
   initializePlayerJsWithTrialLimit,
   updatePlayerJsPurchaseStatus,
-  TIME_LIMIT,
 } from '../../stores/playerStore'
+import { getPreviewLength } from '../../stores/systemSettingsStore'
 import { isIOS } from '../../utils/cordova'
 import {
   getIframeUrl,
@@ -167,7 +167,7 @@ const PhonePlayer = () => {
       if (iframeRef) iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, videoId, false)
       setPreviewConsumed(true)
       playerPageStoreActions.handleTimeLimitReached()
-    }, TIME_LIMIT * 1000)
+    }, getPreviewLength() * 1000)
 
     onCleanup(() => clearTimeout(timer))
   })

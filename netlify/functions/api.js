@@ -58,6 +58,8 @@ import {
   shareSeries,
   getViews,
   recordView,
+  getSettings,
+  saveSettings,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -85,6 +87,7 @@ const apiHandlers = {
     ratings: (params, authHeader) => getRatings(params, authHeader),
     shares: (params) => getShares(params),
     views: (params) => getViews(params),
+    settings: () => getSettings(),
     comments: (params) => getComments(params),
   },
   post: {
@@ -124,6 +127,7 @@ const apiHandlers = {
     rateSeries: (body, authHeader) => rateSeries(body, authHeader),
     shareSeries: (body) => shareSeries(body),
     recordView: (body) => recordView(body),
+    saveSettings: (body, authHeader) => saveSettings(body, authHeader),
     addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {

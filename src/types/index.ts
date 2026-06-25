@@ -139,6 +139,7 @@ export interface User {
   favorites?: FavoriteUserItem[]
   purchaseHistory?: PurchaseHistoryItem[]
   allowUpload?: boolean
+  isAdmin?: boolean
   google_id?: string
   facebook_id?: string
   twitter_id?: string
@@ -227,6 +228,13 @@ export interface SearchSuggestion {
   seriesId: string
   title: string
   tag: string
+}
+
+// Admin-configurable global app settings
+export interface SystemSettings {
+  previewLength: number // seconds of free preview before purchase is required
+  creatorShare: number // percent of episode revenue paid to the creator
+  episodeCost: number // GCash cost to unlock an episode
 }
 
 // Revenue sharing types

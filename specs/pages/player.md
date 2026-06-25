@@ -377,7 +377,7 @@ Users can watch the first few seconds of any episode for free (configurable, def
 - **Location**: Both the markdown spec and the code constant should be updated together when changing this value
 
 ### Trial Logic
-- **Trial Duration**: 3 seconds (configurable via TIME_LIMIT constant)
+- **Trial Duration**: "Preview Length" system setting, fallback to TIME_LIMIT
 - **Trigger**: Video playback reaches the time limit for unpurchased episodes
 - **Behavior**:
   - Video pauses automatically at the time limit
@@ -401,14 +401,14 @@ Users can watch the first few seconds of any episode for free (configurable, def
 ## Episode Purchase System
 
 ### Purchase Price
-- **Price per Episode**: 0.1 (GCash currency)
+- **Price per Episode**: "Episode Cost" system setting (GCash currency)
 - **Payment Method**: Deduct from user's wallet balance
 
 ### Purchase Flow
 1. User clicks unlock button OR trial period ends
 2. Purchase popup appears showing:
    - Episode information
-   - Price (0.1)
+   - Price ("Episode Cost" system setting)
    - Current wallet balance
 3. User confirms purchase
 4. System checks wallet balance
@@ -514,7 +514,7 @@ To determine if an episode is purchased:
     - Format: "EP XX" or "EP XX {Episode Title}"
 - **Price Display**:
   - GCash logo (24px)
-  - Amount: "0.1" - 36px, bold, #3B82F6
+  - Amount: "Episode Cost" system setting - 36px, bold, #3B82F6
 - **Balance Display**:
   - Label: "Your balance:" - 14px, gray
   - Amount: Current wallet balance - 16px, white

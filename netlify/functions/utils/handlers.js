@@ -1710,6 +1710,7 @@ const buildUserResponse = async (user) => {
     dob: user.dob || null,
     hasPassword: !!user.password,
     allowUpload: !!user.allowUpload,
+    isAdmin: !!user.isAdmin,
     watchList: filteredWatchList,
     favorites: filteredFavorites,
     purchases: user.purchases || [],
@@ -2053,6 +2054,10 @@ const getMyRevenue = async (params, authHeader) => {
   const userId = await validateAuth(authHeader)
 
   try {
+    // Creator revenue share (percent) comes from the admin-configured system settings
+    const { creatorShare: creatorSharePercent } = await readSystemSettings()
+    const creatorShareRate = creatorSharePercent / 100
+
     // Get all series uploaded by this user
     const mySeries = await get('series', { uploaderId: new ObjectId(userId) }, {}, {})
     
@@ -2124,11 +2129,11 @@ const getMyRevenue = async (params, authHeader) => {
         episodeTitle: episodeData.episodeTitle,
         totalSales: episodeData.totalSales,
         totalRevenue: episodeData.totalRevenue,
-        creatorShare: episodeData.totalRevenue * 0.5, // 50% share
+        creatorShare: episodeData.totalRevenue * creatorShareRate,
       })
       seriesData.totalSales += episodeData.totalSales
       seriesData.totalRevenue += episodeData.totalRevenue
-      seriesData.creatorShare += episodeData.totalRevenue * 0.5
+      seriesData.creatorShare += episodeData.totalRevenue * creatorShareRate
     }
 
     // Sort episodes by episode number within each series
@@ -2815,9 +2820,6 @@ const validateWithdrawBody = (body) => {
   }
 }
 
-// Episode Cost constant
-const EPISODE_COST = 1
-
 // Purchase Episode API handler
 const purchaseEpisode = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
@@ -2834,9 +2836,12 @@ const purchaseEpisode = async (body, authHeader) => {
 
     const currentUser = users[0]
 
+    // Episode cost comes from the admin-configured system settings
+    const { episodeCost } = await readSystemSettings()
+
     // Check if user has enough balance
     const balance = currentUser.balance || 0
-    if (balance < EPISODE_COST) {
+    if (balance < episodeCost) {
       return { success: false, error: 'Insufficient balance' }
     }
 
@@ -2877,14 +2882,14 @@ const purchaseEpisode = async (body, authHeader) => {
     }
 
     // Deduct from balance and add to purchase history
-    const newBalance = balance - EPISODE_COST
+    const newBalance = balance - episodeCost
     const newPurchaseHistory = [
       ...purchaseHistory,
       {
         seriesId,
         seriesName: series.name,
         episodeNumber: parseInt(episodeNumber),
-        cost: EPISODE_COST,
+        cost: episodeCost,
         purchasedAt: new Date(),
       },
     ]
@@ -3091,6 +3096,8 @@ export {
   shareSeries,
   getViews,
   recordView,
+  getSettings,
+  saveSettings,
   getComments,
   addComment,
 }
@@ -3521,5 +3528,89 @@ const countSeriesViews = async (seriesId) => {
 const validateViewsParams = (data) => {
   if (!data || !data.seriesId) {
     throw new Error('seriesId is required')
+  }
+}
+
+// ── System Settings (Admin only to change, public to read) ──
+
+// Global app settings stored as a singleton document in the 'settings' collection.
+const SYSTEM_SETTINGS_KEY = 'system'
+const DEFAULT_SYSTEM_SETTINGS = {
+  previewLength: 3, // seconds of free preview before purchase is required
+  creatorShare: 50, // percent of episode revenue paid to the creator
+  episodeCost: 0.1, // GCash cost to unlock an episode
+}
+const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
+const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
+const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
+
+// Read the system settings (merged with defaults). Used server-side by the
+// trial/purchase/revenue logic and exposed to the client via the API.
+const readSystemSettings = async () => {
+  const docs = await get('settings', { key: SYSTEM_SETTINGS_KEY }, {}, {}, 1)
+  const saved = docs && docs.length > 0 ? docs[0] : {}
+  return {
+    previewLength: saved.previewLength ?? DEFAULT_SYSTEM_SETTINGS.previewLength,
+    creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
+    episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
+  }
+}
+
+const getSettings = async () => {
+  try {
+    return { success: true, data: await readSystemSettings() }
+  } catch (error) {
+    throw new Error(`Failed to get settings: ${error.message}`)
+  }
+}
+
+const saveSettings = async (body, authHeader) => {
+  await requireAdmin(authHeader)
+  validateSystemSettingsBody(body)
+
+  try {
+    const fields = {
+      key: SYSTEM_SETTINGS_KEY,
+      previewLength: body.previewLength,
+      creatorShare: body.creatorShare,
+      episodeCost: body.episodeCost,
+      updatedAt: new Date(),
+    }
+
+    const existing = await get('settings', { key: SYSTEM_SETTINGS_KEY }, {}, {}, 1)
+    if (existing && existing.length > 0) {
+      await update('settings', { key: SYSTEM_SETTINGS_KEY }, { $set: fields })
+    } else {
+      await save('settings', { ...fields, createdAt: new Date() })
+    }
+
+    return { success: true, data: await readSystemSettings() }
+  } catch (error) {
+    throw new Error(`Failed to save settings: ${error.message}`)
+  }
+}
+
+// Validate the caller is a logged-in admin user
+const requireAdmin = async (authHeader) => {
+  const userId = await validateAuth(authHeader)
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0 || !users[0].isAdmin) {
+    throw new Error('Admin access required')
+  }
+  return userId
+}
+
+const validateSystemSettingsBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+  if (!PREVIEW_LENGTH_OPTIONS.includes(body.previewLength)) {
+    throw new Error('Invalid previewLength')
+  }
+  if (!CREATOR_SHARE_OPTIONS.includes(body.creatorShare)) {
+    throw new Error('Invalid creatorShare')
+  }
+  if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
+    throw new Error('Invalid episodeCost')
   }
 }

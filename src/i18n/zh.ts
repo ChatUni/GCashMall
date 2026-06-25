@@ -99,6 +99,11 @@ export const zh = {
       playbackSpeed: '播放速度',
       autoplay: '自动播放',
       notifications: '通知',
+      systemSettings: '系统设置',
+      previewLength: '预览时长',
+      creatorShare: '创作者分成 %',
+      episodeCost: '单集价格',
+      seconds: '秒',
     },
     wallet: {
       title: '钱包',

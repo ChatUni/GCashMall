@@ -24,6 +24,7 @@ import {
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
+import { getPreviewLength, systemSettingsStore, systemSettingsStoreActions } from './systemSettingsStore'
 import { loginModalStoreActions } from './index'
 import { accountStore } from './accountStore'
 
@@ -333,7 +334,7 @@ export const initializePlayerJsWithTrialLimit = (
   const dialogShownRef = { current: false }
 
   const enforceTimeLimit = (currentSeconds: number, pauseFn: () => void) => {
-    if (!isPurchasedRef.current && currentSeconds >= TIME_LIMIT) {
+    if (!isPurchasedRef.current && currentSeconds >= getPreviewLength()) {
       pauseFn()
       if (!dialogShownRef.current) {
         dialogShownRef.current = true
@@ -369,7 +370,7 @@ export const initializePlayerJsWithTrialLimit = (
 
           enforceTimeLimit(currentSeconds, () => {
             player.pause()
-            player.setCurrentTime(TIME_LIMIT - 0.1)
+            player.setCurrentTime(getPreviewLength() - 0.1)
           })
         })
       })
@@ -468,7 +469,7 @@ export const handleTimeUpdate = (
   const currentTime = videoRef.current.currentTime
   basePlayerStoreActions.setCurrentTime(currentTime)
 
-  if (!isPurchased && currentTime >= TIME_LIMIT) {
+  if (!isPurchased && currentTime >= getPreviewLength()) {
     videoRef.current.pause()
     basePlayerStoreActions.setIsPlaying(false)
     onTimeLimitReached()
@@ -488,10 +489,11 @@ export const handleProgressChange = (
 ) => {
   if (!videoRef.current) return
 
-  if (!isPurchased && time >= TIME_LIMIT) {
-    videoRef.current.currentTime = TIME_LIMIT
+  const previewLength = getPreviewLength()
+  if (!isPurchased && time >= previewLength) {
+    videoRef.current.currentTime = previewLength
     videoRef.current.pause()
-    basePlayerStoreActions.setCurrentTime(TIME_LIMIT)
+    basePlayerStoreActions.setCurrentTime(previewLength)
     basePlayerStoreActions.setIsPlaying(false)
     onTimeLimitReached()
     return
@@ -569,6 +571,7 @@ export const playerPageStoreActions = {
       playerPageStoreActions.loadRatings(seriesId)
       playerPageStoreActions.loadShares(seriesId)
       playerPageStoreActions.recordView(seriesId)
+      systemSettingsStoreActions.load()
     }
     if (fetchRecommendationsData) {
       if (!playerPageState.recommendationsFetched) {
@@ -678,8 +681,9 @@ export const playerPageStoreActions = {
 
     if (!seriesId || !episode) return
 
+    const episodeCost = systemSettingsStore.episodeCost
     const userBalance = accountStore.user?.balance || 0
-    if (userBalance < EPISODE_PRICE) {
+    if (userBalance < episodeCost) {
       setPlayerPageState({
         showPurchasePopup: false,
         showResultModal: true,
@@ -692,7 +696,7 @@ export const playerPageStoreActions = {
     setPlayerPageState({ isPurchasing: true })
 
     try {
-      const result = await purchaseEpisode(seriesId, episode._id, episode.episodeNumber, EPISODE_PRICE)
+      const result = await purchaseEpisode(seriesId, episode._id, episode.episodeNumber, episodeCost)
       setPlayerPageState({
         showPurchasePopup: false,
         isPurchasing: false,
