@@ -91,6 +91,23 @@ const TopBar = () => {
               >
                 {t().topBar.genre}
               </a>
+              <a
+                class={`nav-link create-link ${isActiveRoute('/quick-create') ? 'active' : ''}`}
+                onClick={() => handleNavClick('/quick-create')}
+              >
+                <svg class="create-link-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="4" width="20" height="16" rx="2.5" fill="#F59E0B" />
+                  <path d="M2 9h20" stroke="#0B0B0E" stroke-width="1.5" />
+                  <path
+                    d="M5 4l1.5 5M10 4l1.5 5M15 4l1.5 5"
+                    stroke="#0B0B0E"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                  <path d="M10 12.5v4l3.5-2-3.5-2z" fill="#0B0B0E" />
+                </svg>
+                {t().topBar.create}
+              </a>
             </nav>
           </div>
 

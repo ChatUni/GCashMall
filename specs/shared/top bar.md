@@ -81,6 +81,27 @@ The Top Bar is a sticky header navigation component for GCashTV that provides br
 |-------|------|-----------------|
 | Home | `/` | t.topBar.home |
 | Genre | `/genre` | t.topBar.genre |
+| Create your own | `/quick-create` | t.topBar.create |
+
+#### Create CTA (prominent)
+The "Create your own" item is styled as a prominent call-to-action pill rather than a plain nav link, to draw attention to the Quick Create wizard.
+
+- **Layout**: Inline flex, center aligned, gap 6px (movie icon + label)
+- **Label**: "Create your own" (t.topBar.create)
+- **Background**: Linear gradient 135deg, #3B82F6 → #8B5CF6
+- **Color**: #FFFFFF
+- **Font Weight**: 600
+- **Border Radius**: 20px (pill)
+- **Padding**: 8px 16px
+- **Box Shadow**: 0 2px 10px rgba(59, 130, 246, 0.35)
+- **Hover**: translateY(-1px), brightness(1.08), shadow 0 4px 16px rgba(139, 92, 246, 0.45)
+- **Active State**: 2px white ring (rgba(255, 255, 255, 0.25)) — does NOT use the underline indicator
+- **Movie Icon**:
+  - 18px film-strip / clapperboard SVG with a play triangle
+  - Color: amber #F59E0B (cutouts/details in #0B0B0E)
+  - Position: Before the label
+- **Visibility**: Same as other nav links — shown on desktop/tablet, hidden on mobile (≤768px)
+- **Click**: Navigate to `/quick-create`
 
 ## Search Bar
 

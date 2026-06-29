@@ -93,6 +93,41 @@
   border-radius: 1px;
 }
 
+/* Prominent "Create your own" call-to-action */
+.nav-link.create-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.nav-link.create-link:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.45);
+}
+
+.nav-link.create-link.active {
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25), 0 4px 16px rgba(139, 92, 246, 0.45);
+}
+
+/* The CTA uses its own highlight, not the underline indicator */
+.nav-link.create-link.active::after {
+  display: none;
+}
+
+.create-link-icon {
+  flex-shrink: 0;
+}
+
 .search-container {
   flex: 1;
   max-width: 600px;

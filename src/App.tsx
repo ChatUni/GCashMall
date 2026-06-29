@@ -11,6 +11,7 @@ import ProductCategoryList from './pages/ProductCategoryList'
 import Genre from './pages/Genre'
 import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
+import QuickCreate from './pages/QuickCreate'
 import Account from './pages/Account'
 import ResetPassword from './pages/ResetPassword'
 import Contact from './pages/Contact'
@@ -56,6 +57,9 @@ const routes = (
 
     {/* Contact */}
     <Route path="/contact" component={() => <ResponsiveRoute desktop={() => <Contact />} phone={() => <PhoneContact />} />} />
+
+    {/* Quick Create wizard */}
+    <Route path="/quick-create" component={QuickCreate} />
 
     {/* Desktop-only routes (admin/management features) */}
     <Route path="/products" component={ProductList} />

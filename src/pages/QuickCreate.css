@@ -1,0 +1,484 @@
+.quick-create-page {
+  min-height: 100vh;
+  background: #0b0b0e;
+  color: #ffffff;
+}
+
+.qc-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+}
+
+/* Header */
+.qc-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.qc-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.qc-page-subtitle {
+  color: #9ca3af;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Step indicator */
+.qc-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+
+.qc-step-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid #2a2a2e;
+  background: #1a1a1e;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.qc-step-dot:disabled {
+  cursor: default;
+}
+
+.qc-step-dot.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.qc-step-dot.done {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.qc-step-line {
+  width: 40px;
+  height: 2px;
+  background: #2a2a2e;
+}
+
+.qc-step-line.done {
+  background: #3b82f6;
+}
+
+/* Card */
+.qc-card {
+  background: #121214;
+  border: 1px solid #1f1f23;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.qc-step {
+  min-height: 280px;
+}
+
+.qc-heading {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.qc-subheading {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 22px 0 12px;
+  color: #ffffff;
+}
+
+.qc-subtitle {
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+/* Step 1 - idea */
+.qc-textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 10px;
+  padding: 14px;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.qc-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.qc-textarea::placeholder {
+  color: #6b7280;
+}
+
+.qc-ideas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.qc-idea-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.qc-idea-card:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+}
+
+.qc-idea-card.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.qc-idea-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+}
+
+.qc-idea-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.qc-secondary-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.qc-outline-btn {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  border: 1px dashed #2a2a2e;
+  border-radius: 10px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.qc-outline-btn:hover {
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Step 2 - genres (and generic option grid) */
+.qc-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.qc-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 12px;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.qc-option-card:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+}
+
+.qc-option-card.selected {
+  border-color: #3b82f6;
+  background: #16223a;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+.qc-option-icon {
+  font-size: 28px;
+}
+
+.qc-option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+/* Step 3 - art styles */
+.qc-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.qc-style-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.qc-style-card:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+}
+
+.qc-style-card.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.qc-style-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.qc-style-label {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 8px 10px;
+  color: #ffffff;
+}
+
+/* Step 4 - episode length */
+.qc-length-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.qc-length-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 16px;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.qc-length-card:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+}
+
+.qc-length-card.selected {
+  border-color: #3b82f6;
+  background: #16223a;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+.qc-length-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.qc-length-number {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.qc-length-unit {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.qc-length-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Step 5 - review */
+.qc-review {
+  display: flex;
+  gap: 20px;
+}
+
+.qc-review-preview {
+  width: 200px;
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+}
+
+.qc-review-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.qc-review-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #242428;
+}
+
+.qc-review-row:last-child {
+  border-bottom: none;
+}
+
+.qc-review-label {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.qc-review-value {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.qc-director-note {
+  margin-top: 20px;
+  background: #16223a;
+  border: 1px solid #1e3a5f;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.qc-director-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 6px;
+}
+
+.qc-director-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c7cdd6;
+}
+
+/* Navigation */
+.qc-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.qc-back-btn {
+  padding: 12px 22px;
+  background: transparent;
+  border: 1px solid #2a2a2e;
+  border-radius: 10px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.qc-back-btn:hover {
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.qc-primary-btn {
+  margin-left: auto;
+  padding: 12px 28px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.qc-primary-btn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.qc-primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .qc-container {
+    padding: 20px 16px 48px;
+  }
+  .qc-card {
+    padding: 20px;
+  }
+  .qc-ideas-grid,
+  .qc-option-grid,
+  .qc-style-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .qc-review {
+    flex-direction: column;
+  }
+  .qc-review-preview {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+}
