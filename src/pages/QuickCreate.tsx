@@ -1,7 +1,6 @@
 import { For, Show, Switch, Match } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { t } from '../stores/languageStore'
-import heroIdea from '../assets/quick-create/hero-idea.webp'
 import {
   quickCreateStore,
   quickCreateStoreActions,
@@ -16,6 +15,7 @@ import {
   STAT_ICONS,
   SERIES_PLAN,
   PLAN_EPISODES,
+  heroImage,
 } from '../stores/quickCreateStore'
 import './QuickCreate.css'
 
@@ -113,7 +113,7 @@ const Stepper = () => (
 const Step1Idea = () => (
   <div class="qc-step">
     <div class="qc-hero">
-      <img class="qc-hero-img" src={heroIdea} alt="" />
+      <img class="qc-hero-img" src={heroImage} alt="" />
       <div class="qc-hero-scrim" />
       <div class="qc-hero-titlebar">
         <span class="qc-hero-icon">✨</span>

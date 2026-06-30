@@ -6,31 +6,19 @@ import { createStore } from 'solid-js/store'
 // 5 input steps are built; the stepper also shows the 6th (result) step for fidelity.
 export const QUICK_CREATE_STEPS = 5
 
-// ── Mockup-generated images, loaded by category and keyed by option id ──
+// ── Mockup-generated images, hosted on Cloudinary (GCash/quick create folder) ──
 
-const loadImages = (glob: Record<string, string>, prefix: string) => (id: string) =>
-  glob[`../assets/quick-create/${prefix}-${id}.webp`]
+const QC_CDN = 'https://res.cloudinary.com/daqc8bim3/image/upload/GCash/quick%20create'
+const cdn = (file: string) => `${QC_CDN}/${file}.webp`
 
-const ideaImage = loadImages(
-  import.meta.glob('../assets/quick-create/idea-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
-  'idea',
-)
-const genreImage = loadImages(
-  import.meta.glob('../assets/quick-create/genre-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
-  'genre',
-)
-const styleImage = loadImages(
-  import.meta.glob('../assets/quick-create/style-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
-  'style',
-)
-const lengthImage = loadImages(
-  import.meta.glob('../assets/quick-create/length-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
-  'length',
-)
-const epImage = loadImages(
-  import.meta.glob('../assets/quick-create/ep-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
-  'ep',
-)
+const ideaImage = (id: string) => cdn(`idea-${id}`)
+const genreImage = (id: string) => cdn(`genre-${id}`)
+const styleImage = (id: string) => cdn(`style-${id}`)
+const lengthImage = (id: string) => cdn(`length-${id}`)
+const epImage = (id: string) => cdn(`ep-${id}`)
+
+// Step 1 hero banner
+export const heroImage = cdn('hero-idea')
 
 // ── Static option data (UI only) ──
 
