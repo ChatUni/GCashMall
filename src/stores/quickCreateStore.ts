@@ -2,79 +2,141 @@
 // No backend yet: all selections live in this store (Rule #7: shared state outside the tree).
 
 import { createStore } from 'solid-js/store'
-import reviewImage from '../assets/quick-create/review.webp'
 
+// 5 input steps are built; the stepper also shows the 6th (result) step for fidelity.
 export const QUICK_CREATE_STEPS = 5
 
-// Series preview image shown on the review step (extracted from the mockup)
-export { reviewImage }
+// ── Mockup-generated images, loaded by category and keyed by option id ──
 
-// Thumbnails extracted from the Quick Create mockup, keyed by option id
-const ideaImages = import.meta.glob('../assets/quick-create/idea-*.webp', {
-  eager: true,
-  import: 'default',
-}) as Record<string, string>
-const styleImages = import.meta.glob('../assets/quick-create/style-*.webp', {
-  eager: true,
-  import: 'default',
-}) as Record<string, string>
+const loadImages = (glob: Record<string, string>, prefix: string) => (id: string) =>
+  glob[`../assets/quick-create/${prefix}-${id}.webp`]
 
-const ideaImage = (id: string) => ideaImages[`../assets/quick-create/idea-${id}.webp`]
-const styleImage = (id: string) => styleImages[`../assets/quick-create/style-${id}.webp`]
+const ideaImage = loadImages(
+  import.meta.glob('../assets/quick-create/idea-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
+  'idea',
+)
+const genreImage = loadImages(
+  import.meta.glob('../assets/quick-create/genre-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
+  'genre',
+)
+const styleImage = loadImages(
+  import.meta.glob('../assets/quick-create/style-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
+  'style',
+)
+const lengthImage = loadImages(
+  import.meta.glob('../assets/quick-create/length-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
+  'length',
+)
+const epImage = loadImages(
+  import.meta.glob('../assets/quick-create/ep-*.webp', { eager: true, import: 'default' }) as Record<string, string>,
+  'ep',
+)
 
 // ── Static option data (UI only) ──
 
 export interface PopularIdea {
   id: string
-  title: string // i18n key suffix
   image: string
 }
-
 export interface GenreOption {
   id: string
-  icon: string // emoji icon
+  icon: string
+  image: string
 }
-
 export interface ArtStyleOption {
   id: string
   image: string
 }
-
 export interface EpisodeLengthOption {
   seconds: number
+  image: string
+  statKeys: [string, string, string]
+}
+export interface PlanEpisode {
+  n: number
+  image: string
+  status: 'generating' | 'pending'
 }
 
+// Stepper labels shown in the top bar (i18n keys under quickCreate.steps)
+export const STEPPER_KEYS = [
+  'ideaInput',
+  'chooseGenre',
+  'artStyle',
+  'episodeLength',
+  'directorReview',
+  'episodeReady',
+]
+
 export const POPULAR_IDEAS: PopularIdea[] = [
-  { id: 'isekai', title: 'isekai', image: ideaImage('isekai') },
-  { id: 'highSchoolRomance', title: 'highSchoolRomance', image: ideaImage('highSchoolRomance') },
-  { id: 'fantasyHero', title: 'fantasyHero', image: ideaImage('fantasyHero') },
-  { id: 'dragonAcademy', title: 'dragonAcademy', image: ideaImage('dragonAcademy') },
-  { id: 'sciFiMecha', title: 'sciFiMecha', image: ideaImage('sciFiMecha') },
-  { id: 'cuteAnimal', title: 'cuteAnimal', image: ideaImage('cuteAnimal') },
+  { id: 'isekai', image: ideaImage('isekai') },
+  { id: 'highSchoolRomance', image: ideaImage('highSchoolRomance') },
+  { id: 'fantasyHero', image: ideaImage('fantasyHero') },
+  { id: 'dragonAcademy', image: ideaImage('dragonAcademy') },
+  { id: 'sciFiMecha', image: ideaImage('sciFiMecha') },
+  { id: 'cuteAnimal', image: ideaImage('cuteAnimal') },
+]
+
+// Step 1 secondary action cards (i18n keys under quickCreate.step1.actions)
+export const IDEA_ACTIONS = [
+  { id: 'uploadStory', icon: '⬆️' },
+  { id: 'importManga', icon: '📖' },
+  { id: 'surpriseMe', icon: '🎲' },
+  { id: 'myDrafts', icon: '📝' },
 ]
 
 export const GENRES: GenreOption[] = [
-  { id: 'action', icon: '🚀' },
-  { id: 'romance', icon: '❤️' },
-  { id: 'fantasy', icon: '🔮' },
-  { id: 'horror', icon: '👻' },
-  { id: 'comedy', icon: '😂' },
-  { id: 'sciFi', icon: '🛸' },
+  { id: 'action', icon: '⚔️', image: genreImage('action') },
+  { id: 'romance', icon: '💗', image: genreImage('romance') },
+  { id: 'comedy', icon: '😄', image: genreImage('comedy') },
+  { id: 'fantasy', icon: '🔮', image: genreImage('fantasy') },
+  { id: 'horror', icon: '👻', image: genreImage('horror') },
+  { id: 'sciFi', icon: '🛸', image: genreImage('sciFi') },
 ]
 
 export const ART_STYLES: ArtStyleOption[] = [
   { id: 'modernAnime', image: styleImage('modernAnime') },
   { id: 'ghibli', image: styleImage('ghibli') },
+  { id: 'shonen', image: styleImage('shonen') },
   { id: 'shojo', image: styleImage('shojo') },
   { id: 'cyberpunk', image: styleImage('cyberpunk') },
-  { id: 'watercolor', image: styleImage('watercolor') },
   { id: 'chibi', image: styleImage('chibi') },
 ]
 
-export const EPISODE_LENGTHS: EpisodeLengthOption[] = [{ seconds: 30 }, { seconds: 60 }]
+export const EPISODE_LENGTHS: EpisodeLengthOption[] = [
+  { seconds: 30, image: lengthImage('30'), statKeys: ['shots30', 'shot30', 'gen30'] },
+  { seconds: 60, image: lengthImage('60'), statKeys: ['shots60', 'shot60', 'gen60'] },
+]
 
-// Static series plan shown on the review step (UI only)
-export const SERIES_PLAN_EPISODES = 8
+// Icons for the episode-length stat chips (matching the mockup)
+export const STAT_ICONS: Record<string, string> = {
+  shots30: '🎬',
+  shot30: '🕐',
+  gen30: '⚡',
+  shots60: '🎬',
+  shot60: '🕐',
+  gen60: '⭐',
+}
+
+// ── Step 5: hardcoded AI Director plan (based on the mockup) ──
+
+export const SERIES_PLAN = {
+  titleKey: 'dragonAcademy',
+  image: ideaImage('dragonAcademy'),
+  genreKey: 'fantasyAdventure',
+  artStyleKey: 'modernAnime',
+  lengthSeconds: 30,
+  episodes: 5,
+  confidence: 95,
+}
+
+export const PLAN_EPISODES: PlanEpisode[] = [
+  { n: 1, image: epImage('1'), status: 'generating' },
+  { n: 2, image: epImage('2'), status: 'pending' },
+  { n: 3, image: epImage('3'), status: 'pending' },
+  { n: 4, image: epImage('4'), status: 'pending' },
+  { n: 5, image: epImage('5'), status: 'pending' },
+]
 
 // ── Wizard state ──
 
