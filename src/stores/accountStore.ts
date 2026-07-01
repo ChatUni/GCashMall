@@ -619,6 +619,24 @@ export const getFilteredTransactions = (
   return transactions.filter((t) => t.type === filter)
 }
 
+// Funds credited (top-ups and earnings) within this many days are held and not
+// yet available for withdrawal.
+export const WITHDRAW_HOLD_DAYS = 30
+
+// Max withdrawable amount = current balance minus credits received in the last 30 days.
+export const getMaxWithdrawAmount = (balance: number, transactions: Transaction[]): number => {
+  const cutoff = Date.now() - WITHDRAW_HOLD_DAYS * 24 * 60 * 60 * 1000
+  const heldCredits = (transactions || [])
+    .filter(
+      (t) =>
+        (t.type === 'topup' || t.type === 'earning') &&
+        t.status === 'success' &&
+        new Date(t.createdAt).getTime() >= cutoff,
+    )
+    .reduce((sum, t) => sum + t.amount, 0)
+  return Math.max(0, Number((balance - heldCredits).toFixed(2)))
+}
+
 // Format date for display (used in transaction history)
 export const formatTransactionDate = (date: Date): string => {
   const d = new Date(date)

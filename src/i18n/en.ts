@@ -129,6 +129,8 @@ export const en = {
       topUpFailed: 'Failed to top up',
       withdraw: 'Withdraw',
       earning: 'Earning',
+      maxWithdraw: 'Max Withdraw',
+      withdrawHoldNote: 'Transactions within 30 days are not available for withdraw.',
       withdrawDescription: 'Select an amount to withdraw from your wallet',
       selectWithdrawAmount: 'Select Withdrawal Amount',
       confirmWithdraw: 'Confirm Withdrawal',

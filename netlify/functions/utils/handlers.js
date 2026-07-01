@@ -2759,6 +2759,24 @@ const getUserForTopUp = async (userId) => {
 }
 
 // Withdraw - subtract balance from user's wallet
+// Funds credited (top-ups and earnings) within this many days are held and not
+// yet available for withdrawal.
+const WITHDRAW_HOLD_DAYS = 30
+
+// Max withdrawable amount = balance minus credits received within the hold window.
+const getMaxWithdrawAmount = (balance, transactions) => {
+  const cutoff = Date.now() - WITHDRAW_HOLD_DAYS * 24 * 60 * 60 * 1000
+  const heldCredits = (transactions || [])
+    .filter(
+      (t) =>
+        (t.type === 'topup' || t.type === 'earning') &&
+        t.status === 'success' &&
+        new Date(t.createdAt).getTime() >= cutoff,
+    )
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+  return Math.max(0, Number((balance - heldCredits).toFixed(2)))
+}
+
 const withdraw = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateWithdrawBody(body)
@@ -2779,6 +2797,12 @@ const withdraw = async (body, authHeader) => {
     // Check if user has sufficient balance
     if (amount > currentBalance) {
       return { success: false, error: 'Insufficient balance' }
+    }
+
+    // Credits (top-ups and earnings) received within the last 30 days are held and
+    // cannot be withdrawn yet.
+    if (amount > getMaxWithdrawAmount(currentBalance, transactions)) {
+      return { success: false, error: 'Amount exceeds the max withdrawable amount' }
     }
 
     // Create transaction record

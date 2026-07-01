@@ -292,7 +292,10 @@ Section card with form fields:
     - Border Radius: 6px
     - Font: 13px, font-weight 500
     - Hover: Darker blue (#2563EB)
-    - Click: Triggers withdraw flow with full balance amount (formatted to 2 decimal places)
+    - Click: Triggers withdraw flow with Max Withdraw Amount (formatted to 2 decimal places)
+- **Max Withdraw Amount**:
+  - show the Max Withdraw Amount
+  - Transactions within 30 days are not available for withdraw
 - **Description** (`.amount-description`):
   - Font: 14px, Gray (#9CA3AF)
   - Margin: 16px 0 16px 0

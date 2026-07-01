@@ -21,6 +21,7 @@ import {
   type AccountTab,
   getCombinedTransactions,
   getFilteredTransactions,
+  getMaxWithdrawAmount,
   formatTransactionDate,
   getStatusClass,
   hasProfileChanges,
@@ -480,6 +481,7 @@ const PhoneWalletSection = () => {
   const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
   const combinedTransactions = () => getCombinedTransactions(accountStore.transactions, accountStore.myPurchases)
   const filteredTransactions = () => getFilteredTransactions(combinedTransactions(), accountStore.transactionFilter)
+  const maxWithdraw = () => getMaxWithdrawAmount(accountStore.balance, accountStore.transactions)
 
   return (
     <div class="phone-wallet">
@@ -497,12 +499,18 @@ const PhoneWalletSection = () => {
       <div class="phone-amount-section">
         <div class="phone-amount-header">
           <h3 class="phone-wallet-title">{accountStore.walletTab === 'topup' ? (wallet().selectTopUpAmount || 'Select Top Up Amount') : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')}</h3>
-          <button class={`phone-withdraw-all-btn ${accountStore.walletTab === 'topup' || accountStore.balance <= 0 ? 'invisible' : ''}`} onClick={() => onWithdrawClick(parseFloat(accountStore.balance.toFixed(2)))} disabled={accountStore.walletTab === 'topup' || accountStore.balance <= 0}>{wallet().withdrawAll || 'Withdraw All'}</button>
+          <button class={`phone-withdraw-all-btn ${accountStore.walletTab === 'topup' || maxWithdraw() <= 0 ? 'invisible' : ''}`} onClick={() => onWithdrawClick(maxWithdraw())} disabled={accountStore.walletTab === 'topup' || maxWithdraw() <= 0}>{wallet().withdrawAll || 'Withdraw All'}</button>
         </div>
+        <Show when={accountStore.walletTab === 'withdraw'}>
+          <div class="phone-max-withdraw">
+            <span class="phone-max-withdraw-value">{wallet().maxWithdraw || 'Max Withdraw'}: {maxWithdraw().toFixed(2)}</span>
+            <span class="phone-max-withdraw-note">{wallet().withdrawHoldNote || 'Transactions within 30 days are not available for withdraw.'}</span>
+          </div>
+        </Show>
         <div class="phone-wallet-amounts">
           <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
-              <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}>
+              <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > maxWithdraw() ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > maxWithdraw()}>
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-amount-logo" />
                 <span>{amount}</span>
               </button>

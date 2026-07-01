@@ -732,6 +732,24 @@
   visibility: hidden;
 }
 
+.phone-max-withdraw {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px 0 4px;
+}
+
+.phone-max-withdraw-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.phone-max-withdraw-note {
+  font-size: 11px;
+  color: #6b7280;
+}
+
 /* Custom Amount Button */
 .phone-custom-amount-btn {
   border: 2px dashed #3B82F6 !important;

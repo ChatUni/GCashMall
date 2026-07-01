@@ -27,6 +27,7 @@ import {
   type AccountTab,
   type PaymentMethod,
   getCombinedTransactions,
+  getMaxWithdrawAmount,
   formatTransactionDateTime,
   getStatusClass,
   hasProfileChanges,
@@ -711,6 +712,7 @@ function WalletSection() {
   const onConfirmWithdraw = () => handleConfirmWithdraw(t().account)
 
   const combinedTransactions = () => getCombinedTransactions(accountStore.transactions, accountStore.myPurchases)
+  const maxWithdraw = () => getMaxWithdrawAmount(accountStore.balance, accountStore.transactions)
 
   return (
     <div class="content-section wallet-section">
@@ -755,15 +757,25 @@ function WalletSection() {
               : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')
             }
           </h3>
-          <Show when={accountStore.walletTab === 'withdraw' && accountStore.balance > 0}>
+          <Show when={accountStore.walletTab === 'withdraw' && maxWithdraw() > 0}>
             <button
               class="btn-withdraw-all"
-              onClick={() => onWithdrawClick(accountStore.balance)}
+              onClick={() => onWithdrawClick(maxWithdraw())}
             >
               {wallet().withdrawAll || 'Withdraw All'}
             </button>
           </Show>
         </div>
+        <Show when={accountStore.walletTab === 'withdraw'}>
+          <div class="max-withdraw">
+            <span class="max-withdraw-value">
+              {wallet().maxWithdraw || 'Max Withdraw'}: {maxWithdraw().toFixed(2)}
+            </span>
+            <span class="max-withdraw-note">
+              {wallet().withdrawHoldNote || 'Transactions within 30 days are not available for withdraw.'}
+            </span>
+          </div>
+        </Show>
         <p class="amount-description">
           {accountStore.walletTab === 'topup'
             ? wallet().topUpDescription
@@ -774,9 +786,9 @@ function WalletSection() {
           <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
               <button
-                class={`amount-button ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`}
+                class={`amount-button ${accountStore.walletTab === 'withdraw' && amount > maxWithdraw() ? 'disabled' : ''}`}
                 onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
-                disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}
+                disabled={accountStore.walletTab === 'withdraw' && amount > maxWithdraw()}
               >
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="amount-logo" />
                 <span class="amount-value">{amount}</span>

@@ -128,6 +128,8 @@ export const zh = {
       topUpFailed: '充值失败',
       withdraw: '提现',
       earning: '收入',
+      maxWithdraw: '最大可提现',
+      withdrawHoldNote: '30 天内的交易暂不可提现。',
       withdrawDescription: '选择要从钱包提取的金额',
       selectWithdrawAmount: '选择提现金额',
       confirmWithdraw: '确认提现',
