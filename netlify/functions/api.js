@@ -60,6 +60,7 @@ import {
   recordView,
   getSettings,
   saveSettings,
+  submitFeedback,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -128,6 +129,7 @@ const apiHandlers = {
     shareSeries: (body) => shareSeries(body),
     recordView: (body) => recordView(body),
     saveSettings: (body, authHeader) => saveSettings(body, authHeader),
+    submitFeedback: (body) => submitFeedback(body),
     addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {

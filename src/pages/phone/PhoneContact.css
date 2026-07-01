@@ -1,11 +1,16 @@
 /* Phone Contact Page */
 .phone-contact {
-  padding: 24px 16px;
+  padding: 24px 16px 40px;
 }
 
 .phone-contact-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+}
+
+.phone-contact-emoji {
+  font-size: 48px;
+  margin-bottom: 12px;
 }
 
 .phone-contact-title {
@@ -17,94 +22,49 @@
 
 .phone-contact-subtitle {
   font-size: 14px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin: 0;
 }
 
-/* Contact Form */
-.phone-contact-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
+/* Card */
+.phone-contact-card {
+  background: #121214;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.phone-contact-form .phone-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.phone-contact-form label {
-  font-size: 13px;
-  color: #9CA3AF;
-}
-
-.phone-contact-form input,
-.phone-contact-form textarea {
-  background: #1a1a1e;
-  border: 1px solid #2a2a2e;
-  border-radius: 8px;
-  padding: 12px;
-  color: #ffffff;
+.phone-contact-message {
+  text-align: center;
   font-size: 15px;
-  outline: none;
-  font-family: inherit;
-}
-
-.phone-contact-form input:focus,
-.phone-contact-form textarea:focus {
-  border-color: #3B82F6;
-}
-
-.phone-contact-form textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-.phone-submit-btn {
-  background: #3B82F6;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 8px;
-}
-
-.phone-submit-btn:disabled {
-  opacity: 0.5;
+  color: #e5e7eb;
+  line-height: 1.7;
+  margin: 0 0 20px;
 }
 
 /* Contact Info */
 .phone-contact-info {
   background: #1a1a1e;
   border-radius: 12px;
-  padding: 20px;
-}
-
-.phone-contact-info h2 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 16px 0;
+  padding: 16px;
+  margin-bottom: 22px;
 }
 
 .phone-contact-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.phone-contact-item:last-child {
-  border-bottom: none;
 }
 
 .phone-contact-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   font-size: 24px;
 }
 
@@ -112,36 +72,119 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .phone-contact-label {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .phone-contact-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3b82f6;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+/* Feedback */
+.phone-contact-prompt {
   font-size: 14px;
+  color: #9ca3af;
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.phone-contact-feedback {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  background: #1a1a1e;
+  border: 1px solid #2a2a2e;
+  border-radius: 12px;
+  padding: 12px;
   color: #ffffff;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.6;
+  box-sizing: border-box;
+  outline: none;
 }
 
-/* Toast */
-.phone-toast {
-  position: fixed;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+.phone-contact-feedback:focus {
+  border-color: #3b82f6;
+}
+
+.phone-contact-feedback::placeholder {
+  color: #6b7280;
+}
+
+.phone-contact-feedback-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 14px;
+  min-height: 18px;
+}
+
+.phone-contact-feedback-error {
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.phone-contact-feedback-count {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+.phone-submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #ffffff;
-  z-index: 1100;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
 }
 
-.phone-toast-success {
-  background: #22c55e;
+.phone-submit-btn:disabled {
+  opacity: 0.55;
 }
 
-.phone-toast-error {
-  background: #ef4444;
+/* Thank you */
+.phone-contact-thankyou {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.phone-contact-thankyou-icon {
+  font-size: 44px;
+}
+
+.phone-contact-thankyou p {
+  font-size: 17px;
+  font-weight: 600;
+  color: #22c55e;
+  margin: 0;
+  text-align: center;
+}
+
+/* Footer */
+.phone-contact-footer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.phone-contact-footer p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
 }

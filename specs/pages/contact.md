@@ -90,33 +90,39 @@ The Contact page provides users with a simple and elegant way to reach out to th
   - Text Decoration: none
   - Hover: Color #60A5FA, underline
 
-#### Call-to-Action Section
+#### Feedback Section
 
 ##### Layout
 - **Text Align**: center
 
 ##### Elements
-- **CTA Text**: "Have questions or suggestions? Drop us a line!"
+- **Prompt Text**: "Have questions or suggestions? Share your feedback with us!"
   - Font Size: 14px
   - Color: Gray (#9CA3AF)
   - Margin: 0 0 16px 0
-- **Send Email Button**:
-  - Display: inline-flex
-  - Align Items: center
-  - Gap: 10px
+- **Feedback Input**:
+  - Multi-line textarea, full width, min-height 120px, vertically resizable
+  - Max Length: 5000 characters
+  - Background: #1A1A1E, Border: 1px solid #2A2A2E, Border Radius: 12px
+  - Focus: Border #3B82F6 with blue glow
+  - Placeholder: "Write your feedback here..."
+- **Meta Row** (below input): inline error message (left, red #EF4444) and character counter "{n}/5000" (right, gray)
+- **Submit Button**:
+  - Display: inline-flex, align-items center, gap 10px
   - Background: Linear gradient (135deg, #3B82F6 to #1D4ED8)
-  - Color: White (#FFFFFF)
-  - Padding: 14px 32px
-  - Border Radius: 12px
-  - Font Size: 16px
-  - Font Weight: 600
-  - Text Decoration: none
-  - Hover:
-    - Transform: translateY(-2px)
-    - Box Shadow: 0 8px 24px rgba(59, 130, 246, 0.4)
+  - Color: White (#FFFFFF), Padding: 14px 32px, Border Radius: 12px
+  - Font Size: 16px, Font Weight: 600
+  - Hover: Transform translateY(-2px), Box Shadow 0 8px 24px rgba(59, 130, 246, 0.4)
+  - Disabled (while submitting or when input is empty): opacity 0.55, not-allowed
   - Icon: ✉️ (18px)
-  - Text: "Send Email"
-  - Link: mailto:chatuni.ai@gmail.com
+  - Text: "Submit"
+
+##### Interaction
+- On submit:
+  - If the feedback is empty, show the inline error "Please enter your feedback."
+  - Otherwise call the submit feedback API with the feedback text. The API emails the feedback to the admin address (chatuni.ai@gmail.com).
+    - On success: replace the form with a thank-you message — 48px 🎉 icon and "Thank you for your feedback!" (green #22C55E).
+    - On failure: show the inline error "Failed to send feedback. Please try again."
 
 ### Footer Section
 
@@ -149,7 +155,7 @@ The Contact page provides users with a simple and elegant way to reach out to th
 - **Card Padding**: 20px
 - **Info Item**: flex-direction column, text-align center
 - **Info Details**: align-items center
-- **Send Email Button**: width 100%, justify-content center
+- **Submit Button**: width 100%, justify-content center
 
 ## Internationalization
 
@@ -161,8 +167,12 @@ The Contact page provides users with a simple and elegant way to reach out to th
 | subtitle | We'd love to hear from you |
 | welcomeMessage | Your feedback and creative ideas are always welcome. |
 | emailLabel | Email Address |
-| ctaText | Have questions or suggestions? Drop us a line! |
-| sendEmail | Send Email |
+| feedbackPrompt | Have questions or suggestions? Share your feedback with us! |
+| feedbackPlaceholder | Write your feedback here... |
+| submit | Submit |
+| thankYou | Thank you for your feedback! |
+| feedbackEmpty | Please enter your feedback. |
+| feedbackError | Failed to send feedback. Please try again. |
 | footerText | We typically respond within 24-48 hours. |
 
 ### Chinese (zh)
@@ -173,8 +183,12 @@ The Contact page provides users with a simple and elegant way to reach out to th
 | subtitle | 我们很乐意听取您的意见 |
 | welcomeMessage | 我们随时欢迎您的反馈和创意想法。 |
 | emailLabel | 电子邮箱 |
-| ctaText | 有问题或建议？请给我们留言！ |
-| sendEmail | 发送邮件 |
+| feedbackPrompt | 有问题或建议？欢迎与我们分享您的反馈！ |
+| feedbackPlaceholder | 在此填写您的反馈…… |
+| submit | 提交 |
+| thankYou | 感谢您的反馈！ |
+| feedbackEmpty | 请输入您的反馈。 |
+| feedbackError | 反馈发送失败，请重试。 |
 | footerText | 我们通常会在24-48小时内回复。 |
 
 ## Routing
@@ -210,11 +224,11 @@ The contact icon (✉️) has a continuous bounce animation:
   - Mobile: Opens system default mail app
   - Chrome with Gmail handler: May open Gmail web interface
 
-### Send Email Button Click
-- **Element**: "Send Email" button
-- **Link Type**: mailto link
-- **Behavior**: Same as email link - opens the user's default email client with the recipient address pre-filled
-- **Recipient**: chatuni.ai@gmail.com
+### Submit Feedback
+- **Element**: "Submit" button
+- **Behavior**: Sends the feedback text to the backend, which emails it to the admin address (chatuni.ai@gmail.com)
+- **On Success**: The form is replaced with a thank-you message
+- **Validation**: Empty feedback shows an inline error; feedback is capped at 5000 characters
 
 ## Accessibility
 

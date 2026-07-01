@@ -1,8 +1,11 @@
-import { onMount } from 'solid-js'
+import { onMount, createSignal, Show } from 'solid-js'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import { t } from '../stores/languageStore'
+import { submitFeedback } from '../services/dataService'
 import './Contact.css'
+
+const FEEDBACK_MAX = 5000
 
 const Contact = () => {
   // Scroll to top when page loads
@@ -11,6 +14,33 @@ const Contact = () => {
   })
 
   const contact = () => t().contact as Record<string, string>
+
+  const [feedback, setFeedback] = createSignal('')
+  const [submitting, setSubmitting] = createSignal(false)
+  const [submitted, setSubmitted] = createSignal(false)
+  const [error, setError] = createSignal('')
+
+  const handleSubmit = async () => {
+    const text = feedback().trim()
+    if (!text) {
+      setError(contact().feedbackEmpty)
+      return
+    }
+    setError('')
+    setSubmitting(true)
+    try {
+      const result = await submitFeedback(text)
+      if (result.success) {
+        setSubmitted(true)
+      } else {
+        setError(result.error || contact().feedbackError)
+      }
+    } catch {
+      setError(contact().feedbackError)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div class="contact-page">
@@ -41,11 +71,39 @@ const Contact = () => {
             </div>
 
             <div class="contact-cta">
-              <p class="contact-cta-text">{contact().ctaText}</p>
-              <a href="mailto:chatuni.ai@gmail.com" class="contact-btn">
-                <span class="contact-btn-icon">✉️</span>
-                {contact().sendEmail}
-              </a>
+              <Show
+                when={!submitted()}
+                fallback={
+                  <div class="contact-thankyou">
+                    <span class="contact-thankyou-icon">🎉</span>
+                    <p>{contact().thankYou}</p>
+                  </div>
+                }
+              >
+                <p class="contact-cta-text">{contact().feedbackPrompt}</p>
+                <textarea
+                  class="contact-feedback"
+                  maxLength={FEEDBACK_MAX}
+                  rows={5}
+                  placeholder={contact().feedbackPlaceholder}
+                  value={feedback()}
+                  onInput={(e) => setFeedback(e.currentTarget.value)}
+                />
+                <div class="contact-feedback-meta">
+                  <span class="contact-feedback-error">{error()}</span>
+                  <span class="contact-feedback-count">
+                    {feedback().length}/{FEEDBACK_MAX}
+                  </span>
+                </div>
+                <button
+                  class="contact-btn"
+                  disabled={submitting() || feedback().trim().length === 0}
+                  onClick={handleSubmit}
+                >
+                  <span class="contact-btn-icon">✉️</span>
+                  {submitting() ? '...' : contact().submit}
+                </button>
+              </Show>
             </div>
           </div>
 

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
-import { sendPasswordResetEmail } from './email.js'
+import { sendPasswordResetEmail, sendFeedbackEmail } from './email.js'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
@@ -3098,6 +3098,7 @@ export {
   recordView,
   getSettings,
   saveSettings,
+  submitFeedback,
   getComments,
   addComment,
 }
@@ -3612,5 +3613,30 @@ const validateSystemSettingsBody = (body) => {
   }
   if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
     throw new Error('Invalid episodeCost')
+  }
+}
+
+// ── Feedback ──
+
+const ADMIN_EMAIL = 'chatuni.ai@gmail.com'
+const FEEDBACK_MAX_LENGTH = 5000
+
+const submitFeedback = async (body) => {
+  validateFeedbackBody(body)
+
+  try {
+    await sendFeedbackEmail(body.feedback.trim(), ADMIN_EMAIL)
+    return { success: true }
+  } catch (error) {
+    throw new Error(`Failed to submit feedback: ${error.message}`)
+  }
+}
+
+const validateFeedbackBody = (body) => {
+  if (!body || !body.feedback || !body.feedback.trim()) {
+    throw new Error('Feedback is required')
+  }
+  if (body.feedback.length > FEEDBACK_MAX_LENGTH) {
+    throw new Error(`Feedback must be ${FEEDBACK_MAX_LENGTH} characters or less`)
   }
 }

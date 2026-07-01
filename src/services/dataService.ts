@@ -364,6 +364,15 @@ export const recordView = async (seriesId: string): Promise<ViewsData> => {
   return { count: 0 }
 }
 
+// ── Feedback ──
+
+export const submitFeedback = async (
+  feedback: string,
+): Promise<{ success: boolean; error?: string }> => {
+  const result = await apiPost<unknown>('submitFeedback', { feedback })
+  return { success: result.success, error: result.error }
+}
+
 // ── System Settings ──
 
 const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {

@@ -8,6 +8,7 @@ import { isIOS } from '../../utils/cordova'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import { SeriesEditContent } from '../SeriesEdit'
+import { PhoneContactContent } from './PhoneContact'
 import { t } from '../../stores/languageStore'
 import { languageStore, languageStoreActions } from '../../stores/languageStore'
 import type { Language } from '../../i18n'
@@ -107,7 +108,7 @@ const PhoneAccount = () => {
     myPurchases: PhoneMyPurchasesSection,
     mySeries: PhoneMySeriesSection,
     about: PhoneAboutSection,
-    contact: PhoneContactSection,
+    contact: PhoneContactContent,
   }
 
   return (
@@ -1012,37 +1013,5 @@ const PhoneAboutSection = () => {
 }
 
 // ── Contact Section ──
-
-const PhoneContactSection = () => {
-  const contact = () => (t().contact || {}) as Record<string, string>
-
-  return (
-    <div class="phone-contact-section">
-      <div class="phone-contact-header">
-        <span class="phone-contact-icon">✉️</span>
-        <h1 class="phone-contact-title">{contact().title || 'Contact Us'}</h1>
-        <p class="phone-contact-subtitle">{contact().subtitle || "We'd love to hear from you"}</p>
-      </div>
-      <div class="phone-contact-card">
-        <p class="phone-contact-welcome">{contact().welcomeMessage || 'Your feedback and creative ideas are always welcome.'}</p>
-        <div class="phone-contact-info">
-          <div class="phone-contact-info-icon"><span>📧</span></div>
-          <div class="phone-contact-info-details">
-            <span class="phone-contact-info-label">{contact().emailLabel || 'Email Address'}</span>
-            <a href="mailto:chatuni.ai@gmail.com" class="phone-contact-info-value">chatuni.ai@gmail.com</a>
-          </div>
-        </div>
-        <div class="phone-contact-cta">
-          <p class="phone-contact-cta-text">{contact().ctaText || 'Have questions or suggestions? Drop us a line!'}</p>
-          <a href="mailto:chatuni.ai@gmail.com" class="phone-contact-send-btn">
-            <span>✉️</span>
-            {contact().sendEmail || 'Send Email'}
-          </a>
-        </div>
-      </div>
-      <p class="phone-contact-footer">{contact().footerText || 'We typically respond within 24-48 hours.'}</p>
-    </div>
-  )
-}
 
 export default PhoneAccount

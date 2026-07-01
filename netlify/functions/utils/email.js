@@ -37,6 +37,53 @@ export const sendPasswordResetEmail = async (email, resetToken, resetUrl) => {
   }
 }
 
+// Send user feedback to the admin inbox
+export const sendFeedbackEmail = async (feedback, adminEmail) => {
+  validateEmailConfig()
+
+  const transporter = createTransporter()
+
+  const mailOptions = {
+    from: `GAnime Feedback <${process.env.GMAIL_USER}>`,
+    to: adminEmail,
+    subject: 'New User Feedback - GAnime',
+    text: feedback,
+    html: generateFeedbackEmailHtml(feedback),
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    console.log('[sendFeedbackEmail] Email sent:', info.messageId)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('[sendFeedbackEmail] Failed to send email:', error)
+    throw new Error(`Failed to send email: ${error.message}`)
+  }
+}
+
+const generateFeedbackEmailHtml = (feedback) => {
+  const safe = String(feedback)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+  return `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0B0B0E; color: #ffffff; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">New User Feedback</h1>
+        </div>
+        <div style="background-color: #121214; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+          <p style="color: #E5E7EB; font-size: 15px; line-height: 1.7; margin: 0; white-space: pre-wrap;">${safe}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 const validateEmailConfig = () => {
   if (!process.env.GMAIL_USER) {
     throw new Error('GMAIL_USER environment variable is not configured')

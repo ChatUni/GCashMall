@@ -1,121 +1,112 @@
 import { createSignal, Show } from 'solid-js'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import { t } from '../../stores/languageStore'
-import { toastStoreActions, toastStore } from '../../stores'
+import { submitFeedback } from '../../services/dataService'
 import './PhoneContact.css'
 
-const PhoneContact = () => {
+const FEEDBACK_MAX = 5000
+
+// Shared contact content (header + card with feedback form + footer).
+// Used both by the standalone /contact page and the Account "Contact" tab.
+export const PhoneContactContent = () => {
   const contact = () => t().contact as Record<string, string>
 
-  const [formData, setFormData] = createSignal({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  })
-  const [sending, setSending] = createSignal(false)
+  const [feedback, setFeedback] = createSignal('')
+  const [submitting, setSubmitting] = createSignal(false)
+  const [submitted, setSubmitted] = createSignal(false)
+  const [error, setError] = createSignal('')
 
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault()
-
-    const data = formData()
-    if (!data.name || !data.email || !data.message) {
-      toastStoreActions.show(contact().fillRequired || 'Please fill in all required fields', 'error')
+  const handleSubmit = async () => {
+    const text = feedback().trim()
+    if (!text) {
+      setError(contact().feedbackEmpty)
       return
     }
-
-    setSending(true)
-
-    // Simulate sending
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    toastStoreActions.show(contact().sendSuccess || 'Message sent successfully!', 'success')
-    setFormData({ name: '', email: '', subject: '', message: '' })
-    setSending(false)
+    setError('')
+    setSubmitting(true)
+    try {
+      const result = await submitFeedback(text)
+      if (result.success) {
+        setSubmitted(true)
+      } else {
+        setError(result.error || contact().feedbackError)
+      }
+    } catch {
+      setError(contact().feedbackError)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
-    <PhoneLayout showHeader={true} showBackButton={true} title={contact().title || 'Contact Us'}>
-      <div class="phone-contact">
+    <div class="phone-contact">
         <div class="phone-contact-header">
-          <h1 class="phone-contact-title">{contact().title || 'Contact Us'}</h1>
-          <p class="phone-contact-subtitle">
-            {contact().subtitle || "Have questions? We'd love to hear from you."}
-          </p>
+          <div class="phone-contact-emoji">✉️</div>
+          <h1 class="phone-contact-title">{contact().title}</h1>
+          <p class="phone-contact-subtitle">{contact().subtitle}</p>
         </div>
 
-        <form class="phone-contact-form" onSubmit={handleSubmit}>
-          <div class="phone-form-group">
-            <label>{contact().name || 'Name'} *</label>
-            <input
-              type="text"
-              value={formData().name}
-              onInput={(e) => setFormData({ ...formData(), name: e.currentTarget.value })}
-              placeholder={contact().namePlaceholder || 'Your name'}
-            />
+        <div class="phone-contact-card">
+          <p class="phone-contact-message">{contact().welcomeMessage}</p>
+
+          <div class="phone-contact-info">
+            <div class="phone-contact-item">
+              <span class="phone-contact-icon">📧</span>
+              <div>
+                <span class="phone-contact-label">{contact().emailLabel}</span>
+                <a href="mailto:chatuni.ai@gmail.com" class="phone-contact-value">
+                  chatuni.ai@gmail.com
+                </a>
+              </div>
+            </div>
           </div>
 
-          <div class="phone-form-group">
-            <label>{contact().email || 'Email'} *</label>
-            <input
-              type="email"
-              value={formData().email}
-              onInput={(e) => setFormData({ ...formData(), email: e.currentTarget.value })}
-              placeholder={contact().emailPlaceholder || 'your@email.com'}
-            />
-          </div>
-
-          <div class="phone-form-group">
-            <label>{contact().subject || 'Subject'}</label>
-            <input
-              type="text"
-              value={formData().subject}
-              onInput={(e) => setFormData({ ...formData(), subject: e.currentTarget.value })}
-              placeholder={contact().subjectPlaceholder || 'What is this about?'}
-            />
-          </div>
-
-          <div class="phone-form-group">
-            <label>{contact().message || 'Message'} *</label>
+          <Show
+            when={!submitted()}
+            fallback={
+              <div class="phone-contact-thankyou">
+                <span class="phone-contact-thankyou-icon">🎉</span>
+                <p>{contact().thankYou}</p>
+              </div>
+            }
+          >
+            <p class="phone-contact-prompt">{contact().feedbackPrompt}</p>
             <textarea
-              value={formData().message}
-              onInput={(e) => setFormData({ ...formData(), message: e.currentTarget.value })}
-              placeholder={contact().messagePlaceholder || 'Your message...'}
+              class="phone-contact-feedback"
+              maxLength={FEEDBACK_MAX}
               rows={5}
+              placeholder={contact().feedbackPlaceholder}
+              value={feedback()}
+              onInput={(e) => setFeedback(e.currentTarget.value)}
             />
-          </div>
-
-          <button type="submit" class="phone-submit-btn" disabled={sending()}>
-            {sending() ? '...' : (contact().send || 'Send Message')}
-          </button>
-        </form>
-
-        <div class="phone-contact-info">
-          <h2>{contact().otherWays || 'Other Ways to Reach Us'}</h2>
-
-          <div class="phone-contact-item">
-            <span class="phone-contact-icon">📧</span>
-            <div>
-              <span class="phone-contact-label">{contact().emailLabel || 'Email'}</span>
-              <span class="phone-contact-value">support@gcashtv.com</span>
+            <div class="phone-contact-feedback-meta">
+              <span class="phone-contact-feedback-error">{error()}</span>
+              <span class="phone-contact-feedback-count">
+                {feedback().length}/{FEEDBACK_MAX}
+              </span>
             </div>
-          </div>
+            <button
+              class="phone-submit-btn"
+              disabled={submitting() || feedback().trim().length === 0}
+              onClick={handleSubmit}
+            >
+              ✉️ {submitting() ? '...' : contact().submit}
+            </button>
+          </Show>
+        </div>
 
-          <div class="phone-contact-item">
-            <span class="phone-contact-icon">📱</span>
-            <div>
-              <span class="phone-contact-label">{contact().phoneLabel || 'Phone'}</span>
-              <span class="phone-contact-value">+63 123 456 7890</span>
-            </div>
-          </div>
+        <div class="phone-contact-footer">
+          <p>{contact().footerText}</p>
         </div>
       </div>
+  )
+}
 
-      <Show when={toastStore.isVisible}>
-        <div class={`phone-toast phone-toast-${toastStore.type}`}>
-          {toastStore.message}
-        </div>
-      </Show>
+const PhoneContact = () => {
+  const contact = () => t().contact as Record<string, string>
+  return (
+    <PhoneLayout showHeader={true} showBackButton={true} title={contact().title}>
+      <PhoneContactContent />
     </PhoneLayout>
   )
 }
