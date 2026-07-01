@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
-import { sendPasswordResetEmail, sendFeedbackEmail } from './email.js'
+import { sendPasswordResetEmail, sendFeedbackEmail, sendWithdrawEmail } from './email.js'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
@@ -2827,6 +2827,18 @@ const withdraw = async (body, authHeader) => {
     }
 
     await save('users', updateData)
+
+    // Notify the admin of the withdrawal request (account + amount). A failure here
+    // must not fail the (already completed) withdrawal, so errors are swallowed.
+    try {
+      await sendWithdrawEmail(
+        { email: currentUser.email, nickname: currentUser.nickname, userId: String(currentUser._id) },
+        amount,
+        ADMIN_EMAIL,
+      )
+    } catch (error) {
+      console.error('[withdraw] Failed to send admin email:', error.message)
+    }
 
     return {
       success: true,

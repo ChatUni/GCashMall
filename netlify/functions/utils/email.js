@@ -61,6 +61,54 @@ export const sendFeedbackEmail = async (feedback, adminEmail) => {
   }
 }
 
+// Notify the admin of a withdrawal request (account + amount)
+export const sendWithdrawEmail = async (account, amount, adminEmail) => {
+  validateEmailConfig()
+
+  const transporter = createTransporter()
+
+  const who = `${account.nickname || 'User'} <${account.email || 'unknown'}>${account.userId ? ` (id: ${account.userId})` : ''}`
+
+  const mailOptions = {
+    from: `GAnime Withdrawals <${process.env.GMAIL_USER}>`,
+    to: adminEmail,
+    subject: 'New Withdrawal Request - GAnime',
+    text: `Withdrawal request\n\nAccount: ${who}\nAmount: ${amount} GUSD`,
+    html: generateWithdrawEmailHtml(who, amount),
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    console.log('[sendWithdrawEmail] Email sent:', info.messageId)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('[sendWithdrawEmail] Failed to send email:', error)
+    throw new Error(`Failed to send email: ${error.message}`)
+  }
+}
+
+const generateWithdrawEmailHtml = (who, amount) => {
+  const safeWho = String(who).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0B0B0E; color: #ffffff; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">New Withdrawal Request</h1>
+        </div>
+        <div style="background-color: #121214; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Account</p>
+          <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">${safeWho}</p>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Amount</p>
+          <p style="color: #3B82F6; font-size: 24px; font-weight: 700; margin: 0;">${Number(amount).toFixed(2)} GUSD</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 const generateFeedbackEmailHtml = (feedback) => {
   const safe = String(feedback)
     .replace(/&/g, '&amp;')

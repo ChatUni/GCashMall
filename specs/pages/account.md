@@ -370,6 +370,7 @@ Section card with form fields:
   3. Click Confirm to withdraw
   4. Success/error toast notification appears
   5. Balance updates on success
+  6. Send an email to the admin's email address (chatuni.ai@gmail.com) with withdraw account and amount
 - **Insufficient Balance**:
   - Amount buttons disabled when amount > current balance
   - If somehow clicked, shows "Insufficient balance" error toast
