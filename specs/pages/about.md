@@ -108,7 +108,7 @@ The About page provides information about GCashTV, its mission, features, and ho
 | Icon | Title | Description |
 |------|-------|-------------|
 | 🎬 | Exclusive Content | Access a wide variety of exclusive series and movies you won't find anywhere else. |
-| 💰 | Easy Payments | Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere. |
+| 💰 | Easy Payments | Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere. |
 | 🌍 | Multi-Language Support | Enjoy content in multiple languages with our built-in language switching feature. |
 | 📱 | Watch Anywhere | Stream on any device - desktop, tablet, or mobile. Your entertainment, your way. |
 
@@ -161,7 +161,7 @@ The About page provides information about GCashTV, its mission, features, and ho
 | Step | Title | Description |
 |------|-------|-------------|
 | 1 | Create an Account | Sign up for free using your email or social media accounts. It only takes a minute. |
-| 2 | Top Up Your Wallet | Add funds to your Gcash wallet to unlock premium episodes and content. |
+| 2 | Top Up Your Wallet | Add funds to your GUSD wallet to unlock premium episodes and content. |
 | 3 | Start Watching | Browse our library, unlock episodes, and enjoy unlimited streaming. |
 
 ### Footer Section
@@ -211,12 +211,12 @@ The About page provides information about GCashTV, its mission, features, and ho
 |-----|-------|
 | tagline | Your premium destination for streaming entertainment |
 | missionTitle | Our Mission |
-| missionText | GcashTV is dedicated to bringing you the best streaming experience with a vast library of series and movies. We believe in making quality entertainment accessible to everyone, with seamless payment integration through Gcash. |
+| missionText | GcashTV is dedicated to bringing you the best streaming experience with a vast library of series and movies. We believe in making quality entertainment accessible to everyone, with seamless payment integration through GUSD. |
 | featuresTitle | Why Choose GcashTV |
 | feature1Title | Exclusive Content |
 | feature1Text | Access a wide variety of exclusive series and movies you won't find anywhere else. |
 | feature2Title | Easy Payments |
-| feature2Text | Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere. |
+| feature2Text | Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere. |
 | feature3Title | Multi-Language Support |
 | feature3Text | Enjoy content in multiple languages with our built-in language switching feature. |
 | feature4Title | Watch Anywhere |
@@ -225,7 +225,7 @@ The About page provides information about GCashTV, its mission, features, and ho
 | step1Title | Create an Account |
 | step1Text | Sign up for free using your email or social media accounts. It only takes a minute. |
 | step2Title | Top Up Your Wallet |
-| step2Text | Add funds to your Gcash wallet to unlock premium episodes and content. |
+| step2Text | Add funds to your GUSD wallet to unlock premium episodes and content. |
 | step3Title | Start Watching |
 | step3Text | Browse our library, unlock episodes, and enjoy unlimited streaming. |
 | footerText | Thank you for choosing GcashTV. Happy watching! |
@@ -236,12 +236,12 @@ The About page provides information about GCashTV, its mission, features, and ho
 |-----|-------|
 | tagline | 您的优质流媒体娱乐平台 |
 | missionTitle | 我们的使命 |
-| missionText | GcashTV 致力于为您提供最佳的流媒体体验，拥有丰富的剧集和电影库。我们相信优质娱乐应该人人可及，通过 Gcash 实现无缝支付集成。 |
+| missionText | GcashTV 致力于为您提供最佳的流媒体体验，拥有丰富的剧集和电影库。我们相信优质娱乐应该人人可及，通过 GUSD 实现无缝支付集成。 |
 | featuresTitle | 为什么选择 GcashTV |
 | feature1Title | 独家内容 |
 | feature1Text | 访问各种独家剧集和电影，这些内容在其他地方找不到。 |
 | feature2Title | 便捷支付 |
-| feature2Text | 使用 Gcash 钱包轻松支付剧集费用。随时随地充值。 |
+| feature2Text | 使用 GUSD 钱包轻松支付剧集费用。随时随地充值。 |
 | feature3Title | 多语言支持 |
 | feature3Text | 通过内置的语言切换功能，享受多种语言的内容。 |
 | feature4Title | 随处观看 |
@@ -250,7 +250,7 @@ The About page provides information about GCashTV, its mission, features, and ho
 | step1Title | 创建账户 |
 | step1Text | 使用邮箱或社交媒体账户免费注册。只需一分钟。 |
 | step2Title | 钱包充值 |
-| step2Text | 向您的 Gcash 钱包充值，解锁高级剧集和内容。 |
+| step2Text | 向您的 GUSD 钱包充值，解锁高级剧集和内容。 |
 | step3Title | 开始观看 |
 | step3Text | 浏览我们的内容库，解锁剧集，享受无限流媒体。 |
 | footerText | 感谢您选择 GcashTV。祝您观影愉快！ |

@@ -256,7 +256,7 @@ Section card with form fields:
   - Wallet Icon: 💰 (48px)
   - Balance Info (flex column, gap: 4px):
     - Label: "Current Balance" - Gray (#9CA3AF), 14px
-    - Amount: White, 36px, font-weight 700, with GCash logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
+    - Amount: White, 36px, font-weight 700, with GUSD logo (32px) https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png
 - **Mobile (768px)**:
   - Flex Direction: column
   - Text Align: center
@@ -308,7 +308,7 @@ Section card with form fields:
   - Padding: 24px 16px
   - Border Radius: 12px
 - **Hover**: Blue border, blue tint background, translateY(-2px)
-- **Content**: GCash logo (24px) + amount value (28px, white)
+- **Content**: GUSD logo (24px) + amount value (28px, white)
 - **Disabled State** (for withdraw when amount > balance):
   - Opacity: 0.4
   - Cursor: not-allowed
@@ -322,12 +322,12 @@ Section card with form fields:
   - Padding: 32px
   - Max Width: 400px
 - **Content**:
-  - GCash Logo: 80px
+  - GUSD Logo: 80px
   - Title: "Confirm Top Up" - 24px, blue (#3B82F6)
   - Message: "Add to your wallet" - 14px, gray
   - Amount: 48px, blue (#3B82F6), with logo
   - Method: "Choose Payment Method" - 14px, gray
-  - Payment Method Icons: Credit Card (payment-methods2.svg, only show the text 'Card'), GUSD (GCash Icon) - text below icon
+  - Payment Method Icons: Credit Card (payment-methods2.svg, only show the text 'Card'), GUSD (GUSD Icon) - text below icon
 - **Buttons**:
   - Confirm: Blue (#3B82F6), hover: darker blue (#2563EB)
   - Cancel: Gray (#2A2A2E)
@@ -340,7 +340,7 @@ Section card with form fields:
   - Padding: 32px
   - Max Width: 400px
 - **Content**:
-  - GCash Logo: 80px
+  - GUSD Logo: 80px
   - Title: "Confirm Withdrawal" - 24px, blue (#3B82F6)
   - Message: "Withdraw from your wallet" - 14px, gray
   - Amount: 48px, blue (#3B82F6), with logo
@@ -788,14 +788,14 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
 - **Class**: `.revenue-cell`
 - Font Weight: 600
 - White Space: nowrap
-- GCash logo: vertical-align middle, margin-right 6px
+- GUSD logo: vertical-align middle, margin-right 6px
 
 ###### Creator Share Cell Styling
 - **Class**: `.share-cell`
 - Font Weight: 600
 - White Space: nowrap
 - Color: Green (#22c55e) with `.highlight` class
-- GCash logo: vertical-align middle, margin-right 6px
+- GUSD logo: vertical-align middle, margin-right 6px
 
 ###### Table Logo
 - **Class**: `.revenue-table-logo`

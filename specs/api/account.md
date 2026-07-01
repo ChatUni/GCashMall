@@ -265,7 +265,7 @@ return the success/fail message
 
 ## Purchase Episode
 
-Episode Cost = 1 GCash
+Episode Cost = 1 GUSD
 
 ### Input
 

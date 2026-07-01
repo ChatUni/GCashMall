@@ -32,7 +32,7 @@ const PhoneAbout = () => {
               <li>{about().feature1 || 'Extensive library of series and movies'}</li>
               <li>{about().feature2 || 'High-quality streaming'}</li>
               <li>{about().feature3 || 'Personalized recommendations'}</li>
-              <li>{about().feature4 || 'Easy payment with GCash'}</li>
+              <li>{about().feature4 || 'Easy payment with GUSD'}</li>
             </ul>
           </section>
 

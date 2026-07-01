@@ -18,7 +18,7 @@ const PurchaseDialog = (props: PurchaseDialogProps) => {
   const getMessage = () => {
     const message =
       t().player?.purchaseDialog?.message ||
-      'You must purchase the episode in order to continue watching. It will cost {cost} GCash.'
+      'You must purchase the episode in order to continue watching. It will cost {cost} GUSD.'
     return message.replace('{cost}', String(props.episodeCost))
   }
 

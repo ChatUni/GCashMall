@@ -37,7 +37,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
       <div class="popup-price">
         <img
           src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-          alt="GCash"
+          alt="GUSD"
           class="popup-price-logo"
         />
         <span>{systemSettingsStore.episodeCost.toFixed(2)}</span>
@@ -46,7 +46,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
         {props.t.yourBalance}:
         <img
           src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
-          alt="GCash"
+          alt="GUSD"
           class="popup-balance-logo"
         />
         <span>{props.userBalance.toFixed(2)}</span>

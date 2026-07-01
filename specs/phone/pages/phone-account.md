@@ -736,7 +736,7 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
 - Centered text
 - Balance label: 13 pixel, white with 80% opacity
 - Balance amount: 36 pixel, 700 weight, white
-- GCash logo: 32 pixel
+- GUSD logo: 32 pixel
 
 ### Wallet Tabs
 - Container: dark background (#121214), 12 pixel border radius, 4 pixel padding
@@ -759,7 +759,7 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
   - Dark background (#1a1a1e)
   - 12 pixel border radius
   - 16 pixel padding
-  - GCash logo (24 pixel) + amount (16 pixel, 600 weight)
+  - GUSD logo (24 pixel) + amount (16 pixel, 600 weight)
   - Disabled state: 40% opacity when amount > balance
 - Custom amount button:
   - Dashed blue border (2px, #3B82F6)
@@ -773,7 +773,7 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
 - Message: "Enter the amount to add" or "Enter the amount to withdraw"
 - Input wrapper:
   - Dark background (#2a2a2e), 8 pixel border radius
-  - GCash logo + number input
+  - GUSD logo + number input
   - Input styling:
     - Transparent background, right-aligned text
     - Blue text (#3B82F6) when typing, 24 pixel font, 700 weight
@@ -824,7 +824,7 @@ The Revenue tab displays revenue sharing information for creators. Platform shar
 - Modal: dark background (#1a1a1e), 16 pixel border radius, 24 pixel padding
 - Max width: 320 pixel
 - Content:
-  - GCash logo: 64 pixel
+  - GUSD logo: 64 pixel
   - Title: 20 pixel, 600 weight, blue (#3B82F6)
   - Message: 14 pixel, gray
   - Amount: 36 pixel, 700 weight, blue
@@ -976,7 +976,7 @@ When the user is not logged in, the account page shows a login prompt instead of
 | Icon | Title | Description |
 |------|-------|-------------|
 | 🎬 | Exclusive Content | Access a wide variety of exclusive series and movies you won't find anywhere else. |
-| 💰 | Easy Payments | Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere. |
+| 💰 | Easy Payments | Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere. |
 | 🌍 | Multi-Language Support | Enjoy content in multiple languages with our built-in language switching feature. |
 | 📱 | Watch Anywhere | Stream on any device - desktop, tablet, or mobile. Your entertainment, your way. |
 
@@ -1008,7 +1008,7 @@ When the user is not logged in, the account page shows a login prompt instead of
 | Step | Title | Description |
 |------|-------|-------------|
 | 1 | Create an Account | Sign up for free using your email or social media accounts. It only takes a minute. |
-| 2 | Top Up Your Wallet | Add funds to your Gcash wallet to unlock premium episodes and content. |
+| 2 | Top Up Your Wallet | Add funds to your GUSD wallet to unlock premium episodes and content. |
 | 3 | Start Watching | Browse our library, unlock episodes, and enjoy unlimited streaming. |
 
 ### Footer

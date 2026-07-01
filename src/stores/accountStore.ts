@@ -2,13 +2,13 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem } from '../types'
+import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem, EarningSource } from '../types'
 
 // Payment method types
 export type PaymentMethod = 'creditcard' | 'gusd' | 'applepay'
 
 // Transaction types
-export type TransactionType = 'topup' | 'withdraw'
+export type TransactionType = 'topup' | 'withdraw' | 'earning'
 export type TransactionStatus = 'success' | 'failed' | 'processing'
 
 export interface Transaction {
@@ -19,11 +19,12 @@ export interface Transaction {
   amount: number
   transactionId?: string
   status: TransactionStatus
+  source?: EarningSource
   createdAt: Date
 }
 
 // Combined transaction type for display (includes purchases)
-export type CombinedTransactionType = 'topup' | 'withdraw' | 'purchase'
+export type CombinedTransactionType = 'topup' | 'withdraw' | 'purchase' | 'earning'
 
 export interface CombinedTransaction {
   id: string
@@ -33,6 +34,7 @@ export interface CombinedTransaction {
   referenceId: string
   createdAt: Date
   purchase?: PurchaseItem
+  source?: EarningSource
 }
 
 export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'about' | 'contact'
@@ -593,6 +595,7 @@ export const getCombinedTransactions = (
       status: t.status,
       referenceId: t.referenceId,
       createdAt: t.createdAt,
+      source: t.source,
     })),
     ...purchases.map((p) => ({
       id: p._id,

@@ -1102,7 +1102,7 @@ export const playerStoreActions = {
     if (userBalance < EPISODE_COST) {
       showToast(
         t.player?.purchaseDialog?.insufficientBalance ||
-          "You don't have enough GCash, please top up first",
+          "You don't have enough GUSD, please top up first",
         'error',
       )
       basePlayerStoreActions.setShowPurchaseDialog(false)

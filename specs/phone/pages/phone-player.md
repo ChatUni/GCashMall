@@ -9,7 +9,7 @@ The Phone Player page provides a mobile-optimized video playback experience with
 This page shares core functionality with the [desktop Player page](../../pages/player.md). The following sections are identical and are not repeated here:
 - **Video Playing Restriction** - Time limit (3 seconds) for unpurchased episodes
 - **Trial Viewing System** - Trial logic, state tracking, "Preview Length" system setting, fallback to TIME_LIMIT
-- **Episode Purchase System** - Purchase price ("Episode Cost" system setting, GCash), purchase flow, purchased episode storage
+- **Episode Purchase System** - Purchase price ("Episode Cost" system setting, GUSD), purchase flow, purchased episode storage
 - **Purchase State Synchronization** - Backend persistence, frontend store updates
 - **Purchase Check Logic** - Matching by seriesId AND (episodeId OR episodeNumber)
 - **Purchase Dialog behavior** - Purchase flow, validation, API calls
@@ -302,7 +302,7 @@ This document focuses on mobile-specific UI/UX differences.
   - **Series Name**: 14px, font-weight 500, white
   - **Episode Name**: 12px, gray (#9CA3AF)
 - **Price Display**:
-  - GCash logo (24px)
+  - GUSD logo (24px)
   - Amount: "Episode Cost" system setting - 28px, bold, #3B82F6
 - **Balance Display**:
   - Label: "Your balance:" - 13px, gray

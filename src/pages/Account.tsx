@@ -724,7 +724,7 @@ function WalletSection() {
         <div class="balance-info">
           <span class="balance-label">{wallet().currentBalance}</span>
           <div class="balance-amount">
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="gcash-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="gcash-logo" />
             <span>{accountStore.balance.toFixed(2)}</span>
           </div>
         </div>
@@ -778,7 +778,7 @@ function WalletSection() {
                 onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
                 disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}
               >
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="amount-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="amount-logo" />
                 <span class="amount-value">{amount}</span>
               </button>
             )}
@@ -810,7 +810,18 @@ function WalletSection() {
                       <td class="transaction-time">{formatTransactionDateTime(transaction.createdAt)}</td>
                       <td class={`transaction-type type-${transaction.type}`}>
                         <Show when={transaction.type === 'purchase' && transaction.purchase} fallback={
-                          transaction.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')
+                          <Show when={transaction.type === 'earning'} fallback={
+                            transaction.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')
+                          }>
+                            <div class="purchase-type-cell">
+                              <span class="purchase-type-series">{wallet().earning || 'Earning'}</span>
+                              <Show when={transaction.source}>
+                                <span class="purchase-type-episode">
+                                  {transaction.source!.seriesName} · EP {transaction.source!.episodeNumber}
+                                </span>
+                              </Show>
+                            </div>
+                          </Show>
                         }>
                           <div class="purchase-type-cell">
                             <span class="purchase-type-series">{transaction.purchase!.seriesName}</span>
@@ -821,8 +832,8 @@ function WalletSection() {
                         </Show>
                       </td>
                       <td class="transaction-amount">
-                        <span class={transaction.type === 'topup' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
-                          {transaction.type === 'topup' ? '+' : '-'}{transaction.amount.toFixed(2)}
+                        <span class={transaction.type === 'topup' || transaction.type === 'earning' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
+                          {transaction.type === 'topup' || transaction.type === 'earning' ? '+' : '-'}{transaction.amount.toFixed(2)}
                         </span>
                       </td>
                       <td class={`transaction-status ${getStatusClass(transaction.status)}`}>
@@ -842,11 +853,11 @@ function WalletSection() {
       <Show when={accountStore.showTopUpPopup && accountStore.selectedTopUpAmount}>
         <div class="popup-overlay" onClick={() => !accountStore.topUpLoading && closeTopUpPopup()}>
           <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-logo" />
             <h2 class="popup-title">{wallet().confirmTopUp}</h2>
             <p class="popup-message">{wallet().addToWallet}</p>
             <div class="popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-amount-logo" />
               <span>{accountStore.selectedTopUpAmount}</span>
             </div>
             <div class="payment-method-section">
@@ -900,11 +911,11 @@ function WalletSection() {
       <Show when={accountStore.showWithdrawPopup && accountStore.selectedWithdrawAmount}>
         <div class="popup-overlay" onClick={closeWithdrawPopup}>
           <div class="popup-modal withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-logo" />
             <h2 class="popup-title">{wallet().confirmWithdraw || 'Confirm Withdraw'}</h2>
             <p class="popup-message">{wallet().withdrawFromWallet || 'Withdraw from your wallet'}</p>
             <div class="popup-amount withdraw-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="popup-amount-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-amount-logo" />
               <span>{accountStore.selectedWithdrawAmount!.toFixed(2)}</span>
             </div>
             <div class="popup-buttons">
@@ -1161,7 +1172,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
                 {accountStore.revenueData!.totalRevenue.toFixed(2)}
               </span>
             </div>
@@ -1171,7 +1182,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="revenue-card-value highlight">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
                 {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
               </span>
             </div>
@@ -1181,7 +1192,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
                 {accountStore.revenueData!.pendingPayout.toFixed(2)}
               </span>
             </div>
@@ -1191,7 +1202,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-gcash-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
                 {accountStore.revenueData!.paidOut.toFixed(2)}
               </span>
             </div>
@@ -1224,7 +1235,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
                           <span class="revenue-stat">
                             <span class="revenue-stat-label">{props.translations.creatorShare || 'Creator Share'}:</span>
                             <span class="revenue-stat-value highlight">
-                              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-stat-logo" />
+                              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-stat-logo" />
                               {seriesRevenue.creatorShare.toFixed(2)}
                             </span>
                           </span>
@@ -1261,11 +1272,11 @@ const RevenueSection = (props: RevenueSectionProps) => {
                                   </td>
                                   <td class="sales-cell">{episode.totalSales} {props.translations.sales || 'sales'}</td>
                                   <td class="revenue-cell">
-                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-table-logo" />
+                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-table-logo" />
                                     {episode.totalRevenue.toFixed(2)}
                                   </td>
                                   <td class="share-cell highlight">
-                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="revenue-table-logo" />
+                                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-table-logo" />
                                     {episode.creatorShare.toFixed(2)}
                                   </td>
                                 </tr>

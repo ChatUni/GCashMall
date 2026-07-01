@@ -2257,6 +2257,13 @@ const addPurchase = async (body, authHeader) => {
 
     await save('users', updateData)
 
+    // Credit the creator (uploader) their revenue share (in GUSD), unless the buyer
+    // is the uploader themselves. Based on the Creator Share percentage setting.
+    if (series.uploaderId && String(series.uploaderId) !== String(userId)) {
+      const { creatorShare } = await readSystemSettings()
+      await creditCreatorRevenue(series, price, creatorShare, episodeNumber)
+    }
+
     return {
       success: true,
       data: await buildUserResponse(updateData),
@@ -2392,7 +2399,7 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
   const requestBody = {
     price: String(amount),
     order_id: orderId,
-    desc: `Top Up ${amount} GCash`,
+    desc: `Top Up ${amount} GUSD`,
     notify_url: gusdNotifyUrl,
     redirect_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&order_id=${orderId}`,
     failure_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=cancelled&order_id=${orderId}`,
@@ -2836,8 +2843,8 @@ const purchaseEpisode = async (body, authHeader) => {
 
     const currentUser = users[0]
 
-    // Episode cost comes from the admin-configured system settings
-    const { episodeCost } = await readSystemSettings()
+    // Episode cost and creator revenue share come from the admin-configured system settings
+    const { episodeCost, creatorShare } = await readSystemSettings()
 
     // Check if user has enough balance
     const balance = currentUser.balance || 0
@@ -2904,6 +2911,9 @@ const purchaseEpisode = async (body, authHeader) => {
 
     await save('users', updateData)
 
+    // Credit the creator (uploader) their revenue share (in GUSD) of this purchase
+    await creditCreatorRevenue(series, episodeCost, creatorShare, parseInt(episodeNumber))
+
     return {
       success: true,
       data: {
@@ -2931,6 +2941,50 @@ const validatePurchaseEpisodeBody = (body) => {
 
   if (body.episodeNumber === undefined || body.episodeNumber === null) {
     throw new Error('Episode number is required')
+  }
+}
+
+// Credit the creator (series uploader) their revenue share of an episode purchase.
+// The amount (creatorShare% of the episode cost) is added to the creator's balance
+// in GUSD along with an 'earning' transaction. Failures here must not fail the buyer's
+// purchase, so errors are logged and swallowed.
+const creditCreatorRevenue = async (series, episodeCost, creatorSharePercent, episodeNumber) => {
+  try {
+    if (!series || !series.uploaderId) return
+
+    const amount = Number((episodeCost * (creatorSharePercent / 100)).toFixed(4))
+    if (!(amount > 0)) return
+
+    const uploaders = await get('users', { _id: new ObjectId(String(series.uploaderId)) }, {}, {}, 1)
+    if (!uploaders || uploaders.length === 0) return
+    const uploader = uploaders[0]
+
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId: generateReferenceId(),
+      type: 'earning',
+      method: 'GUSD',
+      amount,
+      status: 'success',
+      source: {
+        seriesId: String(series._id),
+        seriesName: series.name,
+        episodeNumber,
+      },
+      createdAt: new Date(),
+    }
+
+    const transactions = uploader.transactions || []
+    transactions.unshift(transaction)
+
+    await save('users', {
+      ...uploader,
+      balance: (uploader.balance || 0) + amount,
+      transactions,
+      updatedAt: new Date(),
+    })
+  } catch (error) {
+    console.error('[creditCreatorRevenue] Failed to credit creator:', error.message)
   }
 }
 
@@ -3539,7 +3593,7 @@ const SYSTEM_SETTINGS_KEY = 'system'
 const DEFAULT_SYSTEM_SETTINGS = {
   previewLength: 3, // seconds of free preview before purchase is required
   creatorShare: 50, // percent of episode revenue paid to the creator
-  episodeCost: 0.1, // GCash cost to unlock an episode
+  episodeCost: 0.1, // GUSD cost to unlock an episode
 }
 const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]

@@ -486,7 +486,7 @@ const PhoneWalletSection = () => {
       <div class="phone-wallet-balance">
         <span class="phone-balance-label">{wallet().currentBalance}</span>
         <div class="phone-balance-amount">
-          <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-balance-logo" />
+          <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-balance-logo" />
           <span>{accountStore.balance.toFixed(2)}</span>
         </div>
       </div>
@@ -503,7 +503,7 @@ const PhoneWalletSection = () => {
           <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
               <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > accountStore.balance ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > accountStore.balance}>
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-amount-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-amount-logo" />
                 <span>{amount}</span>
               </button>
             )}
@@ -528,7 +528,16 @@ const PhoneWalletSection = () => {
                   <div class="phone-transaction-row">
                     <div class="phone-transaction-info">
                       <div class={`phone-transaction-type type-${tx.type}`}>
-                        <Show when={tx.type === 'purchase' && tx.purchase} fallback={tx.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')}>
+                        <Show when={tx.type === 'purchase' && tx.purchase} fallback={
+                          <Show when={tx.type === 'earning'} fallback={tx.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')}>
+                            <div class="phone-purchase-type-cell">
+                              <span class="phone-purchase-type-series">{wallet().earning || 'Earning'}</span>
+                              <Show when={tx.source}>
+                                <span class="phone-purchase-type-episode">{tx.source!.seriesName} · EP {tx.source!.episodeNumber}</span>
+                              </Show>
+                            </div>
+                          </Show>
+                        }>
                           <div class="phone-purchase-type-cell">
                             <span class="phone-purchase-type-series">{tx.purchase!.seriesName}</span>
                             <span class="phone-purchase-type-episode">EP {tx.purchase!.episodeNumber}{tx.purchase!.episodeTitle ? ` ${tx.purchase!.episodeTitle}` : ''}</span>
@@ -538,7 +547,7 @@ const PhoneWalletSection = () => {
                       <span class="phone-transaction-date">{formatTransactionDate(tx.createdAt)}</span>
                     </div>
                     <div class="phone-transaction-amount-status">
-                      <span class={`phone-transaction-amount amount-${tx.type}`}>{tx.type === 'topup' ? '+' : '-'}{tx.amount.toFixed(2)}</span>
+                      <span class={`phone-transaction-amount amount-${tx.type}`}>{tx.type === 'topup' || tx.type === 'earning' ? '+' : '-'}{tx.amount.toFixed(2)}</span>
                       <span class={`phone-transaction-status ${getStatusClass(tx.status)}`}>{getStatusText(tx.status, t().account)}</span>
                     </div>
                   </div>
@@ -552,11 +561,11 @@ const PhoneWalletSection = () => {
       <Show when={accountStore.showTopUpPopup && accountStore.selectedTopUpAmount}>
         <div class="phone-popup-overlay" onClick={() => !accountStore.topUpLoading && closeTopUpPopup()}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-logo" />
             <h3 class="phone-popup-title">{wallet().confirmTopUp || 'Confirm Top Up'}</h3>
             <p class="phone-popup-message">{wallet().topUpMessage || 'Add to your wallet'}</p>
             <div class="phone-popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-amount-logo" />
               <span>{accountStore.selectedTopUpAmount}</span>
             </div>
             <div class="phone-payment-method-section">
@@ -604,11 +613,11 @@ const PhoneWalletSection = () => {
       <Show when={accountStore.showWithdrawPopup && accountStore.selectedWithdrawAmount}>
         <div class="phone-popup-overlay" onClick={closeWithdrawPopup}>
           <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
-            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-logo" />
+            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-logo" />
             <h3 class="phone-popup-title">{wallet().confirmWithdraw || 'Confirm Withdrawal'}</h3>
             <p class="phone-popup-message">{wallet().withdrawMessage || 'Withdraw from your wallet'}</p>
             <div class="phone-popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-popup-amount-logo" />
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-amount-logo" />
               <span>{accountStore.selectedWithdrawAmount}</span>
             </div>
             <div class="phone-popup-buttons">
@@ -846,7 +855,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="phone-revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
                 {accountStore.revenueData!.totalRevenue.toFixed(2)}
               </span>
             </div>
@@ -856,7 +865,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="phone-revenue-card-value highlight">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
                 {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
               </span>
             </div>
@@ -866,7 +875,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="phone-revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
                 {accountStore.revenueData!.pendingPayout.toFixed(2)}
               </span>
             </div>
@@ -876,7 +885,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="phone-revenue-card-value">
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-logo" />
+                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
                 {accountStore.revenueData!.paidOut.toFixed(2)}
               </span>
             </div>
@@ -906,7 +915,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                             {props.translations.totalSales || 'Sales'}: {seriesRevenue.totalSales}
                           </span>
                           <span class="phone-revenue-stat highlight">
-                            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-stat-logo" />
+                            <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-stat-logo" />
                             {seriesRevenue.creatorShare.toFixed(2)}
                           </span>
                         </div>
@@ -929,7 +938,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                               <div class="phone-revenue-episode-stats">
                                 <span class="phone-revenue-episode-sales">{episode.totalSales} {props.translations.sales || 'sales'}</span>
                                 <span class="phone-revenue-episode-share highlight">
-                                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GCash" class="phone-revenue-episode-logo" />
+                                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-episode-logo" />
                                   {episode.creatorShare.toFixed(2)}
                                 </span>
                               </div>
@@ -955,13 +964,13 @@ const PhoneAboutSection = () => {
   const about = () => (t().about || {}) as Record<string, string>
   const features = () => [
     { icon: '🎬', title: about().feature1Title || 'Exclusive Content', text: about().feature1Text || 'Access a wide variety of exclusive series and movies you won\'t find anywhere else.' },
-    { icon: '💰', title: about().feature2Title || 'Easy Payments', text: about().feature2Text || 'Pay for episodes seamlessly with your Gcash wallet. Top up anytime, anywhere.' },
+    { icon: '💰', title: about().feature2Title || 'Easy Payments', text: about().feature2Text || 'Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere.' },
     { icon: '🌍', title: about().feature3Title || 'Multi-Language Support', text: about().feature3Text || 'Enjoy content in multiple languages with our built-in language switching feature.' },
     { icon: '📱', title: about().feature4Title || 'Watch Anywhere', text: about().feature4Text || 'Stream on any device - desktop, tablet, or mobile. Your entertainment, your way.' },
   ]
   const steps = () => [
     { number: 1, title: about().step1Title || 'Create an Account', text: about().step1Text || 'Sign up for free using your email or social media accounts. It only takes a minute.' },
-    { number: 2, title: about().step2Title || 'Top Up Your Wallet', text: about().step2Text || 'Add funds to your Gcash wallet to unlock premium episodes and content.' },
+    { number: 2, title: about().step2Title || 'Top Up Your Wallet', text: about().step2Text || 'Add funds to your GUSD wallet to unlock premium episodes and content.' },
     { number: 3, title: about().step3Title || 'Start Watching', text: about().step3Text || 'Browse our library, unlock episodes, and enjoy unlimited streaming.' },
   ]
 

@@ -117,11 +117,11 @@ The page uses React Router params:
 
 ## Purchase Dialog
 
-Episode Cost = 1 GCash
+Episode Cost = 1 GUSD
 
 ### Layout
 
-- "You must purchase the episode in order to continue watching. It will cost {EC} GCash."
+- "You must purchase the episode in order to continue watching. It will cost {EC} GUSD."
 - "Do you want to purchase?"
 - "Purchase" button (green), "Cancel" button (red)
 
@@ -129,10 +129,10 @@ Episode Cost = 1 GCash
 
 - on purchase button click:
   - if the user is not logged in, show the log in dialog
-  - if the this is not enough GCash in the user's wallet, show message "You don't have enough GCash, please top up first", then take user to the wallet section in the account page (/account?tab=wallet)
+  - if the this is not enough GUSD in the user's wallet, show message "You don't have enough GUSD, please top up first", then take user to the wallet section in the account page (/account?tab=wallet)
   - otherwise, call the purchase episode API:
     - on success:
-      - deduct EC GCash from the user's wallet
+      - deduct EC GUSD from the user's wallet
       - add it to the user's purchase history
       - show the successful message in toast notification
       - close the dialog
@@ -401,7 +401,7 @@ Users can watch the first few seconds of any episode for free (configurable, def
 ## Episode Purchase System
 
 ### Purchase Price
-- **Price per Episode**: "Episode Cost" system setting (GCash currency)
+- **Price per Episode**: "Episode Cost" system setting (GUSD currency)
 - **Payment Method**: Deduct from user's wallet balance
 
 ### Purchase Flow
@@ -414,6 +414,7 @@ Users can watch the first few seconds of any episode for free (configurable, def
 4. System checks wallet balance
 5. If sufficient: deduct amount, unlock episode, add to My Purchases
 6. If insufficient: show error message
+7. If purchase successful, based on the Creator Share percentage setting, add the corresponding amount (in GUSD) to the creator/uploader's account and their transaction history
 
 ### Purchased Episode Storage
 - Stored in user's `purchases` array in database
@@ -513,7 +514,7 @@ To determine if an episode is purchased:
   - **Episode Name** (second line): 14px, font-weight 400, gray (#9CA3AF)
     - Format: "EP XX" or "EP XX {Episode Title}"
 - **Price Display**:
-  - GCash logo (24px)
+  - GUSD logo (24px)
   - Amount: "Episode Cost" system setting - 36px, bold, #3B82F6
 - **Balance Display**:
   - Label: "Your balance:" - 14px, gray
