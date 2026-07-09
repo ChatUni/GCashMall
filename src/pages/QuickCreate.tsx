@@ -1,6 +1,7 @@
-import { For, Show, Switch, Match } from 'solid-js'
+import { For, Show, Switch, Match, createSignal, onMount } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { t } from '../stores/languageStore'
+import { extractStory, generateStoryPrompt } from '../services/dataService'
 import {
   quickCreateStore,
   quickCreateStoreActions,
@@ -110,7 +111,113 @@ const Stepper = () => (
 
 // ── Step 1: Idea input ──
 
-const Step1Idea = () => (
+const MAX_UPLOAD_MB = 4
+const IDEA_MIN_ROWS = 5
+const IDEA_MAX_ROWS = 30
+
+const readFileAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('read error'))
+    reader.readAsDataURL(file)
+  })
+
+const Step1Idea = () => {
+  // While focused, grow the textarea to fit its content (5–30 rows) with a
+  // smooth height animation; collapse back to the minimum on blur.
+  const [ideaFocused, setIdeaFocused] = createSignal(false)
+  let ideaTextareaRef: HTMLTextAreaElement | undefined
+
+  const autoSizeIdea = () => {
+    const el = ideaTextareaRef
+    if (!el) return
+    const cs = getComputedStyle(el)
+    const lineHeight = parseFloat(cs.lineHeight) || 22
+    const vExtra =
+      parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
+      parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+    const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+    const minH = Math.round(IDEA_MIN_ROWS * lineHeight + vExtra)
+    const maxH = Math.round(IDEA_MAX_ROWS * lineHeight + vExtra)
+
+    if (!ideaFocused()) {
+      el.style.height = minH + 'px'
+      return
+    }
+
+    // Measure the content height without animating the measurement step.
+    const prevTransition = el.style.transition
+    const prevHeight = el.style.height
+    el.style.transition = 'none'
+    el.style.height = 'auto'
+    const contentH = el.scrollHeight + border
+    el.style.height = prevHeight
+    void el.offsetHeight // reflow so the animation starts from the current height
+    el.style.transition = prevTransition
+    el.style.height = Math.min(maxH, Math.max(minH, contentH)) + 'px'
+  }
+  const [uploading, setUploading] = createSignal(false)
+  const [generating, setGenerating] = createSignal(false)
+  const [actionError, setActionError] = createSignal('')
+  const busy = () => uploading() || generating()
+  let fileInputRef: HTMLInputElement | undefined
+  onMount(() => quickCreateStoreActions.loadTemplates())
+
+  // Upload Story / Import Manga both open a single-file picker (pdf/docx) and
+  // extract the story text (via OpenAI) into the textarea.
+  const openFilePicker = () => {
+    if (busy()) return
+    setActionError('')
+    fileInputRef?.click()
+  }
+
+  const onFileChange = async (e: Event & { currentTarget: HTMLInputElement }) => {
+    const input = e.currentTarget
+    const file = input.files?.[0]
+    input.value = '' // allow re-selecting the same file
+    if (!file) return
+    if (!/\.(pdf|docx)$/i.test(file.name)) {
+      setActionError(qc().step1.uploadInvalid)
+      return
+    }
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      setActionError(qc().step1.uploadTooLarge)
+      return
+    }
+    setActionError('')
+    setUploading(true)
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      const text = await extractStory(dataUrl, file.name)
+      // Use the file name (without extension) as the series title
+      const title = file.name.replace(/\.[^.]+$/, '').trim()
+      quickCreateStoreActions.applyStory(text, title)
+    } catch {
+      setActionError(qc().step1.uploadFailed)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // Surprise Me: expand the current idea into a full template-format prompt
+  const onSurprise = async () => {
+    if (busy()) return
+    setActionError('')
+    setGenerating(true)
+    try {
+      const { title, text } = await generateStoryPrompt(quickCreateStore.idea)
+      quickCreateStoreActions.applyStory(text, title)
+    } catch {
+      setActionError(qc().step1.surpriseFailed)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const isUploadAction = (id: string) => id === 'uploadStory' || id === 'importManga'
+
+  return (
   <div class="qc-step">
     <div class="qc-hero">
       <img class="qc-hero-img" src={heroImage} alt="" />
@@ -124,17 +231,43 @@ const Step1Idea = () => (
       </div>
       <h2 class="qc-heading qc-hero-heading">{qc().step1.heading}</h2>
       <textarea
+        ref={ideaTextareaRef}
         class="qc-textarea qc-hero-textarea"
         placeholder={qc().step1.placeholder}
         value={quickCreateStore.idea}
-        onInput={(e) => quickCreateStoreActions.setIdea(e.currentTarget.value)}
+        onInput={(e) => {
+          quickCreateStoreActions.setIdea(e.currentTarget.value)
+          autoSizeIdea()
+        }}
+        onFocus={() => {
+          setIdeaFocused(true)
+          autoSizeIdea()
+        }}
+        onBlur={() => {
+          setIdeaFocused(false)
+          autoSizeIdea()
+        }}
       />
     </div>
 
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      style={{ display: 'none' }}
+      onChange={onFileChange}
+    />
     <div class="qc-action-cards">
       <For each={IDEA_ACTIONS}>
         {(action) => (
-          <button class="qc-action-card">
+          <button
+            class="qc-action-card"
+            disabled={busy()}
+            onClick={() => {
+              if (isUploadAction(action.id)) openFilePicker()
+              else if (action.id === 'surpriseMe') onSurprise()
+            }}
+          >
             <span class="qc-action-icon">{action.icon}</span>
             <span class="qc-action-text">
               <span class="qc-action-title">{actionT(action.id).title}</span>
@@ -145,25 +278,43 @@ const Step1Idea = () => (
       </For>
     </div>
 
+    <Show when={busy()}>
+      <div class="qc-upload-status">
+        <span class="qc-spinner" />
+        {uploading() ? qc().step1.reading : qc().step1.surprising}
+      </div>
+    </Show>
+    <Show when={actionError()}>
+      <div class="qc-upload-error">⚠ {actionError()}</div>
+    </Show>
+
     <div class="qc-popular-head">
       <h3 class="qc-subheading">{qc().step1.popularIdeas}</h3>
       <span class="qc-popular-hint">{qc().step1.popularHint}</span>
     </div>
-    <div class="qc-ideas-row">
-      <For each={POPULAR_IDEAS}>
-        {(idea) => (
+    <div class="qc-templates-grid">
+      <For each={quickCreateStore.templates}>
+        {(tpl) => (
           <button
-            class={`qc-idea-card ${quickCreateStore.idea === ideaT(idea.id) ? 'selected' : ''}`}
-            onClick={() => quickCreateStoreActions.setIdea(ideaT(idea.id))}
+            class={`qc-template-card ${quickCreateStore.idea === tpl.prompt ? 'selected' : ''}`}
+            onClick={() => quickCreateStoreActions.applyStory(tpl.prompt, tpl.name)}
           >
-            <img class="qc-idea-thumb" src={idea.image} alt={ideaT(idea.id)} loading="lazy" />
-            <span class="qc-idea-title">{ideaT(idea.id)}</span>
+            <img class="qc-template-cover" src={tpl.cover} alt={tpl.name} loading="lazy" />
+            <div class="qc-template-body">
+              <span class="qc-template-name">{tpl.name}</span>
+              <span class="qc-template-hook">{tpl.hook}</span>
+              <div class="qc-template-tags">
+                <For each={tpl.tags}>{(tag) => <span class="qc-template-tag">{tag}</span>}</For>
+              </div>
+              <span class="qc-template-audience">👥 {tpl.targetAudience}</span>
+            </div>
           </button>
         )}
       </For>
     </div>
   </div>
-)
+  )
+}
 
 // ── Step 2: Genre ──
 
@@ -279,7 +430,7 @@ const Step5Review = () => {
   const selectedGenre = () => GENRES.find((g) => g.id === quickCreateStore.genreId)
   const selectedStyle = () => ART_STYLES.find((s) => s.id === quickCreateStore.artStyleId)
   const selectedIdea = () => POPULAR_IDEAS.find((i) => ideaT(i.id) === quickCreateStore.idea.trim())
-  const seriesTitle = () => quickCreateStore.idea.trim() || ideaT(SERIES_PLAN.titleKey)
+  const seriesTitle = () => quickCreateStore.ideaTitle.trim() || s5().untitled
   const seriesImage = () =>
     selectedIdea()?.image || selectedGenre()?.image || selectedStyle()?.image || SERIES_PLAN.image
   const genreText = () => (quickCreateStore.genreId ? genreT(quickCreateStore.genreId).name : '—')

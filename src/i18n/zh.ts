@@ -436,6 +436,12 @@ export const zh = {
       popularHint: '点击主题获取灵感',
       next: '生成动漫',
       nextHint: '只需几分钟',
+      reading: '正在读取你的故事……',
+      surprising: '正在为你构思故事……',
+      uploadInvalid: '请上传 PDF 或 DOCX 文件。',
+      uploadTooLarge: '文件过大（最大 4MB）。',
+      uploadFailed: '无法读取该文件，请尝试其他 PDF 或 DOCX。',
+      surpriseFailed: '生成故事失败，请重试。',
       actions: {
         uploadStory: { title: '上传故事', subtitle: '上传你的剧本或小说文件' },
         importManga: { title: '导入漫画', subtitle: '导入漫画页面，我们来改编' },
@@ -498,6 +504,7 @@ export const zh = {
     step5: {
       heading: 'AI 导演审阅',
       subtitle: '我们的 AI 导演为你的动漫剧集打造了完美方案。在我们开始创作第 1 集之前，请查看以下详情。',
+      untitled: '未命名剧集',
       directorName: 'AI 导演',
       directorNote: '我设计了一个精彩的 5 集迷你剧，从第一集就能牢牢吸引你的观众。',
       miniSeries: '迷你剧',

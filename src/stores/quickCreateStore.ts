@@ -2,6 +2,9 @@
 // No backend yet: all selections live in this store (Rule #7: shared state outside the tree).
 
 import { createStore } from 'solid-js/store'
+import { fetchTemplates, type StarterTemplate } from '../services/dataService'
+
+export type { StarterTemplate }
 
 // 5 input steps are built; the stepper also shows the 6th (result) step for fidelity.
 export const QUICK_CREATE_STEPS = 5
@@ -70,7 +73,6 @@ export const IDEA_ACTIONS = [
   { id: 'uploadStory', icon: '⬆️' },
   { id: 'importManga', icon: '📖' },
   { id: 'surpriseMe', icon: '🎲' },
-  { id: 'myDrafts', icon: '📝' },
 ]
 
 export const GENRES: GenreOption[] = [
@@ -131,17 +133,23 @@ export const PLAN_EPISODES: PlanEpisode[] = [
 interface QuickCreateState {
   step: number
   idea: string
+  ideaTitle: string // short series name (from template / generated / filename)
   genreId: string | null
   artStyleId: string | null
   episodeLength: number | null
+  templates: StarterTemplate[]
+  templatesLoaded: boolean
 }
 
 const getInitialState = (): QuickCreateState => ({
   step: 1,
   idea: '',
+  ideaTitle: '',
   genreId: null,
   artStyleId: null,
   episodeLength: 30,
+  templates: [],
+  templatesLoaded: false,
 })
 
 const [state, setState] = createStore<QuickCreateState>(getInitialState())
@@ -153,9 +161,22 @@ export const quickCreateStoreActions = {
   back: () => setState('step', (s) => Math.max(s - 1, 1)),
   goToStep: (step: number) => setState({ step }),
   setIdea: (idea: string) => setState({ idea }),
+  setIdeaTitle: (ideaTitle: string) => setState({ ideaTitle }),
+  // Apply a story (prompt + its title) from a template / generation / upload
+  applyStory: (idea: string, ideaTitle: string) => setState({ idea, ideaTitle }),
   selectGenre: (genreId: string) => setState({ genreId }),
   selectArtStyle: (artStyleId: string) => setState({ artStyleId }),
   selectEpisodeLength: (episodeLength: number) => setState({ episodeLength }),
+  // Load starter-story templates from the DB (once)
+  loadTemplates: async () => {
+    if (state.templatesLoaded) return
+    try {
+      const templates = await fetchTemplates()
+      setState({ templates, templatesLoaded: true })
+    } catch (error) {
+      console.error('Failed to load templates:', error)
+    }
+  },
   reset: () => setState(getInitialState()),
 }
 

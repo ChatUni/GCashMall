@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
 import { sendPasswordResetEmail, sendFeedbackEmail, sendWithdrawEmail } from './email.js'
+import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
@@ -3189,6 +3190,9 @@ export {
   getSettings,
   saveSettings,
   submitFeedback,
+  getTemplates,
+  extractStory,
+  generateStoryPrompt,
   getComments,
   addComment,
 }
@@ -3729,4 +3733,176 @@ const validateFeedbackBody = (body) => {
   if (body.feedback.length > FEEDBACK_MAX_LENGTH) {
     throw new Error(`Feedback must be ${FEEDBACK_MAX_LENGTH} characters or less`)
   }
+}
+
+// ── Quick Create templates (starter stories) ──
+
+const getTemplates = async () => {
+  try {
+    const templates = await get('templates', {}, {}, { order: 1 })
+    return { success: true, data: templates }
+  } catch (error) {
+    throw new Error(`Failed to get templates: ${error.message}`)
+  }
+}
+
+// ── Extract a story prompt from an uploaded PDF/DOCX file (via OpenAI) ──
+
+const EXTRACT_STORY_INSTRUCTION =
+  'The document contains a story premise/prompt for an anime series. Read it and return the complete story text as clean plain text, preserving paragraph breaks. Do not summarize, translate, or add any commentary, headings, or labels (like "Title" or "Prompt") — return only the story prompt text itself.'
+
+const extractStory = async (body) => {
+  validateExtractStoryBody(body)
+
+  try {
+    const { file, filename } = body
+    const ext = String(filename).split('.').pop().toLowerCase()
+
+    let text
+    if (ext === 'pdf') {
+      text = await extractStoryFromPdf(file, filename)
+    } else if (ext === 'docx') {
+      text = await extractStoryFromDocx(file)
+    } else {
+      return { success: false, error: 'Unsupported file type. Please upload a PDF or DOCX file.' }
+    }
+
+    text = (text || '').trim()
+    if (!text) {
+      return { success: false, error: 'Could not read any story text from the file.' }
+    }
+    return { success: true, data: { text } }
+  } catch (error) {
+    throw new Error(`Failed to read file: ${error.message}`)
+  }
+}
+
+const validateExtractStoryBody = (body) => {
+  if (!body || !body.file || typeof body.file !== 'string') {
+    throw new Error('File data is required')
+  }
+  if (!body.filename || typeof body.filename !== 'string') {
+    throw new Error('File name is required')
+  }
+}
+
+// PDF: gpt-4o reads the file natively via the Responses API (base64 data URL)
+const extractStoryFromPdf = async (dataUrl, filename) => {
+  const res = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: EXTRACT_STORY_INSTRUCTION },
+            { type: 'input_file', filename, file_data: dataUrl },
+          ],
+        },
+      ],
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`OpenAI error (${res.status}): ${(await res.text()).slice(0, 300)}`)
+  }
+  const data = await res.json()
+  return extractResponsesOutputText(data)
+}
+
+// DOCX: extract the raw text with mammoth, then normalize via OpenAI chat
+const extractStoryFromDocx = async (dataUrl) => {
+  const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+  const buffer = Buffer.from(base64, 'base64')
+  const result = await mammoth.extractRawText({ buffer })
+  const rawText = (result.value || '').trim()
+  if (!rawText) return ''
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+      messages: [
+        { role: 'system', content: EXTRACT_STORY_INSTRUCTION },
+        { role: 'user', content: rawText },
+      ],
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`OpenAI error (${res.status}): ${(await res.text()).slice(0, 300)}`)
+  }
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content || ''
+}
+
+// ── Surprise Me: expand a short idea into a full template-format story prompt ──
+
+const STORY_PROMPT_INSTRUCTION =
+  'You are a creative anime story writer. Given a short story idea (or nothing at all), craft a rich, original story premise for an anime series. Return a JSON object with two fields: "title" — a short, catchy 2-4 word series title; and "prompt" — the full premise written as 3 to 4 short paragraphs of flowing prose (no headings, no bullet points, no labels) covering the world/setting, the main character, a supporting character, the inciting incident, the goal, and the main conflict, and ending with a final paragraph that begins with "Episode 1 introduces" describing what the first episode covers and ending on an intriguing hook or cliffhanger. Return only valid JSON.'
+
+const generateStoryPrompt = async (body) => {
+  const idea = (body && typeof body.idea === 'string' ? body.idea : '').trim()
+
+  try {
+    const userMessage = idea
+      ? `Expand this idea into a full anime story premise:\n\n${idea}`
+      : 'Create a completely original, surprising anime story premise.'
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+        messages: [
+          { role: 'system', content: STORY_PROMPT_INSTRUCTION },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.9,
+        response_format: { type: 'json_object' },
+      }),
+    })
+    if (!res.ok) {
+      throw new Error(`OpenAI error (${res.status}): ${(await res.text()).slice(0, 300)}`)
+    }
+    const data = await res.json()
+    const content = data.choices?.[0]?.message?.content || ''
+    let title = ''
+    let text = ''
+    try {
+      const parsed = JSON.parse(content)
+      title = (parsed.title || '').trim()
+      text = (parsed.prompt || '').trim()
+    } catch {
+      text = content.trim()
+    }
+    if (!text) {
+      return { success: false, error: 'Could not generate a story. Please try again.' }
+    }
+    return { success: true, data: { title, text } }
+  } catch (error) {
+    throw new Error(`Failed to generate story: ${error.message}`)
+  }
+}
+
+// Aggregate output_text items from a Responses API result
+const extractResponsesOutputText = (data) => {
+  if (typeof data.output_text === 'string' && data.output_text) return data.output_text
+  const parts = []
+  for (const item of data.output || []) {
+    for (const c of item.content || []) {
+      if (c.type === 'output_text' && c.text) parts.push(c.text)
+    }
+  }
+  return parts.join('\n')
 }

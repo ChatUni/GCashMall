@@ -364,6 +364,47 @@ export const recordView = async (seriesId: string): Promise<ViewsData> => {
   return { count: 0 }
 }
 
+// ── Quick Create templates ──
+
+export interface StarterTemplate {
+  _id: string
+  name: string
+  cover: string
+  prompt: string
+  hook: string
+  tags: string[]
+  targetAudience: string
+  order?: number
+}
+
+export const fetchTemplates = async (): Promise<StarterTemplate[]> => {
+  const result = await apiGet<StarterTemplate[]>('templates')
+  if (result.success && result.data) {
+    return result.data
+  }
+  return []
+}
+
+// Extract a story prompt from an uploaded PDF/DOCX file (read by OpenAI on the server)
+export const extractStory = async (file: string, filename: string): Promise<string> => {
+  const result = await apiPost<{ text: string }>('extractStory', { file, filename })
+  if (result.success && result.data) {
+    return result.data.text
+  }
+  throw new Error(result.error || 'Failed to read the file')
+}
+
+// Expand a short idea into a full template-format story prompt + title (via OpenAI)
+export const generateStoryPrompt = async (
+  idea: string,
+): Promise<{ title: string; text: string }> => {
+  const result = await apiPost<{ title: string; text: string }>('generateStoryPrompt', { idea })
+  if (result.success && result.data) {
+    return { title: result.data.title || '', text: result.data.text }
+  }
+  throw new Error(result.error || 'Failed to generate a story')
+}
+
 // ── Feedback ──
 
 export const submitFeedback = async (

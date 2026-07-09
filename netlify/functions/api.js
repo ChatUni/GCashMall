@@ -61,6 +61,9 @@ import {
   getSettings,
   saveSettings,
   submitFeedback,
+  getTemplates,
+  extractStory,
+  generateStoryPrompt,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -89,6 +92,7 @@ const apiHandlers = {
     shares: (params) => getShares(params),
     views: (params) => getViews(params),
     settings: () => getSettings(),
+    templates: () => getTemplates(),
     comments: (params) => getComments(params),
   },
   post: {
@@ -130,6 +134,8 @@ const apiHandlers = {
     recordView: (body) => recordView(body),
     saveSettings: (body, authHeader) => saveSettings(body, authHeader),
     submitFeedback: (body) => submitFeedback(body),
+    extractStory: (body) => extractStory(body),
+    generateStoryPrompt: (body) => generateStoryPrompt(body),
     addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {

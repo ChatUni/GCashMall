@@ -30,6 +30,7 @@
         "npm:glin-profanity@^3.3.0",
         "npm:globals@^16.5.0",
         "npm:jsonwebtoken@^9.0.3",
+        "npm:mammoth@^1.12.0",
         "npm:mongodb@6",
         "npm:netlify-cli@^23.12.2",
         "npm:nodemailer@^7.0.12",

@@ -437,6 +437,12 @@ export const en = {
       popularHint: 'Click a theme to get inspired',
       next: 'Generate Anime',
       nextHint: 'It only takes a few minutes',
+      reading: 'Reading your story…',
+      surprising: 'Dreaming up your story…',
+      uploadInvalid: 'Please upload a PDF or DOCX file.',
+      uploadTooLarge: 'File is too large (max 4MB).',
+      uploadFailed: "Couldn't read the file. Please try another PDF or DOCX.",
+      surpriseFailed: "Couldn't generate a story. Please try again.",
       actions: {
         uploadStory: { title: 'Upload Story', subtitle: 'Upload your script or novel file' },
         importManga: { title: 'Import Manga', subtitle: "Import manga pages and we'll adapt" },
@@ -499,6 +505,7 @@ export const en = {
     step5: {
       heading: 'AI Director Review',
       subtitle: 'Our AI Director has crafted a perfect plan for your anime series. Review the details below before we start creating Episode 1.',
+      untitled: 'Untitled Series',
       directorName: 'AI Director',
       directorNote: "I've designed an exciting 5-episode mini-series that will hook your audience from the very first episode.",
       miniSeries: 'Mini-Series',
