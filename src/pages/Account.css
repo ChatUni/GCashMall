@@ -2396,3 +2396,143 @@
 }
 
 
+
+/* ── Admin: AI Pipeline Prompts editor ── */
+
+.pipeline-prompts-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.pipeline-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.pipeline-editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pipeline-editor-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.pipeline-editor-textarea {
+  width: 100%;
+  height: 460px;
+  resize: vertical;
+  background: #0d0d10;
+  color: #e5e7eb;
+  border: 1px solid #2a2a2e;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+
+.pipeline-editor-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.pipeline-editor-preview {
+  height: 460px;
+  overflow: auto;
+  background: #0d0d10;
+  border: 1px solid #2a2a2e;
+  border-radius: 10px;
+  padding: 4px 14px;
+}
+
+.pipeline-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pipeline-editor-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pipeline-editor-status.ok {
+  color: #4ade80;
+}
+
+.pipeline-editor-status.err {
+  color: #fca5a5;
+}
+
+/* Rendered markdown preview */
+.md-body {
+  color: #d1d5db;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.md-body .md-h1 { font-size: 20px; font-weight: 700; margin: 14px 0 8px; color: #fff; }
+.md-body .md-h2 { font-size: 17px; font-weight: 700; margin: 14px 0 8px; color: #fff; }
+.md-body .md-h3 { font-size: 15px; font-weight: 600; margin: 12px 0 6px; color: #e5e7eb; }
+.md-body .md-h4,
+.md-body .md-h5,
+.md-body .md-h6 { font-size: 13px; font-weight: 600; margin: 10px 0 6px; color: #e5e7eb; }
+.md-body .md-p { margin: 8px 0; }
+.md-body .md-ul,
+.md-body .md-ol { margin: 8px 0; padding-left: 22px; }
+.md-body .md-ul li,
+.md-body .md-ol li { margin: 3px 0; }
+.md-body .md-quote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid #3b82f6;
+  background: #12151b;
+  color: #9ca3af;
+}
+.md-body .md-hr { border: none; border-top: 1px solid #2a2a2e; margin: 14px 0; }
+.md-body code {
+  background: #1a1a22;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #93c5fd;
+}
+.md-body .md-pre {
+  background: #08080b;
+  border: 1px solid #23232a;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: auto;
+  margin: 10px 0;
+}
+.md-body .md-pre code {
+  background: none;
+  padding: 0;
+  color: #cbd5e1;
+  white-space: pre;
+}
+
+@media (max-width: 768px) {
+  .pipeline-editor {
+    grid-template-columns: 1fr;
+  }
+  .pipeline-editor-textarea,
+  .pipeline-editor-preview {
+    height: 300px;
+  }
+}

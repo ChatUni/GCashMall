@@ -70,6 +70,12 @@ import {
   fetchRevenueData,
 } from '../services/accountService'
 import { toastStore } from '../stores'
+import {
+  fetchPipelinePrompts,
+  savePipelinePrompt,
+  type PipelinePrompt,
+} from '../services/dataService'
+import { renderMarkdown } from '../utils/markdown'
 import type { Series, User } from '../types'
 import './Account.css'
 
@@ -643,6 +649,105 @@ function SettingsSection() {
 
       <Show when={accountStore.user?.isAdmin}>
         <SystemSettingsCard />
+        <PipelinePromptsCard />
+      </Show>
+    </div>
+  )
+}
+
+// AI Pipeline Prompts editor - admin only. Edit the markdown system prompt for
+// each of the 6 Quick Create production calls, with a live HTML preview.
+function PipelinePromptsCard() {
+  const settings = () => t().account.settings as Record<string, string>
+  const [prompts, setPrompts] = createSignal<PipelinePrompt[]>([])
+  const [selectedKey, setSelectedKey] = createSignal<string>('')
+  const [draft, setDraft] = createSignal<string>('')
+  const [saving, setSaving] = createSignal(false)
+  const [status, setStatus] = createSignal<'idle' | 'saved' | 'error'>('idle')
+
+  const selected = () => prompts().find((p) => p.key === selectedKey())
+
+  const selectPrompt = (key: string) => {
+    setSelectedKey(key)
+    setDraft(prompts().find((p) => p.key === key)?.markdown || '')
+    setStatus('idle')
+  }
+
+  onMount(async () => {
+    try {
+      const list = await fetchPipelinePrompts()
+      setPrompts(list)
+      if (list.length > 0) selectPrompt(list[0].key)
+    } catch (error) {
+      console.error('Failed to load pipeline prompts:', error)
+    }
+  })
+
+  const onSave = async () => {
+    if (!selectedKey()) return
+    setSaving(true)
+    setStatus('idle')
+    try {
+      const updated = await savePipelinePrompt(selectedKey(), draft())
+      setPrompts(updated)
+      setStatus('saved')
+    } catch (error) {
+      console.error('Failed to save pipeline prompt:', error)
+      setStatus('error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div class="section-card">
+      <h3 class="card-title">{settings().pipelinePrompts}</h3>
+      <p class="pipeline-prompts-hint">{settings().pipelinePromptsHint}</p>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().selectCall}</label>
+        <select
+          class="setting-control"
+          value={selectedKey()}
+          onChange={(e) => selectPrompt(e.currentTarget.value)}
+        >
+          <For each={prompts()}>
+            {(p) => <option value={p.key}>{p.title}</option>}
+          </For>
+        </select>
+      </div>
+
+      <Show when={selected()}>
+        <div class="pipeline-editor">
+          <div class="pipeline-editor-pane">
+            <div class="pipeline-editor-label">{settings().markdownLabel}</div>
+            <textarea
+              class="pipeline-editor-textarea"
+              value={draft()}
+              onInput={(e) => {
+                setDraft(e.currentTarget.value)
+                setStatus('idle')
+              }}
+              spellcheck={false}
+            />
+          </div>
+          <div class="pipeline-editor-pane">
+            <div class="pipeline-editor-label">{settings().previewLabel}</div>
+            <div class="pipeline-editor-preview md-body" innerHTML={renderMarkdown(draft())} />
+          </div>
+        </div>
+
+        <div class="pipeline-editor-actions">
+          <Show when={status() === 'saved'}>
+            <span class="pipeline-editor-status ok">✓ {settings().saved}</span>
+          </Show>
+          <Show when={status() === 'error'}>
+            <span class="pipeline-editor-status err">⚠ {settings().saveFailed}</span>
+          </Show>
+          <button class="btn-primary" disabled={saving()} onClick={onSave}>
+            {saving() ? settings().saving : settings().savePrompt}
+          </button>
+        </div>
       </Show>
     </div>
   )

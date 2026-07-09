@@ -64,6 +64,9 @@ import {
   getTemplates,
   extractStory,
   generateStoryPrompt,
+  getPipelinePrompts,
+  savePipelinePrompt,
+  getProductionStatus,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -93,6 +96,8 @@ const apiHandlers = {
     views: (params) => getViews(params),
     settings: () => getSettings(),
     templates: () => getTemplates(),
+    pipelinePrompts: (params, authHeader) => getPipelinePrompts(params, authHeader),
+    productionStatus: (params, authHeader) => getProductionStatus(params, authHeader),
     comments: (params) => getComments(params),
   },
   post: {
@@ -136,6 +141,7 @@ const apiHandlers = {
     submitFeedback: (body) => submitFeedback(body),
     extractStory: (body) => extractStory(body),
     generateStoryPrompt: (body) => generateStoryPrompt(body),
+    savePipelinePrompt: (body, authHeader) => savePipelinePrompt(body, authHeader),
     addComment: (body, authHeader) => addComment(body, authHeader),
   },
   delete: {

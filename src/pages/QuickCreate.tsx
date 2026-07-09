@@ -1,4 +1,4 @@
-import { For, Show, Switch, Match, createSignal, onMount } from 'solid-js'
+import { For, Show, Switch, Match, createSignal, onMount, type JSX } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { t } from '../stores/languageStore'
 import { extractStory, generateStoryPrompt } from '../services/dataService'
@@ -15,12 +15,15 @@ import {
   EPISODE_LENGTHS,
   STAT_ICONS,
   SERIES_PLAN,
-  PLAN_EPISODES,
+  PIPELINE_CALLS,
   heroImage,
+  type StepStatus,
 } from '../stores/quickCreateStore'
 import './QuickCreate.css'
 
 const qc = () => t().quickCreate
+const pipelineT = () => qc().pipeline
+const callT = (key: string) => (pipelineT().calls as Record<string, string>)[key] || key
 
 // Dynamically-keyed i18n accessors
 type NameDesc = { name: string; desc: string }
@@ -30,8 +33,6 @@ const genreT = (id: string) => (qc().step2.genres as Record<string, NameDesc>)[i
 const styleT = (id: string) => (qc().step3.styles as Record<string, NameDesc>)[id]
 const statT = (key: string) => (qc().step4.stats as Record<string, string>)[key]
 const stepT = (key: string) => (qc().steps as Record<string, string>)[key]
-const epT = (n: number) =>
-  (qc().step5.episodes as Record<string, { title: string; desc: string }>)[`ep${n}`]
 
 const CheckBadge = () => (
   <span class="qc-check">
@@ -40,6 +41,129 @@ const CheckBadge = () => (
     </svg>
   </span>
 )
+
+// ── JSON → HTML viewer (renders a call's output as a readable formatted box) ──
+
+// snake_case / camelCase key → "Title Case"
+const prettyKey = (key: string): string =>
+  key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
+const JsonView = (props: { value: unknown }): JSX.Element => (
+  <Switch>
+    <Match when={Array.isArray(props.value)}>
+      <ul class="jv-list">
+        <For each={props.value as unknown[]}>
+          {(item) => (
+            <li>
+              <JsonView value={item} />
+            </li>
+          )}
+        </For>
+      </ul>
+    </Match>
+    <Match when={isPlainObject(props.value)}>
+      <div class="jv-obj">
+        <For each={Object.entries(props.value as Record<string, unknown>)}>
+          {([k, v]) => (
+            <div class="jv-row">
+              <span class="jv-key">{prettyKey(k)}</span>
+              <div class="jv-val">
+                <JsonView value={v} />
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
+    </Match>
+    <Match when={props.value === '' || props.value === null || props.value === undefined}>
+      <span class="jv-empty">—</span>
+    </Match>
+    <Match when={true}>
+      <span class="jv-scalar">{String(props.value)}</span>
+    </Match>
+  </Switch>
+)
+
+// ── Pipeline progress (step-status icon + overlay) ──
+
+const StatusIcon = (props: { status: StepStatus }) => (
+  <Switch>
+    <Match when={props.status === 'done'}>
+      <span class="qc-pl-icon done">✓</span>
+    </Match>
+    <Match when={props.status === 'running'}>
+      <span class="qc-pl-icon running">
+        <span class="qc-spinner" />
+      </span>
+    </Match>
+    <Match when={props.status === 'error'}>
+      <span class="qc-pl-icon error">!</span>
+    </Match>
+    <Match when={true}>
+      <span class="qc-pl-icon pending" />
+    </Match>
+  </Switch>
+)
+
+const PipelineProgress = () => {
+  const pl = () => quickCreateStore.pipeline
+  const isSignin = () => pl().error === '__signin__'
+  return (
+    <div class="qc-pl-overlay">
+      <div class="qc-pl-panel">
+        <Show
+          when={!isSignin()}
+          fallback={
+            <>
+              <h3 class="qc-pl-title">{pipelineT().signInRequired}</h3>
+              <div class="qc-pl-actions">
+                <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.resetPipeline()}>
+                  {pipelineT().cancel}
+                </button>
+              </div>
+            </>
+          }
+        >
+          <h3 class="qc-pl-title">{pipelineT().title}</h3>
+          <p class="qc-pl-subtitle">{pipelineT().subtitle}</p>
+
+          <ul class="qc-pl-steps">
+            <For each={pl().calls}>
+              {(c) => (
+                <li class={`qc-pl-step ${c.status}`}>
+                  <StatusIcon status={c.status} />
+                  <span class="qc-pl-step-label">{callT(c.key)}</span>
+                </li>
+              )}
+            </For>
+            <li class={`qc-pl-step ${pl().coverStatus}`}>
+              <StatusIcon status={pl().coverStatus} />
+              <span class="qc-pl-step-label">{pipelineT().coversStep}</span>
+            </li>
+          </ul>
+
+          <Show when={pl().error && !isSignin()}>
+            <div class="qc-pl-error">⚠ {pl().error}</div>
+            <div class="qc-pl-actions">
+              <button class="qc-back-btn" onClick={() => quickCreateStoreActions.resetPipeline()}>
+                {pipelineT().cancel}
+              </button>
+              <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.runPipeline()}>
+                🔄 {pipelineT().retry}
+              </button>
+            </div>
+          </Show>
+        </Show>
+      </div>
+    </div>
+  )
+}
 
 // ── Sidebar ──
 
@@ -421,21 +545,67 @@ const Step4Length = () => (
   </div>
 )
 
-// ── Step 5: AI Director Review (hardcoded plan) ──
+// ── Step 5: AI Director Review (real generated production) ──
+
+// Titles for the per-call sections in an episode's Detail box (pipeline order)
+const CALL_ORDER = PIPELINE_CALLS.map((c) => c.key)
+
+// The formatted "results from all calls" box shown under an episode
+const ProductionPackage = () => {
+  const calls = () => quickCreateStore.pipeline.production?.calls || {}
+  return (
+    <div class="qc-package">
+      <For each={CALL_ORDER}>
+        {(key) => (
+          <Show when={calls()[key]}>
+            <div class="qc-package-call">
+              <div class="qc-package-call-title">{callT(key)}</div>
+              <div class="qc-package-call-body">
+                <JsonView value={calls()[key]} />
+              </div>
+            </div>
+          </Show>
+        )}
+      </For>
+    </div>
+  )
+}
 
 const Step5Review = () => {
   const s5 = () => qc().step5
-  // The summary reflects the user's selections from the previous steps.
-  // Only the episode plan (right side) is hardcoded.
+  const [expanded, setExpanded] = createSignal<number | null>(null)
+  const toggle = (n: number) => setExpanded((cur) => (cur === n ? null : n))
+
+  const production = () => quickCreateStore.pipeline.production
+  const episodes = () => quickCreateStore.pipeline.episodes
+  const seriesTitle = () => production()?.ideaTitle || quickCreateStore.ideaTitle.trim() || s5().untitled
+
+  // Fallback image for the series card / episodes before covers are ready
   const selectedGenre = () => GENRES.find((g) => g.id === quickCreateStore.genreId)
   const selectedStyle = () => ART_STYLES.find((s) => s.id === quickCreateStore.artStyleId)
   const selectedIdea = () => POPULAR_IDEAS.find((i) => ideaT(i.id) === quickCreateStore.idea.trim())
-  const seriesTitle = () => quickCreateStore.ideaTitle.trim() || s5().untitled
-  const seriesImage = () =>
+  const fallbackImage = () =>
     selectedIdea()?.image || selectedGenre()?.image || selectedStyle()?.image || SERIES_PLAN.image
+  const seriesImage = () => episodes().find((e) => e.cover)?.cover || fallbackImage()
+
   const genreText = () => (quickCreateStore.genreId ? genreT(quickCreateStore.genreId).name : '—')
   const styleText = () => (quickCreateStore.artStyleId ? styleT(quickCreateStore.artStyleId).name : '—')
   const lengthText = () => `${quickCreateStore.episodeLength} ${qc().step4.sec}`
+
+  // Story-confidence score from the Story Intelligence Optimizer (Call 5), if present
+  const confidence = () => {
+    const opt = production()?.calls?.storyOptimizer as
+      | { optimization_summary?: { quality_score_after?: number } }
+      | undefined
+    return opt?.optimization_summary?.quality_score_after || SERIES_PLAN.confidence
+  }
+  const logline = () => {
+    const exec = production()?.calls?.executiveProducer as
+      | { series_blueprint?: { logline?: string } }
+      | undefined
+    return exec?.series_blueprint?.logline || s5().confidenceText
+  }
+
   return (
     <div class="qc-step">
       <div class="qc-review-head">
@@ -452,54 +622,83 @@ const Step5Review = () => {
         </div>
       </div>
 
-      <div class="qc-review-grid">
-        <div class="qc-series-card">
-          <img class="qc-series-img" src={seriesImage()} alt={seriesTitle()} />
-          <div class="qc-series-title-row">
-            <span class="qc-series-title">{seriesTitle()}</span>
-            <span class="qc-series-tag">{s5().miniSeries}</span>
+      <Show
+        when={production()}
+        fallback={<div class="qc-review-empty">{s5().noProduction}</div>}
+      >
+        <div class="qc-review-grid">
+          <div class="qc-series-card">
+            <img class="qc-series-img" src={seriesImage()} alt={seriesTitle()} />
+            <div class="qc-series-title-row">
+              <span class="qc-series-title">{seriesTitle()}</span>
+              <span class="qc-series-tag">{s5().miniSeries}</span>
+            </div>
+            <div class="qc-series-meta">
+              <div class="qc-meta-row"><span>{s5().genre}</span><span>{genreText()}</span></div>
+              <div class="qc-meta-row"><span>{s5().artStyle}</span><span>{styleText()}</span></div>
+              <div class="qc-meta-row"><span>{s5().episodeLength}</span><span>{lengthText()}</span></div>
+              <div class="qc-meta-row"><span>{s5().episodesLabel}</span><span>{episodes().length} {s5().episodesLabel}</span></div>
+            </div>
+            <div class="qc-confidence">
+              <span class="qc-confidence-pct">{Math.round(confidence())}%</span>
+              <div class="qc-confidence-body">
+                <span class="qc-confidence-label">{s5().confidenceLabel}</span>
+                <span class="qc-confidence-text">{logline()}</span>
+              </div>
+            </div>
           </div>
-          <div class="qc-series-meta">
-            <div class="qc-meta-row"><span>{s5().genre}</span><span>{genreText()}</span></div>
-            <div class="qc-meta-row"><span>{s5().artStyle}</span><span>{styleText()}</span></div>
-            <div class="qc-meta-row"><span>{s5().episodeLength}</span><span>{lengthText()}</span></div>
-            <div class="qc-meta-row"><span>{s5().episodesLabel}</span><span>{s5().episodesValue}</span></div>
-          </div>
-          <div class="qc-confidence">
-            <span class="qc-confidence-pct">{SERIES_PLAN.confidence}%</span>
-            <div class="qc-confidence-body">
-              <span class="qc-confidence-label">{s5().confidenceLabel}</span>
-              <span class="qc-confidence-text">{s5().confidenceText}</span>
+
+          <div class="qc-plan">
+            <h3 class="qc-plan-title">{s5().planTitle}</h3>
+            <div class="qc-plan-list">
+              <For each={episodes()}>
+                {(ep) => (
+                  <div class="qc-plan-ep-wrap">
+                    <div class="qc-plan-ep">
+                      <div class="qc-plan-thumb-wrap">
+                        <Show
+                          when={ep.cover}
+                          fallback={
+                            <Show
+                              when={ep.coverLoading}
+                              fallback={<img class="qc-plan-thumb" src={fallbackImage()} alt={ep.title} />}
+                            >
+                              <div class="qc-plan-thumb qc-plan-thumb-loading">
+                                <span class="qc-spinner" />
+                              </div>
+                            </Show>
+                          }
+                        >
+                          <img class="qc-plan-thumb" src={ep.cover} alt={ep.title} loading="lazy" />
+                        </Show>
+                      </div>
+                      <div class="qc-plan-ep-body">
+                        <span class="qc-plan-ep-title">
+                          {ep.n}. {ep.title}
+                        </span>
+                        <span class="qc-plan-ep-desc">{ep.desc}</span>
+                      </div>
+                      <button class="qc-detail-btn" onClick={() => toggle(ep.n)}>
+                        {expanded() === ep.n ? s5().hideDetail : s5().detail}
+                        <span class={`qc-detail-caret ${expanded() === ep.n ? 'open' : ''}`}>▾</span>
+                      </button>
+                    </div>
+                    <Show when={expanded() === ep.n}>
+                      <div class="qc-detail-box">
+                        <ProductionPackage />
+                      </div>
+                    </Show>
+                  </div>
+                )}
+              </For>
+            </div>
+            <div class="qc-director-tip">
+              <span class="qc-tip-label">💡 {s5().directorTipLabel}</span>
+              <span class="qc-tip-text">{s5().directorTip}</span>
             </div>
           </div>
         </div>
-
-        <div class="qc-plan">
-          <h3 class="qc-plan-title">{s5().planTitle}</h3>
-          <div class="qc-plan-list">
-            <For each={PLAN_EPISODES}>
-              {(ep) => (
-                <div class="qc-plan-ep">
-                  <img class="qc-plan-thumb" src={ep.image} alt={epT(ep.n).title} loading="lazy" />
-                  <div class="qc-plan-ep-body">
-                    <span class="qc-plan-ep-title">
-                      {ep.n}. {epT(ep.n).title}
-                    </span>
-                    <span class="qc-plan-ep-desc">{epT(ep.n).desc}</span>
-                  </div>
-                  <span class={`qc-plan-status ${ep.status}`}>
-                    {ep.status === 'generating' ? s5().statusGenerating : s5().statusPending}
-                  </span>
-                </div>
-              )}
-            </For>
-          </div>
-          <div class="qc-director-tip">
-            <span class="qc-tip-label">💡 {s5().directorTipLabel}</span>
-            <span class="qc-tip-text">{s5().directorTip}</span>
-          </div>
-        </div>
-      </div>
+      </Show>
     </div>
   )
 }
@@ -534,6 +733,16 @@ const WizardNav = () => (
       <Match when={quickCreateStore.step === 1}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
           ✨ {qc().step1.next} →
+        </button>
+      </Match>
+      <Match when={quickCreateStore.step === 4}>
+        {/* Final input step — Continue kicks off the 6-call generation pipeline */}
+        <button
+          class="qc-primary-btn"
+          disabled={!canAdvance() || quickCreateStore.pipeline.running}
+          onClick={() => quickCreateStoreActions.runPipeline()}
+        >
+          🚀 {qc().step1.next} →
         </button>
       </Match>
       <Match when={true}>
@@ -573,6 +782,9 @@ const QuickCreate = () => (
         <WizardNav />
       </div>
     </div>
+    <Show when={quickCreateStore.pipeline.running || quickCreateStore.pipeline.error}>
+      <PipelineProgress />
+    </Show>
   </div>
 )
 

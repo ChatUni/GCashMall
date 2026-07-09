@@ -1,7 +1,7 @@
 // Data fetching services - called outside useEffect
 // Following Rule #5: Avoid calling APIs in useEffect
 
-import { apiGet, apiGetWithAuth, apiPost, apiPostWithAuth } from '../utils/api'
+import { apiGet, apiGetWithAuth, apiPost, apiPostWithAuth, getApiBaseUrl } from '../utils/api'
 import { updateOgMeta } from '../utils/ogMeta'
 import {
   featuredStoreActions,
@@ -403,6 +403,87 @@ export const generateStoryPrompt = async (
     return { title: result.data.title || '', text: result.data.text }
   }
   throw new Error(result.error || 'Failed to generate a story')
+}
+
+// ── AI Production Pipeline (Quick Create) ──
+
+export interface PipelinePrompt {
+  _id: string
+  key: string
+  title: string
+  order: number
+  markdown: string
+}
+
+// Admin: load all 6 pipeline prompt documents
+export const fetchPipelinePrompts = async (): Promise<PipelinePrompt[]> => {
+  const result = await apiGetWithAuth<PipelinePrompt[]>('pipelinePrompts')
+  if (result.success && result.data) return result.data
+  throw new Error(result.error || 'Failed to load pipeline prompts')
+}
+
+// Admin: save one pipeline prompt's markdown; returns the updated list
+export const savePipelinePrompt = async (
+  key: string,
+  markdown: string,
+): Promise<PipelinePrompt[]> => {
+  const result = await apiPostWithAuth<PipelinePrompt[]>('savePipelinePrompt', { key, markdown })
+  if (result.success && result.data) return result.data
+  throw new Error(result.error || 'Failed to save pipeline prompt')
+}
+
+// A production job's episode (as stored/returned by the pipeline-background function)
+export interface ProductionEpisode {
+  n: number
+  title: string
+  desc: string
+  cover: string
+}
+
+// The production job document polled while (and after) generation runs
+export interface ProductionJob {
+  status: 'pending' | 'running' | 'done' | 'error'
+  error?: string
+  progress?: {
+    calls: { key: string; status: string }[]
+    coverStatus: string
+  }
+  calls?: Record<string, Record<string, unknown>>
+  episodes?: ProductionEpisode[]
+  idea?: string
+  ideaTitle?: string
+  genre?: string | null
+  artStyle?: string | null
+  episodeLength?: number | null
+}
+
+// Start the 6-call pipeline in the background function. Returns once the job is
+// accepted (HTTP 202); progress is then read via fetchProductionStatus(jobId).
+export const startProductionJob = async (
+  jobId: string,
+  input: Record<string, unknown>,
+): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId, ...input }),
+  })
+  // Background functions respond 202 Accepted; anything outside 2xx is a real failure.
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start generation (${res.status})`)
+  }
+}
+
+// Poll a production job's status/result
+export const fetchProductionStatus = async (jobId: string): Promise<ProductionJob> => {
+  const result = await apiGetWithAuth<ProductionJob>('productionStatus', { jobId })
+  if (result.success && result.data) return result.data
+  throw new Error(result.error || 'Failed to check generation status')
 }
 
 // ── Feedback ──

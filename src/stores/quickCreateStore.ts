@@ -2,7 +2,12 @@
 // No backend yet: all selections live in this store (Rule #7: shared state outside the tree).
 
 import { createStore } from 'solid-js/store'
-import { fetchTemplates, type StarterTemplate } from '../services/dataService'
+import {
+  fetchTemplates,
+  startProductionJob,
+  fetchProductionStatus,
+  type StarterTemplate,
+} from '../services/dataService'
 
 export type { StarterTemplate }
 
@@ -128,6 +133,66 @@ export const PLAN_EPISODES: PlanEpisode[] = [
   { n: 5, image: epImage('5'), status: 'pending' },
 ]
 
+// ── AI production pipeline (the 6 sequential OpenAI calls) ──
+
+// Order + i18n key for each call. Titles come from quickCreate.pipeline.calls.<key>.
+export const PIPELINE_CALLS: { key: string }[] = [
+  { key: 'executiveProducer' },
+  { key: 'aiDirector' },
+  { key: 'characterDesigner' },
+  { key: 'storyboardArchitect' },
+  { key: 'storyOptimizer' },
+  { key: 'promptCompiler' },
+]
+
+export type StepStatus = 'pending' | 'running' | 'done' | 'error'
+
+export interface PipelineCallState {
+  key: string
+  status: StepStatus
+}
+
+export interface ReviewEpisode {
+  n: number
+  title: string
+  desc: string
+  cover: string
+  coverLoading: boolean
+}
+
+// Raw per-call outputs keyed by call key
+export type ProductionCalls = Record<string, Record<string, unknown>>
+
+export interface Production {
+  idea: string
+  ideaTitle: string
+  genre: string | null
+  artStyle: string | null
+  episodeLength: number | null
+  calls: ProductionCalls
+  episodes: ReviewEpisode[]
+}
+
+interface PipelineState {
+  running: boolean
+  error: string // '' when ok; '__signin__' when not logged in; otherwise a message
+  jobId: string | null // the active background job being polled
+  calls: PipelineCallState[]
+  coverStatus: StepStatus
+  production: Production | null
+  savedId: string | null
+}
+
+const getInitialPipeline = (): PipelineState => ({
+  running: false,
+  error: '',
+  jobId: null,
+  calls: PIPELINE_CALLS.map((c) => ({ key: c.key, status: 'pending' as StepStatus })),
+  coverStatus: 'pending',
+  production: null,
+  savedId: null,
+})
+
 // ── Wizard state ──
 
 interface QuickCreateState {
@@ -139,6 +204,7 @@ interface QuickCreateState {
   episodeLength: number | null
   templates: StarterTemplate[]
   templatesLoaded: boolean
+  pipeline: PipelineState
 }
 
 const getInitialState = (): QuickCreateState => ({
@@ -150,6 +216,7 @@ const getInitialState = (): QuickCreateState => ({
   episodeLength: 30,
   templates: [],
   templatesLoaded: false,
+  pipeline: getInitialPipeline(),
 })
 
 const [state, setState] = createStore<QuickCreateState>(getInitialState())
@@ -177,7 +244,138 @@ export const quickCreateStoreActions = {
       console.error('Failed to load templates:', error)
     }
   },
+
+  // Stop polling / dismiss the progress overlay (also cancels the poll loop)
+  resetPipeline: () => setState('pipeline', getInitialPipeline()),
+
+  // Kick off the 6-call pipeline in the Netlify background function, then poll its
+  // job document for progress. On completion, advance to the review step (step 5).
+  runPipeline: async () => {
+    // Generation spends OpenAI credits — require a logged-in user.
+    const token = localStorage.getItem('gcashmall_token')
+    if (!token) {
+      setState('pipeline', { ...getInitialPipeline(), error: '__signin__' })
+      return
+    }
+
+    const jobId = newJobId()
+    setState('pipeline', { ...getInitialPipeline(), running: true, jobId })
+
+    try {
+      await startProductionJob(jobId, {
+        story: state.idea,
+        ideaTitle: state.ideaTitle.trim(),
+        genre: state.genreId,
+        art_style: state.artStyleId,
+        episode_length: state.episodeLength,
+        target_audience: '',
+      })
+    } catch (error) {
+      setState('pipeline', {
+        running: false,
+        error: error instanceof Error ? error.message : 'Failed to start generation',
+      })
+      return
+    }
+
+    pollProduction(jobId)
+  },
+
   reset: () => setState(getInitialState()),
+}
+
+// ── Background-job polling ──
+
+const newJobId = (): string => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `job-${Date.now()}-${Math.floor(Math.random() * 1e9)}`
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+const POLL_INTERVAL_MS = 2500
+const POLL_TIMEOUT_MS = 15 * 60 * 1000
+
+// Poll the job document until it completes, errors, or is cancelled (the pipeline's
+// jobId changing — via reset/rerun — ends this loop).
+const pollProduction = async (jobId: string): Promise<void> => {
+  const startedAt = Date.now()
+
+  while (state.pipeline.jobId === jobId) {
+    await sleep(POLL_INTERVAL_MS)
+    if (state.pipeline.jobId !== jobId) return // cancelled or restarted
+
+    let job
+    try {
+      job = await fetchProductionStatus(jobId)
+    } catch {
+      continue // transient network/API error — keep polling
+    }
+    if (state.pipeline.jobId !== jobId) return
+
+    applyJobProgress(job)
+
+    if (job.status === 'done') {
+      completeProduction(job)
+      return
+    }
+    if (job.status === 'error') {
+      setState('pipeline', { running: false, error: job.error || 'Generation failed' })
+      return
+    }
+    if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+      setState('pipeline', { running: false, error: 'Generation timed out' })
+      return
+    }
+  }
+}
+
+// Mirror the job's per-call + cover progress into the pipeline state (for the overlay)
+const applyJobProgress = (job: { progress?: { calls?: { key: string; status: string }[]; coverStatus?: string } }) => {
+  const calls = job.progress?.calls
+  if (Array.isArray(calls)) {
+    calls.forEach((c, i) => {
+      if (state.pipeline.calls[i]) {
+        setState('pipeline', 'calls', i, 'status', c.status as StepStatus)
+      }
+    })
+  }
+  if (job.progress?.coverStatus) {
+    setState('pipeline', 'coverStatus', job.progress.coverStatus as StepStatus)
+  }
+}
+
+// Populate the review step from a finished job and advance to it
+const completeProduction = (job: {
+  episodes?: { n: number; title: string; desc: string; cover?: string }[]
+  calls?: ProductionCalls
+  ideaTitle?: string
+  genre?: string | null
+  artStyle?: string | null
+  episodeLength?: number | null
+}) => {
+  const episodes: ReviewEpisode[] = (job.episodes || []).map((e) => ({
+    n: e.n,
+    title: e.title,
+    desc: e.desc,
+    cover: e.cover || '',
+    coverLoading: false,
+  }))
+  setState('pipeline', {
+    episodes,
+    production: {
+      idea: state.idea,
+      ideaTitle: job.ideaTitle || state.ideaTitle,
+      genre: job.genre ?? state.genreId,
+      artStyle: job.artStyle ?? state.artStyleId,
+      episodeLength: job.episodeLength ?? state.episodeLength,
+      calls: job.calls || {},
+      episodes,
+    },
+    savedId: state.pipeline.jobId,
+    running: false,
+  })
+  setState('step', 5)
 }
 
 // Whether the current step has the input it needs to advance

@@ -3193,6 +3193,9 @@ export {
   getTemplates,
   extractStory,
   generateStoryPrompt,
+  getPipelinePrompts,
+  savePipelinePrompt,
+  getProductionStatus,
   getComments,
   addComment,
 }
@@ -3905,4 +3908,84 @@ const extractResponsesOutputText = (data) => {
     }
   }
   return parts.join('\n')
+}
+
+// ── AI Production Pipeline (Quick Create) ──
+//
+// The 6-call pipeline + cover generation runs in the pipeline-background function
+// (netlify/functions/pipeline-background.js), which writes progress into a
+// `productions` job document. These handlers cover the admin prompt editor and the
+// client's status polling.
+
+const PIPELINE_CALL_KEYS = [
+  'executiveProducer',
+  'aiDirector',
+  'characterDesigner',
+  'storyboardArchitect',
+  'storyOptimizer',
+  'promptCompiler',
+]
+
+// Admin: read all pipeline prompt documents (ordered)
+const getPipelinePrompts = async (params, authHeader) => {
+  await requireAdmin(authHeader)
+  try {
+    const docs = await get('pipelinePrompts', {}, {}, { order: 1 })
+    return { success: true, data: docs }
+  } catch (error) {
+    throw new Error(`Failed to get pipeline prompts: ${error.message}`)
+  }
+}
+
+// Admin: create/update a single pipeline prompt's markdown
+const savePipelinePrompt = async (body, authHeader) => {
+  await requireAdmin(authHeader)
+  if (!body || !body.key) throw new Error('Prompt key is required')
+  if (typeof body.markdown !== 'string') throw new Error('Prompt markdown is required')
+
+  try {
+    const existing = await get('pipelinePrompts', { key: body.key }, {}, {}, 1)
+    if (existing && existing.length > 0) {
+      await update(
+        'pipelinePrompts',
+        { key: body.key },
+        { $set: { markdown: body.markdown, updatedAt: new Date() } },
+      )
+    } else {
+      const order = PIPELINE_CALL_KEYS.indexOf(body.key) + 1 || 99
+      await save('pipelinePrompts', {
+        key: body.key,
+        title: body.title || body.key,
+        order,
+        markdown: body.markdown,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    }
+    const docs = await get('pipelinePrompts', {}, {}, { order: 1 })
+    return { success: true, data: docs }
+  } catch (error) {
+    throw new Error(`Failed to save pipeline prompt: ${error.message}`)
+  }
+}
+
+// Poll a production job's progress/result (written by the pipeline-background function)
+const getProductionStatus = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!params || !params.jobId) throw new Error('jobId is required')
+
+  try {
+    const docs = await get('productions', { jobId: params.jobId }, {}, {}, 1)
+    if (!docs || docs.length === 0) {
+      // The background function may not have created the doc yet
+      return { success: true, data: { status: 'pending' } }
+    }
+    const doc = docs[0]
+    if (String(doc.userId) !== String(userId)) {
+      return { success: false, error: 'Not authorized to view this production' }
+    }
+    return { success: true, data: doc }
+  } catch (error) {
+    throw new Error(`Failed to get production status: ${error.message}`)
+  }
 }
