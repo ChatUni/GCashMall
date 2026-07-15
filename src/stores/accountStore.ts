@@ -3,6 +3,7 @@
 
 import { createStore } from 'solid-js/store'
 import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem, EarningSource } from '../types'
+import type { ProductionJob } from '../services/dataService'
 
 // Payment method types
 export type PaymentMethod = 'creditcard' | 'gusd' | 'applepay'
@@ -87,6 +88,7 @@ interface AccountState {
   // My Series
   mySeries: Series[]
   mySeriesLoading: boolean
+  myProductions: ProductionJob[] // Quick Create productions (in-progress + done)
   editingSeries: Series | null
   editingSeriesId: string | null  // 'new' for adding, series._id for editing, null for list view
   
@@ -204,6 +206,7 @@ const getInitialState = (): AccountState => ({
   // My Series
   mySeries: [],
   mySeriesLoading: false,
+  myProductions: [],
   editingSeries: null,
   editingSeriesId: null,
   
@@ -302,6 +305,8 @@ export const accountStoreActions = {
     setAccountState({ mySeries }),
   setMySeriesLoading: (mySeriesLoading: boolean) =>
     setAccountState({ mySeriesLoading }),
+  setMyProductions: (myProductions: ProductionJob[]) =>
+    setAccountState({ myProductions }),
   setEditingSeries: (editingSeries: Series | null) =>
     setAccountState({ editingSeries }),
   setEditingSeriesId: (editingSeriesId: string | null) =>
@@ -541,12 +546,16 @@ export const phoneNavItems: { key: AccountTab; icon: string }[] = [
   { key: 'contact', icon: '✉️' },
 ]
 
+// My Series shows for uploaders, or for anyone with Quick Create productions
+const canSeeMySeries = () =>
+  accountState.user?.allowUpload === true || accountState.myProductions.length > 0
+
 // Derived nav items filtered by user permissions
 export const getFilteredNavItems = () =>
-  navItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
+  navItems.filter((item) => item.key !== 'mySeries' || canSeeMySeries())
 
 export const getFilteredPhoneNavItems = () =>
-  phoneNavItems.filter((item) => item.key !== 'mySeries' || accountState.user?.allowUpload === true)
+  phoneNavItems.filter((item) => item.key !== 'mySeries' || canSeeMySeries())
 
 export const walletAmounts = [5, 10, 20, 50]
 

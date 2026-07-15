@@ -442,14 +442,20 @@ export interface ProductionEpisode {
 
 // The production job document polled while (and after) generation runs
 export interface ProductionJob {
+  jobId?: string
+  mode?: 'plan' | 'episode'
   status: 'pending' | 'running' | 'done' | 'error'
   error?: string
+  title?: string
+  cover?: string
+  percent?: number
   progress?: {
     calls: { key: string; status: string }[]
     coverStatus: string
   }
   calls?: Record<string, Record<string, unknown>>
   episodes?: ProductionEpisode[]
+  videos?: { shot_id: string; shot_number?: number | null; url?: string; error?: string }[]
   idea?: string
   ideaTitle?: string
   genre?: string | null
@@ -479,11 +485,36 @@ export const startProductionJob = async (
   }
 }
 
+// (Re)start the video-generation background job for an existing production. Used to
+// retry video generation when the video step failed (e.g. reopened from My Series).
+export const startVideoJob = async (jobId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-video-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start video generation (${res.status})`)
+  }
+}
+
 // Poll a production job's status/result
 export const fetchProductionStatus = async (jobId: string): Promise<ProductionJob> => {
   const result = await apiGetWithAuth<ProductionJob>('productionStatus', { jobId })
   if (result.success && result.data) return result.data
   throw new Error(result.error || 'Failed to check generation status')
+}
+
+// List the logged-in user's Quick Create productions (for the My Series group)
+export const fetchMyProductions = async (): Promise<ProductionJob[]> => {
+  const result = await apiGetWithAuth<ProductionJob[]>('myProductions')
+  if (result.success && result.data) return result.data
+  return []
 }
 
 // ── Feedback ──

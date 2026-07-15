@@ -1,15 +1,19 @@
-// Netlify Background Function: runs the full 6-call Quick Create production pipeline
-// (plus per-episode cover generation) asynchronously, up to 15 minutes. It writes
-// incremental progress into a `productions` job document keyed by jobId; the client
-// polls the `productionStatus` API endpoint to render progress and, when done, the
-// review step.
+// Netlify Background Function: runs Quick Create generation asynchronously (up to
+// 15 minutes) in one of two modes, writing progress into a `productions` job doc.
 //
-// Background functions return 202 immediately and keep running; the client never
-// reads this function's response — all results are persisted to the job document.
+//  • mode 'plan'    — runs Call 1 (Executive Producer) to get the 5-episode plan,
+//                     then generates one cover per episode. Feeds step 5 (review).
+//  • mode 'episode' — reuses the plan's Call-1 output, then runs Calls 2-6 for
+//                     Episode 1. This job doc is the user's "Quick Create" entry in
+//                     My Series (has title/cover/percent), resumable at step 6.
+//
+// Background functions respond 202 immediately and keep running; the client never
+// reads this response — all results are persisted to the job document and polled.
 
 import { get, save, update } from './utils/db.js'
 import jwt from 'jsonwebtoken'
 import { PIPELINE_CALL_KEYS, runOneCall, generateCover } from './utils/pipeline.js'
+import { runVideoGeneration } from './utils/videoJob.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
@@ -23,6 +27,181 @@ const getUserId = (authHeader) => {
 const updateJob = (jobId, fields) =>
   update('productions', { jobId }, { $set: { ...fields, updatedAt: new Date() } })
 
+// Percent complete based on how many of the tracked steps (calls + video) are done
+const percentOf = (progress) => {
+  const steps = progress.calls || []
+  const done = steps.filter((c) => c.status === 'done').length
+  return steps.length ? Math.round((done / steps.length) * 100) : 0
+}
+
+const coverPrompt = (seriesTitle, ep, artStyle) =>
+  `Anime key visual cover art for the series "${seriesTitle}", Episode ${ep.n}: "${ep.title}". ${ep.desc} Art style: ${artStyle || 'modern anime'}. Cinematic lighting, vibrant colors, highly detailed, portrait poster composition, no text, no watermark.`
+
+const baseAcc = (body) => ({
+  story: body.story,
+  genre: body.genre,
+  art_style: body.art_style,
+  episode_length: body.episode_length,
+  episode_length_seconds: body.episode_length,
+  target_audience: body.target_audience || '',
+})
+
+// ── Plan mode: Call 1 + episode covers ──
+const runPlan = async (jobId, userId, body) => {
+  const progress = {
+    calls: [{ key: 'executiveProducer', status: 'pending' }],
+    coverStatus: 'pending',
+  }
+  await save('productions', {
+    jobId,
+    userId,
+    mode: 'plan',
+    status: 'running',
+    error: '',
+    progress,
+    idea: body.story || '',
+    ideaTitle: body.ideaTitle || '',
+    genre: body.genre ?? null,
+    artStyle: body.art_style ?? null,
+    episodeLength: body.episode_length ?? null,
+    calls: {},
+    episodes: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })
+
+  progress.calls[0].status = 'running'
+  await updateJob(jobId, { progress })
+
+  const call1 = await runOneCall('executiveProducer', baseAcc(body))
+  progress.calls[0].status = 'done'
+
+  const seriesTitle = body.ideaTitle || call1?.series_blueprint?.title || 'Untitled Series'
+  const plan = Array.isArray(call1.episode_plan) ? call1.episode_plan : []
+  const episodes = plan.slice(0, 5).map((ep, idx) => ({
+    n: typeof ep.episode === 'number' ? ep.episode : idx + 1,
+    title: ep.title || `Episode ${idx + 1}`,
+    desc: ep.summary || ep.hook || '',
+    cover: '',
+  }))
+
+  progress.coverStatus = 'running'
+  await updateJob(jobId, {
+    progress,
+    calls: { executiveProducer: call1 },
+    episodes,
+    ideaTitle: seriesTitle,
+  })
+
+  if (body.testMode) {
+    // Test mode: skip cover generation, reuse the story cover for every episode
+    for (const ep of episodes) ep.cover = body.storyCover || ''
+  } else {
+    await Promise.all(
+      episodes.map(async (ep, idx) => {
+        try {
+          episodes[idx].cover = await generateCover(coverPrompt(seriesTitle, ep, body.art_style))
+        } catch (error) {
+          console.error(`Cover ${ep.n} failed:`, error.message)
+        }
+      }),
+    )
+  }
+  progress.coverStatus = 'done'
+
+  await updateJob(jobId, { progress, episodes, status: 'done', percent: 100 })
+}
+
+// ── Episode mode: reuse Call 1, run Calls 2-6 (this is the My Series entry) ──
+const runEpisode = async (jobId, userId, body) => {
+  const call1 = body.call1 && typeof body.call1 === 'object' ? body.call1 : {}
+  const providedEpisodes = Array.isArray(body.episodes) ? body.episodes : []
+  const seriesTitle = body.ideaTitle || call1?.series_blueprint?.title || 'Untitled Series'
+  const cover = providedEpisodes[0]?.cover || ''
+
+  const progress = {
+    // The 7 LLM calls, plus a final video-generation step
+    calls: [
+      ...PIPELINE_CALL_KEYS.map((key, i) => ({ key, status: i === 0 ? 'done' : 'pending' })),
+      { key: 'videoGeneration', status: 'pending' },
+    ],
+    coverStatus: 'done',
+  }
+  const fields = {
+    userId,
+    mode: 'episode',
+    status: 'running',
+    error: '',
+    title: seriesTitle,
+    cover,
+    percent: percentOf(progress),
+    progress,
+    idea: body.story || '',
+    ideaTitle: seriesTitle,
+    genre: body.genre ?? null,
+    artStyle: body.art_style ?? null,
+    episodeLength: body.episode_length ?? null,
+    calls: { executiveProducer: call1 },
+    episodes: providedEpisodes,
+  }
+
+  // Reuse the plan-phase document (same jobId): transition it from mode 'plan'
+  // to 'episode' so we keep ONE production doc instead of creating a second one.
+  const existing = await get('productions', { jobId }, {}, {}, 1)
+  if (existing && existing.length > 0) {
+    await updateJob(jobId, fields)
+  } else {
+    await save('productions', { jobId, ...fields, createdAt: new Date() })
+  }
+
+  const acc = { ...baseAcc(body), ...call1 }
+  const callsRaw = { executiveProducer: call1 }
+
+  // Run calls 2-6 (index 1..5); Call 1 was reused from the plan phase.
+  for (let i = 1; i < PIPELINE_CALL_KEYS.length; i++) {
+    progress.calls[i].status = 'running'
+    await updateJob(jobId, { progress, percent: percentOf(progress) })
+
+    const output = await runOneCall(PIPELINE_CALL_KEYS[i], acc)
+    callsRaw[PIPELINE_CALL_KEYS[i]] = output
+    Object.assign(acc, output)
+
+    progress.calls[i].status = 'done'
+    await updateJob(jobId, { progress, calls: callsRaw, percent: percentOf(progress) })
+  }
+
+  // The 7 calls are done. Hand video generation off to its own background job so it
+  // runs on a separate 15-minute budget (status stays 'running' until videos finish).
+  await updateJob(jobId, { percent: percentOf(progress) })
+}
+
+// Trigger the dedicated video-generation background function (fire-and-forget). If
+// the hand-off can't be reached, fall back to running it inline so it still completes.
+const triggerVideoJob = async (jobId, authHeader) => {
+  const base = (
+    process.env.URL ||
+    process.env.DEPLOY_PRIME_URL ||
+    process.env.VITE_PROD_SERVER ||
+    'http://localhost:8888'
+  ).replace(/\/+$/, '')
+  try {
+    const res = await fetch(`${base}/.netlify/functions/pipeline-video-background`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify({ jobId }),
+    })
+    if (!res.ok && res.status !== 202) {
+      throw new Error(`video job trigger failed (${res.status})`)
+    }
+  } catch (error) {
+    console.error('Video job hand-off failed, running inline:', error.message)
+    await runVideoGeneration(jobId)
+  }
+}
+
 export const handler = async (event) => {
   let jobId
   try {
@@ -33,79 +212,12 @@ export const handler = async (event) => {
     const authHeader = event.headers?.authorization || event.headers?.Authorization
     const userId = getUserId(authHeader)
 
-    const progress = {
-      calls: PIPELINE_CALL_KEYS.map((key) => ({ key, status: 'pending' })),
-      coverStatus: 'pending',
+    if (body.mode === 'plan') {
+      await runPlan(jobId, userId, body)
+    } else {
+      await runEpisode(jobId, userId, body)
+      await triggerVideoJob(jobId, authHeader)
     }
-
-    // Create the job document (status running) so the client's poll can find it
-    await save('productions', {
-      jobId,
-      userId,
-      status: 'running',
-      error: '',
-      progress,
-      idea: body.story || '',
-      ideaTitle: body.ideaTitle || '',
-      genre: body.genre ?? null,
-      artStyle: body.art_style ?? null,
-      episodeLength: body.episode_length ?? null,
-      calls: {},
-      episodes: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-
-    // Run the 6 calls sequentially; each call's output feeds the next.
-    const acc = {
-      story: body.story,
-      genre: body.genre,
-      art_style: body.art_style,
-      episode_length: body.episode_length,
-      episode_length_seconds: body.episode_length,
-      target_audience: body.target_audience || '',
-    }
-    const callsRaw = {}
-    for (let i = 0; i < PIPELINE_CALL_KEYS.length; i++) {
-      progress.calls[i].status = 'running'
-      await updateJob(jobId, { progress })
-
-      const output = await runOneCall(PIPELINE_CALL_KEYS[i], acc)
-      callsRaw[PIPELINE_CALL_KEYS[i]] = output
-      Object.assign(acc, output)
-
-      progress.calls[i].status = 'done'
-      await updateJob(jobId, { progress, calls: callsRaw })
-    }
-
-    // Build the 5-episode list from the Executive Producer's plan (Call 1)
-    const exec = callsRaw.executiveProducer || {}
-    const seriesTitle = body.ideaTitle || exec?.series_blueprint?.title || 'Untitled Series'
-    const plan = Array.isArray(exec.episode_plan) ? exec.episode_plan : []
-    const episodes = plan.slice(0, 5).map((ep, idx) => ({
-      n: typeof ep.episode === 'number' ? ep.episode : idx + 1,
-      title: ep.title || `Episode ${idx + 1}`,
-      desc: ep.summary || ep.hook || '',
-      cover: '',
-    }))
-
-    progress.coverStatus = 'running'
-    await updateJob(jobId, { progress, episodes, ideaTitle: seriesTitle })
-
-    // Generate an AI cover per episode (in parallel; a failed cover stays empty)
-    await Promise.all(
-      episodes.map(async (ep, idx) => {
-        const prompt = `Anime key visual cover art for the series "${seriesTitle}", Episode ${ep.n}: "${ep.title}". ${ep.desc} Art style: ${body.art_style || 'modern anime'}. Cinematic lighting, vibrant colors, highly detailed, portrait poster composition, no text, no watermark.`
-        try {
-          episodes[idx].cover = await generateCover(prompt)
-        } catch (error) {
-          console.error(`Cover ${ep.n} failed:`, error.message)
-        }
-      }),
-    )
-    progress.coverStatus = 'done'
-
-    await updateJob(jobId, { progress, episodes, status: 'done' })
     return { statusCode: 200 }
   } catch (error) {
     console.error('pipeline-background error:', error)

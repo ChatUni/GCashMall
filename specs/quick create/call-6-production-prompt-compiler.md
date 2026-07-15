@@ -51,6 +51,10 @@ Each shot prompt must describe only ONE cinematic shot.
 
 Never ask a video model to generate a full episode in one prompt.
 
+CRITICAL — shot count: the "shot_prompts" array MUST contain exactly one object for EVERY shot in the input's updated_shot_graph.shots (fall back to shot_graph.shots), in the same order and using the same shot_id. That is typically 5–8 shots. Never return a single shot_prompt, never merge shots, and never output fewer shot_prompts than there are shots in the shot graph. The example in the schema shows the shape of ONE element only — replicate it for every shot.
+
+CRITICAL — character count: the "character_consistency_package" array MUST contain exactly one entry for EVERY character in the input's character_blueprint (from the Character Designer), using the same id and name. If the Character Designer produced 3 characters, output 3 entries. Never drop, merge, or omit a character, and never return only one. The example in the schema shows the shape of ONE character only — replicate it for every character.
+
 Optimize for:
 
 • Character consistency
@@ -60,6 +64,8 @@ Optimize for:
 • Shot-to-shot coherence
 • Rendering reliability
 • Minimal ambiguity
+
+ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example element only. Populate every array with the ACTUAL number of items the content requires — one shot_prompt per shot, one character entry per character, etc. Never collapse an array to a single item, and never drop items that exist in the input.
 
 Return valid JSON only.
 ```
@@ -103,9 +109,51 @@ Return valid JSON only.
     "fps": 24,
     "global_style_prompt": "",
     "global_negative_prompt": [],
-    "character_consistency_package": [],
-    "world_consistency_package": {},
-    "director_intent_package": {},
+    "character_consistency_package": [
+      {
+        "id": "char_riku",
+        "name": "Riku",
+        "appearance": {
+          "body_type": "",
+          "hair": { "color": "", "style": "" },
+          "eyes": { "color": "", "shape": "" },
+          "face": "",
+          "skin_tone": "",
+          "distinctive_features": [],
+          "default_expression": ""
+        },
+        "costume": {
+          "primary_outfit": "",
+          "colors": [],
+          "materials": "",
+          "accessories": [],
+          "footwear": ""
+        },
+        "must_remain_constant": [],
+        "avoid": [],
+        "reference_priority": "High"
+      }
+    ],
+    "world_consistency_package": {
+      "world_name": "",
+      "setting": "",
+      "time_period": "",
+      "technology_level": "",
+      "magic_or_power_system": "",
+      "major_locations": [],
+      "world_rules": [],
+      "visual_identity": "",
+      "atmosphere": ""
+    },
+    "director_intent_package": {
+      "visual_style": "",
+      "camera_language": "",
+      "color_palette": "",
+      "lighting_direction": "",
+      "editing_style": "",
+      "pacing": "",
+      "music_direction": ""
+    },
     "shot_prompts": [
       {
         "shot_id": "shot_001",
@@ -159,6 +207,14 @@ Return valid JSON only.
 ```
 
 ## Compilation Rules
+
+### 0. Self-Contained Package
+
+The Universal Production Prompt Package is the single source of truth for every downstream system (Rendering Intelligence Engine, Model Adapter, providers). They must never need to re-read Calls 1–5. Therefore you must carry every rendering-relevant detail forward into the package:
+
+- `character_consistency_package` — one entry per character, distilling the Character Blueprint's **visual** fields (appearance, costume, distinctive features, default expression, `must_remain_constant`, `avoid`). Do not reduce a character to just an id and a sentence. Omit purely narrative fields (motivation, relationships, backstory) that the renderer does not need.
+- `world_consistency_package` — the World Blueprint's setting, rules, locations, technology/magic constraints, and visual identity.
+- `director_intent_package` — the Director's Intent visual/camera/lighting/color/pacing/music guidance.
 
 ### 1. Universal Only
 

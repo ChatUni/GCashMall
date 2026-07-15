@@ -3196,6 +3196,7 @@ export {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  getMyProductions,
   getComments,
   addComment,
 }
@@ -3966,6 +3967,24 @@ const savePipelinePrompt = async (body, authHeader) => {
     return { success: true, data: docs }
   } catch (error) {
     throw new Error(`Failed to save pipeline prompt: ${error.message}`)
+  }
+}
+
+// List the logged-in user's Quick Create productions (episode jobs) for My Series.
+// Excludes the large `calls` field — the list only needs title/cover/progress.
+const getMyProductions = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  try {
+    const docs = await get(
+      'productions',
+      { userId, mode: 'episode' },
+      { calls: 0 },
+      { createdAt: -1 },
+      50,
+    )
+    return { success: true, data: docs }
+  } catch (error) {
+    throw new Error(`Failed to get productions: ${error.message}`)
   }
 }
 

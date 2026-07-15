@@ -99,6 +99,8 @@ Optimize for:
 • Scene continuity
 • Parallel rendering where possible
 
+ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example element only. Populate every array with the ACTUAL number of items the content requires — one entry per character, scene, shot, graph node/edge, episode, change, etc. Never collapse an array to a single item, and never drop items that exist in the input.
+
 Return JSON only.
 ```
 
@@ -142,7 +144,7 @@ The Story Graph is used later for:
 
 ### Output 2 — Shot Graph
 
-Every shot becomes a production node.
+Every shot becomes a production node. Produce **one shot object per planned shot — 5 to 8 shots** that together cover the whole episode (the example below shows 6). Do **not** return just one or two shots, and never leave a shot as a bare stub: every shot must be fully specified.
 
 ```json
 {
@@ -150,17 +152,74 @@ Every shot becomes a production node.
     {
       "shot_id": "shot_001",
       "scene": 1,
-      "duration_seconds": 8,
-      "purpose": "Establish Dragon Academy",
+      "duration_seconds": 10,
+      "purpose": "Establish the Dragon Academy",
       "camera": "Wide Aerial",
       "emotion": "Wonder",
       "characters": ["Riku"],
       "location": "Academy Gate",
+      "continuity_notes": "Golden morning light; Riku in blue academy jacket",
       "depends_on": []
     },
     {
       "shot_id": "shot_002",
+      "scene": 1,
+      "duration_seconds": 8,
+      "purpose": "Reveal the sealed dragon egg",
+      "camera": "Slow Push-In",
+      "emotion": "Mystery",
+      "characters": ["Riku"],
+      "location": "Egg Chamber",
+      "continuity_notes": "Egg glows faintly; same jacket and hairstyle",
       "depends_on": ["shot_001"]
+    },
+    {
+      "shot_id": "shot_003",
+      "scene": 2,
+      "duration_seconds": 10,
+      "purpose": "Introduce Riku among the other students",
+      "camera": "Medium",
+      "emotion": "Anticipation",
+      "characters": ["Riku", "Luna"],
+      "location": "Main Hall",
+      "continuity_notes": "Luna's first appearance; consistent character design",
+      "depends_on": ["shot_001"]
+    },
+    {
+      "shot_id": "shot_004",
+      "scene": 3,
+      "duration_seconds": 8,
+      "purpose": "The egg cracks in reaction to Riku",
+      "camera": "Close-Up",
+      "emotion": "Shock",
+      "characters": ["Riku"],
+      "location": "Egg Chamber",
+      "continuity_notes": "Match lighting from shot_002; keep eye color consistent",
+      "depends_on": ["shot_002", "shot_003"]
+    },
+    {
+      "shot_id": "shot_005",
+      "scene": 3,
+      "duration_seconds": 10,
+      "purpose": "The dragon awakens and chaos erupts",
+      "camera": "Dynamic Tracking",
+      "emotion": "Danger",
+      "characters": ["Riku", "Luna"],
+      "location": "Egg Chamber",
+      "continuity_notes": "Debris and dust; costumes unchanged",
+      "depends_on": ["shot_004"]
+    },
+    {
+      "shot_id": "shot_006",
+      "scene": 3,
+      "duration_seconds": 9,
+      "purpose": "The dragon chooses Riku (cliffhanger)",
+      "camera": "Low-Angle Hero",
+      "emotion": "Awe",
+      "characters": ["Riku"],
+      "location": "Egg Chamber",
+      "continuity_notes": "Final beat; Riku looks up at the dragon, jacket and pendant visible",
+      "depends_on": ["shot_005"]
     }
   ]
 }
@@ -176,7 +235,7 @@ Each shot must include:
 - Continuity notes
 - Dependency
 
-This becomes the Prompt Generator's input.
+The number of shots equals the number of planned beats for the episode (5–8). This array becomes the Prompt Generator's input, so every shot here becomes exactly one shot prompt in Call 6.
 
 ### Output 3 — Production Graph
 
@@ -244,7 +303,12 @@ The Episode State Graph allows:
 
 ## Storyboard Rules
 
-The architect should create **5–8 cinematic shots**.
+Scale the number of shots to the episode length, and make the shot durations **sum to exactly `episode_length_seconds`**:
+
+- **30-second episode → 4–5 shots** (~6–8s each)
+- **60-second episode → 7–8 shots** (~7–9s each)
+
+Keep every shot between roughly **5 and 10 seconds** — video models render short clips reliably, so never plan a single shot longer than ~10s (split it into two instead). The shot count is driven by runtime, not by the number of scenes: one scene may become one shot or several.
 
 Each shot should:
 

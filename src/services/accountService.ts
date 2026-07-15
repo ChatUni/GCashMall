@@ -8,6 +8,7 @@ import { accountStoreActions, type ProfileFormState, type PasswordFormState, gen
 import { toastStoreActions } from '../stores'
 import { playerPageStoreActions } from '../stores/playerStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
+import { fetchMyProductions } from './dataService'
 import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
 
 // Initialize account data
@@ -800,6 +801,16 @@ export const fetchMySeries = async (): Promise<{ success: boolean; error?: strin
   }
 }
 
+// Load the user's Quick Create productions (for the My Series "Quick Create" group)
+export const loadMyProductions = async (): Promise<void> => {
+  try {
+    const productions = await fetchMyProductions()
+    accountStoreActions.setMyProductions(productions)
+  } catch (error) {
+    console.error('Error fetching my productions:', error)
+  }
+}
+
 // Fetch revenue data for creator's series
 export const fetchRevenueData = async (): Promise<{ success: boolean; error?: string }> => {
   accountStoreActions.setRevenueLoading(true)
@@ -912,6 +923,11 @@ export const initializeAccountPage = async (
     accountStoreActions.setMySeriesFetched(true)
     await fetchMySeries()
   }
+
+  // Fetch Quick Create productions (drives the My Series nav + Quick Create group)
+  if (accountStoreActions.getState().isLoggedIn) {
+    await loadMyProductions()
+  }
 }
 
 // Handle tab from URL - syncs URL tab parameter with store
@@ -933,6 +949,12 @@ export const handleTabClick = (
   tab: AccountTab,
   setSearchParams: (params: Record<string, string>) => void
 ) => {
+  // Clicking "My Series" should always show the series list, never a leftover
+  // add/edit (upload) form from a previous visit.
+  if (tab === 'mySeries') {
+    accountStoreActions.setEditingSeriesId(null)
+    accountStoreActions.setEditingSeries(null)
+  }
   accountStoreActions.setActiveTab(tab)
   setSearchParams({ tab })
 }

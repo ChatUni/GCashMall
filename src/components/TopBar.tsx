@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../utils/config'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
+import { quickCreateStoreActions } from '../stores/quickCreateStore'
 import { topBarStore, topBarStoreActions } from '../stores/topBarStore'
 import { syncAuthState } from '../services/topBarService'
 import type { User } from '../types'
@@ -28,6 +29,12 @@ const TopBar = () => {
   const handleLogoClick = () => navigate('/')
 
   const handleNavClick = (path: string) => navigate(path)
+
+  // The "Create" link always starts a fresh Quick Create (never resumes the last one)
+  const handleCreateClick = () => {
+    quickCreateStoreActions.reset()
+    navigate('/quick-create')
+  }
 
   const handleAccountClick = () => {
     if (topBarStore.isLoggedIn) {
@@ -93,19 +100,9 @@ const TopBar = () => {
               </a>
               <a
                 class={`nav-link create-link ${isActiveRoute('/quick-create') ? 'active' : ''}`}
-                onClick={() => handleNavClick('/quick-create')}
+                onClick={handleCreateClick}
               >
-                <svg class="create-link-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="2" y="4" width="20" height="16" rx="2.5" fill="#F59E0B" />
-                  <path d="M2 9h20" stroke="#0B0B0E" stroke-width="1.5" />
-                  <path
-                    d="M5 4l1.5 5M10 4l1.5 5M15 4l1.5 5"
-                    stroke="#0B0B0E"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                  />
-                  <path d="M10 12.5v4l3.5-2-3.5-2z" fill="#0B0B0E" />
-                </svg>
+                <span class="create-link-icon">✨</span>
                 {t().topBar.create}
               </a>
             </nav>

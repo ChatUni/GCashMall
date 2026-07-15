@@ -1,5 +1,5 @@
 import { For, Show, Switch, Match, createSignal, onMount, type JSX } from 'solid-js'
-import { useNavigate } from '@solidjs/router'
+import { useNavigate, useSearchParams } from '@solidjs/router'
 import { t } from '../stores/languageStore'
 import { extractStory, generateStoryPrompt } from '../services/dataService'
 import {
@@ -15,11 +15,13 @@ import {
   EPISODE_LENGTHS,
   STAT_ICONS,
   SERIES_PLAN,
-  PIPELINE_CALLS,
   heroImage,
   type StepStatus,
 } from '../stores/quickCreateStore'
 import './QuickCreate.css'
+
+// The 4 downstream steps shown (but not yet run) after the 6 calls in step 6
+const FUTURE_STEP_KEYS: string[] = []
 
 const qc = () => t().quickCreate
 const pipelineT = () => qc().pipeline
@@ -111,9 +113,12 @@ const StatusIcon = (props: { status: StepStatus }) => (
   </Switch>
 )
 
+// Overlay shown while the "plan" phase (step 4 → 5) generates the episode plan + covers
 const PipelineProgress = () => {
   const pl = () => quickCreateStore.pipeline
   const isSignin = () => pl().error === '__signin__'
+  // Plan phase runs only Call 1 (story planning) + episode covers
+  const planStatus = () => pl().calls[0]?.status ?? 'pending'
   return (
     <div class="qc-pl-overlay">
       <div class="qc-pl-panel">
@@ -130,18 +135,14 @@ const PipelineProgress = () => {
             </>
           }
         >
-          <h3 class="qc-pl-title">{pipelineT().title}</h3>
-          <p class="qc-pl-subtitle">{pipelineT().subtitle}</p>
+          <h3 class="qc-pl-title">{pipelineT().planTitle}</h3>
+          <p class="qc-pl-subtitle">{pipelineT().planSubtitle}</p>
 
           <ul class="qc-pl-steps">
-            <For each={pl().calls}>
-              {(c) => (
-                <li class={`qc-pl-step ${c.status}`}>
-                  <StatusIcon status={c.status} />
-                  <span class="qc-pl-step-label">{callT(c.key)}</span>
-                </li>
-              )}
-            </For>
+            <li class={`qc-pl-step ${planStatus()}`}>
+              <StatusIcon status={planStatus()} />
+              <span class="qc-pl-step-label">{pipelineT().planStep}</span>
+            </li>
             <li class={`qc-pl-step ${pl().coverStatus}`}>
               <StatusIcon status={pl().coverStatus} />
               <span class="qc-pl-step-label">{pipelineT().coversStep}</span>
@@ -154,7 +155,7 @@ const PipelineProgress = () => {
               <button class="qc-back-btn" onClick={() => quickCreateStoreActions.resetPipeline()}>
                 {pipelineT().cancel}
               </button>
-              <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.runPipeline()}>
+              <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.runPlan()}>
                 🔄 {pipelineT().retry}
               </button>
             </div>
@@ -542,67 +543,45 @@ const Step4Length = () => (
         )}
       </For>
     </div>
+
+    {/* Test mode: skip AI cover generation, reuse the story cover for all episodes */}
+    <label class="qc-testmode">
+      <input
+        type="checkbox"
+        checked={quickCreateStore.testMode}
+        onChange={(e) => quickCreateStoreActions.setTestMode(e.currentTarget.checked)}
+      />
+      <span class="qc-testmode-text">
+        <span class="qc-testmode-title">🧪 {qc().step4.testMode}</span>
+        <span class="qc-testmode-hint">{qc().step4.testModeHint}</span>
+      </span>
+    </label>
   </div>
 )
 
 // ── Step 5: AI Director Review (real generated production) ──
 
-// Titles for the per-call sections in an episode's Detail box (pipeline order)
-const CALL_ORDER = PIPELINE_CALLS.map((c) => c.key)
-
-// The formatted "results from all calls" box shown under an episode
-const ProductionPackage = () => {
-  const calls = () => quickCreateStore.pipeline.production?.calls || {}
-  return (
-    <div class="qc-package">
-      <For each={CALL_ORDER}>
-        {(key) => (
-          <Show when={calls()[key]}>
-            <div class="qc-package-call">
-              <div class="qc-package-call-title">{callT(key)}</div>
-              <div class="qc-package-call-body">
-                <JsonView value={calls()[key]} />
-              </div>
-            </div>
-          </Show>
-        )}
-      </For>
-    </div>
-  )
+// Fallback image before a cover has been generated
+const fallbackSeriesImage = () => {
+  const selectedGenre = GENRES.find((g) => g.id === quickCreateStore.genreId)
+  const selectedStyle = ART_STYLES.find((s) => s.id === quickCreateStore.artStyleId)
+  const selectedIdea = POPULAR_IDEAS.find((i) => ideaT(i.id) === quickCreateStore.idea.trim())
+  return selectedIdea?.image || selectedGenre?.image || selectedStyle?.image || SERIES_PLAN.image
 }
 
 const Step5Review = () => {
   const s5 = () => qc().step5
-  const [expanded, setExpanded] = createSignal<number | null>(null)
-  const toggle = (n: number) => setExpanded((cur) => (cur === n ? null : n))
-
-  const production = () => quickCreateStore.pipeline.production
-  const episodes = () => quickCreateStore.pipeline.episodes
-  const seriesTitle = () => production()?.ideaTitle || quickCreateStore.ideaTitle.trim() || s5().untitled
-
-  // Fallback image for the series card / episodes before covers are ready
-  const selectedGenre = () => GENRES.find((g) => g.id === quickCreateStore.genreId)
-  const selectedStyle = () => ART_STYLES.find((s) => s.id === quickCreateStore.artStyleId)
-  const selectedIdea = () => POPULAR_IDEAS.find((i) => ideaT(i.id) === quickCreateStore.idea.trim())
-  const fallbackImage = () =>
-    selectedIdea()?.image || selectedGenre()?.image || selectedStyle()?.image || SERIES_PLAN.image
-  const seriesImage = () => episodes().find((e) => e.cover)?.cover || fallbackImage()
+  const plan = () => quickCreateStore.pipeline.plan
+  const episodes = () => plan()?.episodes || []
+  const seriesTitle = () => plan()?.ideaTitle || quickCreateStore.ideaTitle.trim() || s5().untitled
+  const seriesImage = () => episodes().find((e) => e.cover)?.cover || fallbackSeriesImage()
 
   const genreText = () => (quickCreateStore.genreId ? genreT(quickCreateStore.genreId).name : '—')
   const styleText = () => (quickCreateStore.artStyleId ? styleT(quickCreateStore.artStyleId).name : '—')
   const lengthText = () => `${quickCreateStore.episodeLength} ${qc().step4.sec}`
 
-  // Story-confidence score from the Story Intelligence Optimizer (Call 5), if present
-  const confidence = () => {
-    const opt = production()?.calls?.storyOptimizer as
-      | { optimization_summary?: { quality_score_after?: number } }
-      | undefined
-    return opt?.optimization_summary?.quality_score_after || SERIES_PLAN.confidence
-  }
   const logline = () => {
-    const exec = production()?.calls?.executiveProducer as
-      | { series_blueprint?: { logline?: string } }
-      | undefined
+    const exec = plan()?.call1 as { series_blueprint?: { logline?: string } } | null
     return exec?.series_blueprint?.logline || s5().confidenceText
   }
 
@@ -622,10 +601,7 @@ const Step5Review = () => {
         </div>
       </div>
 
-      <Show
-        when={production()}
-        fallback={<div class="qc-review-empty">{s5().noProduction}</div>}
-      >
+      <Show when={plan()} fallback={<div class="qc-review-empty">{s5().noProduction}</div>}>
         <div class="qc-review-grid">
           <div class="qc-series-card">
             <img class="qc-series-img" src={seriesImage()} alt={seriesTitle()} />
@@ -640,7 +616,7 @@ const Step5Review = () => {
               <div class="qc-meta-row"><span>{s5().episodesLabel}</span><span>{episodes().length} {s5().episodesLabel}</span></div>
             </div>
             <div class="qc-confidence">
-              <span class="qc-confidence-pct">{Math.round(confidence())}%</span>
+              <span class="qc-confidence-pct">{SERIES_PLAN.confidence}%</span>
               <div class="qc-confidence-body">
                 <span class="qc-confidence-label">{s5().confidenceLabel}</span>
                 <span class="qc-confidence-text">{logline()}</span>
@@ -652,41 +628,31 @@ const Step5Review = () => {
             <h3 class="qc-plan-title">{s5().planTitle}</h3>
             <div class="qc-plan-list">
               <For each={episodes()}>
-                {(ep) => (
-                  <div class="qc-plan-ep-wrap">
-                    <div class="qc-plan-ep">
-                      <div class="qc-plan-thumb-wrap">
-                        <Show
-                          when={ep.cover}
-                          fallback={
-                            <Show
-                              when={ep.coverLoading}
-                              fallback={<img class="qc-plan-thumb" src={fallbackImage()} alt={ep.title} />}
-                            >
-                              <div class="qc-plan-thumb qc-plan-thumb-loading">
-                                <span class="qc-spinner" />
-                              </div>
-                            </Show>
-                          }
-                        >
-                          <img class="qc-plan-thumb" src={ep.cover} alt={ep.title} loading="lazy" />
-                        </Show>
-                      </div>
-                      <div class="qc-plan-ep-body">
-                        <span class="qc-plan-ep-title">
-                          {ep.n}. {ep.title}
-                        </span>
-                        <span class="qc-plan-ep-desc">{ep.desc}</span>
-                      </div>
-                      <button class="qc-detail-btn" onClick={() => toggle(ep.n)}>
-                        {expanded() === ep.n ? s5().hideDetail : s5().detail}
-                        <span class={`qc-detail-caret ${expanded() === ep.n ? 'open' : ''}`}>▾</span>
-                      </button>
+                {(ep, i) => (
+                  <div class="qc-plan-ep">
+                    <div class="qc-plan-thumb-wrap">
+                      <Show
+                        when={ep.cover}
+                        fallback={<img class="qc-plan-thumb" src={fallbackSeriesImage()} alt={ep.title} />}
+                      >
+                        <img class="qc-plan-thumb" src={ep.cover} alt={ep.title} loading="lazy" />
+                      </Show>
                     </div>
-                    <Show when={expanded() === ep.n}>
-                      <div class="qc-detail-box">
-                        <ProductionPackage />
-                      </div>
+                    <div class="qc-plan-ep-body">
+                      <span class="qc-plan-ep-title">{ep.n}. {ep.title}</span>
+                      <span class="qc-plan-ep-desc">{ep.desc}</span>
+                    </div>
+                    <Show
+                      when={i() === 0}
+                      fallback={
+                        <button class="qc-ep-status planned" disabled>
+                          🔒 {s5().statusPending}
+                        </button>
+                      }
+                    >
+                      <button class="qc-ep-status generating">
+                        ✨ {s5().statusGenerating}
+                      </button>
                     </Show>
                   </div>
                 )}
@@ -699,6 +665,176 @@ const Step5Review = () => {
           </div>
         </div>
       </Show>
+    </div>
+  )
+}
+
+// ── Step 6: Episode 1 generation (runs the 6 calls; shows live progress) ──
+
+const Step6Generating = () => {
+  const s6 = () => qc().step6
+  const pl = () => quickCreateStore.pipeline
+  const production = () => pl().production
+  const episodes = () => production()?.episodes || []
+  const seriesTitle = () => production()?.ideaTitle || quickCreateStore.ideaTitle.trim() || qc().step5.untitled
+  const ep1 = () => episodes()[0]
+  const heroCover = () => ep1()?.cover || fallbackSeriesImage()
+
+  const genreText = () => (production()?.genre ? genreT(production()!.genre!).name : '—')
+  const styleText = () => (production()?.artStyle ? styleT(production()!.artStyle!).name : '—')
+  const lengthText = () => `${production()?.episodeLength ?? quickCreateStore.episodeLength} ${qc().step4.sec}`
+
+  // Per-call detail expand/collapse (keyed by call key)
+  const [expandedCalls, setExpandedCalls] = createSignal<Record<string, boolean>>({})
+  const isExpanded = (key: string) => !!expandedCalls()[key]
+  const toggleCall = (key: string) => setExpandedCalls((cur) => ({ ...cur, [key]: !cur[key] }))
+  const callOutput = (key: string) => production()?.calls?.[key]
+
+  return (
+    <div class="qc-step qc-step6">
+      <div class="qc-review-head">
+        <div>
+          <h2 class="qc-heading">{s6().heading}</h2>
+          <p class="qc-subtitle">{s6().subtitle}</p>
+        </div>
+        <div class="qc-director qc-tip-card">
+          <span class="qc-director-avatar">💡</span>
+          <div class="qc-director-bubble">
+            <span class="qc-director-name">{s6().tipTitle}</span>
+            <span class="qc-director-note">{s6().tipText}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qc-s6-grid">
+        {/* Left: pipeline list + overall progress */}
+        <div class="qc-s6-pipeline">
+          <h3 class="qc-s6-pipeline-title">{s6().pipelineTitle}</h3>
+          <p class="qc-s6-pipeline-sub">{s6().pipelineSubtitle}</p>
+
+          <ul class="qc-pl-steps qc-s6-steps">
+            <For each={pl().calls}>
+              {(c, i) => {
+                const done = () => c.status === 'done' && !!callOutput(c.key)
+                return (
+                  <li class={`qc-pl-step qc-s6-call ${c.status}`}>
+                    <div class="qc-s6-step-head">
+                      <span class="qc-s6-step-num">{i() + 1}</span>
+                      <StatusIcon status={c.status} />
+                      <span class="qc-pl-step-label">{callT(c.key)}</span>
+                      <Show when={done()}>
+                        <button
+                          class="qc-detail-btn qc-s6-detail-toggle"
+                          onClick={() => toggleCall(c.key)}
+                        >
+                          {isExpanded(c.key) ? qc().step5.hideDetail : qc().step5.detail}
+                          <span class={`qc-detail-caret ${isExpanded(c.key) ? 'open' : ''}`}>▾</span>
+                        </button>
+                      </Show>
+                    </div>
+                    <Show when={done() && isExpanded(c.key)}>
+                      <div class="qc-s6-call-detail">
+                        <JsonView value={callOutput(c.key)} />
+                      </div>
+                    </Show>
+                  </li>
+                )
+              }}
+            </For>
+            {/* Downstream steps — not run yet */}
+            <For each={FUTURE_STEP_KEYS}>
+              {(key, i) => (
+                <li class="qc-pl-step future">
+                  <span class="qc-s6-step-num">{pl().calls.length + i() + 1}</span>
+                  <span class="qc-pl-icon pending" />
+                  <span class="qc-pl-step-label">{(s6().future as Record<string, string>)[key]}</span>
+                  <span class="qc-s6-soon">{s6().comingSoon}</span>
+                </li>
+              )}
+            </For>
+          </ul>
+
+          <div class="qc-s6-progress-row">
+            <span class="qc-s6-progress-label">{s6().overallProgress}</span>
+            <span class="qc-s6-progress-pct">{pl().percent}%</span>
+          </div>
+          <div class="qc-s6-progress-track">
+            <div class="qc-s6-progress-fill" style={{ width: `${pl().percent}%` }} />
+          </div>
+
+          <Show when={pl().error && pl().error !== '__signin__'}>
+            <div class="qc-pl-error">⚠ {pl().error}</div>
+          </Show>
+        </div>
+
+        {/* Right: hero cover + info cards */}
+        <div class="qc-s6-main">
+          <div class="qc-s6-hero">
+            <img class="qc-s6-hero-img" src={heroCover()} alt={seriesTitle()} />
+            <div class="qc-s6-hero-bar">
+              <div class="qc-s6-hero-titles">
+                <span class="qc-s6-hero-series">{seriesTitle()}</span>
+                <span class="qc-s6-hero-ep">{s6().episodeLabel} 1: {ep1()?.title || ''}</span>
+              </div>
+              <Show when={pl().running}>
+                <span class="qc-s6-hero-status">
+                  <span class="qc-spinner" /> {s6().generating}
+                </span>
+              </Show>
+              <Show when={!pl().running && pl().percent >= 100}>
+                <span class="qc-s6-hero-status done">✓ {s6().done}</span>
+              </Show>
+            </div>
+          </div>
+
+          <div class="qc-s6-cards">
+            <div class="qc-s6-card">
+              <div class="qc-s6-card-title">📖 {s6().yourSeries}</div>
+              <div class="qc-s6-series-row">
+                <img class="qc-s6-series-thumb" src={heroCover()} alt={seriesTitle()} />
+                <div class="qc-s6-series-info">
+                  <span class="qc-s6-series-name">{seriesTitle()}</span>
+                  <span class="qc-s6-series-meta">{episodes().length} {qc().step5.episodesLabel} · {genreText()}</span>
+                  <span class="qc-s6-series-meta">{styleText()} · {lengthText()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="qc-s6-card">
+              <div class="qc-s6-card-title">🛡 {s6().qualityTitle}</div>
+              <p class="qc-s6-card-text">{s6().qualityText}</p>
+            </div>
+          </div>
+
+          {/* Rendered shot videos (SeedDance) */}
+          <Show when={(production()?.videos?.length ?? 0) > 0}>
+            <div class="qc-s6-videos">
+              <h3 class="qc-s6-videos-title">🎞 {s6().shotVideos}</h3>
+              <div class="qc-s6-videos-grid">
+                <For each={production()!.videos}>
+                  {(v) => (
+                    <div class="qc-s6-video">
+                      <Show
+                        when={v.url}
+                        fallback={<div class="qc-s6-video-error">⚠ {v.error || 'Failed'}</div>}
+                      >
+                        <video class="qc-s6-video-el" src={v.url} controls preload="metadata" />
+                      </Show>
+                      <span class="qc-s6-video-label">
+                        {s6().shotLabel} {v.shot_number ?? ''}
+                      </span>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </div>
+          </Show>
+        </div>
+      </div>
+
+      <div class="qc-s6-notify">
+        🔔 {s6().notify}
+      </div>
     </div>
   )
 }
@@ -727,23 +863,34 @@ const WizardNav = () => (
     </button>
     <span class="qc-nav-hint">{stepHint()}</span>
     <Switch>
-      <Match when={quickCreateStore.step === QUICK_CREATE_STEPS}>
-        <button class="qc-primary-btn">🚀 {qc().step5.generate}</button>
-      </Match>
       <Match when={quickCreateStore.step === 1}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
           ✨ {qc().step1.next} →
         </button>
       </Match>
       <Match when={quickCreateStore.step === 4}>
-        {/* Final input step — Continue kicks off the 6-call generation pipeline */}
+        {/* Continue generates the 5-episode plan (cover/title/desc), then → step 5 */}
         <button
           class="qc-primary-btn"
           disabled={!canAdvance() || quickCreateStore.pipeline.running}
-          onClick={() => quickCreateStoreActions.runPipeline()}
+          onClick={() => quickCreateStoreActions.runPlan()}
         >
-          🚀 {qc().step1.next} →
+          ✨ {qc().step1.next} →
         </button>
+      </Match>
+      <Match when={quickCreateStore.step === 5}>
+        {/* Generate Episode 1 → creates the My Series entry, runs the 6 calls, → step 6 */}
+        <button
+          class="qc-primary-btn"
+          disabled={!quickCreateStore.pipeline.plan}
+          onClick={() => quickCreateStoreActions.runEpisode()}
+        >
+          🚀 {qc().step5.generate}
+        </button>
+      </Match>
+      <Match when={quickCreateStore.step === 6}>
+        {/* Generation runs in the background; user may leave freely */}
+        <span class="qc-nav-hint">{qc().step6.mayLeave}</span>
       </Match>
       <Match when={true}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
@@ -756,36 +903,56 @@ const WizardNav = () => (
 
 // ── Page ──
 
-const QuickCreate = () => (
-  <div class="qc-layout">
-    <Sidebar />
-    <div class="qc-main">
-      <Stepper />
-      <div class="qc-content">
-        <Switch>
-          <Match when={quickCreateStore.step === 1}>
-            <Step1Idea />
-          </Match>
-          <Match when={quickCreateStore.step === 2}>
-            <Step2Genre />
-          </Match>
-          <Match when={quickCreateStore.step === 3}>
-            <Step3ArtStyle />
-          </Match>
-          <Match when={quickCreateStore.step === 4}>
-            <Step4Length />
-          </Match>
-          <Match when={quickCreateStore.step === 5}>
-            <Step5Review />
-          </Match>
-        </Switch>
-        <WizardNav />
+const QuickCreate = () => {
+  const [searchParams] = useSearchParams()
+
+  // Resuming an in-progress/completed generation from My Series (?production=<jobId>)
+  onMount(() => {
+    const jobId = searchParams.production
+    if (typeof jobId === 'string' && jobId) {
+      quickCreateStoreActions.resumeEpisode(jobId)
+    }
+  })
+
+  // The plan-phase overlay covers step 4 → 5; step 6 shows its own progress inline.
+  const showOverlay = () =>
+    quickCreateStore.step !== 6 &&
+    (quickCreateStore.pipeline.running || !!quickCreateStore.pipeline.error)
+
+  return (
+    <div class="qc-layout">
+      <Sidebar />
+      <div class="qc-main">
+        <Stepper />
+        <div class="qc-content">
+          <Switch>
+            <Match when={quickCreateStore.step === 1}>
+              <Step1Idea />
+            </Match>
+            <Match when={quickCreateStore.step === 2}>
+              <Step2Genre />
+            </Match>
+            <Match when={quickCreateStore.step === 3}>
+              <Step3ArtStyle />
+            </Match>
+            <Match when={quickCreateStore.step === 4}>
+              <Step4Length />
+            </Match>
+            <Match when={quickCreateStore.step === 5}>
+              <Step5Review />
+            </Match>
+            <Match when={quickCreateStore.step === 6}>
+              <Step6Generating />
+            </Match>
+          </Switch>
+          <WizardNav />
+        </div>
       </div>
+      <Show when={showOverlay()}>
+        <PipelineProgress />
+      </Show>
     </div>
-    <Show when={quickCreateStore.pipeline.running || quickCreateStore.pipeline.error}>
-      <PipelineProgress />
-    </Show>
-  </div>
-)
+  )
+}
 
 export default QuickCreate

@@ -67,6 +67,7 @@ import {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  getMyProductions,
   getComments,
   addComment,
 } from './utils/handlers.js'
@@ -98,6 +99,7 @@ const apiHandlers = {
     templates: () => getTemplates(),
     pipelinePrompts: (params, authHeader) => getPipelinePrompts(params, authHeader),
     productionStatus: (params, authHeader) => getProductionStatus(params, authHeader),
+    myProductions: (params, authHeader) => getMyProductions(params, authHeader),
     comments: (params) => getComments(params),
   },
   post: {

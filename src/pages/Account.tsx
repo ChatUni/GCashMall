@@ -74,7 +74,9 @@ import {
   fetchPipelinePrompts,
   savePipelinePrompt,
   type PipelinePrompt,
+  type ProductionJob,
 } from '../services/dataService'
+import { quickCreateStoreActions } from '../stores/quickCreateStore'
 import { renderMarkdown } from '../utils/markdown'
 import type { Series, User } from '../types'
 import './Account.css'
@@ -580,9 +582,11 @@ const EmptyState = (props: EmptyStateProps) => (
     <div class="empty-icon">{props.icon}</div>
     <h3 class="empty-title">{props.title}</h3>
     <p class="empty-subtext">{props.subtext}</p>
-    <button class="btn-primary" onClick={props.onButtonClick}>
-      {props.buttonText}
-    </button>
+    <Show when={props.buttonText}>
+      <button class="btn-primary" onClick={props.onButtonClick}>
+        {props.buttonText}
+      </button>
+    </Show>
   </div>
 )
 
@@ -1134,10 +1138,53 @@ function MyPurchasesSection() {
   )
 }
 
+// A Quick Create production card (in-progress or completed) in the My Series group
+function ProductionCard(props: {
+  production: ProductionJob
+  translations: Record<string, string>
+  onClick: () => void
+}) {
+  const percent = () => {
+    if (typeof props.production.percent === 'number') return props.production.percent
+    const calls = props.production.progress?.calls || []
+    if (calls.length === 0) return 0
+    return Math.round((calls.filter((c) => c.status === 'done').length / calls.length) * 100)
+  }
+  const statusText = () => {
+    if (props.production.status === 'done') return props.translations.productionReady || 'Episode 1 ready'
+    if (props.production.status === 'error') return props.translations.productionFailed || 'Generation failed'
+    return `${props.translations.productionGenerating || 'Generating'} ${percent()}%`
+  }
+
+  return (
+    <button class="production-card" onClick={props.onClick}>
+      <div class="production-card-cover">
+        <Show when={props.production.cover} fallback={<div class="production-card-placeholder">✨</div>}>
+          <img src={props.production.cover} alt={props.production.title || ''} loading="lazy" />
+        </Show>
+        <Show when={props.production.status !== 'done'}>
+          <div class="production-card-badge">{percent()}%</div>
+        </Show>
+      </div>
+      <div class="production-card-body">
+        <span class="production-card-title">{props.production.title || props.production.ideaTitle || 'Untitled Series'}</span>
+        <span class={`production-card-status ${props.production.status}`}>{statusText()}</span>
+        <Show when={props.production.status !== 'done'}>
+          <div class="production-card-track">
+            <div class="production-card-fill" style={{ width: `${percent()}%` }} />
+          </div>
+        </Show>
+      </div>
+    </button>
+  )
+}
+
 function MySeriesSection() {
   const navigate = useNavigate()
   const mySeries = () => (t().account.mySeries || {}) as Record<string, string>
-  const [activeSubTab, setActiveSubTab] = createSignal<'series' | 'revenue'>('series')
+  const [activeSubTab, setActiveSubTab] = createSignal<'quickCreate' | 'uploaded' | 'revenue'>(
+    'quickCreate',
+  )
 
   // Fetch revenue data when revenue tab is selected
   createEffect(() => {
@@ -1156,22 +1203,42 @@ function MySeriesSection() {
       {/* Show SeriesEditContent when editing or adding */}
       <Show when={accountStore.editingSeriesId} fallback={
         <div class="content-section my-series-section">
-          <div class="section-header">
+          <div class="section-header-row my-series-header">
             <h1 class="page-title">{mySeries().title || 'My Series'}</h1>
-            <Show when={accountStore.mySeries.length > 0 && activeSubTab() === 'series'}>
-              <button class="btn-primary add-series-btn" onClick={handleAddSeries}>
-                {mySeries().addSeries || 'Add Series'}
-              </button>
-            </Show>
+            <div class="my-series-actions">
+              <Show when={activeSubTab() === 'quickCreate'}>
+                <button
+                  class="btn-primary create-own-btn"
+                  onClick={() => {
+                    // Always start a fresh story (never resume the last generation)
+                    quickCreateStoreActions.reset()
+                    navigate('/quick-create')
+                  }}
+                >
+                  ✨ {mySeries().createOwn || 'Create your own'}
+                </button>
+              </Show>
+              <Show when={activeSubTab() === 'uploaded' && accountStore.user?.allowUpload}>
+                <button class="btn-primary upload-series-btn" onClick={handleAddSeries}>
+                  {mySeries().uploadSeries || 'Upload Series'}
+                </button>
+              </Show>
+            </div>
           </div>
 
-          {/* Sub-tabs for Series and Revenue */}
+          {/* Tabs: Quick Create, Uploaded, Revenue */}
           <div class="my-series-tabs">
             <button
-              class={`my-series-tab ${activeSubTab() === 'series' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('series')}
+              class={`my-series-tab ${activeSubTab() === 'quickCreate' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('quickCreate')}
             >
-              {mySeries().title || 'My Series'}
+              ✨ {mySeries().quickCreateGroup || 'Quick Create'}
+            </button>
+            <button
+              class={`my-series-tab ${activeSubTab() === 'uploaded' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('uploaded')}
+            >
+              {mySeries().uploadedTab || 'Uploaded'}
             </button>
             <button
               class={`my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
@@ -1181,14 +1248,42 @@ function MySeriesSection() {
             </button>
           </div>
 
-          {/* Series List Tab */}
-          <Show when={activeSubTab() === 'series'}>
+          {/* Quick Create Tab */}
+          <Show when={activeSubTab() === 'quickCreate'}>
+            <Show when={accountStore.myProductions.length > 0} fallback={
+              <EmptyState
+                icon="✨"
+                title={mySeries().quickCreateEmptyTitle || 'No creations yet'}
+                subtext={mySeries().quickCreateEmptySubtext || 'Turn your idea into an anime series in minutes'}
+                buttonText={mySeries().createOwn || 'Create your own'}
+                onButtonClick={() => {
+                  quickCreateStoreActions.reset()
+                  navigate('/quick-create')
+                }}
+              />
+            }>
+              <div class="content-grid">
+                <For each={accountStore.myProductions}>
+                  {(prod) => (
+                    <ProductionCard
+                      production={prod}
+                      translations={mySeries()}
+                      onClick={() => navigate(`/quick-create?production=${prod.jobId}`)}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Show>
+
+          {/* Uploaded Tab */}
+          <Show when={activeSubTab() === 'uploaded'}>
             <Show when={accountStore.mySeries.length > 0} fallback={
               <EmptyState
                 icon="🎬"
                 title={mySeries().emptyTitle || 'No series yet'}
                 subtext={mySeries().emptySubtext || 'Start creating your first series'}
-                buttonText={mySeries().addSeries || 'Add Series'}
+                buttonText={accountStore.user?.allowUpload ? (mySeries().uploadSeries || 'Upload Series') : ''}
                 onButtonClick={handleAddSeries}
               />
             }>

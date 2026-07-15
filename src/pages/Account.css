@@ -2536,3 +2536,146 @@
     height: 300px;
   }
 }
+
+/* ── My Series: Quick Create group ── */
+
+.qc-group {
+  margin-bottom: 28px;
+}
+
+.qc-group-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 14px;
+}
+
+.production-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: #121214;
+  border: 1px solid #26262b;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.production-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+.production-card-cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: #1a1a22;
+}
+
+.production-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.production-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+.production-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(59, 130, 246, 0.9);
+  border-radius: 12px;
+  padding: 3px 9px;
+}
+
+.production-card-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.production-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.production-card-status {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.production-card-status.done {
+  color: #4ade80;
+}
+
+.production-card-status.error {
+  color: #fca5a5;
+}
+
+.production-card-track {
+  height: 6px;
+  border-radius: 4px;
+  background: #23232a;
+  overflow: hidden;
+}
+
+.production-card-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width 0.5s ease;
+}
+
+/* ── My Series header actions (title row, right-aligned buttons) ── */
+
+.my-series-header {
+  align-items: flex-start;
+}
+
+.my-series-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.my-series-actions .create-own-btn,
+.my-series-actions .upload-series-btn {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .my-series-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .my-series-actions {
+    width: 100%;
+  }
+  .my-series-actions .create-own-btn,
+  .my-series-actions .upload-series-btn {
+    flex: 1;
+    text-align: center;
+  }
+}

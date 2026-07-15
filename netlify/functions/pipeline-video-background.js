@@ -1,0 +1,51 @@
+// Netlify Background Function: renders the episode's shot videos via SeedDance.
+// Runs as its OWN job (separate 15-minute budget) so it never competes with the
+// LLM-call episode job. Triggered server-to-server by pipeline-background after the
+// 7 calls finish, so it keeps running even if the user leaves the page.
+
+import jwt from 'jsonwebtoken'
+import { get, update } from './utils/db.js'
+import { runVideoGeneration } from './utils/videoJob.js'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
+
+const getUserId = (authHeader) => {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Authentication required')
+  }
+  return jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id
+}
+
+export const handler = async (event) => {
+  let jobId
+  try {
+    const body = JSON.parse(event.body || '{}')
+    jobId = body.jobId
+    if (!jobId) return { statusCode: 400 }
+
+    const authHeader = event.headers?.authorization || event.headers?.Authorization
+    const userId = getUserId(authHeader)
+
+    await runVideoGeneration(jobId, userId)
+    return { statusCode: 200 }
+  } catch (error) {
+    console.error('pipeline-video-background error:', error)
+    if (jobId) {
+      try {
+        const docs = await get('productions', { jobId }, {}, {}, 1)
+        const progress = docs?.[0]?.progress || { calls: [] }
+        const step = (progress.calls || []).find((c) => c.key === 'videoGeneration')
+        if (step) step.status = 'error'
+        // Calls succeeded; mark the production done even though videos failed.
+        await update(
+          'productions',
+          { jobId },
+          { $set: { status: 'done', progress, videoError: String(error.message || error), updatedAt: new Date() } },
+        )
+      } catch (e) {
+        console.error('Failed to mark video job errored:', e.message)
+      }
+    }
+    return { statusCode: 500 }
+  }
+}

@@ -32,6 +32,7 @@ const CALLS = [
   { file: 'call-4-production-storyboard-architect.md', key: 'storyboardArchitect', title: 'Production Storyboard Architect', order: 4 },
   { file: 'call-5-story-intelligence-optimizer.md', key: 'storyOptimizer', title: 'Story Intelligence Optimizer', order: 5 },
   { file: 'call-6-production-prompt-compiler.md', key: 'promptCompiler', title: 'Production Prompt Compiler', order: 6 },
+  { file: 'call-7-rendering-intelligence-engine.md', key: 'renderingEngine', title: 'Rendering Intelligence Engine', order: 7 },
 ]
 
 const specsDir = path.join(root, 'specs', 'quick create')

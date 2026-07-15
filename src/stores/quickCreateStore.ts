@@ -5,14 +5,18 @@ import { createStore } from 'solid-js/store'
 import {
   fetchTemplates,
   startProductionJob,
+  startVideoJob,
   fetchProductionStatus,
   type StarterTemplate,
+  type ProductionJob,
 } from '../services/dataService'
 
 export type { StarterTemplate }
 
-// 5 input steps are built; the stepper also shows the 6th (result) step for fidelity.
-export const QUICK_CREATE_STEPS = 5
+// Steps 1-4 are inputs; step 5 is the AI Director review; step 6 is Episode 1
+// generation. The last step reachable via "Continue"/next is 4 (then step 4 runs
+// the plan and jumps to 5, and step 5 runs the episode and jumps to 6).
+export const QUICK_CREATE_STEPS = 6
 
 // ── Mockup-generated images, hosted on Cloudinary (GCash/quick create folder) ──
 
@@ -143,6 +147,8 @@ export const PIPELINE_CALLS: { key: string }[] = [
   { key: 'storyboardArchitect' },
   { key: 'storyOptimizer' },
   { key: 'promptCompiler' },
+  { key: 'renderingEngine' },
+  { key: 'videoGeneration' },
 ]
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'error'
@@ -163,6 +169,14 @@ export interface ReviewEpisode {
 // Raw per-call outputs keyed by call key
 export type ProductionCalls = Record<string, Record<string, unknown>>
 
+// A rendered shot video (from SeedDance) — url on success, error otherwise
+export interface ShotVideo {
+  shot_id: string
+  shot_number: number | null
+  url?: string
+  error?: string
+}
+
 export interface Production {
   idea: string
   ideaTitle: string
@@ -171,26 +185,43 @@ export interface Production {
   episodeLength: number | null
   calls: ProductionCalls
   episodes: ReviewEpisode[]
+  videos: ShotVideo[]
 }
+
+// Result of the "plan" phase (step 4): the 5-episode plan + covers, shown at step 5
+export interface PlanResult {
+  ideaTitle: string
+  call1: Record<string, unknown> | null
+  episodes: ReviewEpisode[]
+}
+
+// '' idle | 'plan' (step 4 → 5) | 'episode' (step 6, the 6 calls)
+export type PipelinePhase = '' | 'plan' | 'episode'
 
 interface PipelineState {
   running: boolean
   error: string // '' when ok; '__signin__' when not logged in; otherwise a message
-  jobId: string | null // the active background job being polled
-  calls: PipelineCallState[]
-  coverStatus: StepStatus
-  production: Production | null
-  savedId: string | null
+  phase: PipelinePhase
+  jobId: string | null // the background job currently being polled
+  episodeJobId: string | null // the persistent My Series (episode) job id
+  calls: PipelineCallState[] // 6-call statuses (step 6)
+  coverStatus: StepStatus // cover generation (plan phase)
+  percent: number // overall episode-generation percent
+  plan: PlanResult | null // step 5 review data
+  production: Production | null // step 6 data (fills as calls complete)
 }
 
 const getInitialPipeline = (): PipelineState => ({
   running: false,
   error: '',
+  phase: '',
   jobId: null,
+  episodeJobId: null,
   calls: PIPELINE_CALLS.map((c) => ({ key: c.key, status: 'pending' as StepStatus })),
   coverStatus: 'pending',
+  percent: 0,
+  plan: null,
   production: null,
-  savedId: null,
 })
 
 // ── Wizard state ──
@@ -198,10 +229,11 @@ const getInitialPipeline = (): PipelineState => ({
 interface QuickCreateState {
   step: number
   idea: string
-  ideaTitle: string // short series name (from template / generated / filename)
+  ideaTitle: string // short series name (from template / generation / filename)
   genreId: string | null
   artStyleId: string | null
   episodeLength: number | null
+  testMode: boolean // skip cover generation, reuse the story cover for all episodes
   templates: StarterTemplate[]
   templatesLoaded: boolean
   pipeline: PipelineState
@@ -214,10 +246,23 @@ const getInitialState = (): QuickCreateState => ({
   genreId: null,
   artStyleId: null,
   episodeLength: 30,
+  testMode: false,
   templates: [],
   templatesLoaded: false,
   pipeline: getInitialPipeline(),
 })
+
+// The "story cover" reused for all episodes in test mode: the selected template's
+// cover if the idea came from one, else a genre/art-style image, else the hero.
+const getStoryCover = (): string => {
+  const tpl = state.templates.find((t) => t.prompt === state.idea)
+  if (tpl?.cover) return tpl.cover
+  const genre = GENRES.find((g) => g.id === state.genreId)
+  if (genre) return genre.image
+  const style = ART_STYLES.find((s) => s.id === state.artStyleId)
+  if (style) return style.image
+  return heroImage
+}
 
 const [state, setState] = createStore<QuickCreateState>(getInitialState())
 
@@ -234,6 +279,7 @@ export const quickCreateStoreActions = {
   selectGenre: (genreId: string) => setState({ genreId }),
   selectArtStyle: (artStyleId: string) => setState({ artStyleId }),
   selectEpisodeLength: (episodeLength: number) => setState({ episodeLength }),
+  setTestMode: (testMode: boolean) => setState({ testMode }),
   // Load starter-story templates from the DB (once)
   loadTemplates: async () => {
     if (state.templatesLoaded) return
@@ -248,27 +294,27 @@ export const quickCreateStoreActions = {
   // Stop polling / dismiss the progress overlay (also cancels the poll loop)
   resetPipeline: () => setState('pipeline', getInitialPipeline()),
 
-  // Kick off the 6-call pipeline in the Netlify background function, then poll its
-  // job document for progress. On completion, advance to the review step (step 5).
-  runPipeline: async () => {
-    // Generation spends OpenAI credits — require a logged-in user.
+  // Step 4 "Continue": generate the 5-episode plan (Call 1) + covers in the
+  // background, then advance to the review (step 5).
+  runPlan: async () => {
     const token = localStorage.getItem('gcashmall_token')
     if (!token) {
       setState('pipeline', { ...getInitialPipeline(), error: '__signin__' })
       return
     }
-
     const jobId = newJobId()
-    setState('pipeline', { ...getInitialPipeline(), running: true, jobId })
-
+    setState('pipeline', { ...getInitialPipeline(), running: true, phase: 'plan', jobId })
     try {
       await startProductionJob(jobId, {
+        mode: 'plan',
         story: state.idea,
         ideaTitle: state.ideaTitle.trim(),
         genre: state.genreId,
         art_style: state.artStyleId,
         episode_length: state.episodeLength,
         target_audience: '',
+        testMode: state.testMode,
+        storyCover: getStoryCover(),
       })
     } catch (error) {
       setState('pipeline', {
@@ -277,7 +323,100 @@ export const quickCreateStoreActions = {
       })
       return
     }
+    pollProduction(jobId)
+  },
 
+  // Step 5 "Generate Episode 1": create the persistent episode job (the My Series
+  // entry), reuse the plan's Call-1 output, run Calls 2-6, and jump to step 6.
+  runEpisode: async () => {
+    const plan = state.pipeline.plan
+    if (!plan) return
+    const token = localStorage.getItem('gcashmall_token')
+    if (!token) {
+      setState('pipeline', { error: '__signin__', running: false, phase: '' })
+      return
+    }
+    // Reuse the plan-phase job id so step 6 UPDATES the same production document
+    // (which already holds Call 1 + covers) rather than creating a second one.
+    const jobId = state.pipeline.jobId || newJobId()
+    const seriesTitle = plan.ideaTitle
+    setState('pipeline', {
+      running: true,
+      phase: 'episode',
+      error: '',
+      jobId,
+      episodeJobId: jobId,
+      coverStatus: 'done',
+      percent: Math.round((1 / PIPELINE_CALLS.length) * 100),
+      calls: PIPELINE_CALLS.map((c, i) => ({
+        key: c.key,
+        status: (i === 0 ? 'done' : 'pending') as StepStatus,
+      })),
+      production: {
+        idea: state.idea,
+        ideaTitle: seriesTitle,
+        genre: state.genreId,
+        artStyle: state.artStyleId,
+        episodeLength: state.episodeLength,
+        calls: plan.call1 ? { executiveProducer: plan.call1 } : {},
+        episodes: plan.episodes,
+        videos: [],
+      },
+    })
+    setState('step', 6)
+    try {
+      await startProductionJob(jobId, {
+        mode: 'episode',
+        story: state.idea,
+        ideaTitle: seriesTitle,
+        genre: state.genreId,
+        art_style: state.artStyleId,
+        episode_length: state.episodeLength,
+        call1: plan.call1,
+        episodes: plan.episodes,
+      })
+    } catch (error) {
+      setState('pipeline', {
+        running: false,
+        error: error instanceof Error ? error.message : 'Failed to start generation',
+      })
+      return
+    }
+    pollProduction(jobId)
+  },
+
+  // Resume an existing episode job (opened from My Series) directly at step 6.
+  resumeEpisode: async (jobId: string) => {
+    setState('pipeline', {
+      ...getInitialPipeline(),
+      running: true,
+      phase: 'episode',
+      jobId,
+      episodeJobId: jobId,
+    })
+    setState('step', 6)
+    try {
+      const job = await fetchProductionStatus(jobId)
+      if (state.pipeline.jobId !== jobId) return
+      hydrateEpisodeFromJob(job)
+      applyJobProgress(job)
+
+      // If the calls finished but video generation failed, retry it automatically.
+      if (videoStepFailed(job)) {
+        await retryVideoGeneration(jobId)
+        return
+      }
+      if (job.status === 'done') {
+        finishEpisode(job)
+        return
+      }
+      if (job.status === 'error') {
+        setState('pipeline', { running: false, error: job.error || 'Generation failed' })
+        return
+      }
+    } catch {
+      // fall through to polling, which will retry
+    }
     pollProduction(jobId)
   },
 
@@ -294,29 +433,47 @@ const newJobId = (): string => {
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 const POLL_INTERVAL_MS = 2500
-const POLL_TIMEOUT_MS = 15 * 60 * 1000
+const POLL_TIMEOUT_MS = 20 * 60 * 1000
 
-// Poll the job document until it completes, errors, or is cancelled (the pipeline's
-// jobId changing — via reset/rerun — ends this loop).
+const mapEpisodes = (episodes?: { n: number; title: string; desc: string; cover?: string }[]): ReviewEpisode[] =>
+  (episodes || []).map((e) => ({
+    n: e.n,
+    title: e.title,
+    desc: e.desc,
+    cover: e.cover || '',
+    coverLoading: false,
+  }))
+
+// Poll the job until it completes, errors, or is cancelled (jobId changing ends it).
 const pollProduction = async (jobId: string): Promise<void> => {
   const startedAt = Date.now()
 
   while (state.pipeline.jobId === jobId) {
     await sleep(POLL_INTERVAL_MS)
-    if (state.pipeline.jobId !== jobId) return // cancelled or restarted
+    if (state.pipeline.jobId !== jobId) return
 
-    let job
+    let job: ProductionJob
     try {
       job = await fetchProductionStatus(jobId)
     } catch {
-      continue // transient network/API error — keep polling
+      continue // transient error — keep polling
     }
     if (state.pipeline.jobId !== jobId) return
 
     applyJobProgress(job)
+    // Keep step 6's production.calls (and any rendered videos) fresh as work completes
+    if (state.pipeline.phase === 'episode') {
+      if (job.calls) setState('pipeline', 'production', (p) => (p ? { ...p, calls: job.calls! } : p))
+      if (job.videos) {
+        setState('pipeline', 'production', (p) =>
+          p ? { ...p, videos: job.videos as ShotVideo[] } : p,
+        )
+      }
+    }
 
     if (job.status === 'done') {
-      completeProduction(job)
+      if (state.pipeline.phase === 'plan') finishPlan(job)
+      else finishEpisode(job)
       return
     }
     if (job.status === 'error') {
@@ -330,8 +487,48 @@ const pollProduction = async (jobId: string): Promise<void> => {
   }
 }
 
-// Mirror the job's per-call + cover progress into the pipeline state (for the overlay)
-const applyJobProgress = (job: { progress?: { calls?: { key: string; status: string }[]; coverStatus?: string } }) => {
+// videoGeneration is the last entry in PIPELINE_CALLS
+const VIDEO_STEP_INDEX = PIPELINE_CALLS.length - 1
+
+// Whether the video-generation step failed (whole step errored, or a shot failed)
+const videoStepFailed = (job: ProductionJob): boolean => {
+  const vStep = job.progress?.calls?.find((c) => c.key === 'videoGeneration')
+  if (vStep?.status === 'error') return true
+  return (job.videos || []).some((v) => v.error && !v.url)
+}
+
+// Retry video generation for a resumed production: flip the step back to running,
+// (re)start the video job, wait until it takes over, then resume polling.
+const retryVideoGeneration = async (jobId: string): Promise<void> => {
+  setState('pipeline', 'calls', VIDEO_STEP_INDEX, 'status', 'running')
+  setState('pipeline', { running: true, error: '' })
+  try {
+    await startVideoJob(jobId)
+    await waitForVideoRestart(jobId)
+  } catch (error) {
+    console.error('Failed to retry video generation:', error)
+  }
+  pollProduction(jobId)
+}
+
+// Poll briefly until the retry job flips the doc back to 'running', so the main
+// poll loop doesn't finish on the stale 'done' status from the failed run.
+const waitForVideoRestart = async (jobId: string): Promise<void> => {
+  for (let i = 0; i < 8; i++) {
+    await sleep(1500)
+    if (state.pipeline.jobId !== jobId) return
+    try {
+      const job = await fetchProductionStatus(jobId)
+      const vStep = job.progress?.calls?.find((c) => c.key === 'videoGeneration')
+      if (job.status === 'running' || vStep?.status === 'running') return
+    } catch {
+      // keep waiting
+    }
+  }
+}
+
+// Mirror the job's per-call + cover progress + percent into pipeline state
+const applyJobProgress = (job: ProductionJob) => {
   const calls = job.progress?.calls
   if (Array.isArray(calls)) {
     calls.forEach((c, i) => {
@@ -343,39 +540,65 @@ const applyJobProgress = (job: { progress?: { calls?: { key: string; status: str
   if (job.progress?.coverStatus) {
     setState('pipeline', 'coverStatus', job.progress.coverStatus as StepStatus)
   }
+  if (typeof job.percent === 'number') {
+    setState('pipeline', 'percent', job.percent)
+  }
 }
 
-// Populate the review step from a finished job and advance to it
-const completeProduction = (job: {
-  episodes?: { n: number; title: string; desc: string; cover?: string }[]
-  calls?: ProductionCalls
-  ideaTitle?: string
-  genre?: string | null
-  artStyle?: string | null
-  episodeLength?: number | null
-}) => {
-  const episodes: ReviewEpisode[] = (job.episodes || []).map((e) => ({
-    n: e.n,
-    title: e.title,
-    desc: e.desc,
-    cover: e.cover || '',
-    coverLoading: false,
-  }))
+// Plan phase done → store the plan and advance to the review step
+const finishPlan = (job: ProductionJob) => {
+  const episodes = mapEpisodes(job.episodes)
   setState('pipeline', {
-    episodes,
+    running: false,
+    phase: '',
+    plan: {
+      ideaTitle: job.ideaTitle || state.ideaTitle.trim() || 'Untitled Series',
+      call1: (job.calls?.executiveProducer as Record<string, unknown>) || null,
+      episodes,
+    },
+  })
+  setState('step', 5)
+}
+
+// Episode phase done → populate the full production for step 6
+const finishEpisode = (job: ProductionJob) => {
+  setState('pipeline', {
+    running: false,
+    percent: 100,
     production: {
-      idea: state.idea,
-      ideaTitle: job.ideaTitle || state.ideaTitle,
+      idea: state.idea || job.idea || '',
+      ideaTitle: job.ideaTitle || job.title || state.ideaTitle,
       genre: job.genre ?? state.genreId,
       artStyle: job.artStyle ?? state.artStyleId,
       episodeLength: job.episodeLength ?? state.episodeLength,
       calls: job.calls || {},
+      episodes: mapEpisodes(job.episodes),
+      videos: job.videos || [],
+    },
+  })
+}
+
+// Populate step-6 state from a job doc when resuming (from My Series)
+const hydrateEpisodeFromJob = (job: ProductionJob) => {
+  const episodes = mapEpisodes(job.episodes)
+  const title = job.ideaTitle || job.title || 'Untitled Series'
+  setState('pipeline', {
+    production: {
+      idea: job.idea || '',
+      ideaTitle: title,
+      genre: job.genre ?? null,
+      artStyle: job.artStyle ?? null,
+      episodeLength: job.episodeLength ?? null,
+      calls: job.calls || {},
+      episodes,
+      videos: job.videos || [],
+    },
+    plan: {
+      ideaTitle: title,
+      call1: (job.calls?.executiveProducer as Record<string, unknown>) || null,
       episodes,
     },
-    savedId: state.pipeline.jobId,
-    running: false,
   })
-  setState('step', 5)
 }
 
 // Whether the current step has the input it needs to advance

@@ -19,6 +19,7 @@ export const PIPELINE_CALL_KEYS = [
   'storyboardArchitect',
   'storyOptimizer',
   'promptCompiler',
+  'renderingEngine',
 ]
 
 // Call OpenAI chat and parse the response as a JSON object (json_object mode)
@@ -67,7 +68,12 @@ export const buildCallSystemPrompt = (md) => {
     parsePromptSection(md, '## Required Output') || parsePromptSection(md, '## Output')
   let msg = systemPrompt
   if (outputSchema) {
-    msg += `\n\nReturn a single JSON object with exactly this structure (fill in every field, do not leave placeholders):\n${outputSchema}`
+    msg +=
+      '\n\nReturn a single JSON object with this structure. Fill in every field — do not leave placeholders. ' +
+      'Where a field is an array, the example shows the shape of ONE element only: output as many elements as the ' +
+      'content actually requires — e.g. one shot_prompt per shot in the shot graph, one node per story beat, one ' +
+      'entry per episode/scene. Never collapse an array to a single item or drop items that exist in the input.\n' +
+      outputSchema
   }
   return msg
 }
