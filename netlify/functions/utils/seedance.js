@@ -9,8 +9,22 @@
 // exist" on another. So on a 401 we transparently retry the known regions and cache
 // whichever one authenticates.
 
-const MODEL = process.env.SEEDANCE_MODEL || 'doubao-seedance-1-0-pro-250528'
-const KEY = process.env.SEEDANCE_API_KEY
+// Netlify env vars are often pasted with surrounding quotes or a trailing newline;
+// those would be sent literally in the request and rejected, so sanitize them.
+const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
+
+const MODEL = clean(process.env.SEEDANCE_MODEL) || 'doubao-seedance-1-0-pro-250528'
+const KEY = clean(process.env.SEEDANCE_API_KEY)
+
+// Safe key fingerprint (length + first/last few chars) — never logs the full secret
+const keyFingerprint = () => (KEY ? `${KEY.length} chars, ${KEY.slice(0, 4)}…${KEY.slice(-4)}` : 'MISSING')
+
+// One-time config log on cold start so the function logs explain any auth failure
+console.log(
+  `[seedance] config — key: [${keyFingerprint()}], model: ${MODEL}, base: ${
+    clean(process.env.SEEDANCE_BASE_URL) || '(auto-detect)'
+  }`,
+)
 
 // Seedance 2.0 renders synchronized audio in the same pass, so no separate TTS/mux
 // step is needed — only the shots need stitching.
@@ -24,7 +38,7 @@ const KNOWN_BASES = [
 
 const candidateBases = () => {
   const list = []
-  const configured = (process.env.SEEDANCE_BASE_URL || '').replace(/\/+$/, '')
+  const configured = clean(process.env.SEEDANCE_BASE_URL).replace(/\/+$/, '')
   if (configured) list.push(configured)
   for (const b of KNOWN_BASES) if (!list.includes(b)) list.push(b)
   return list
@@ -81,7 +95,7 @@ export const createVideoTask = async (req) => {
   }
 
   throw new Error(
-    `Seedance auth failed on all regions [${bases.join(', ')}] — check SEEDANCE_API_KEY / SEEDANCE_BASE_URL. ${lastAuthError}`,
+    `Seedance auth failed on all regions [${bases.join(', ')}] — check SEEDANCE_API_KEY / SEEDANCE_BASE_URL. Key: [${keyFingerprint()}], model: ${MODEL}. ${lastAuthError}`,
   )
 }
 
