@@ -14,7 +14,7 @@
 .phone-carousel-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0;
 }
 
@@ -29,7 +29,7 @@
   aspect-ratio: 1;
   background: transparent;
   border: none;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   cursor: pointer;
   padding: 0;
   border-radius: 50%;
@@ -41,13 +41,13 @@
 .phone-carousel-more:hover {
   background: rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-carousel-more:active {
   background: rgba(255, 255, 255, 0.15);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-carousel-scroll {
@@ -88,7 +88,7 @@
 .phone-card-skeleton-image {
   width: 100%;
   aspect-ratio: 2 / 3;
-  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background: linear-gradient(90deg, var(--c-surface2) 25%, var(--c-surface3) 50%, var(--c-surface2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
@@ -98,7 +98,7 @@
 .phone-card-skeleton-title {
   width: 80%;
   height: 14px;
-  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background: linear-gradient(90deg, var(--c-surface2) 25%, var(--c-surface3) 50%, var(--c-surface2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -108,7 +108,7 @@
 .phone-card-skeleton-tag {
   width: 50%;
   height: 12px;
-  background: linear-gradient(90deg, #1a1a1e 25%, #242428 50%, #1a1a1e 75%);
+  background: linear-gradient(90deg, var(--c-surface2) 25%, var(--c-surface3) 50%, var(--c-surface2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;

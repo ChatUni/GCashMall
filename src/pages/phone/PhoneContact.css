@@ -16,19 +16,19 @@
 .phone-contact-title {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
 }
 
 .phone-contact-subtitle {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0;
 }
 
 /* Card */
 .phone-contact-card {
-  background: #121214;
+  background: var(--c-surface);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -37,14 +37,14 @@
 .phone-contact-message {
   text-align: center;
   font-size: 15px;
-  color: #e5e7eb;
+  color: var(--c-text-2);
   line-height: 1.7;
   margin: 0 0 20px;
 }
 
 /* Contact Info */
 .phone-contact-info {
-  background: #1a1a1e;
+  background: var(--c-surface2);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 22px;
@@ -77,7 +77,7 @@
 
 .phone-contact-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .phone-contact-value {
@@ -91,7 +91,7 @@
 /* Feedback */
 .phone-contact-prompt {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   text-align: center;
   margin: 0 0 14px;
 }
@@ -100,11 +100,11 @@
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  background: #1a1a1e;
-  border: 1px solid #2a2a2e;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
   border-radius: 12px;
   padding: 12px;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 15px;
   font-family: inherit;
   line-height: 1.6;
@@ -117,7 +117,7 @@
 }
 
 .phone-contact-feedback::placeholder {
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 .phone-contact-feedback-meta {
@@ -136,7 +136,7 @@
 
 .phone-contact-feedback-count {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--c-text-muted);
   margin-left: auto;
 }
 
@@ -185,6 +185,6 @@
 
 .phone-contact-footer p {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--c-text-muted);
   margin: 0;
 }

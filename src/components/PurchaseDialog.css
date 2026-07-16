@@ -23,7 +23,7 @@
 }
 
 .purchase-dialog-title {
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 20px 0;
@@ -37,7 +37,7 @@
 }
 
 .purchase-dialog-confirm {
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 16px;
   font-weight: 500;
   margin: 0 0 24px 0;
@@ -67,7 +67,7 @@
 
 .purchase-dialog-btn-purchase {
   background: #22c55e;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .purchase-dialog-btn-purchase:hover:not(:disabled) {
@@ -76,7 +76,7 @@
 
 .purchase-dialog-btn-cancel {
   background: #ef4444;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .purchase-dialog-btn-cancel:hover:not(:disabled) {

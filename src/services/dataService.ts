@@ -453,9 +453,18 @@ export interface ProductionJob {
     calls: { key: string; status: string }[]
     coverStatus: string
   }
+  videoProgress?: { done: number; total: number; percent?: number }
   calls?: Record<string, Record<string, unknown>>
   episodes?: ProductionEpisode[]
-  videos?: { shot_id: string; shot_number?: number | null; url?: string; error?: string }[]
+  videos?: {
+    shot_id: string
+    shot_number?: number | null
+    url?: string
+    audioUrl?: string
+    narration?: string
+    error?: string
+  }[]
+  episodeVideo?: string
   idea?: string
   ideaTitle?: string
   genre?: string | null
@@ -500,6 +509,24 @@ export const startVideoJob = async (jobId: string): Promise<void> => {
   })
   if (!res.ok && res.status !== 202) {
     throw new Error(`Failed to start video generation (${res.status})`)
+  }
+}
+
+// (Re)start the audio/composition background job for an existing production. Used to
+// continue audio+composition when reopening a production before those steps finished.
+export const startAudioJob = async (jobId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-audio-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start audio generation (${res.status})`)
   }
 }
 

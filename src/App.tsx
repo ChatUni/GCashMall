@@ -12,6 +12,7 @@ import Genre from './pages/Genre'
 import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
 import QuickCreate from './pages/QuickCreate'
+import CreatorProgram from './pages/CreatorProgram'
 import Account from './pages/Account'
 import ResetPassword from './pages/ResetPassword'
 import Contact from './pages/Contact'
@@ -60,6 +61,7 @@ const routes = (
 
     {/* Quick Create wizard */}
     <Route path="/quick-create" component={QuickCreate} />
+    <Route path="/creator-program" component={CreatorProgram} />
 
     {/* Desktop-only routes (admin/management features) */}
     <Route path="/products" component={ProductList} />

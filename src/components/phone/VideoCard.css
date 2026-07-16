@@ -42,7 +42,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0B0B0E;
+  background: var(--c-bg);
   z-index: 2;
 }
 
@@ -70,7 +70,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #ffffff;
+  border-top-color: var(--c-text);
   border-radius: 50%;
   animation: videoCardSpin 0.8s linear infinite;
 }
@@ -167,7 +167,7 @@
   backdrop-filter: blur(4px);
   border: none;
   border-radius: 50%;
-  color: #ffffff;
+  color: var(--c-text);
   cursor: pointer;
   z-index: 15;
   transition: background 0.2s ease;
@@ -190,7 +190,7 @@
 .video-card-title {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   display: -webkit-box;
@@ -229,7 +229,7 @@
 
 .video-card-tag {
   font-size: 13px;
-  color: #ffffff;
+  color: var(--c-text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   cursor: pointer;
   transition: color 0.2s ease;
@@ -257,7 +257,7 @@
   border-radius: 50%;
   border: 2px solid #ffffff;
   overflow: hidden;
-  background: #1a1a1e;
+  background: var(--c-surface2);
   cursor: pointer;
   padding: 0;
   margin-bottom: 8px;
@@ -276,7 +276,7 @@
   gap: 4px;
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--c-text);
   cursor: pointer;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
@@ -310,7 +310,7 @@
 .video-card-action-label {
   font-size: 12px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 

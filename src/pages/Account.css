@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #0b0b0e;
+  background-color: var(--c-bg);
 }
 
 .loading {
@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: center;
   min-height: 50vh;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 18px;
 }
 
@@ -30,7 +30,7 @@
 .account-sidebar {
   width: 280px;
   flex-shrink: 0;
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 20px;
   height: fit-content;
@@ -44,7 +44,7 @@
   align-items: center;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #242428;
+  border-bottom: 1px solid var(--c-surface3);
   margin-bottom: 16px;
 }
 
@@ -53,7 +53,7 @@
   height: 56px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: #242428;
+  background-color: var(--c-surface3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,12 +79,12 @@
 .sidebar-username {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .sidebar-email {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,7 +121,7 @@
 .nav-item .nav-label {
   font-size: 14px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   transition: color 0.2s ease;
 }
 
@@ -151,7 +151,7 @@
 
 .nav-item.logout {
   margin-top: auto;
-  border-top: 1px solid #242428;
+  border-top: 1px solid var(--c-surface3);
   padding-top: 20px;
   margin-top: 16px;
   border-top-left-radius: 0;
@@ -176,13 +176,13 @@
 .page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 15px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0;
 }
 
@@ -201,7 +201,7 @@
 
 /* Section Cards */
 .section-card {
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -211,7 +211,7 @@
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 16px 0;
 }
 
@@ -237,17 +237,17 @@
 .form-field label {
   font-size: 14px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .form-field input,
 .form-field select {
-  background-color: #1a1a1e;
-  border: 1px solid #2a2a2e;
+  background-color: var(--c-surface2);
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 15px;
-  color: #ffffff;
+  color: var(--c-text);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -267,7 +267,7 @@
 .form-field input:hover,
 .form-field select:hover {
   border-color: #3b82f6;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .form-field input:focus,
@@ -277,7 +277,7 @@
 }
 
 .form-field input::placeholder {
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 /* Input Error State */
@@ -323,8 +323,8 @@
 
 .btn-secondary {
   background-color: transparent;
-  color: #9ca3af;
-  border: 1px solid #242428;
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-surface3);
   padding: 10px 20px;
   border-radius: 8px;
   font-size: 14px;
@@ -350,7 +350,7 @@
   height: 80px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: #242428;
+  background-color: var(--c-surface3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -379,7 +379,7 @@
 
 .avatar-hint {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--c-text-muted);
   margin: 0;
   max-width: 300px;
 }
@@ -415,7 +415,7 @@
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
-  background: #1a1a1e;
+  background: var(--c-surface2);
 }
 
 .content-grid .series-card-image {
@@ -432,7 +432,7 @@
 .content-grid .series-card-placeholder {
   width: 100%;
   height: 100%;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 /* Series card info section - fixed height to prevent layout shift */
@@ -443,7 +443,7 @@
 .content-grid .series-card-title {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 4px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -458,8 +458,8 @@
 
 .content-grid .series-card-tag {
   display: inline-block;
-  background: #2a2a2e;
-  color: #9ca3af;
+  background: var(--c-border);
+  color: var(--c-text-muted);
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 16px;
@@ -498,7 +498,7 @@
   bottom: 8px;
   left: 8px;
   background-color: rgba(59, 130, 246, 0.9);
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 10px;
   font-weight: 600;
   padding: 4px 8px;
@@ -519,7 +519,7 @@
   background-color: rgba(0, 0, 0, 0.7);
   border: none;
   padding: 0;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -543,7 +543,7 @@
 .content-grid .card-title {
   font-size: 15px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 6px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -558,8 +558,8 @@
 
 .tag-pill {
   display: inline-block;
-  background-color: #2a2a2e;
-  color: #9ca3af;
+  background-color: var(--c-border);
+  color: var(--c-text-muted);
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 20px;
@@ -584,19 +584,19 @@
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
 }
 
 .empty-subtext {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 24px 0;
 }
 
 .empty-text {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   text-align: center;
   padding: 20px;
 }
@@ -607,7 +607,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-bottom: 1px solid #242428;
+  border-bottom: 1px solid var(--c-surface3);
 }
 
 .setting-row:last-child {
@@ -616,18 +616,18 @@
 
 .setting-label {
   font-size: 14px;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .setting-control {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: #1a1a1e;
-  border: 1px solid #2a2a2e;
+  background-color: var(--c-surface2);
+  border: 1px solid var(--c-border);
   border-radius: 6px;
   padding: 8px 32px 8px 12px;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 14px;
   outline: none;
   cursor: pointer;
@@ -640,7 +640,7 @@
 
 .setting-control:hover {
   border-color: #3b82f6;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .setting-control:focus {
@@ -669,7 +669,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #242428;
+  background-color: var(--c-surface3);
   transition: 0.2s ease;
   border-radius: 24px;
 }
@@ -681,7 +681,7 @@
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: #ffffff;
+  background-color: var(--c-text);
   transition: 0.2s ease;
   border-radius: 50%;
 }
@@ -699,7 +699,7 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 /* Wallet Section */
@@ -726,7 +726,7 @@
 
 .balance-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .balance-amount {
@@ -735,7 +735,7 @@
   gap: 12px;
   font-size: 36px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .gcash-logo {
@@ -748,7 +748,7 @@
   display: flex;
   gap: 0;
   margin-bottom: 24px;
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 4px;
 }
@@ -761,13 +761,13 @@
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--c-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .wallet-tab:hover:not(.active) {
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .wallet-tab.active {
@@ -810,7 +810,7 @@
 
 .amount-description {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 16px 0 16px 0;
 }
 
@@ -824,12 +824,12 @@
 .max-withdraw-value {
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .max-withdraw-note {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 .amount-grid {
@@ -839,8 +839,8 @@
 }
 
 .amount-button {
-  background-color: #1a1a1e;
-  border: 2px solid #242428;
+  background-color: var(--c-surface2);
+  border: 2px solid var(--c-surface3);
   border-radius: 12px;
   padding: 24px 16px;
   cursor: pointer;
@@ -870,7 +870,7 @@
 .amount-value {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 /* Legacy Top Up Section (keeping for backward compatibility) */
@@ -880,7 +880,7 @@
 
 .topup-description {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 16px 0;
 }
 
@@ -891,8 +891,8 @@
 }
 
 .topup-button {
-  background-color: #1a1a1e;
-  border: 2px solid #242428;
+  background-color: var(--c-surface2);
+  border: 2px solid var(--c-surface3);
   border-radius: 12px;
   padding: 24px 16px;
   cursor: pointer;
@@ -917,7 +917,7 @@
 .topup-amount {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 /* Popup Modal */
@@ -936,7 +936,7 @@
 }
 
 .popup-modal {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
@@ -960,7 +960,7 @@
 
 .popup-message {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 20px 0;
   line-height: 1.6;
 }
@@ -988,7 +988,7 @@
 
 .payment-method-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 12px 0;
 }
 
@@ -1003,13 +1003,13 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background: #242428;
-  border: 2px solid #242428;
+  background: var(--c-surface3);
+  border: 2px solid var(--c-surface3);
   border-radius: 12px;
   padding: 16px 24px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .payment-method-btn:hover {
@@ -1062,7 +1062,7 @@
 
 .popup-loading-text {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0;
 }
 
@@ -1089,8 +1089,8 @@
 }
 
 .btn-cancel {
-  background-color: #2a2a2e;
-  color: #ffffff;
+  background-color: var(--c-border);
+  color: var(--c-text);
   border: none;
   padding: 14px 24px;
   border-radius: 8px;
@@ -1101,7 +1101,7 @@
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background-color: #3a3a3e;
+  background-color: var(--c-border);
 }
 
 .btn-cancel:disabled,
@@ -1151,7 +1151,7 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   z-index: 1100;
   animation: toastFlyIn 0.3s ease forwards;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
@@ -1241,7 +1241,7 @@
     flex-basis: 100%;
     margin-top: 8px;
     padding-top: 16px;
-    border-top: 1px solid #242428;
+    border-top: 1px solid var(--c-surface3);
     border-radius: 0;
   }
 
@@ -1346,7 +1346,7 @@
 
 .no-transactions {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--c-text-muted);
   text-align: center;
   padding: 40px 20px;
 }
@@ -1364,17 +1364,17 @@
 .transaction-table th {
   text-align: left;
   padding: 12px 16px;
-  background-color: #1a1a1e;
-  color: #9ca3af;
+  background-color: var(--c-surface2);
+  color: var(--c-text-muted);
   font-weight: 500;
-  border-bottom: 1px solid #242428;
+  border-bottom: 1px solid var(--c-surface3);
   white-space: nowrap;
 }
 
 .transaction-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #242428;
-  color: #ffffff;
+  border-bottom: 1px solid var(--c-surface3);
+  color: var(--c-text);
   vertical-align: middle;
 }
 
@@ -1383,7 +1383,7 @@
 }
 
 .transaction-time {
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -1420,7 +1420,7 @@
 
 .purchase-type-episode {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .transaction-amount {
@@ -1460,7 +1460,7 @@
 .transaction-reference {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 /* My Series Section */
@@ -1494,7 +1494,7 @@
   top: 8px;
   left: 8px;
   background-color: rgba(239, 68, 68, 0.9);
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 10px;
   font-weight: 600;
   padding: 4px 8px;
@@ -1546,7 +1546,7 @@
 }
 
 .purchase-series-group {
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -1557,7 +1557,7 @@
   align-items: center;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #242428;
+  border-bottom: 1px solid var(--c-surface3);
   margin-bottom: 16px;
   cursor: pointer;
   transition: opacity 0.2s ease;
@@ -1572,7 +1572,7 @@
   height: 90px;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   flex-shrink: 0;
 }
 
@@ -1589,7 +1589,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .purchase-series-info {
@@ -1601,13 +1601,13 @@
 .purchase-series-name {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0;
 }
 
 .purchase-episode-count {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .purchase-episodes-grid {
@@ -1630,7 +1630,7 @@
   aspect-ratio: 16/9;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   margin-bottom: 8px;
 }
 
@@ -1652,7 +1652,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .purchase-episode-overlay {
@@ -1674,7 +1674,7 @@
 }
 
 .purchase-play-icon {
-  color: #ffffff;
+  color: var(--c-text);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
@@ -1692,7 +1692,7 @@
 
 .purchase-episode-title {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -1754,12 +1754,12 @@
 .purchase-series-name {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .purchase-episode-name {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 /* Shelve Confirmation Modal */
@@ -1778,7 +1778,7 @@
 }
 
 .shelve-modal {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
@@ -1796,12 +1796,12 @@
 .shelve-modal-title {
   font-size: 24px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 16px 0;
 }
 
 .shelve-modal-series-info {
-  background-color: #242428;
+  background-color: var(--c-surface3);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -1810,12 +1810,12 @@
 .shelve-modal-series-name {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .shelve-modal-message {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 24px 0;
   line-height: 1.6;
 }
@@ -1846,12 +1846,12 @@
 }
 
 .shelve-modal-btn-cancel {
-  background-color: #2a2a2e;
-  color: #ffffff;
+  background-color: var(--c-border);
+  color: var(--c-text);
 }
 
 .shelve-modal-btn-cancel:hover {
-  background-color: #3a3a3e;
+  background-color: var(--c-border);
 }
 
 @keyframes shelveModalFadeIn {
@@ -1890,7 +1890,7 @@
 }
 
 .unshelve-modal {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
@@ -1908,12 +1908,12 @@
 .unshelve-modal-title {
   font-size: 24px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 16px 0;
 }
 
 .unshelve-modal-series-info {
-  background-color: #242428;
+  background-color: var(--c-surface3);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -1922,12 +1922,12 @@
 .unshelve-modal-series-name {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .unshelve-modal-message {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 24px 0;
   line-height: 1.6;
 }
@@ -1958,12 +1958,12 @@
 }
 
 .unshelve-modal-btn-cancel {
-  background-color: #2a2a2e;
-  color: #ffffff;
+  background-color: var(--c-border);
+  color: var(--c-text);
 }
 
 .unshelve-modal-btn-cancel:hover {
-  background-color: #3a3a3e;
+  background-color: var(--c-border);
 }
 
 @keyframes unshelveModalFadeIn {
@@ -1992,7 +1992,7 @@
   display: flex;
   gap: 0;
   margin-bottom: 24px;
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 4px;
 }
@@ -2005,13 +2005,13 @@
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--c-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .my-series-tab:hover:not(.active) {
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .my-series-tab.active {
@@ -2028,7 +2028,7 @@
 }
 
 .revenue-card {
-  background-color: #121214;
+  background-color: var(--c-surface);
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -2066,7 +2066,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 12px;
 }
 
@@ -2078,7 +2078,7 @@
 
 .revenue-card-label {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .revenue-card-value {
@@ -2087,7 +2087,7 @@
   gap: 8px;
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .revenue-card-value.highlight {
@@ -2111,7 +2111,7 @@
 }
 
 .revenue-series-item {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 12px;
   overflow: hidden;
   transition: box-shadow 0.2s ease;
@@ -2131,7 +2131,7 @@
 }
 
 .revenue-series-header:hover {
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .revenue-series-cover {
@@ -2139,7 +2139,7 @@
   height: 90px;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #242428;
+  background-color: var(--c-surface3);
   flex-shrink: 0;
 }
 
@@ -2156,7 +2156,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 .revenue-series-info {
@@ -2169,7 +2169,7 @@
 .revenue-series-name {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0;
 }
 
@@ -2186,7 +2186,7 @@
 
 .revenue-stat-label {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .revenue-stat-value {
@@ -2195,7 +2195,7 @@
   gap: 4px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .revenue-stat-value.highlight {
@@ -2208,13 +2208,13 @@
 }
 
 .revenue-expand-btn {
-  background-color: #242428;
+  background-color: var(--c-surface3);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 13px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -2246,15 +2246,16 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  margin-top: 20px;
 }
 
 .revenue-episodes-table th {
   text-align: left;
   padding: 12px 16px;
-  background-color: #242428;
-  color: #9ca3af;
+  background-color: var(--c-surface3);
+  color: var(--c-text-muted);
   font-weight: 500;
-  border-bottom: 1px solid #2a2a2e;
+  border-bottom: 1px solid var(--c-border);
 }
 
 .revenue-episodes-table th:first-child {
@@ -2267,8 +2268,8 @@
 
 .revenue-episodes-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #2a2a2e;
-  color: #ffffff;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-text);
   vertical-align: middle;
 }
 
@@ -2296,11 +2297,11 @@
 
 .episode-cell .episode-title {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .sales-cell {
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .revenue-cell,
@@ -2326,7 +2327,7 @@
 
 .no-revenue-text {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--c-text-muted);
   text-align: center;
   padding: 40px 20px;
 }
@@ -2401,7 +2402,7 @@
 
 .pipeline-prompts-hint {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -2422,7 +2423,7 @@
 .pipeline-editor-label {
   font-size: 12px;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 6px;
@@ -2432,9 +2433,9 @@
   width: 100%;
   height: 460px;
   resize: vertical;
-  background: #0d0d10;
-  color: #e5e7eb;
-  border: 1px solid #2a2a2e;
+  background: var(--c-bg);
+  color: var(--c-text-2);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -2451,8 +2452,8 @@
 .pipeline-editor-preview {
   height: 460px;
   overflow: auto;
-  background: #0d0d10;
-  border: 1px solid #2a2a2e;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 4px 14px;
 }
@@ -2485,12 +2486,12 @@
   line-height: 1.6;
 }
 
-.md-body .md-h1 { font-size: 20px; font-weight: 700; margin: 14px 0 8px; color: #fff; }
-.md-body .md-h2 { font-size: 17px; font-weight: 700; margin: 14px 0 8px; color: #fff; }
-.md-body .md-h3 { font-size: 15px; font-weight: 600; margin: 12px 0 6px; color: #e5e7eb; }
+.md-body .md-h1 { font-size: 20px; font-weight: 700; margin: 14px 0 8px; color: var(--c-text); }
+.md-body .md-h2 { font-size: 17px; font-weight: 700; margin: 14px 0 8px; color: var(--c-text); }
+.md-body .md-h3 { font-size: 15px; font-weight: 600; margin: 12px 0 6px; color: var(--c-text-2); }
 .md-body .md-h4,
 .md-body .md-h5,
-.md-body .md-h6 { font-size: 13px; font-weight: 600; margin: 10px 0 6px; color: #e5e7eb; }
+.md-body .md-h6 { font-size: 13px; font-weight: 600; margin: 10px 0 6px; color: var(--c-text-2); }
 .md-body .md-p { margin: 8px 0; }
 .md-body .md-ul,
 .md-body .md-ol { margin: 8px 0; padding-left: 22px; }
@@ -2501,9 +2502,9 @@
   padding: 6px 12px;
   border-left: 3px solid #3b82f6;
   background: #12151b;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
-.md-body .md-hr { border: none; border-top: 1px solid #2a2a2e; margin: 14px 0; }
+.md-body .md-hr { border: none; border-top: 1px solid var(--c-border); margin: 14px 0; }
 .md-body code {
   background: #1a1a22;
   border-radius: 4px;
@@ -2514,7 +2515,7 @@
 }
 .md-body .md-pre {
   background: #08080b;
-  border: 1px solid #23232a;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 12px;
   overflow: auto;
@@ -2546,7 +2547,7 @@
 .qc-group-title {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 14px;
 }
 
@@ -2554,7 +2555,7 @@
   display: flex;
   flex-direction: column;
   text-align: left;
-  background: #121214;
+  background: var(--c-surface);
   border: 1px solid #26262b;
   border-radius: 12px;
   overflow: hidden;
@@ -2597,7 +2598,7 @@
   right: 8px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--c-text);
   background: rgba(59, 130, 246, 0.9);
   border-radius: 12px;
   padding: 3px 9px;
@@ -2613,7 +2614,7 @@
 .production-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--c-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2621,7 +2622,7 @@
 
 .production-card-status {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .production-card-status.done {
@@ -2635,7 +2636,7 @@
 .production-card-track {
   height: 6px;
   border-radius: 4px;
-  background: #23232a;
+  background: var(--c-border);
   overflow: hidden;
 }
 

@@ -3,9 +3,9 @@
   flex-direction: column;
   gap: 5px;
   padding: 16px;
-  border: 1px solid #242428;
+  border: 1px solid var(--c-surface3);
   border-radius: 8px;
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   width: 100%;
   box-sizing: border-box;
 }
@@ -28,13 +28,13 @@
 
 .episode-title {
   font-size: 14px;
-  color: #e5e7eb;
+  color: var(--c-text-2);
 }
 
 .episode-edit-icon {
   font-size: 14px;
   opacity: 1;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
@@ -45,7 +45,7 @@
 
 .episode-edit-text {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   transition: color 0.2s ease;
   position: relative;
   top: -5px;
@@ -63,8 +63,8 @@
   border-radius: 4px;
   font-size: 14px;
   outline: none;
-  background-color: #121214;
-  color: #ffffff;
+  background-color: var(--c-surface);
+  color: var(--c-text);
 }
 
 .episode-title-input:focus {

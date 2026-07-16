@@ -21,7 +21,7 @@
 }
 
 .phone-popup-modal {
-  background: #1a1a1e;
+  background: var(--c-surface2);
   border-radius: 16px;
   padding: 24px;
   width: 100%;
@@ -41,19 +41,19 @@
 .phone-popup-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
 }
 
 .phone-popup-message {
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
 
 .phone-popup-episode-info {
-  background: #242428;
+  background: var(--c-surface3);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 16px;
@@ -63,13 +63,13 @@
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   margin-bottom: 4px;
 }
 
 .phone-popup-ep {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
 }
 
 .phone-popup-price {
@@ -94,7 +94,7 @@
   justify-content: center;
   gap: 6px;
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   margin-bottom: 20px;
 }
 
@@ -142,7 +142,7 @@
 
 .phone-popup-loading-text {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0;
 }
 
@@ -159,7 +159,7 @@
 
 .phone-payment-method-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 10px 0;
 }
 
@@ -174,13 +174,13 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: #242428;
-  border: 2px solid #242428;
+  background: var(--c-surface3);
+  border: 2px solid var(--c-surface3);
   border-radius: 10px;
   padding: 12px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .phone-payment-method-btn:hover {
@@ -233,8 +233,8 @@
 
 .phone-btn-cancel,
 .phone-popup-cancel {
-  background: #2a2a2e;
-  color: #ffffff;
+  background: var(--c-border);
+  color: var(--c-text);
   font-size: 15px;
   font-weight: 500;
   padding: 14px;
@@ -271,7 +271,7 @@
 
 .phone-favorite-checkbox span {
   font-size: 14px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
 }
 
 /* ============================================
@@ -290,12 +290,12 @@
 
 .phone-result-success .phone-result-icon {
   background: #22c55e;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-result-error .phone-result-icon {
   background: #ef4444;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-btn-result {
@@ -310,12 +310,12 @@
 
 .phone-btn-result.success {
   background: #22c55e;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-btn-result.error {
   background: #ef4444;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 /* ============================================
@@ -330,7 +330,7 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   z-index: 1100;
   animation: phoneToastSlideIn 0.3s ease;
 }
@@ -366,7 +366,7 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 14px;
 }
 
@@ -390,13 +390,13 @@
 
 .phone-empty-state p {
   font-size: 14px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   margin: 0 0 20px 0;
 }
 
 .phone-empty-subtext {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--c-text-muted);
   margin: 0;
 }
 
@@ -415,7 +415,7 @@
 }
 
 .phone-modal {
-  background: #1a1a1e;
+  background: var(--c-surface2);
   border-radius: 16px;
   padding: 24px;
   max-width: 320px;
@@ -432,23 +432,23 @@
 .phone-modal-title {
   font-size: 20px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 12px 0;
 }
 
 .phone-modal-series {
-  background: #242428;
+  background: var(--c-surface3);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin-bottom: 12px;
 }
 
 .phone-modal-message {
   font-size: 14px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   line-height: 1.5;
   margin: 0 0 20px 0;
 }
@@ -471,8 +471,8 @@
 }
 
 .phone-modal-cancel {
-  background: #2a2a2e;
-  color: #ffffff;
+  background: var(--c-border);
+  color: var(--c-text);
   font-size: 15px;
   font-weight: 500;
   padding: 12px;

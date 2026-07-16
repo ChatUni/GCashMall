@@ -2,13 +2,13 @@
 
 > Here is the full prompt for **Call 6 — Production Prompt Compiler**.
 >
-> This call should create the **Universal Production Prompt Package**, then the **Rendering Intelligence Engine / Model Adapter Engine** converts it into Kling, SeedDance, or Veo-specific prompts.
+> This call should create the **Universal Production Prompt Package**, then the **Rendering Intelligence Engine / Model Adapter Engine** converts it into Kling, Seedance, or Veo-specific prompts.
 
 ## Purpose
 
 The Production Prompt Compiler converts the optimized production graphs into a **Universal Production Prompt Package**.
 
-It does **not** call Kling, SeedDance, Veo, or any video model directly.
+It does **not** call Kling, Seedance, Veo, or any video model directly.
 
 It creates a model-agnostic package that can later be adapted into provider-specific prompts.
 
@@ -45,7 +45,7 @@ Every output must be model-agnostic.
 
 Do not use provider-specific syntax.
 
-Do not mention Kling, SeedDance, or Veo in the universal package.
+Do not mention Kling, Seedance, or Veo in the universal package.
 
 Each shot prompt must describe only ONE cinematic shot.
 
@@ -223,7 +223,7 @@ The output must be usable by any video model.
 Do not include:
 
 - Kling-specific syntax
-- SeedDance-specific syntax
+- Seedance-specific syntax
 - Veo-specific syntax
 - API parameters
 - Provider names
@@ -387,7 +387,7 @@ You adapt each shot for the selected rendering model.
 Supported providers:
 
 • Kling
-• SeedDance
+• Seedance
 • Veo
 • GenericVideoFallback
 
@@ -488,7 +488,7 @@ Negative:
 {{negative_prompt}}
 ```
 
-### SeedDance Adapter Prompt Template
+### Seedance Adapter Prompt Template
 
 ```
 Create a single anime cinematic shot.
@@ -581,7 +581,7 @@ Do not include:
 
 Keep **Call 6** strictly universal.
 
-Then have a separate deterministic service or LLM-assisted adapter convert the universal package into Kling, SeedDance, and Veo prompts.
+Then have a separate deterministic service or LLM-assisted adapter convert the universal package into Kling, Seedance, and Veo prompts.
 
 That gives Ganime a clean architecture:
 
@@ -594,7 +594,7 @@ Rendering Intelligence Engine
         ↓
 Model Adapter
         ↓
-Kling / SeedDance / Veo
+Kling / Seedance / Veo
 ```
 
 This keeps Ganime model-agnostic and makes it much easier to add new video models later.

@@ -41,7 +41,7 @@
 
 - **Input**: Universal Production Prompt Package.
 - **Responsibilities**: Route to optimal provider based on quality, budget, duration, references, camera support, cost, latency, availability.
-- **Outputs**: Kling Prompt, SeedDance Prompt, Veo Prompt, future provider adapters.
+- **Outputs**: Kling Prompt, Seedance Prompt, Veo Prompt, future provider adapters.
 
 ## Final Architecture
 

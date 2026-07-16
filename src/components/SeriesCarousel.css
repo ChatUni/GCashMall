@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
 }
 
 /* Section Header */
@@ -24,7 +24,7 @@
 .series-section-title {
   font-size: 28px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--c-text);
   margin: 0;
 }
 
@@ -39,8 +39,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #1A1A1E;
-  border: 1px solid #2A2A2E;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -50,7 +50,7 @@
 }
 
 .carousel-arrow:hover {
-  background: #2A2A2E;
+  background: var(--c-border);
   border-color: #3B82F6;
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
 }
@@ -61,7 +61,7 @@
   position: absolute;
   width: 10px;
   height: 10px;
-  border: 2px solid #FFFFFF;
+  border: 2px solid var(--c-text);
   border-bottom: none;
   border-left: none;
   transition: border-color 0.2s ease;
@@ -113,7 +113,7 @@
 }
 
 .view-more-card:hover .view-more-content {
-  background: #2A2A2E;
+  background: var(--c-border);
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
@@ -133,7 +133,7 @@
   align-items: center;
   gap: 0px;
   padding: 16px;
-  background: #1A1A1E;
+  background: var(--c-surface2);
   border-radius: 50%;
   width: 80px;
   height: 80px;
@@ -144,14 +144,14 @@
 .view-more-arrow {
   width: 40px;
   height: 40px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   transition: color 0.2s ease;
 }
 
 /* View More Text */
 .view-more-text {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   text-align: center;
   margin-top: 10px;
   transition: color 0.2s ease;

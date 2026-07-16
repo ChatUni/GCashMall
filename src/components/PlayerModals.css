@@ -30,14 +30,14 @@
 }
 
 .popup-title {
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 12px 0;
 }
 
 .popup-message {
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 14px;
   margin: 0 0 20px 0;
   line-height: 1.5;
@@ -92,7 +92,7 @@
   justify-content: center;
   align-items: center;
   gap: 8px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 14px;
   margin-bottom: 24px;
 }
@@ -137,7 +137,7 @@
 
 .btn-cancel {
   background: transparent;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 12px 24px;
@@ -148,7 +148,7 @@
 
 .btn-cancel:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .btn-cancel:disabled {
@@ -162,14 +162,14 @@
 }
 
 .result-title {
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 12px 0;
 }
 
 .result-message {
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 14px;
   margin: 0 0 24px 0;
 }
@@ -187,7 +187,7 @@
 
 .btn-result-success {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .btn-result-success:hover {
@@ -196,7 +196,7 @@
 
 .btn-result-error {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .btn-result-error:hover {
@@ -224,7 +224,7 @@
 }
 
 .dont-show-again span {
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 14px;
 }
 
@@ -244,12 +244,12 @@
 
 .toast-success {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .toast-error {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .toast-info {

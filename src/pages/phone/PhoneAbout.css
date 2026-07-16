@@ -17,13 +17,13 @@
 .phone-about-title {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--c-text);
   text-align: center;
   margin: 0 0 24px 0;
 }
 
 .phone-about-content {
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -40,7 +40,7 @@
 .phone-about-section h2 {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 12px 0;
 }
 

@@ -3,7 +3,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #0B0B0E;
+  background-color: var(--c-bg);
   box-sizing: border-box;
 }
 
@@ -14,7 +14,7 @@
   justify-content: center;
   flex: 1;
   font-size: 18px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
 }
 
 /* Hero Section */
@@ -90,7 +90,7 @@
 .hero-title {
   font-size: 36px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--c-text);
   margin: 0 0 20px 0;
   line-height: 1.2;
   display: -webkit-box;
@@ -109,8 +109,8 @@
 
 /* Hero Tag (individual) */
 .hero-tag {
-  background: #2A2A2E;
-  color: #9CA3AF;
+  background: var(--c-border);
+  color: var(--c-text-muted);
   font-size: 13px;
   padding: 6px 14px;
   border-radius: 20px;
@@ -120,13 +120,13 @@
 
 .hero-tag:hover {
   background: #3B82F6;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 /* Hero Description */
 .hero-description {
   font-size: 15px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   line-height: 1.7;
   margin: 0 0 30px 0;
   display: -webkit-box;
@@ -142,7 +142,7 @@
   justify-content: center;
   gap: 10px;
   background: #3B82F6;
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: 16px;
   font-weight: 600;
   padding: 14px 32px;

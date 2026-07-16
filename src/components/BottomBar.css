@@ -1,5 +1,6 @@
 .bottom-bar {
-  background-color: black;
+  background-color: var(--c-bg);
+  border-top: 1px solid var(--c-border);
   height: 60px;
   width: 100%;
   display: flex;
@@ -17,7 +18,7 @@
 .bottom-bar-link {
   background: none;
   border: none;
-  color: white;
+  color: var(--c-text);
   font-size: 16px;
   cursor: pointer;
   padding: 10px 20px;
@@ -26,5 +27,5 @@
 }
 
 .bottom-bar-link:hover {
-  color: #ccc;
+  color: #3b82f6;
 }

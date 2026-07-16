@@ -1,4 +1,4 @@
-// Netlify Background Function: renders the episode's shot videos via SeedDance.
+// Netlify Background Function: renders the episode's shot videos via Seedance.
 // Runs as its OWN job (separate 15-minute budget) so it never competes with the
 // LLM-call episode job. Triggered server-to-server by pipeline-background after the
 // 7 calls finish, so it keeps running even if the user leaves the page.
@@ -6,6 +6,7 @@
 import jwt from 'jsonwebtoken'
 import { get, update } from './utils/db.js'
 import { runVideoGeneration } from './utils/videoJob.js'
+import { triggerBackground } from './utils/trigger.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
@@ -27,6 +28,15 @@ export const handler = async (event) => {
     const userId = getUserId(authHeader)
 
     await runVideoGeneration(jobId, userId)
+
+    // Hand off to the audio/composition job (its own budget). If it can't be
+    // reached, finalize the production as done (videos rendered, just no audio).
+    try {
+      await triggerBackground('pipeline-audio-background', jobId, authHeader)
+    } catch (error) {
+      console.error('Audio hand-off failed:', error.message)
+      await update('productions', { jobId }, { $set: { status: 'done', updatedAt: new Date() } })
+    }
     return { statusCode: 200 }
   } catch (error) {
     console.error('pipeline-video-background error:', error)

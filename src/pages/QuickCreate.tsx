@@ -762,6 +762,27 @@ const Step6Generating = () => {
             <div class="qc-s6-progress-fill" style={{ width: `${pl().percent}%` }} />
           </div>
 
+          {/* Video-generation sub-progress (shots completed), while it's running */}
+          <Show
+            when={pl().calls.find((c) => c.key === 'videoGeneration')?.status === 'running'}
+          >
+            <div class="qc-s6-progress-row qc-s6-subprogress-row">
+              <span class="qc-s6-progress-label">
+                🎬 {callT('videoGeneration')}
+                <Show when={pl().videoProgress.total}>
+                  {' '}({pl().videoProgress.done}/{pl().videoProgress.total})
+                </Show>
+              </span>
+              <span class="qc-s6-progress-pct">{pl().videoProgress.percent}%</span>
+            </div>
+            <div class="qc-s6-progress-track">
+              <div
+                class="qc-s6-progress-fill video"
+                style={{ width: `${pl().videoProgress.percent}%` }}
+              />
+            </div>
+          </Show>
+
           <Show when={pl().error && pl().error !== '__signin__'}>
             <div class="qc-pl-error">⚠ {pl().error}</div>
           </Show>
@@ -806,7 +827,15 @@ const Step6Generating = () => {
             </div>
           </div>
 
-          {/* Rendered shot videos (SeedDance) */}
+          {/* Composed episode video (with narration/audio) */}
+          <Show when={production()?.episodeVideo}>
+            <div class="qc-s6-videos">
+              <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
+              <video class="qc-s6-episode-el" src={production()!.episodeVideo} controls preload="metadata" />
+            </div>
+          </Show>
+
+          {/* Rendered shot videos (Seedance) — with audio once composed */}
           <Show when={(production()?.videos?.length ?? 0) > 0}>
             <div class="qc-s6-videos">
               <h3 class="qc-s6-videos-title">🎞 {s6().shotVideos}</h3>
@@ -815,10 +844,19 @@ const Step6Generating = () => {
                   {(v) => (
                     <div class="qc-s6-video">
                       <Show
-                        when={v.url}
-                        fallback={<div class="qc-s6-video-error">⚠ {v.error || 'Failed'}</div>}
+                        when={v.audioUrl || v.url}
+                        fallback={
+                          <div class="qc-s6-video-error" title={v.error || 'Generation failed'}>
+                            ⚠
+                          </div>
+                        }
                       >
-                        <video class="qc-s6-video-el" src={v.url} controls preload="metadata" />
+                        <video
+                          class="qc-s6-video-el"
+                          src={v.audioUrl || v.url}
+                          controls
+                          preload="metadata"
+                        />
                       </Show>
                       <span class="qc-s6-video-label">
                         {s6().shotLabel} {v.shot_number ?? ''}

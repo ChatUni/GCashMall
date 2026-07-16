@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #0b0b0e;
+  background-color: var(--c-bg);
 }
 
 .series-edit-content {
@@ -28,18 +28,18 @@
 .series-edit-label {
   font-weight: 500;
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .series-edit-input {
   padding: 12px 16px;
-  border: 1px solid #242428;
+  border: 1px solid var(--c-surface3);
   border-radius: 8px;
   font-size: 15px;
   width: 100%;
   box-sizing: border-box;
-  background-color: #1a1a1e;
-  color: #ffffff;
+  background-color: var(--c-surface2);
+  color: var(--c-text);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -47,7 +47,7 @@
 .series-edit-total-eps {
   font-size: 14px;
   font-weight: bold;
-  color: #ffffff;
+  color: var(--c-text);
   margin-top: 4px;
 }
 
@@ -57,20 +57,20 @@
 }
 
 .series-edit-input::placeholder {
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 .series-edit-textarea {
   padding: 12px 16px;
-  border: 1px solid #242428;
+  border: 1px solid var(--c-surface3);
   border-radius: 8px;
   font-size: 15px;
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
   font-family: inherit;
-  background-color: #1a1a1e;
-  color: #ffffff;
+  background-color: var(--c-surface2);
+  color: var(--c-text);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -81,7 +81,7 @@
 }
 
 .series-edit-textarea::placeholder {
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 .series-edit-buttons {
@@ -106,12 +106,12 @@
 }
 
 .series-edit-button-cancel {
-  background-color: #2a2a2e;
-  color: #ffffff;
+  background-color: var(--c-border);
+  color: var(--c-text);
 }
 
 .series-edit-button-cancel:hover:not(:disabled) {
-  background-color: #3a3a3e;
+  background-color: var(--c-border);
 }
 
 .series-edit-button-save {
@@ -127,7 +127,7 @@
   text-align: center;
   padding: 40px;
   font-size: 18px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 .series-edit-error {
@@ -218,32 +218,32 @@
 }
 
 .upload-progress-dialog {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   padding: 32px;
   border-radius: 12px;
   text-align: center;
   min-width: 300px;
-  border: 1px solid #242428;
+  border: 1px solid var(--c-surface3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .upload-progress-dialog h3 {
   margin: 0 0 16px 0;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 18px;
   font-weight: 600;
 }
 
 .upload-progress-dialog p {
   margin: 8px 0;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   font-size: 14px;
 }
 
 .upload-progress-bar {
   width: 100%;
   height: 8px;
-  background-color: #242428;
+  background-color: var(--c-surface3);
   border-radius: 4px;
   overflow: hidden;
   margin: 16px 0;
@@ -266,7 +266,7 @@
   gap: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   user-select: none;
 }
 
@@ -293,7 +293,7 @@
 }
 
 .save-modal {
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
@@ -311,13 +311,13 @@
 .save-modal-title {
   font-size: 24px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
 }
 
 .save-modal-message {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
   margin: 0 0 24px 0;
   line-height: 1.6;
 }
@@ -348,17 +348,17 @@
 }
 
 .save-modal-btn-cancel {
-  background-color: #2a2a2e;
-  color: #ffffff;
+  background-color: var(--c-border);
+  color: var(--c-text);
 }
 
 .save-modal-btn-cancel:hover {
-  background-color: #3a3a3e;
+  background-color: var(--c-border);
 }
 
 .save-modal-btn-warning {
   background-color: #f59e0b;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .save-modal-btn-warning:hover {
@@ -367,7 +367,7 @@
 
 .save-modal-btn-danger {
   background-color: #ef4444;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .save-modal-btn-danger:hover {
@@ -376,7 +376,7 @@
 
 .series-edit-button-delete {
   background-color: #ef4444;
-  color: #ffffff;
+  color: var(--c-text);
   margin-left: auto;
 }
 

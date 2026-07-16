@@ -24,7 +24,7 @@
 
 /* Override title color when tag is hovered */
 .series-card:has(.series-tag:hover) .series-title {
-  color: #FFFFFF;
+  color: var(--c-text);
 }
 
 /* Poster Container */
@@ -34,7 +34,7 @@
   overflow: hidden;
   margin-bottom: 12px;
   position: relative;
-  background: #1A1A1E;
+  background: var(--c-surface2);
   transition: box-shadow 0.2s ease;
 }
 
@@ -50,7 +50,7 @@
 .series-title {
   font-size: 14px;
   font-weight: 500;
-  color: #FFFFFF;
+  color: var(--c-text);
   margin: 0 0 4px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -63,8 +63,8 @@
 .series-tag {
   display: inline-block;
   width: fit-content;
-  background: #2A2A2E;
-  color: #9CA3AF;
+  background: var(--c-border);
+  color: var(--c-text-muted);
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 16px;
@@ -74,7 +74,7 @@
 
 .series-tag:hover {
   background: #3B82F6;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 /* Responsive Design */

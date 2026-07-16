@@ -46,7 +46,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--c-surface2);
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -71,13 +71,13 @@ select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: #1a1a1e;
-  border: 1px solid #2a2a2e;
+  background-color: var(--c-surface2);
+  border: 1px solid var(--c-border);
   border-radius: 6px;
   padding: 8px 32px 8px 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s ease, background-color 0.2s ease;
@@ -89,7 +89,7 @@ select {
 
 select:hover {
   border-color: #3b82f6;
-  background-color: #242428;
+  background-color: var(--c-surface3);
 }
 
 select:focus {
@@ -98,15 +98,15 @@ select:focus {
 }
 
 select option {
-  background-color: #1a1a1e;
-  color: #ffffff;
+  background-color: var(--c-surface2);
+  color: var(--c-text);
   padding: 8px 12px;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: var(--c-text);
   }
   a:hover {
     color: #747bff;

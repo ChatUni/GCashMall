@@ -17,7 +17,7 @@
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 8px;
-  background: #1a1a1e;
+  background: var(--c-surface2);
 }
 
 .phone-series-image {
@@ -29,7 +29,7 @@
 .phone-series-title {
   font-size: 13px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 4px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -41,8 +41,8 @@
 .phone-series-tag {
   display: inline-block;
   font-size: 10px;
-  color: #9CA3AF;
-  background: #2A2A2E;
+  color: var(--c-text-muted);
+  background: var(--c-border);
   padding: 2px 8px;
   border-radius: 10px;
 }

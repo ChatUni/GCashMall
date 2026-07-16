@@ -3,7 +3,7 @@
 @import './phone-common.css';
 
 .phone-player {
-  background: #0B0B0E;
+  background: var(--c-bg);
 }
 
 .phone-player-loading,
@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: center;
   min-height: 50vh;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 16px;
 }
 
@@ -38,7 +38,7 @@
   background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
-  color: #ffffff;
+  color: var(--c-text);
   cursor: pointer;
   transition: color 0.2s ease, transform 0.2s ease;
 }
@@ -70,7 +70,7 @@
   padding: 16px;
   text-align: center;
   background: rgba(0, 0, 0, 0.85);
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 14px;
   cursor: pointer;
 }
@@ -81,7 +81,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 14px;
 }
 
@@ -94,7 +94,7 @@
 .phone-player-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0 0 8px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -105,14 +105,14 @@
 .phone-player-episode {
   display: block;
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   margin-bottom: 12px;
 }
 
 .phone-player-views {
   align-self: center;
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   white-space: nowrap;
 }
 
@@ -131,7 +131,7 @@
   height: 40px;
   background: transparent;
   border: none;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   cursor: pointer;
   border-radius: 50%;
   transition: background-color 0.2s ease;
@@ -153,11 +153,11 @@
 .phone-like-btn {
   flex-direction: column;
   gap: 2px;
-  background: #1a1a1a;
+  background: var(--c-surface2);
 }
 
 .phone-like-btn:hover {
-  background: #2a2a2e;
+  background: var(--c-border);
 }
 
 .phone-like-count {
@@ -167,7 +167,7 @@
 }
 
 .phone-action-btn.locked {
-  color: #9CA3AF;
+  color: var(--c-text-muted);
 }
 
 .phone-action-btn.unlocked {
@@ -184,8 +184,8 @@
 
 .phone-player-tag {
   font-size: 11px;
-  color: #9CA3AF;
-  background: #1a1a1e;
+  color: var(--c-text-muted);
+  background: var(--c-surface2);
   padding: 4px 10px;
   border-radius: 12px;
 }
@@ -197,7 +197,7 @@
 
 .phone-player-description {
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   line-height: 1.6;
   margin: 0;
   display: -webkit-box;
@@ -219,7 +219,7 @@
   gap: 4px;
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 13px;
   font-weight: 500;
   padding: 8px 0 0 0;
@@ -242,9 +242,9 @@
   justify-content: space-between;
   width: 100%;
   padding: 16px;
-  background: #121214;
+  background: var(--c-surface);
   border: none;
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -262,7 +262,7 @@
 /* Episode List */
 .phone-episode-list {
   padding: 16px;
-  background: #121214;
+  background: var(--c-surface);
 }
 
 .phone-episode-ranges {
@@ -280,8 +280,8 @@
 
 .phone-range-btn {
   flex-shrink: 0;
-  background: #1a1a1e;
-  color: #9CA3AF;
+  background: var(--c-surface2);
+  color: var(--c-text-muted);
   font-size: 12px;
   padding: 6px 12px;
   border-radius: 6px;
@@ -311,7 +311,7 @@
   -webkit-tap-highlight-color: transparent;
   border: 2px solid transparent;
   transition: border-color 0.2s ease, transform 0.2s ease;
-  background: #1a1a1e;
+  background: var(--c-surface2);
 }
 
 .phone-episode-thumbnail:active {
@@ -337,7 +337,7 @@
   bottom: 4px;
   left: 4px;
   background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
+  color: var(--c-text);
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 4px;
@@ -362,7 +362,7 @@
   top: 2px;
   right: -20px;
   font-size: 8px;
-  color: #ffffff;
+  color: var(--c-text);
   font-weight: bold;
 }
 
@@ -373,7 +373,7 @@
   align-items: center;
   justify-content: center;
   padding: 10px 8px;
-  background: #1a1a1e;
+  background: var(--c-surface2);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -387,7 +387,7 @@
 .phone-episode-grid .phone-episode-number {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--c-text);
 }
 
 .phone-episode-grid .phone-episode-item.active .phone-episode-number {
@@ -404,7 +404,7 @@
 
 /* Share Button */
 .phone-share-btn {
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   flex-direction: column;
   gap: 2px;
 }
@@ -435,7 +435,7 @@
 }
 
 .phone-share-popup {
-  background: #1A1A1E;
+  background: var(--c-surface2);
   border-radius: 16px 16px 0 0;
   width: 100%;
   max-width: 480px;
@@ -453,7 +453,7 @@
 .phone-share-title {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   margin: 0;
 }
 
@@ -465,7 +465,7 @@
   height: 32px;
   background: transparent;
   border: none;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   cursor: pointer;
   border-radius: 50%;
   transition: background-color 0.2s ease;
@@ -488,7 +488,7 @@
   gap: 8px;
   background: transparent;
   border: none;
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 12px;
   cursor: pointer;
   padding: 12px;
@@ -503,7 +503,7 @@
 }
 
 .phone-share-btn-item span {
-  color: #9CA3AF;
+  color: var(--c-text-muted);
   font-size: 11px;
   font-weight: 500;
 }

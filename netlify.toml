@@ -9,6 +9,13 @@
   # the whole package so both resolve.
   included_files = ["node_modules/glin-profanity/**"]
 
+# The audio/composition function shells out to the ffmpeg-static binary. Bundling it
+# with esbuild breaks its __dirname-based binary path, so keep it external and ship
+# the whole package (binary included) with the function.
+[functions."pipeline-audio-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
 [dev]
   port = 8888
   framework = "#custom"

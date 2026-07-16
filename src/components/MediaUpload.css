@@ -7,14 +7,14 @@
   width: 500px;
   height: 500px;
   max-width: 100%;
-  border: 2px dashed #242428;
+  border: 2px dashed var(--c-surface3);
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   overflow: hidden;
-  background-color: #1a1a1e;
+  background-color: var(--c-surface2);
   transition: border-color 0.2s ease;
 }
 
@@ -24,7 +24,7 @@
 
 .media-upload-preview.has-media {
   border-style: solid;
-  border-color: #242428;
+  border-color: var(--c-surface3);
 }
 
 .media-upload-remove-button {

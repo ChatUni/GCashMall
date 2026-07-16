@@ -1,9 +1,14 @@
 import { render } from 'solid-js/web'
 import './index.css'
+import './theme.css'
 import App from './App'
 import { initOAuthHandler, onDeviceReady, isIOS } from './utils/cordova'
 import { initializeIAP } from './utils/iap'
 import { registerIAPReconciliation } from './services/accountService'
+import { initTheme } from './stores/themeStore'
+
+// Apply the saved theme (default dark) to <html> before first paint
+initTheme()
 
 declare global {
   interface Window {

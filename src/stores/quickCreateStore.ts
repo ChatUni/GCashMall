@@ -6,6 +6,7 @@ import {
   fetchTemplates,
   startProductionJob,
   startVideoJob,
+  startAudioJob,
   fetchProductionStatus,
   type StarterTemplate,
   type ProductionJob,
@@ -149,6 +150,8 @@ export const PIPELINE_CALLS: { key: string }[] = [
   { key: 'promptCompiler' },
   { key: 'renderingEngine' },
   { key: 'videoGeneration' },
+  { key: 'audioGeneration' },
+  { key: 'composition' },
 ]
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'error'
@@ -169,11 +172,14 @@ export interface ReviewEpisode {
 // Raw per-call outputs keyed by call key
 export type ProductionCalls = Record<string, Record<string, unknown>>
 
-// A rendered shot video (from SeedDance) — url on success, error otherwise
+// A rendered shot video (from Seedance) — url on success, error otherwise.
+// audioUrl is the same shot with narration/BGM muxed in.
 export interface ShotVideo {
   shot_id: string
   shot_number: number | null
   url?: string
+  audioUrl?: string
+  narration?: string
   error?: string
 }
 
@@ -186,6 +192,7 @@ export interface Production {
   calls: ProductionCalls
   episodes: ReviewEpisode[]
   videos: ShotVideo[]
+  episodeVideo: string // stitched episode video (with audio)
 }
 
 // Result of the "plan" phase (step 4): the 5-episode plan + covers, shown at step 5
@@ -204,9 +211,11 @@ interface PipelineState {
   phase: PipelinePhase
   jobId: string | null // the background job currently being polled
   episodeJobId: string | null // the persistent My Series (episode) job id
-  calls: PipelineCallState[] // 6-call statuses (step 6)
+  calls: PipelineCallState[] // per-step statuses (step 6)
   coverStatus: StepStatus // cover generation (plan phase)
   percent: number // overall episode-generation percent
+  videoProgress: { done: number; total: number; percent: number } // averaged video-gen sub-progress
+  audioTriggered: boolean // guard: audio continuation kicked off this session
   plan: PlanResult | null // step 5 review data
   production: Production | null // step 6 data (fills as calls complete)
 }
@@ -220,6 +229,8 @@ const getInitialPipeline = (): PipelineState => ({
   calls: PIPELINE_CALLS.map((c) => ({ key: c.key, status: 'pending' as StepStatus })),
   coverStatus: 'pending',
   percent: 0,
+  videoProgress: { done: 0, total: 0, percent: 0 },
+  audioTriggered: false,
   plan: null,
   production: null,
 })
@@ -361,6 +372,7 @@ export const quickCreateStoreActions = {
         calls: plan.call1 ? { executiveProducer: plan.call1 } : {},
         episodes: plan.episodes,
         videos: [],
+        episodeVideo: '',
       },
     })
     setState('step', 6)
@@ -406,6 +418,11 @@ export const quickCreateStoreActions = {
         await retryVideoGeneration(jobId)
         return
       }
+      // If video finished but audio/composition didn't, continue them automatically.
+      if (audioStepsIncomplete(job)) {
+        await continueAudioGeneration(jobId)
+        return
+      }
       if (job.status === 'done') {
         finishEpisode(job)
         return
@@ -447,6 +464,7 @@ const mapEpisodes = (episodes?: { n: number; title: string; desc: string; cover?
 // Poll the job until it completes, errors, or is cancelled (jobId changing ends it).
 const pollProduction = async (jobId: string): Promise<void> => {
   const startedAt = Date.now()
+  let audioStalePolls = 0
 
   while (state.pipeline.jobId === jobId) {
     await sleep(POLL_INTERVAL_MS)
@@ -461,6 +479,23 @@ const pollProduction = async (jobId: string): Promise<void> => {
     if (state.pipeline.jobId !== jobId) return
 
     applyJobProgress(job)
+
+    // Video finished but audio/composition never started (server hand-off didn't fire)
+    // and isn't running — after a short grace period, kick it off from the client.
+    if (state.pipeline.phase === 'episode' && !state.pipeline.audioTriggered) {
+      const audioRunning = (job.progress?.calls || []).some(
+        (c) => AUDIO_STEP_KEYS.includes(c.key) && c.status === 'running',
+      )
+      if (audioStepsIncomplete(job) && !audioRunning && job.status !== 'done') {
+        audioStalePolls++
+        if (audioStalePolls >= 3) {
+          continueAudioGeneration(jobId)
+          return
+        }
+      } else {
+        audioStalePolls = 0
+      }
+    }
     // Keep step 6's production.calls (and any rendered videos) fresh as work completes
     if (state.pipeline.phase === 'episode') {
       if (job.calls) setState('pipeline', 'production', (p) => (p ? { ...p, calls: job.calls! } : p))
@@ -469,11 +504,19 @@ const pollProduction = async (jobId: string): Promise<void> => {
           p ? { ...p, videos: job.videos as ShotVideo[] } : p,
         )
       }
+      if (job.episodeVideo) {
+        setState('pipeline', 'production', (p) =>
+          p ? { ...p, episodeVideo: job.episodeVideo! } : p,
+        )
+      }
     }
 
     if (job.status === 'done') {
       if (state.pipeline.phase === 'plan') finishPlan(job)
-      else finishEpisode(job)
+      else if (audioStepsIncomplete(job) && !state.pipeline.audioTriggered) {
+        // Video done but audio/composition didn't run/finish — kick them off (once)
+        continueAudioGeneration(jobId)
+      } else finishEpisode(job)
       return
     }
     if (job.status === 'error') {
@@ -487,8 +530,7 @@ const pollProduction = async (jobId: string): Promise<void> => {
   }
 }
 
-// videoGeneration is the last entry in PIPELINE_CALLS
-const VIDEO_STEP_INDEX = PIPELINE_CALLS.length - 1
+const AUDIO_STEP_KEYS = ['audioGeneration', 'composition']
 
 // Whether the video-generation step failed (whole step errored, or a shot failed)
 const videoStepFailed = (job: ProductionJob): boolean => {
@@ -497,10 +539,59 @@ const videoStepFailed = (job: ProductionJob): boolean => {
   return (job.videos || []).some((v) => v.error && !v.url)
 }
 
+// Video finished (shots rendered) but there's no final episode video yet → audio +
+// composition still need to run (covers never-ran, partial, and silently-failed cases
+// where the steps were wrongly marked done but produced no episodeVideo).
+const audioStepsIncomplete = (job: ProductionJob): boolean => {
+  const videoDone =
+    (job.progress?.calls || []).find((c) => c.key === 'videoGeneration')?.status === 'done'
+  if (!videoDone) return false
+  if (!(job.videos || []).some((v) => v.url)) return false
+  return !job.episodeVideo
+}
+
+// Continue audio + composition on a resumed production: flip the unfinished audio
+// steps to running, (re)start the audio job, wait until it takes over, then poll.
+const continueAudioGeneration = async (jobId: string): Promise<void> => {
+  setState('pipeline', 'audioTriggered', true)
+  state.pipeline.calls.forEach((c, i) => {
+    if (AUDIO_STEP_KEYS.includes(c.key) && c.status !== 'done') {
+      setState('pipeline', 'calls', i, 'status', 'running')
+    }
+  })
+  setState('pipeline', { running: true, error: '' })
+  try {
+    await startAudioJob(jobId)
+    await waitForAudioRestart(jobId)
+  } catch (error) {
+    console.error('Failed to continue audio generation:', error)
+  }
+  pollProduction(jobId)
+}
+
+// Wait until the (re)started audio job flips the doc back to 'running', so the main
+// poll loop doesn't finish on a stale 'done' from a failed/partial run.
+const waitForAudioRestart = async (jobId: string): Promise<void> => {
+  for (let i = 0; i < 8; i++) {
+    await sleep(1500)
+    if (state.pipeline.jobId !== jobId) return
+    try {
+      const job = await fetchProductionStatus(jobId)
+      const running = (job.progress?.calls || []).some(
+        (c) => AUDIO_STEP_KEYS.includes(c.key) && c.status === 'running',
+      )
+      if (job.status === 'running' && running) return
+    } catch {
+      // keep waiting
+    }
+  }
+}
+
 // Retry video generation for a resumed production: flip the step back to running,
 // (re)start the video job, wait until it takes over, then resume polling.
 const retryVideoGeneration = async (jobId: string): Promise<void> => {
-  setState('pipeline', 'calls', VIDEO_STEP_INDEX, 'status', 'running')
+  const idx = state.pipeline.calls.findIndex((c) => c.key === 'videoGeneration')
+  if (idx >= 0) setState('pipeline', 'calls', idx, 'status', 'running')
   setState('pipeline', { running: true, error: '' })
   try {
     await startVideoJob(jobId)
@@ -530,17 +621,40 @@ const waitForVideoRestart = async (jobId: string): Promise<void> => {
 // Mirror the job's per-call + cover progress + percent into pipeline state
 const applyJobProgress = (job: ProductionJob) => {
   const calls = job.progress?.calls
-  if (Array.isArray(calls)) {
-    calls.forEach((c, i) => {
-      if (state.pipeline.calls[i]) {
-        setState('pipeline', 'calls', i, 'status', c.status as StepStatus)
-      }
-    })
+  if (Array.isArray(calls) && calls.length > 0) {
+    if (state.pipeline.phase === 'episode') {
+      // Mirror the server's exact step list (it may omit e.g. audioGeneration for
+      // Seedance 2.0), so the displayed steps + percent always match the backend.
+      setState(
+        'pipeline',
+        'calls',
+        calls.map((c) => ({ key: c.key, status: c.status as StepStatus })),
+      )
+    } else {
+      calls.forEach((c, i) => {
+        if (state.pipeline.calls[i]) {
+          setState('pipeline', 'calls', i, 'status', c.status as StepStatus)
+        }
+      })
+    }
   }
   if (job.progress?.coverStatus) {
     setState('pipeline', 'coverStatus', job.progress.coverStatus as StepStatus)
   }
-  if (typeof job.percent === 'number') {
+  if (job.videoProgress) {
+    setState('pipeline', 'videoProgress', {
+      done: job.videoProgress.done ?? 0,
+      total: job.videoProgress.total ?? 0,
+      percent: job.videoProgress.percent ?? 0,
+    })
+  }
+  // Compute the episode percent from the steps the client actually shows (so it can't
+  // read 100% while audio/composition are still pending); fall back to the server value.
+  if (state.pipeline.phase === 'episode') {
+    const total = state.pipeline.calls.length
+    const done = state.pipeline.calls.filter((c) => c.status === 'done').length
+    setState('pipeline', 'percent', total ? Math.round((done / total) * 100) : 0)
+  } else if (typeof job.percent === 'number') {
     setState('pipeline', 'percent', job.percent)
   }
 }
@@ -574,6 +688,7 @@ const finishEpisode = (job: ProductionJob) => {
       calls: job.calls || {},
       episodes: mapEpisodes(job.episodes),
       videos: job.videos || [],
+      episodeVideo: job.episodeVideo || '',
     },
   })
 }
@@ -592,6 +707,7 @@ const hydrateEpisodeFromJob = (job: ProductionJob) => {
       calls: job.calls || {},
       episodes,
       videos: job.videos || [],
+      episodeVideo: job.episodeVideo || '',
     },
     plan: {
       ideaTitle: title,

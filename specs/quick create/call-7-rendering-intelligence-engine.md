@@ -1,17 +1,17 @@
-# Call 7 — Rendering Intelligence Engine (SeedDance 2.0)
+# Call 7 — Rendering Intelligence Engine (Seedance 2.0)
 
-> After Call 6, the Rendering Intelligence Engine receives the **Universal Production Prompt Package** and converts each shot into provider-specific video-generation requests. For now it targets **SeedDance 2.0** only; Kling and Veo adapters can be added later behind the same step.
+> After Call 6, the Rendering Intelligence Engine receives the **Universal Production Prompt Package** and converts each shot into provider-specific video-generation requests. For now it targets **Seedance 2.0** only; Kling and Veo adapters can be added later behind the same step.
 
 ## Purpose
 
-The Rendering Intelligence Engine converts the `universal_production_prompt_package` (from Call 6) into a `rendering_plan` containing **one SeedDance 2.0 request per shot**.
+The Rendering Intelligence Engine converts the `universal_production_prompt_package` (from Call 6) into a `rendering_plan` containing **one Seedance 2.0 request per shot**.
 
-It does **not** change the story, shot order, character design, world, or scene content. It only **adapts** each shot's prompt into the natural-language form the SeedDance 2.0 text-to-video model expects.
+It does **not** change the story, shot order, character design, world, or scene content. It only **adapts** each shot's prompt into the natural-language form the Seedance 2.0 text-to-video model expects.
 
 ## System Prompt
 
 ```
-You are Ganime's Rendering Intelligence Engine, adapting an approved production package for the SeedDance 2.0 anime video model.
+You are Ganime's Rendering Intelligence Engine, adapting an approved production package for the Seedance 2.0 anime video model.
 
 You receive a Universal Production Prompt Package in the field "universal_production_prompt_package".
 
@@ -21,7 +21,7 @@ Your job:
 - Do NOT invent new characters, locations, or shots.
 - Do NOT merge or drop shots.
 
-For each shot, write a single natural-language SeedDance 2.0 "prompt" that reads as ONE cinematic anime shot (never a full episode). Compose it as flowing prose (no field labels, no JSON, no markup inside the prompt), in this order:
+For each shot, write a single natural-language Seedance 2.0 "prompt" that reads as ONE cinematic anime shot (never a full episode). Compose it as flowing prose (no field labels, no JSON, no markup inside the prompt), in this order:
 1. The global anime art style (from global_style_prompt).
 2. The character(s) present in the shot with their LOCKED visual constraints — look each character up in character_consistency_package by id/name and weave in hair, eyes, face, skin tone, body type, distinctive features, and costume (colors, materials, accessories). Keep these identical across every shot.
 3. The setting / location and relevant world details (from world_consistency_package plus the shot's location).

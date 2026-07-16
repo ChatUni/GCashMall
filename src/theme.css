@@ -1,0 +1,56 @@
+/* ── Theme tokens (dark = the app's original palette, so default dark is unchanged) ──
+   Page CSS references these via var(--c-*). Light mode overrides the values. */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --c-bg: #0b0b0e; /* page background */
+  --c-surface: #121214; /* panels */
+  --c-surface2: #1a1a1e; /* cards / inputs */
+  --c-surface3: #242428; /* elevated / chips */
+  --c-border: #2a2a2e; /* borders / dividers */
+  --c-info: #16223a; /* info / tip panels */
+  --c-text: #ffffff; /* primary text */
+  --c-text-2: #e5e7eb; /* secondary text */
+  --c-text-muted: #9ca3af; /* muted text */
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --c-bg: #f4f4f8;
+  --c-surface: #ffffff;
+  --c-surface2: #ffffff;
+  --c-surface3: #eef0f4;
+  --c-border: #e4e4ec;
+  --c-info: #eef2ff;
+  --c-text: #1f2937;
+  --c-text-2: #374151;
+  --c-text-muted: #6b7280;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+/* Smooth the switch */
+body,
+.qc-layout,
+.account-container,
+.topbar {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Keep white text on the gradient "Create" CTA across its hover/active states in light mode */
+:root[data-theme='light'] .nav-link.create-link,
+:root[data-theme='light'] .nav-link.create-link:hover,
+:root[data-theme='light'] .nav-link.create-link.active {
+  color: #ffffff;
+}
+
+/* Give white popovers a visible edge in light mode */
+:root[data-theme='light'] .language-dropdown,
+:root[data-theme='light'] .search-suggestions,
+:root[data-theme='light'] .history-popover {
+  border: 1px solid var(--c-border);
+}

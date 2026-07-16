@@ -46,7 +46,7 @@
 
 .rating-votes {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--c-text-muted);
 }
 
 /* Rating modal */
@@ -78,6 +78,6 @@
   display: block;
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-text);
   min-height: 22px;
 }

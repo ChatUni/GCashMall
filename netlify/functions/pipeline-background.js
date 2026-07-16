@@ -14,6 +14,8 @@ import { get, save, update } from './utils/db.js'
 import jwt from 'jsonwebtoken'
 import { PIPELINE_CALL_KEYS, runOneCall, generateCover } from './utils/pipeline.js'
 import { runVideoGeneration } from './utils/videoJob.js'
+import { triggerBackground } from './utils/trigger.js'
+import { modelHasNativeAudio } from './utils/seedance.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
@@ -120,10 +122,13 @@ const runEpisode = async (jobId, userId, body) => {
   const cover = providedEpisodes[0]?.cover || ''
 
   const progress = {
-    // The 7 LLM calls, plus a final video-generation step
+    // The 7 LLM calls, plus the video-generation and audio/composition steps
     calls: [
       ...PIPELINE_CALL_KEYS.map((key, i) => ({ key, status: i === 0 ? 'done' : 'pending' })),
       { key: 'videoGeneration', status: 'pending' },
+      // Seedance 2.0 already includes audio, so there's no separate audio step
+      ...(modelHasNativeAudio() ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
+      { key: 'composition', status: 'pending' },
     ],
     coverStatus: 'done',
   }
@@ -176,29 +181,20 @@ const runEpisode = async (jobId, userId, body) => {
 }
 
 // Trigger the dedicated video-generation background function (fire-and-forget). If
-// the hand-off can't be reached, fall back to running it inline so it still completes.
+// the hand-off can't be reached, fall back to running it inline, then hand off to the
+// audio job (or finalize as done if that also fails).
 const triggerVideoJob = async (jobId, authHeader) => {
-  const base = (
-    process.env.URL ||
-    process.env.DEPLOY_PRIME_URL ||
-    process.env.VITE_PROD_SERVER ||
-    'http://localhost:8888'
-  ).replace(/\/+$/, '')
   try {
-    const res = await fetch(`${base}/.netlify/functions/pipeline-video-background`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-      body: JSON.stringify({ jobId }),
-    })
-    if (!res.ok && res.status !== 202) {
-      throw new Error(`video job trigger failed (${res.status})`)
-    }
+    await triggerBackground('pipeline-video-background', jobId, authHeader)
   } catch (error) {
-    console.error('Video job hand-off failed, running inline:', error.message)
+    console.error('Video hand-off failed, running inline:', error.message)
     await runVideoGeneration(jobId)
+    try {
+      await triggerBackground('pipeline-audio-background', jobId, authHeader)
+    } catch (e) {
+      console.error('Audio hand-off failed after inline video:', e.message)
+      await updateJob(jobId, { status: 'done', percent: 100 })
+    }
   }
 }
 

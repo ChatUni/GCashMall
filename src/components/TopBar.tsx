@@ -4,6 +4,7 @@ import { APP_DISPLAY_NAME } from '../utils/config'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
 import { quickCreateStoreActions } from '../stores/quickCreateStore'
+import { currentTheme, themeStoreActions } from '../stores/themeStore'
 import { topBarStore, topBarStoreActions } from '../stores/topBarStore'
 import { syncAuthState } from '../services/topBarService'
 import type { User } from '../types'
@@ -56,7 +57,11 @@ const TopBar = () => {
         <div class="top-bar-content">
           <div class="top-bar-left">
             <img
-              src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
+              src={
+                currentTheme() === 'light'
+                  ? 'https://res.cloudinary.com/daqc8bim3/image/upload/e_negate/v1764702233/logo.png'
+                  : 'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png'
+              }
               alt="App Logo"
               class="app-logo"
               onClick={handleLogoClick}
@@ -112,6 +117,26 @@ const TopBar = () => {
 
           <div class="top-bar-right">
             <HistoryPopover />
+
+            <div
+              class="icon-button theme-toggle"
+              onClick={() => themeStoreActions.toggle()}
+              title="Toggle theme"
+            >
+              <Show
+                when={currentTheme() === 'dark'}
+                fallback={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                  </svg>
+                }
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              </Show>
+            </div>
 
             <div
               class={`icon-button account-icon ${isActiveRoute('/account') ? 'active' : ''}`}
