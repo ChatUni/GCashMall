@@ -1005,7 +1005,7 @@ function WalletSection() {
                   class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
                   onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}
                 >
-                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="payment-method-icon-img" />
+                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="payment-method-icon-img gusd" />
                   <span class="payment-method-text">{wallet().gusd || 'GUSD'}</span>
                 </button>
               </div>

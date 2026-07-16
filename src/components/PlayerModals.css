@@ -14,14 +14,14 @@
 }
 
 .popup-modal {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  background: var(--c-surface2);
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
   width: 90%;
   text-align: center;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--c-border);
 }
 
 .popup-icon {
@@ -61,7 +61,7 @@
 }
 
 .popup-episode-name {
-  color: #d1d5db;
+  color: var(--c-text-muted);
   font-size: 14px;
 }
 
@@ -79,6 +79,12 @@
 .popup-price-logo {
   width: 24px;
   height: 24px;
+}
+
+/* The GUSD logo image is white; invert it on the light-theme modal so it stays visible */
+:root[data-theme='light'] .popup-price-logo,
+:root[data-theme='light'] .popup-balance-logo {
+  filter: invert(1);
 }
 
 .popup-price span {
@@ -138,7 +144,7 @@
 .btn-cancel {
   background: transparent;
   color: var(--c-text-muted);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--c-border);
   border-radius: 8px;
   padding: 12px 24px;
   font-size: 14px;
@@ -147,7 +153,7 @@
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--c-surface3);
   color: var(--c-text);
 }
 
@@ -187,7 +193,7 @@
 
 .btn-result-success {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .btn-result-success:hover {
@@ -196,7 +202,7 @@
 
 .btn-result-error {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .btn-result-error:hover {
@@ -244,12 +250,12 @@
 
 .toast-success {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .toast-error {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .toast-info {

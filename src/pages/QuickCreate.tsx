@@ -201,7 +201,9 @@ const Sidebar = () => {
             )}
           </For>
         </ul>
-        <button class="qc-pro-btn">{qc().sidebar.upgradeNow}</button>
+        <button class="qc-pro-btn" onClick={() => navigate('/creator-program')}>
+          {qc().sidebar.upgradeNow}
+        </button>
       </div>
     </aside>
   )
@@ -903,7 +905,7 @@ const WizardNav = () => (
     <Switch>
       <Match when={quickCreateStore.step === 1}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
-          ✨ {qc().step1.next} →
+          ✨ {qc().continue}
         </button>
       </Match>
       <Match when={quickCreateStore.step === 4}>
@@ -913,7 +915,7 @@ const WizardNav = () => (
           disabled={!canAdvance() || quickCreateStore.pipeline.running}
           onClick={() => quickCreateStoreActions.runPlan()}
         >
-          ✨ {qc().step1.next} →
+          ✨ {qc().step1.next}
         </button>
       </Match>
       <Match when={quickCreateStore.step === 5}>
@@ -932,7 +934,7 @@ const WizardNav = () => (
       </Match>
       <Match when={true}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
-          {qc().continue} →
+          {qc().continue}
         </button>
       </Match>
     </Switch>

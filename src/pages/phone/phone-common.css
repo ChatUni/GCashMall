@@ -119,6 +119,13 @@
   height: 32px;
 }
 
+/* White GUSD logos need inverting on the light-theme (white) confirm dialog */
+:root[data-theme='light'] .phone-popup-logo,
+:root[data-theme='light'] .phone-popup-amount-logo,
+:root[data-theme='light'] .phone-payment-method-icon-img.gusd {
+  filter: invert(1);
+}
+
 .phone-popup-loading {
   display: flex;
   flex-direction: column;

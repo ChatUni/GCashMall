@@ -445,7 +445,7 @@ export const en = {
       chooseGenre: 'Choose Genre',
       artStyle: 'Choose Art Style',
       episodeLength: 'Episode Length',
-      directorReview: 'AI Director Review',
+      directorReview: 'Director Review',
       episodeReady: 'Episode 1 Ready!',
     },
     step1: {
@@ -478,7 +478,7 @@ export const en = {
     },
     step2: {
       heading: 'Choose Genre',
-      subtitle: 'Pick the genre that fits your story best. This helps our AI Director craft the perfect series for you.',
+      subtitle: 'Pick the genre that fits your story best. This helps our Director craft the perfect series for you.',
       hint: 'Don\'t worry, you can refine your story in the next step.',
       genres: {
         action: { name: 'Action', desc: 'Fast-paced, high-energy stories full of battles and adventures.' },
@@ -523,10 +523,10 @@ export const en = {
       },
     },
     step5: {
-      heading: 'AI Director Review',
-      subtitle: 'Our AI Director has crafted a perfect plan for your anime series. Review the details below before we start creating Episode 1.',
+      heading: 'Director Review',
+      subtitle: 'Our Director has crafted a perfect plan for your anime series. Review the details below before we start creating Episode 1.',
       untitled: 'Untitled Series',
-      directorName: 'AI Director',
+      directorName: 'Director',
       directorNote: "I've designed an exciting 5-episode mini-series that will hook your audience from the very first episode.",
       miniSeries: 'Mini-Series',
       genre: 'Genre',
@@ -564,7 +564,7 @@ export const en = {
       coversStep: 'Generating episode covers',
       calls: {
         executiveProducer: 'Executive Producer',
-        aiDirector: 'AI Director',
+        aiDirector: 'Director',
         characterDesigner: 'Character Designer',
         storyboardArchitect: 'Storyboard Architect',
         storyOptimizer: 'Story Optimizer',
@@ -577,10 +577,10 @@ export const en = {
     },
     step6: {
       heading: 'Generating Episode 1',
-      subtitle: 'Our AI Director is bringing your story to life. This will take a few minutes.',
+      subtitle: 'Our Director is bringing your story to life. This will take a few minutes.',
       tipTitle: "Director's Tip",
       tipText: "Feel free to leave this page. You'll find it in My Series.",
-      pipelineTitle: 'AI Director Pipeline',
+      pipelineTitle: 'Director Pipeline',
       pipelineSubtitle: 'Crafting your anime episode…',
       overallProgress: 'Overall Progress',
       episodeLabel: 'Episode',

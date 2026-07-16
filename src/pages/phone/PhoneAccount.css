@@ -623,7 +623,7 @@
   gap: 12px;
   font-size: 36px;
   font-weight: 700;
-  color: var(--c-text);
+  color: #ffffff; /* fixed blue-gradient card in both themes */
 }
 
 .phone-balance-logo {
@@ -664,6 +664,11 @@
 .phone-amount-logo {
   width: 24px;
   height: 24px;
+}
+
+/* White GUSD logo needs inverting on light-theme (white) amount buttons */
+:root[data-theme='light'] .phone-amount-logo {
+  filter: invert(1);
 }
 
 .phone-amount-btn span {

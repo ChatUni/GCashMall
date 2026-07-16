@@ -714,6 +714,12 @@
   margin-bottom: 24px;
 }
 
+/* Light theme: a soft light-blue card instead of the dark navy gradient */
+:root[data-theme='light'] .balance-card {
+  background: linear-gradient(135deg, #e8f0fe 0%, #f5f9ff 100%);
+  border-color: #bfdbfe;
+}
+
 .balance-icon {
   font-size: 48px;
 }
@@ -724,9 +730,10 @@
   gap: 4px;
 }
 
+/* Dark card → light text; light-theme card → dark text (overridden below) */
 .balance-label {
   font-size: 14px;
-  color: var(--c-text-muted);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .balance-amount {
@@ -735,12 +742,25 @@
   gap: 12px;
   font-size: 36px;
   font-weight: 700;
+  color: #ffffff;
+}
+
+:root[data-theme='light'] .balance-label {
+  color: var(--c-text-muted);
+}
+
+:root[data-theme='light'] .balance-amount {
   color: var(--c-text);
 }
 
 .gcash-logo {
   width: 32px;
   height: 32px;
+}
+
+/* White GUSD logo needs inverting on the light card */
+:root[data-theme='light'] .gcash-logo {
+  filter: invert(1);
 }
 
 /* Wallet Tabs */
@@ -867,6 +887,11 @@
   height: 24px;
 }
 
+/* The GUSD logo image is white; on light-theme (white) buttons it needs inverting to stay visible */
+:root[data-theme='light'] .amount-logo {
+  filter: invert(1);
+}
+
 .amount-value {
   font-size: 28px;
   font-weight: 700;
@@ -979,6 +1004,13 @@
 .popup-amount-logo {
   width: 40px;
   height: 40px;
+}
+
+/* White GUSD logos need inverting on the light-theme (white) confirm dialog */
+:root[data-theme='light'] .popup-logo,
+:root[data-theme='light'] .popup-amount-logo,
+:root[data-theme='light'] .payment-method-icon-img.gusd {
+  filter: invert(1);
 }
 
 /* Payment Method Selection */

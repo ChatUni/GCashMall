@@ -1142,7 +1142,7 @@
 .qc-pl-panel {
   width: 100%;
   max-width: 460px;
-  background: #16161c;
+  background: var(--c-surface2);
   border: 1px solid var(--c-border);
   border-radius: 18px;
   padding: 26px 26px 22px;
@@ -1152,6 +1152,7 @@
 .qc-pl-title {
   font-size: 19px;
   font-weight: 700;
+  color: var(--c-text);
   margin: 0 0 6px;
 }
 
@@ -1198,17 +1199,17 @@
 }
 
 .qc-pl-icon.pending {
-  border: 2px solid #33333c;
+  border: 2px solid var(--c-border);
 }
 
 .qc-pl-icon.done {
   background: #16a34a;
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .qc-pl-icon.error {
   background: #dc2626;
-  color: var(--c-text);
+  color: #ffffff;
 }
 
 .qc-pl-icon.running {

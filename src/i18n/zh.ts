@@ -444,7 +444,7 @@ export const zh = {
       chooseGenre: '选择类型',
       artStyle: '选择画风',
       episodeLength: '单集时长',
-      directorReview: 'AI 导演审阅',
+      directorReview: '导演审阅',
       episodeReady: '第 1 集就绪！',
     },
     step1: {
@@ -477,7 +477,7 @@ export const zh = {
     },
     step2: {
       heading: '选择类型',
-      subtitle: '选择最适合你故事的类型，这有助于我们的 AI 导演打造完美剧集。',
+      subtitle: '选择最适合你故事的类型，这有助于我们的导演打造完美剧集。',
       hint: '别担心，下一步你还可以完善你的故事。',
       genres: {
         action: { name: '动作', desc: '节奏紧凑、充满战斗与冒险的高能故事。' },
@@ -522,10 +522,10 @@ export const zh = {
       },
     },
     step5: {
-      heading: 'AI 导演审阅',
-      subtitle: '我们的 AI 导演为你的动漫剧集打造了完美方案。在我们开始创作第 1 集之前，请查看以下详情。',
+      heading: '导演审阅',
+      subtitle: '我们的导演为你的动漫剧集打造了完美方案。在我们开始创作第 1 集之前，请查看以下详情。',
       untitled: '未命名剧集',
-      directorName: 'AI 导演',
+      directorName: '导演',
       directorNote: '我设计了一个精彩的 5 集迷你剧，从第一集就能牢牢吸引你的观众。',
       miniSeries: '迷你剧',
       genre: '类型',
@@ -563,7 +563,7 @@ export const zh = {
       coversStep: '正在生成每集封面',
       calls: {
         executiveProducer: '监制',
-        aiDirector: 'AI 导演',
+        aiDirector: '导演',
         characterDesigner: '角色设计',
         storyboardArchitect: '分镜架构',
         storyOptimizer: '故事优化',
@@ -576,10 +576,10 @@ export const zh = {
     },
     step6: {
       heading: '正在生成第 1 集',
-      subtitle: '我们的 AI 导演正在让你的故事栩栩如生，这需要几分钟。',
+      subtitle: '我们的导演正在让你的故事栩栩如生，这需要几分钟。',
       tipTitle: '导演提示',
       tipText: '你可以离开此页面，稍后可在「我的剧集」中找到它。',
-      pipelineTitle: 'AI 导演流程',
+      pipelineTitle: '导演流程',
       pipelineSubtitle: '正在打造你的动画剧集…',
       overallProgress: '总体进度',
       episodeLabel: '第',
