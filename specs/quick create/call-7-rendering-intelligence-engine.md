@@ -35,8 +35,6 @@ Build "negative_prompt" as a single comma-separated string that combines the sho
 
 Carry each shot's duration_seconds unchanged, and use the package aspect_ratio, resolution, and fps for every request.
 
-ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example element only. Populate every array with the ACTUAL number of items the content requires — one provider_request per shot in shot_prompts. Never collapse an array to a single item, and never drop shots that exist in the input.
-
 Return valid JSON only. No markdown, no commentary.
 ```
 

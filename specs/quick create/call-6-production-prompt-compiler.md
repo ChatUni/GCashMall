@@ -65,8 +65,6 @@ Optimize for:
 • Rendering reliability
 • Minimal ambiguity
 
-ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example element only. Populate every array with the ACTUAL number of items the content requires — one shot_prompt per shot, one character entry per character, etc. Never collapse an array to a single item, and never drop items that exist in the input.
-
 Return valid JSON only.
 ```
 

@@ -57,8 +57,21 @@ const parsePromptSection = (md, heading) => {
   return m ? m[1].trim() : ''
 }
 
+// Generic rules injected into EVERY pipeline call at generation time. Kept in code
+// (not in the admin-editable DB prompt) so they always apply and can't be edited away
+// or dropped when an admin tweaks a prompt in Settings.
+const GENERIC_PROMPT_RULES = [
+  'ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example ' +
+    'element only. Populate every array with the ACTUAL number of items the content requires ' +
+    '— one entry per character, scene, shot, graph node/edge, episode, change, etc. When the ' +
+    'input already contains an array, the output must keep an entry for every input item (e.g. ' +
+    'every shot in the input shot graph — never fewer). Never collapse an array to a single ' +
+    'item, and never drop items that exist in the input.',
+].join('\n\n')
+
 // Build the effective system message for a call from its markdown document:
-// the "## System Prompt" block, plus the "## Output"/"## Required Output" JSON schema.
+// the "## System Prompt" block, plus the "## Output"/"## Required Output" JSON schema,
+// with the hardcoded generic rules injected regardless of what the DB prompt contains.
 export const buildCallSystemPrompt = (md) => {
   const systemPrompt = parsePromptSection(md, '## System Prompt')
   if (!systemPrompt) {
@@ -66,13 +79,10 @@ export const buildCallSystemPrompt = (md) => {
   }
   const outputSchema =
     parsePromptSection(md, '## Required Output') || parsePromptSection(md, '## Output')
-  let msg = systemPrompt
+  let msg = systemPrompt + '\n\n' + GENERIC_PROMPT_RULES
   if (outputSchema) {
     msg +=
-      '\n\nReturn a single JSON object with this structure. Fill in every field — do not leave placeholders. ' +
-      'Where a field is an array, the example shows the shape of ONE element only: output as many elements as the ' +
-      'content actually requires — e.g. one shot_prompt per shot in the shot graph, one node per story beat, one ' +
-      'entry per episode/scene. Never collapse an array to a single item or drop items that exist in the input.\n' +
+      '\n\nReturn a single JSON object with this structure. Fill in every field — do not leave placeholders.\n' +
       outputSchema
   }
   return msg

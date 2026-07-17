@@ -1,7 +1,7 @@
 // Quick Create wizard store - UI-only step-by-step wizard for generating a video series.
 // No backend yet: all selections live in this store (Rule #7: shared state outside the tree).
 
-import { createStore } from 'solid-js/store'
+import { createStore, reconcile } from 'solid-js/store'
 import {
   fetchTemplates,
   startProductionJob,
@@ -499,9 +499,14 @@ const pollProduction = async (jobId: string): Promise<void> => {
     // Keep step 6's production.calls (and any rendered videos) fresh as work completes
     if (state.pipeline.phase === 'episode') {
       if (job.calls) setState('pipeline', 'production', (p) => (p ? { ...p, calls: job.calls! } : p))
-      if (job.videos) {
-        setState('pipeline', 'production', (p) =>
-          p ? { ...p, videos: job.videos as ShotVideo[] } : p,
+      if (job.videos && state.pipeline.production) {
+        // Reconcile (keyed by shot_id) so unchanged shots keep their identity across
+        // polls — otherwise <For> remounts every <video> each poll and they spin forever.
+        setState(
+          'pipeline',
+          'production',
+          'videos',
+          reconcile(job.videos as ShotVideo[], { key: 'shot_id' }),
         )
       }
       if (job.episodeVideo) {

@@ -830,11 +830,13 @@ const Step6Generating = () => {
           </div>
 
           {/* Composed episode video (with narration/audio) */}
-          <Show when={production()?.episodeVideo}>
-            <div class="qc-s6-videos">
-              <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
-              <video class="qc-s6-episode-el" src={production()!.episodeVideo} controls preload="metadata" />
-            </div>
+          <Show when={production()?.episodeVideo} keyed>
+            {(episodeUrl) => (
+              <div class="qc-s6-videos">
+                <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
+                <video class="qc-s6-episode-el" src={episodeUrl} controls preload="metadata" />
+              </div>
+            )}
           </Show>
 
           {/* Rendered shot videos (Seedance) — with audio once composed */}
@@ -847,18 +849,16 @@ const Step6Generating = () => {
                     <div class="qc-s6-video">
                       <Show
                         when={v.audioUrl || v.url}
+                        keyed
                         fallback={
                           <div class="qc-s6-video-error" title={v.error || 'Generation failed'}>
                             ⚠
                           </div>
                         }
                       >
-                        <video
-                          class="qc-s6-video-el"
-                          src={v.audioUrl || v.url}
-                          controls
-                          preload="metadata"
-                        />
+                        {(url) => (
+                          <video class="qc-s6-video-el" src={url} controls preload="metadata" />
+                        )}
                       </Show>
                       <span class="qc-s6-video-label">
                         {s6().shotLabel} {v.shot_number ?? ''}

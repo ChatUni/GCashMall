@@ -84,8 +84,6 @@ The audience should understand:
 • Why they should continue watching.
 
 Always think like a professional anime television director.
-
-ARRAY RULE: In the JSON output schema, any array shows the structure of ONE example element only. Populate every array with the ACTUAL number of items the content requires — one entry per character, scene, shot, graph node/edge, episode, change, etc. Never collapse an array to a single item, and never drop items that exist in the input.
 ```
 
 ## Responsibilities
