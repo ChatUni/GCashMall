@@ -9,6 +9,8 @@
 // exist" on another. So on a 401 we transparently retry the known regions and cache
 // whichever one authenticates.
 
+import { createHash } from 'node:crypto'
+
 // Netlify env vars are often pasted with surrounding quotes or a trailing newline;
 // those would be sent literally in the request and rejected, so sanitize them.
 const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
@@ -16,8 +18,13 @@ const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
 const MODEL = clean(process.env.SEEDANCE_MODEL) || 'doubao-seedance-1-0-pro-250528'
 const KEY = clean(process.env.SEEDANCE_API_KEY)
 
-// Safe key fingerprint (length + first/last few chars) — never logs the full secret
-const keyFingerprint = () => (KEY ? `${KEY.length} chars, ${KEY.slice(0, 4)}…${KEY.slice(-4)}` : 'MISSING')
+// Safe key fingerprint — length, first/last chars, and a short hash so the exact key
+// (including the middle) can be compared between dev and prod without leaking the secret.
+const keyFingerprint = () => {
+  if (!KEY) return 'MISSING'
+  const hash = createHash('sha256').update(KEY).digest('hex').slice(0, 10)
+  return `${KEY.length} chars, ${KEY.slice(0, 4)}…${KEY.slice(-4)}, sha256:${hash}`
+}
 
 // One-time config log on cold start so the function logs explain any auth failure
 console.log(
