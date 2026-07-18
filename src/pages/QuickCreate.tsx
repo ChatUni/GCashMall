@@ -2,6 +2,8 @@ import { For, Show, Switch, Match, createSignal, onMount, type JSX } from 'solid
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { t } from '../stores/languageStore'
 import { extractStory, generateStoryPrompt } from '../services/dataService'
+import { SocialSharePopup } from '../components/SocialShare'
+import { getShareText } from '../utils/playerHelpers'
 import {
   quickCreateStore,
   quickCreateStoreActions,
@@ -673,6 +675,16 @@ const Step5Review = () => {
 
 // ── Step 6: Episode 1 generation (runs the 6 calls; shows live progress) ──
 
+const ShareIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+)
+
 const Step6Generating = () => {
   const s6 = () => qc().step6
   const pl = () => quickCreateStore.pipeline
@@ -685,6 +697,10 @@ const Step6Generating = () => {
   const genreText = () => (production()?.genre ? genreT(production()!.genre!).name : '—')
   const styleText = () => (production()?.artStyle ? styleT(production()!.artStyle!).name : '—')
   const lengthText = () => `${production()?.episodeLength ?? quickCreateStore.episodeLength} ${qc().step4.sec}`
+
+  // Share popup — holds the video link currently being shared ('' = closed)
+  const [shareUrl, setShareUrl] = createSignal('')
+  const shareText = () => getShareText(seriesTitle(), 1)
 
   // Per-call detail expand/collapse (keyed by call key)
   const [expandedCalls, setExpandedCalls] = createSignal<Record<string, boolean>>({})
@@ -833,7 +849,16 @@ const Step6Generating = () => {
           <Show when={production()?.episodeVideo} keyed>
             {(episodeUrl) => (
               <div class="qc-s6-videos">
-                <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
+                <div class="qc-s6-videos-head">
+                  <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
+                  <button
+                    class="qc-s6-share-btn"
+                    title={s6().share}
+                    onClick={() => setShareUrl(episodeUrl)}
+                  >
+                    <ShareIcon /> {s6().share}
+                  </button>
+                </div>
                 <video class="qc-s6-episode-el" src={episodeUrl} controls preload="metadata" />
               </div>
             )}
@@ -860,9 +885,20 @@ const Step6Generating = () => {
                           <video class="qc-s6-video-el" src={url} controls preload="metadata" />
                         )}
                       </Show>
-                      <span class="qc-s6-video-label">
-                        {s6().shotLabel} {v.shot_number ?? ''}
-                      </span>
+                      <div class="qc-s6-video-label">
+                        <span>
+                          {s6().shotLabel} {v.shot_number ?? ''}
+                        </span>
+                        <Show when={v.audioUrl || v.url}>
+                          <button
+                            class="qc-s6-share-btn small"
+                            title={s6().share}
+                            onClick={() => setShareUrl(v.audioUrl || v.url)}
+                          >
+                            <ShareIcon />
+                          </button>
+                        </Show>
+                      </div>
                     </div>
                   )}
                 </For>
@@ -871,6 +907,17 @@ const Step6Generating = () => {
           </Show>
         </div>
       </div>
+
+      <Show when={shareUrl()}>
+        <SocialSharePopup
+          url={shareUrl()}
+          text={shareText()}
+          imageUrl={heroCover()}
+          title={s6().shareTitle}
+          closeLabel={s6().close}
+          onClose={() => setShareUrl('')}
+        />
+      </Show>
 
       <div class="qc-s6-notify">
         🔔 {s6().notify}

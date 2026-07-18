@@ -1,0 +1,58 @@
+/* Social share popup — a modal with a horizontal row of the share buttons. The
+   .social-button base style is shared with the Player page (globally bundled). */
+
+.sshare-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+}
+
+.sshare-panel {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 24px 24px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.sshare-title {
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.sshare-x {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.sshare-x:hover {
+  color: var(--c-text);
+}
+
+.sshare-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
