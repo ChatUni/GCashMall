@@ -268,7 +268,7 @@ export const en = {
     coverNotImage: 'Please choose an image file.',
     coverTooLarge: 'Cover image must be under 1 MB.',
     coverTooBig: 'Cover image must be at most 1280×1280.',
-    videoTooLarge: 'Video must be under 100 MB.',
+    videoTooLarge: 'Video must be under 200 MB.',
     shelved: 'Shelved',
     deleteSeries: 'Delete Series',
     deleteConfirmTitle: 'Confirm Delete',

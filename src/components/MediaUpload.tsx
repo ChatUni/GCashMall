@@ -5,10 +5,10 @@ import './MediaUpload.css'
 
 type MediaMode = 'image' | 'video'
 
-// Upload limits: cover image ≤ 1 MB and ≤ 1280×1280; episode video ≤ 100 MB
+// Upload limits: cover image ≤ 1 MB and ≤ 1280×1280; episode video < 200 MB
 const MAX_IMAGE_BYTES = 1024 * 1024
 const MAX_IMAGE_DIM = 1280
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024
 
 const se = () => t().seriesEdit as unknown as Record<string, string>
 

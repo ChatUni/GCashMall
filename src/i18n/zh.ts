@@ -267,7 +267,7 @@ export const zh = {
     coverNotImage: '请选择图片文件。',
     coverTooLarge: '封面图片不能超过 1 MB。',
     coverTooBig: '封面图片尺寸不能超过 1280×1280。',
-    videoTooLarge: '视频不能超过 100 MB。',
+    videoTooLarge: '视频不能超过 200 MB。',
     shelved: '已下架',
     deleteSeries: '删除剧集',
     deleteConfirmTitle: '确认删除',
