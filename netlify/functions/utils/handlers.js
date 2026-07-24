@@ -1995,6 +1995,7 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
       if (body.cover) series.cover = body.cover
       series.tags = genreNames
       series.genre = genreIds
+      series.quickCreate = true // backfill the flag on re-publish
       const ep = (series.episodes || []).find((e) => e.episodeNumber === 1)
       if (ep) {
         ep.title = episodeTitle
@@ -2038,6 +2039,7 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
     tags: genreNames,
     genre: genreIds,
     uploaderId: new ObjectId(userId),
+    quickCreate: true, // published from Quick Create — shown in the Published tab, not Uploaded
     shelved: false,
     episodes: [
       {
@@ -2129,8 +2131,14 @@ const getMySeries = async (params, authHeader) => {
   const userId = await validateAuth(authHeader)
 
   try {
-    // Find all series where uploaderId matches the logged in user
-    const series = await get('series', { uploaderId: new ObjectId(userId) }, {}, { createdAt: -1 })
+    // Find the user's uploaded series — exclude those published from Quick Create
+    // (they appear in the Published tab instead)
+    const series = await get(
+      'series',
+      { uploaderId: new ObjectId(userId), quickCreate: { $ne: true } },
+      {},
+      { createdAt: -1 },
+    )
     const populatedSeries = await populateSeriesGenres(series)
 
     return {
