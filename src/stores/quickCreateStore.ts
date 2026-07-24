@@ -7,6 +7,7 @@ import {
   startProductionJob,
   startVideoJob,
   startAudioJob,
+  startCoverBackfill,
   fetchProductionStatus,
   type StarterTemplate,
   type ProductionJob,
@@ -17,7 +18,7 @@ export type { StarterTemplate }
 // Steps 1-4 are inputs; step 5 is the AI Director review; step 6 is Episode 1
 // generation. The last step reachable via "Continue"/next is 4 (then step 4 runs
 // the plan and jumps to 5, and step 5 runs the episode and jumps to 6).
-export const QUICK_CREATE_STEPS = 6
+export const QUICK_CREATE_STEPS = 7
 
 // ── Mockup-generated images, hosted on Cloudinary (GCash/quick create folder) ──
 
@@ -66,6 +67,7 @@ export const STEPPER_KEYS = [
   'artStyle',
   'episodeLength',
   'directorReview',
+  'generating',
   'episodeReady',
 ]
 
@@ -181,11 +183,15 @@ export interface ShotVideo {
   audioUrl?: string
   narration?: string
   error?: string
+  lastFrameUrl?: string
+  coverUrl?: string
 }
 
 export interface Production {
   idea: string
   ideaTitle: string
+  seriesId?: string // the published series' id (once published)
+  seriesName?: string // the published series' name (once published)
   genre: string | null
   artStyle: string | null
   episodeLength: number | null
@@ -216,6 +222,7 @@ interface PipelineState {
   percent: number // overall episode-generation percent
   videoProgress: { done: number; total: number; percent: number } // averaged video-gen sub-progress
   audioTriggered: boolean // guard: audio continuation kicked off this session
+  coversTriggered: boolean // guard: shot-cover backfill kicked off this session
   plan: PlanResult | null // step 5 review data
   production: Production | null // step 6 data (fills as calls complete)
 }
@@ -231,6 +238,7 @@ const getInitialPipeline = (): PipelineState => ({
   percent: 0,
   videoProgress: { done: 0, total: 0, percent: 0 },
   audioTriggered: false,
+  coversTriggered: false,
   plan: null,
   production: null,
 })
@@ -239,12 +247,12 @@ const getInitialPipeline = (): PipelineState => ({
 
 interface QuickCreateState {
   step: number
+  publishOpen: boolean // the Publish Episode page (a full-screen view over the wizard)
   idea: string
   ideaTitle: string // short series name (from template / generation / filename)
   genreId: string | null
   artStyleId: string | null
   episodeLength: number | null
-  testMode: boolean // skip cover generation, reuse the story cover for all episodes
   templates: StarterTemplate[]
   templatesLoaded: boolean
   pipeline: PipelineState
@@ -252,12 +260,12 @@ interface QuickCreateState {
 
 const getInitialState = (): QuickCreateState => ({
   step: 1,
+  publishOpen: false,
   idea: '',
   ideaTitle: '',
   genreId: null,
   artStyleId: null,
   episodeLength: 30,
-  testMode: false,
   templates: [],
   templatesLoaded: false,
   pipeline: getInitialPipeline(),
@@ -283,6 +291,8 @@ export const quickCreateStoreActions = {
   next: () => setState('step', (s) => Math.min(s + 1, QUICK_CREATE_STEPS)),
   back: () => setState('step', (s) => Math.max(s - 1, 1)),
   goToStep: (step: number) => setState({ step }),
+  openPublish: () => setState({ publishOpen: true }),
+  closePublish: () => setState({ publishOpen: false }),
   setIdea: (idea: string) => setState({ idea }),
   setIdeaTitle: (ideaTitle: string) => setState({ ideaTitle }),
   // Apply a story (prompt + its title) from a template / generation / upload
@@ -290,7 +300,6 @@ export const quickCreateStoreActions = {
   selectGenre: (genreId: string) => setState({ genreId }),
   selectArtStyle: (artStyleId: string) => setState({ artStyleId }),
   selectEpisodeLength: (episodeLength: number) => setState({ episodeLength }),
-  setTestMode: (testMode: boolean) => setState({ testMode }),
   // Load starter-story templates from the DB (once)
   loadTemplates: async () => {
     if (state.templatesLoaded) return
@@ -324,7 +333,6 @@ export const quickCreateStoreActions = {
         art_style: state.artStyleId,
         episode_length: state.episodeLength,
         target_audience: '',
-        testMode: state.testMode,
         storyCover: getStoryCover(),
       })
     } catch (error) {
@@ -398,7 +406,9 @@ export const quickCreateStoreActions = {
   },
 
   // Resume an existing episode job (opened from My Series) directly at step 6.
-  resumeEpisode: async (jobId: string) => {
+  // toReady: land on step 7 ("Episode N is Ready") instead of step 6 — used when
+  // opening an already-published production from My Series.
+  resumeEpisode: async (jobId: string, toReady = false) => {
     setState('pipeline', {
       ...getInitialPipeline(),
       running: true,
@@ -425,6 +435,7 @@ export const quickCreateStoreActions = {
       }
       if (job.status === 'done') {
         finishEpisode(job)
+        if (toReady) setState('step', 7)
         return
       }
       if (job.status === 'error') {
@@ -687,6 +698,8 @@ const finishEpisode = (job: ProductionJob) => {
     production: {
       idea: state.idea || job.idea || '',
       ideaTitle: job.ideaTitle || job.title || state.ideaTitle,
+      seriesId: job.seriesId,
+      seriesName: job.seriesName,
       genre: job.genre ?? state.genreId,
       artStyle: job.artStyle ?? state.artStyleId,
       episodeLength: job.episodeLength ?? state.episodeLength,
@@ -696,6 +709,47 @@ const finishEpisode = (job: ProductionJob) => {
       episodeVideo: job.episodeVideo || '',
     },
   })
+  maybeBackfillCovers(state.pipeline.episodeJobId || state.pipeline.jobId)
+}
+
+// A rendered shot that has a video but no saved cover thumbnail yet
+const shotsMissingCovers = (videos?: ShotVideo[]): boolean =>
+  (videos || []).some((v) => (v.audioUrl || v.url) && !v.coverUrl)
+
+// For older productions rendered before covers were saved: on step 6, once the shot
+// videos are loaded, kick off a background backfill (once) and refresh the store as the
+// covers land so the publish picker shows real thumbnails.
+const maybeBackfillCovers = (jobId: string | null) => {
+  if (!jobId || state.pipeline.coversTriggered) return
+  if (!shotsMissingCovers(state.pipeline.production?.videos)) return
+  setState('pipeline', 'coversTriggered', true)
+  startCoverBackfill(jobId)
+    .then(() => pollCovers(jobId))
+    .catch((e) => console.error('cover backfill failed:', e))
+}
+
+// Poll the production a few times to pick up covers as the backfill saves them
+const pollCovers = async (jobId: string): Promise<void> => {
+  for (let i = 0; i < 20; i++) {
+    await sleep(4000)
+    if (state.pipeline.episodeJobId !== jobId || !state.pipeline.production) return
+    let job: ProductionJob
+    try {
+      job = await fetchProductionStatus(jobId)
+    } catch {
+      continue
+    }
+    if (state.pipeline.episodeJobId !== jobId || !state.pipeline.production) return
+    if (job.videos) {
+      setState(
+        'pipeline',
+        'production',
+        'videos',
+        reconcile(job.videos as ShotVideo[], { key: 'shot_id' }),
+      )
+    }
+    if (!shotsMissingCovers(job.videos as ShotVideo[])) return
+  }
 }
 
 // Populate step-6 state from a job doc when resuming (from My Series)
@@ -706,6 +760,8 @@ const hydrateEpisodeFromJob = (job: ProductionJob) => {
     production: {
       idea: job.idea || '',
       ideaTitle: title,
+      seriesId: job.seriesId,
+      seriesName: job.seriesName,
       genre: job.genre ?? null,
       artStyle: job.artStyle ?? null,
       episodeLength: job.episodeLength ?? null,

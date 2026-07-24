@@ -19,13 +19,13 @@ export const formatTime = (seconds: number): string => {
 }
 
 export const getEpisodeThumbnailUrl = (episode: Episode, isHovered: boolean): string => {
-  if (episode.videoId) {
-    const baseUrl = 'https://vz-918d4e7e-1fb.b-cdn.net'
-    return isHovered
-      ? `${baseUrl}/${episode.videoId}/preview.webp`
-      : `${baseUrl}/${episode.videoId}/thumbnail.jpg`
-  }
-  return episode.thumbnail || ''
+  const baseUrl = 'https://vz-918d4e7e-1fb.b-cdn.net'
+  // Hover shows Bunny's animated preview when available.
+  if (isHovered && episode.videoId) return `${baseUrl}/${episode.videoId}/preview.webp`
+  // A custom thumbnail (e.g. chosen at publish time) wins over Bunny's auto-generated one.
+  if (episode.thumbnail) return episode.thumbnail
+  if (episode.videoId) return `${baseUrl}/${episode.videoId}/thumbnail.jpg`
+  return ''
 }
 
 export const getEpisodeRanges = (episodesLength: number): [number, number][] => {

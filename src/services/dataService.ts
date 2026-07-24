@@ -446,6 +446,9 @@ export interface ProductionJob {
   mode?: 'plan' | 'episode'
   status: 'pending' | 'running' | 'done' | 'error'
   error?: string
+  seriesId?: string // set once the production's Episode 1 has been published as a series
+  seriesName?: string // the published series' name
+  seriesCover?: string // the published series' cover
   title?: string
   cover?: string
   percent?: number
@@ -463,8 +466,12 @@ export interface ProductionJob {
     audioUrl?: string
     narration?: string
     error?: string
+    lastFrameUrl?: string
+    coverUrl?: string
   }[]
   episodeVideo?: string
+  randomFrames?: { id: string; urls: string[] }
+  coverGen?: { id: string; url: string; error?: boolean }
   idea?: string
   ideaTitle?: string
   genre?: string | null
@@ -527,6 +534,114 @@ export const startAudioJob = async (jobId: string): Promise<void> => {
   })
   if (!res.ok && res.status !== 202) {
     throw new Error(`Failed to start audio generation (${res.status})`)
+  }
+}
+
+// Backfill missing shot cover thumbnails for an existing production (older jobs that
+// rendered before covers were saved). Fire-and-forget background job.
+export const startCoverBackfill = async (jobId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-covers-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start cover backfill (${res.status})`)
+  }
+}
+
+// Upload a cover image (data URL) to Cloudinary; returns the hosted URL
+export const uploadCoverImage = async (dataUrl: string): Promise<string> => {
+  const result = await apiPostWithAuth<{ url: string }>('uploadImage', {
+    image: dataUrl,
+    folder: 'GCash/quick create/covers',
+  })
+  if (!result.success || !result.data) {
+    throw new Error(result.error || 'Failed to upload image')
+  }
+  return result.data.url
+}
+
+// AI Generate: start series-cover generation in the background (image generation is too
+// slow for a sync request). Result lands on the job as coverGen = { id: reqId, url }.
+export const startCoverGen = async (
+  jobId: string,
+  reqId: string,
+  payload: { name: string; description: string; genres: string[]; artStyle: string },
+): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-cover-gen-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId, reqId, ...payload }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start cover generation (${res.status})`)
+  }
+}
+
+// AI Suggest: generate a series or episode description from the current context
+export const suggestDescription = async (payload: {
+  type: 'series' | 'episode'
+  seriesName: string
+  episodeTitle?: string
+  currentDesc: string
+  genres: string[]
+}): Promise<string> => {
+  const result = await apiPost<{ description: string }>('suggestDescription', payload)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || 'Failed to generate description')
+  }
+  return result.data.description
+}
+
+// Publish a Quick Create production's Episode 1 as a series (creates the series +
+// uploads the video to Bunny on first publish; updates the series on later publishes).
+export interface PublishEpisodeResult {
+  seriesId: string
+  created: boolean
+}
+export const publishQuickCreateEpisode = async (payload: {
+  jobId: string
+  name: string
+  description: string
+  cover: string
+  tags: string[]
+  episodeTitle: string
+  episodeDescription: string
+  thumbnail: string
+}): Promise<PublishEpisodeResult> => {
+  const result = await apiPostWithAuth<PublishEpisodeResult>('publishQuickCreateEpisode', payload)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || 'Failed to publish episode')
+  }
+  return result.data
+}
+
+// Extract random frames from the episode video for the "Random Frame" thumbnail picker.
+// Fire-and-forget; the result lands on the job as randomFrames = { id: reqId, urls }.
+export const startRandomFrames = async (jobId: string, reqId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-random-frames-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId, reqId }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start random-frame extraction (${res.status})`)
   }
 }
 

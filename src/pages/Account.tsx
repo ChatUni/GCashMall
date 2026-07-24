@@ -1142,6 +1142,7 @@ function MyPurchasesSection() {
 function ProductionCard(props: {
   production: ProductionJob
   translations: Record<string, string>
+  published?: boolean
   onClick: () => void
 }) {
   const percent = () => {
@@ -1151,24 +1152,27 @@ function ProductionCard(props: {
     return Math.round((calls.filter((c) => c.status === 'done').length / calls.length) * 100)
   }
   const statusText = () => {
+    if (props.published) return props.translations.productionPublished || 'Published'
     if (props.production.status === 'done') return props.translations.productionReady || 'Episode 1 ready'
     if (props.production.status === 'error') return props.translations.productionFailed || 'Generation failed'
     return `${props.translations.productionGenerating || 'Generating'} ${percent()}%`
   }
 
+  // Published productions show the published series cover; otherwise the production cover
+  const cover = () => props.production.seriesCover || props.production.cover
   return (
     <button class="production-card" onClick={props.onClick}>
       <div class="production-card-cover">
-        <Show when={props.production.cover} fallback={<div class="production-card-placeholder">✨</div>}>
-          <img src={props.production.cover} alt={props.production.title || ''} loading="lazy" />
+        <Show when={cover()} fallback={<div class="production-card-placeholder">✨</div>}>
+          <img src={cover()} alt={props.production.title || ''} loading="lazy" />
         </Show>
         <Show when={props.production.status !== 'done'}>
           <div class="production-card-badge">{percent()}%</div>
         </Show>
       </div>
       <div class="production-card-body">
-        <span class="production-card-title">{props.production.title || props.production.ideaTitle || 'Untitled Series'}</span>
-        <span class={`production-card-status ${props.production.status}`}>{statusText()}</span>
+        <span class="production-card-title">{props.production.seriesName || props.production.title || props.production.ideaTitle || 'Untitled Series'}</span>
+        <span class={`production-card-status ${props.published ? 'done' : props.production.status}`}>{statusText()}</span>
         <Show when={props.production.status !== 'done'}>
           <div class="production-card-track">
             <div class="production-card-fill" style={{ width: `${percent()}%` }} />
@@ -1182,9 +1186,13 @@ function ProductionCard(props: {
 function MySeriesSection() {
   const navigate = useNavigate()
   const mySeries = () => (t().account.mySeries || {}) as Record<string, string>
-  const [activeSubTab, setActiveSubTab] = createSignal<'quickCreate' | 'uploaded' | 'revenue'>(
-    'quickCreate',
-  )
+  const [activeSubTab, setActiveSubTab] = createSignal<
+    'quickCreate' | 'published' | 'uploaded' | 'revenue'
+  >('quickCreate')
+
+  // A production moves from Quick Create → Published once its Episode 1 is published
+  const quickCreateProductions = () => accountStore.myProductions.filter((p) => !p.seriesId)
+  const publishedProductions = () => accountStore.myProductions.filter((p) => p.seriesId)
 
   // Fetch revenue data when revenue tab is selected
   createEffect(() => {
@@ -1235,6 +1243,12 @@ function MySeriesSection() {
               ✨ {mySeries().quickCreateGroup || 'Quick Create'}
             </button>
             <button
+              class={`my-series-tab ${activeSubTab() === 'published' ? 'active' : ''}`}
+              onClick={() => setActiveSubTab('published')}
+            >
+              🚀 {mySeries().publishedTab || 'Published'}
+            </button>
+            <button
               class={`my-series-tab ${activeSubTab() === 'uploaded' ? 'active' : ''}`}
               onClick={() => setActiveSubTab('uploaded')}
             >
@@ -1248,9 +1262,9 @@ function MySeriesSection() {
             </button>
           </div>
 
-          {/* Quick Create Tab */}
+          {/* Quick Create Tab (unpublished productions) */}
           <Show when={activeSubTab() === 'quickCreate'}>
-            <Show when={accountStore.myProductions.length > 0} fallback={
+            <Show when={quickCreateProductions().length > 0} fallback={
               <EmptyState
                 icon="✨"
                 title={mySeries().quickCreateEmptyTitle || 'No creations yet'}
@@ -1263,12 +1277,40 @@ function MySeriesSection() {
               />
             }>
               <div class="content-grid">
-                <For each={accountStore.myProductions}>
+                <For each={quickCreateProductions()}>
                   {(prod) => (
                     <ProductionCard
                       production={prod}
                       translations={mySeries()}
                       onClick={() => navigate(`/quick-create?production=${prod.jobId}`)}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Show>
+
+          {/* Published Tab (productions published as a series) */}
+          <Show when={activeSubTab() === 'published'}>
+            <Show when={publishedProductions().length > 0} fallback={
+              <EmptyState
+                icon="🚀"
+                title={mySeries().publishedEmptyTitle || 'Nothing published yet'}
+                subtext={mySeries().publishedEmptySubtext || 'Publish an episode to share it with the world'}
+                buttonText=""
+                onButtonClick={() => {}}
+              />
+            }>
+              <div class="content-grid">
+                <For each={publishedProductions()}>
+                  {(prod) => (
+                    <ProductionCard
+                      production={prod}
+                      translations={mySeries()}
+                      published
+                      onClick={() =>
+                        navigate(`/quick-create?production=${prod.jobId}&view=ready`)
+                      }
                     />
                   )}
                 </For>

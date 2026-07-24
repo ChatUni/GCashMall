@@ -1890,6 +1890,177 @@ const deleteVideo = async (body) => {
   }
 }
 
+// Tell Bunny to fetch/ingest a video from a public URL (used for Quick Create episodes,
+// whose video already lives on Cloudinary — no local File to PUT). Async on Bunny's side.
+const fetchBunnyVideoFromUrl = async (videoId, url) => {
+  const response = await fetch(
+    `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}/fetch`,
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        AccessKey: BUNNY_API_KEY,
+      },
+      body: JSON.stringify({ url }),
+    },
+  )
+  if (!response.ok) {
+    throw new Error(`Bunny fetch failed: ${response.statusText}`)
+  }
+}
+
+// Set a custom thumbnail (from a public image URL) on a Bunny video.
+const setBunnyThumbnail = async (videoId, thumbnailUrl) => {
+  const response = await fetch(
+    `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}/thumbnail?thumbnailUrl=${encodeURIComponent(thumbnailUrl)}`,
+    { method: 'POST', headers: { Accept: 'application/json', AccessKey: BUNNY_API_KEY } },
+  )
+  if (!response.ok) {
+    throw new Error(`Bunny thumbnail failed: ${response.statusText}`)
+  }
+}
+
+const toTitleCase = (s) =>
+  String(s || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Map tag strings to genre ids, creating any missing genre (title-cased). Tags and
+// genres are the same thing on a series. Returns { ids, names } deduped in input order.
+const resolveGenres = async (tags) => {
+  const ids = []
+  const names = []
+  const seen = new Set()
+  for (const raw of tags || []) {
+    const name = toTitleCase(raw)
+    const key = name.toLowerCase()
+    if (!name || seen.has(key)) continue
+    seen.add(key)
+    const existing = await get(
+      'genre',
+      { name: { $regex: `^${escapeRegex(name)}$`, $options: 'i' } },
+      {},
+      {},
+      1,
+    )
+    if (existing && existing.length > 0) {
+      ids.push(existing[0]._id)
+      names.push(existing[0].name)
+    } else {
+      const res = await save('genre', { name })
+      ids.push(res.insertedId)
+      names.push(name)
+    }
+  }
+  return { ids, names }
+}
+
+// Publish a Quick Create production's Episode 1 as a real series (same result as the
+// "upload series" flow). First publish: create the Bunny video (fetched from the
+// production's Cloudinary episode video), create the series with Episode 1, and link the
+// series back to the production. Subsequent publishes: update the series metadata +
+// episode title/thumbnail WITHOUT re-uploading the video.
+const publishQuickCreateEpisode = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  await validateUploadPermission(userId)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+  if (!body.name || typeof body.name !== 'string') throw new Error('Series name is required')
+
+  const docs = await get('productions', { jobId: body.jobId }, {}, {}, 1)
+  if (!docs || docs.length === 0) throw new Error('Production not found')
+  const doc = docs[0]
+  if (String(doc.userId) !== String(userId)) {
+    throw new Error('You are not authorized to publish this production')
+  }
+
+  const tags = Array.isArray(body.tags) ? body.tags : []
+  const episodeTitle = body.episodeTitle || 'Episode 1'
+  // Tags are genres: resolve to genre ids (creating any that don't exist yet).
+  const { ids: genreIds, names: genreNames } = await resolveGenres(tags)
+
+  // ── Update path: the series already exists (re-publish) — no video re-upload ──
+  if (doc.seriesId) {
+    const existing = await get('series', { _id: new ObjectId(String(doc.seriesId)) }, {}, {}, 1)
+    if (existing && existing.length > 0) {
+      const series = existing[0]
+      if (String(series.uploaderId) !== String(userId)) {
+        throw new Error('You are not authorized to edit this series')
+      }
+      series.name = body.name
+      series.description = body.description || ''
+      if (body.cover) series.cover = body.cover
+      series.tags = genreNames
+      series.genre = genreIds
+      const ep = (series.episodes || []).find((e) => e.episodeNumber === 1)
+      if (ep) {
+        ep.title = episodeTitle
+        if (body.episodeDescription !== undefined) ep.description = body.episodeDescription
+        if (body.thumbnail) {
+          ep.thumbnail = body.thumbnail
+          if (ep.videoId) {
+            await setBunnyThumbnail(ep.videoId, body.thumbnail).catch((e) =>
+              console.error('setBunnyThumbnail failed:', e.message),
+            )
+          }
+        }
+      }
+      series.updatedAt = new Date()
+      await save('series', series)
+      await update(
+        'productions',
+        { jobId: body.jobId },
+        { $set: { seriesName: body.name, seriesCover: series.cover || '', updatedAt: new Date() } },
+      )
+      return { success: true, data: { seriesId: String(series._id), created: false } }
+    }
+    // series was deleted — fall through and create a fresh one
+  }
+
+  // ── Create path: first publish ──
+  if (!doc.episodeVideo) throw new Error('Episode video is not ready yet')
+
+  const videoId = await createBunnyVideo(episodeTitle)
+  await fetchBunnyVideoFromUrl(videoId, doc.episodeVideo)
+  if (body.thumbnail) {
+    await setBunnyThumbnail(videoId, body.thumbnail).catch((e) =>
+      console.error('setBunnyThumbnail failed:', e.message),
+    )
+  }
+
+  const seriesDoc = {
+    name: body.name,
+    description: body.description || '',
+    cover: body.cover || '',
+    tags: genreNames,
+    genre: genreIds,
+    uploaderId: new ObjectId(userId),
+    shelved: false,
+    episodes: [
+      {
+        episodeNumber: 1,
+        title: episodeTitle,
+        description: body.episodeDescription || '',
+        thumbnail: body.thumbnail || body.cover || '',
+        videoId,
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+  const result = await save('series', seriesDoc)
+  const seriesId = result.insertedId || seriesDoc._id
+  await update(
+    'productions',
+    { jobId: body.jobId },
+    { $set: { seriesId, seriesName: body.name, seriesCover: body.cover || '', updatedAt: new Date() } },
+  )
+  return { success: true, data: { seriesId: String(seriesId), created: true } }
+}
+
 const validateUploadVideoBody = (body) => {
   if (!body) {
     throw new Error('Request body is required')
@@ -2206,11 +2377,11 @@ const addPurchase = async (body, authHeader) => {
       const episode = series.episodes.find(ep => ep.episodeNumber === episodeNumber)
       if (episode) {
         episodeTitle = episode.title || episodeTitle
-        // Get episode thumbnail from Bunny CDN using videoId
-        if (episode.videoId) {
-          episodeThumbnail = `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
-        } else if (episode.thumbnail) {
+        // A custom thumbnail (chosen at publish time) wins over Bunny's auto-generated one
+        if (episode.thumbnail) {
           episodeThumbnail = episode.thumbnail
+        } else if (episode.videoId) {
+          episodeThumbnail = `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
         }
         actualEpisodeId = episode._id || `${seriesId}-ep${episodeNumber}`
       }
@@ -3141,6 +3312,7 @@ export {
   deleteImage,
   uploadVideo,
   deleteVideo,
+  publishQuickCreateEpisode,
   getFeaturedSeries,
   getRecommendations,
   getVideoFeed,
@@ -3193,6 +3365,7 @@ export {
   getTemplates,
   extractStory,
   generateStoryPrompt,
+  suggestDescription,
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
@@ -3896,6 +4069,62 @@ const generateStoryPrompt = async (body) => {
     return { success: true, data: { title, text } }
   } catch (error) {
     throw new Error(`Failed to generate story: ${error.message}`)
+  }
+}
+
+// AI Suggest: generate a series or episode description from the current context.
+const suggestDescription = async (body) => {
+  const isEpisode = body?.type === 'episode'
+  const seriesName = (body?.seriesName || '').trim()
+  const episodeTitle = (body?.episodeTitle || '').trim()
+  const currentDesc = (body?.currentDesc || '').trim()
+  const genres = Array.isArray(body?.genres) ? body.genres.filter(Boolean) : []
+
+  const system = isEpisode
+    ? 'You are a copywriter for an anime streaming platform. Write ONE vivid episode description (2-3 sentences, roughly 40-60 words) that entices viewers to watch. Output only the description text — no title, no quotes, no markdown, no preamble.'
+    : 'You are a copywriter for an anime streaming platform. Write ONE compelling series description / logline (2-3 sentences, roughly 40-60 words) that hooks viewers. Output only the description text — no title, no quotes, no markdown, no preamble.'
+
+  const ctx = [
+    seriesName ? `Series name: ${seriesName}` : '',
+    genres.length ? `Genres: ${genres.join(', ')}` : '',
+    isEpisode && episodeTitle ? `Episode title: ${episodeTitle}` : '',
+    currentDesc ? `Current description (rewrite/improve, keep the same story): ${currentDesc}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+        messages: [
+          { role: 'system', content: system },
+          {
+            role: 'user',
+            content: `Write a ${isEpisode ? 'episode' : 'series'} description.\n\n${ctx}`,
+          },
+        ],
+        temperature: 0.9,
+      }),
+    })
+    if (!res.ok) {
+      throw new Error(`OpenAI error (${res.status}): ${(await res.text()).slice(0, 300)}`)
+    }
+    const data = await res.json()
+    const description = (data.choices?.[0]?.message?.content || '')
+      .trim()
+      .replace(/^["']|["']$/g, '')
+    if (!description) {
+      return { success: false, error: 'Could not generate a description. Please try again.' }
+    }
+    return { success: true, data: { description } }
+  } catch (error) {
+    throw new Error(`Failed to generate description: ${error.message}`)
   }
 }
 

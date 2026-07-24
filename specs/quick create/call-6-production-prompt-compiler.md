@@ -53,6 +53,8 @@ Never ask a video model to generate a full episode in one prompt.
 
 CRITICAL — shot count: the "shot_prompts" array MUST contain exactly one object for EVERY shot in the input's updated_shot_graph.shots (fall back to shot_graph.shots), in the same order and using the same shot_id. That is typically 5–8 shots. Never return a single shot_prompt, never merge shots, and never output fewer shot_prompts than there are shots in the shot graph. The example in the schema shows the shape of ONE element only — replicate it for every shot.
 
+CRITICAL — scene_id: each shot_prompt MUST include a "scene_id" that groups shots belonging to the same continuous scene. Derive it from the input shot's "scene" value in updated_shot_graph.shots (fall back to shot_graph.shots) — e.g. scene 1 → "scene_1". Every shot with the same "scene" value MUST get the same scene_id, and a change of scene MUST change the scene_id. This drives shot-to-shot rendering continuity, so it must be accurate.
+
 CRITICAL — character count: the "character_consistency_package" array MUST contain exactly one entry for EVERY character in the input's character_blueprint (from the Character Designer), using the same id and name. If the Character Designer produced 3 characters, output 3 entries. Never drop, merge, or omit a character, and never return only one. The example in the schema shows the shape of ONE character only — replicate it for every character.
 
 Optimize for:
@@ -156,6 +158,7 @@ Return valid JSON only.
       {
         "shot_id": "shot_001",
         "shot_number": 1,
+        "scene_id": "scene_1",
         "duration_seconds": 8,
         "shot_purpose": "",
         "story_context": "",

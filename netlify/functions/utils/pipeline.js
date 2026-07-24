@@ -3,13 +3,7 @@
 // collection (markdown, editable by admins); we parse it and call OpenAI in JSON mode.
 
 import { get } from './db.js'
-import { v2 as cloudinary } from 'cloudinary'
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET,
-})
+import { generateImage } from './openaiImage.js'
 
 // Order of the 6 pipeline calls
 export const PIPELINE_CALL_KEYS = [
@@ -99,29 +93,4 @@ export const runOneCall = async (callKey, input) => {
 }
 
 // Generate an episode cover image (OpenAI) and store it in Cloudinary; return the URL
-export const generateCover = async (prompt) => {
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1',
-      prompt,
-      size: '1024x1024',
-      n: 1,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(`OpenAI image error (${res.status}): ${(await res.text()).slice(0, 300)}`)
-  }
-  const data = await res.json()
-  const b64 = data.data?.[0]?.b64_json
-  if (!b64) throw new Error('No image was returned')
-
-  const uploaded = await cloudinary.uploader.upload(`data:image/png;base64,${b64}`, {
-    folder: 'GCash/quick create/covers',
-  })
-  return uploaded.secure_url
-}
+export const generateCover = (prompt) => generateImage(prompt, 'GCash/quick create/covers')

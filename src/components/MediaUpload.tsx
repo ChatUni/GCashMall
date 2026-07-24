@@ -1,7 +1,42 @@
 import { createSignal, createEffect, onCleanup, Show, Switch, Match } from 'solid-js'
+import { t } from '../stores/languageStore'
+import { toastStoreActions } from '../stores'
 import './MediaUpload.css'
 
 type MediaMode = 'image' | 'video'
+
+// Upload limits: cover image ≤ 1 MB and ≤ 1280×1280; episode video ≤ 100 MB
+const MAX_IMAGE_BYTES = 1024 * 1024
+const MAX_IMAGE_DIM = 1280
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
+const se = () => t().seriesEdit as unknown as Record<string, string>
+
+// Returns an error message if the file violates the limits, else null
+const validateMediaFile = (file: File, mode: MediaMode): Promise<string | null> => {
+  if (mode === 'video') {
+    return Promise.resolve(file.size > MAX_VIDEO_BYTES ? se().videoTooLarge : null)
+  }
+  if (!file.type.startsWith('image/')) return Promise.resolve(se().coverNotImage)
+  if (file.size > MAX_IMAGE_BYTES) return Promise.resolve(se().coverTooLarge)
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve(
+        img.naturalWidth > MAX_IMAGE_DIM || img.naturalHeight > MAX_IMAGE_DIM
+          ? se().coverTooBig
+          : null,
+      )
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(se().coverNotImage)
+    }
+    img.src = url
+  })
+}
 
 interface MediaUploadProps {
   mode: MediaMode
@@ -36,11 +71,16 @@ const MediaUpload = (props: MediaUploadProps) => {
     fileInputRef?.click()
   }
 
-  const handleFileChange = (event: Event & { currentTarget: HTMLInputElement }) => {
+  const handleFileChange = async (event: Event & { currentTarget: HTMLInputElement }) => {
     const file = event.currentTarget.files?.[0]
-    if (file) {
-      processSelectedFile(file)
+    event.currentTarget.value = '' // allow re-picking the same file after an error
+    if (!file) return
+    const error = await validateMediaFile(file, props.mode)
+    if (error) {
+      toastStoreActions.show(error, 'error')
+      return
     }
+    processSelectedFile(file)
   }
 
   const processSelectedFile = (file: File) => {

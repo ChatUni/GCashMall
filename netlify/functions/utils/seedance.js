@@ -72,9 +72,27 @@ const buildText = (req) => {
   return `${req.prompt} --resolution ${res} --ratio ${ratio} --duration ${dur} --watermark false`
 }
 
+// Build the ARK `content` array.
+// - firstFrameUrl → image-to-video: the clip starts from that frame (role: first_frame),
+//   giving shot-to-shot continuity within a scene.
+// - referenceImages → canonical character reference images (role: reference_image) so the
+//   character's identity stays consistent, especially on the opening shot of a scene.
+// With neither, it's plain text-to-video.
+const buildContent = (req, { firstFrameUrl, referenceImages } = {}) => {
+  const content = [{ type: 'text', text: buildText(req) }]
+  if (firstFrameUrl) {
+    content.push({ type: 'image_url', image_url: { url: firstFrameUrl }, role: 'first_frame' })
+  }
+  for (const url of (referenceImages || []).slice(0, 4)) {
+    if (url) content.push({ type: 'image_url', image_url: { url }, role: 'reference_image' })
+  }
+  return content
+}
+
 // Create a video-generation task; returns { taskId, base }. Auto-detects the region
-// by retrying known bases when a base rejects the key with 401/403.
-export const createVideoTask = async (req) => {
+// by retrying known bases when a base rejects the key with 401/403. firstFrameUrl seeds
+// the shot from a start image (frame chaining); referenceImages anchor character identity.
+export const createVideoTask = async (req, { firstFrameUrl, referenceImages } = {}) => {
   if (!KEY) throw new Error('SEEDANCE_API_KEY is not configured')
   const bases = resolvedBase ? [resolvedBase] : candidateBases()
   let lastAuthError = ''
@@ -83,7 +101,10 @@ export const createVideoTask = async (req) => {
     const res = await fetch(`${base}/contents/generations/tasks`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ model: MODEL, content: [{ type: 'text', text: buildText(req) }] }),
+      body: JSON.stringify({
+        model: MODEL,
+        content: buildContent(req, { firstFrameUrl, referenceImages }),
+      }),
     })
 
     if (res.status === 401 || res.status === 403) {
@@ -145,9 +166,9 @@ const estimateProgress = (status, elapsedMs) => {
 // (if given) is called each poll with the task's progress 0–100.
 export const generateVideo = async (
   req,
-  { timeoutMs = 8 * 60 * 1000, intervalMs = 6000, onProgress } = {},
+  { timeoutMs = 8 * 60 * 1000, intervalMs = 6000, onProgress, firstFrameUrl, referenceImages } = {},
 ) => {
-  const { taskId, base } = await createVideoTask(req)
+  const { taskId, base } = await createVideoTask(req, { firstFrameUrl, referenceImages })
   const startedAt = Date.now()
   onProgress?.(6)
 

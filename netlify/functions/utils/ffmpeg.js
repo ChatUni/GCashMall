@@ -73,6 +73,40 @@ export const muxAudioOntoVideo = async ({ videoPath, narrationPath, bgmPath, out
 }
 
 // Concatenate videos into one (re-encoded, since sources may differ slightly).
+// Extract a frame near the very end of a video as a JPEG. Used for frame-chaining:
+// the last frame of one shot seeds the next shot's first-frame image. -sseof seeks
+// relative to end-of-file so we grab the final rendered frame cheaply.
+export const extractLastFrame = async ({ videoPath, outPath }) => {
+  await run(['-sseof', '-0.2', '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
+}
+
+// Extract a representative cover frame (a little past the start, to skip any fade-in)
+// as a JPEG. Used to save a static thumbnail for each generated shot.
+export const extractCoverFrame = async ({ videoPath, outPath }) => {
+  await run(['-ss', '0.5', '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
+}
+
+// Extract a single frame at a given timestamp (seconds) as a JPEG.
+export const extractFrameAt = async ({ videoPath, seconds, outPath }) => {
+  await run(['-ss', String(seconds), '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
+}
+
+// Read a video's duration (seconds) by parsing ffmpeg's own stderr banner — avoids
+// needing ffprobe (not shipped by ffmpeg-static). Resolves 0 if it can't be determined.
+export const probeDuration = ({ videoPath }) =>
+  new Promise((resolve) => {
+    const proc = spawn(ffmpegPath, ['-i', videoPath], { stdio: ['ignore', 'ignore', 'pipe'] })
+    let err = ''
+    proc.stderr.on('data', (d) => {
+      err += d.toString()
+    })
+    proc.on('error', () => resolve(0))
+    proc.on('close', () => {
+      const m = err.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/)
+      resolve(m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + parseFloat(m[3]) : 0)
+    })
+  })
+
 export const concatVideos = async ({ paths, listPath, outPath }) => {
   const list = paths.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n')
   fs.writeFileSync(listPath, list)

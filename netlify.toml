@@ -16,6 +16,22 @@
   external_node_modules = ["ffmpeg-static"]
   included_files = ["node_modules/ffmpeg-static/**"]
 
+# The video function now also uses ffmpeg (extracting each shot's last frame to seed
+# the next shot for frame-chained continuity), so it needs the same external binary.
+[functions."pipeline-video-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
+# The cover-backfill function extracts a cover frame per shot with ffmpeg too.
+[functions."pipeline-covers-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
+# The random-frame picker extracts frames from the episode video with ffmpeg.
+[functions."pipeline-random-frames-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
 [dev]
   port = 8888
   framework = "#custom"

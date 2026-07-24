@@ -12,7 +12,7 @@
 
 import { get, save, update } from './utils/db.js'
 import jwt from 'jsonwebtoken'
-import { PIPELINE_CALL_KEYS, runOneCall, generateCover } from './utils/pipeline.js'
+import { PIPELINE_CALL_KEYS, runOneCall } from './utils/pipeline.js'
 import { runVideoGeneration } from './utils/videoJob.js'
 import { triggerBackground } from './utils/trigger.js'
 import { modelHasNativeAudio } from './utils/seedance.js'
@@ -35,9 +35,6 @@ const percentOf = (progress) => {
   const done = steps.filter((c) => c.status === 'done').length
   return steps.length ? Math.round((done / steps.length) * 100) : 0
 }
-
-const coverPrompt = (seriesTitle, ep, artStyle) =>
-  `Anime key visual cover art for the series "${seriesTitle}", Episode ${ep.n}: "${ep.title}". ${ep.desc} Art style: ${artStyle || 'modern anime'}. Cinematic lighting, vibrant colors, highly detailed, portrait poster composition, no text, no watermark.`
 
 const baseAcc = (body) => ({
   story: body.story,
@@ -95,20 +92,8 @@ const runPlan = async (jobId, userId, body) => {
     ideaTitle: seriesTitle,
   })
 
-  if (body.testMode) {
-    // Test mode: skip cover generation, reuse the story cover for every episode
-    for (const ep of episodes) ep.cover = body.storyCover || ''
-  } else {
-    await Promise.all(
-      episodes.map(async (ep, idx) => {
-        try {
-          episodes[idx].cover = await generateCover(coverPrompt(seriesTitle, ep, body.art_style))
-        } catch (error) {
-          console.error(`Cover ${ep.n} failed:`, error.message)
-        }
-      }),
-    )
-  }
+  // Reuse the story cover for every episode — no AI cover generation at the plan stage.
+  for (const ep of episodes) ep.cover = body.storyCover || ''
   progress.coverStatus = 'done'
 
   await updateJob(jobId, { progress, episodes, status: 'done', percent: 100 })
