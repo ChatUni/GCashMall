@@ -61,14 +61,15 @@ const authHeaders = () => ({
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Seedance renders fixed-length clips; snap the shot duration to 5 or 10 seconds
-const clampDuration = (seconds) => (Number(seconds) >= 8 ? 10 : 5)
+// Use the storyboard's per-shot duration, clamped to Seedance's supported range. The
+// reference/image-to-video model rejects clips shorter than 5s, so the floor is 5.
+const clampDuration = (seconds) => Math.max(5, Math.min(12, Math.round(Number(seconds) || 5)))
 
 // Seedance takes a single text prompt with command-style parameters appended
 const buildText = (req) => {
   const dur = clampDuration(req.duration_seconds)
   const ratio = req.aspect_ratio || '16:9'
-  const res = req.resolution || '1080p'
+  const res = req.resolution || '480p' // Quick Create defaults to 480p
   return `${req.prompt} --resolution ${res} --ratio ${ratio} --duration ${dur} --watermark false`
 }
 

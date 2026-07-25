@@ -51,7 +51,7 @@ Each shot prompt must describe only ONE cinematic shot.
 
 Never ask a video model to generate a full episode in one prompt.
 
-CRITICAL — shot count: the "shot_prompts" array MUST contain exactly one object for EVERY shot in the input's updated_shot_graph.shots (fall back to shot_graph.shots), in the same order and using the same shot_id. That is typically 5–8 shots. Never return a single shot_prompt, never merge shots, and never output fewer shot_prompts than there are shots in the shot graph. The example in the schema shows the shape of ONE element only — replicate it for every shot.
+CRITICAL — shot count: the "shot_prompts" array MUST contain exactly one object for EVERY shot in the input's updated_shot_graph.shots (fall back to shot_graph.shots), in the same order and using the same shot_id, carrying each shot's duration_seconds through unchanged. That is typically 2–4 shots for a ~20-second episode, each 5–10 seconds. Never return a single shot_prompt, never merge shots, and never output fewer shot_prompts than there are shots in the shot graph. The example in the schema shows the shape of ONE element only — replicate it for every shot.
 
 CRITICAL — scene_id: each shot_prompt MUST include a "scene_id" that groups shots belonging to the same continuous scene. Derive it from the input shot's "scene" value in updated_shot_graph.shots (fall back to shot_graph.shots) — e.g. scene 1 → "scene_1". Every shot with the same "scene" value MUST get the same scene_id, and a change of scene MUST change the scene_id. This drives shot-to-shot rendering continuity, so it must be accurate.
 
@@ -83,10 +83,10 @@ Return valid JSON only.
   "updated_shot_graph": {},
   "updated_production_graph": {},
   "updated_episode_state_graph": {},
-  "episode_length_seconds": 60,
+  "episode_length_seconds": 20,
   "art_style": "modern cinematic anime",
   "aspect_ratio": "16:9",
-  "resolution": "1080p",
+  "resolution": "480p",
   "fps": 24
 }
 ```
@@ -102,10 +102,10 @@ Return valid JSON only.
     "version": "1.0",
     "episode_id": "",
     "episode_title": "",
-    "runtime_seconds": 60,
+    "runtime_seconds": 20,
     "art_style": "",
     "aspect_ratio": "16:9",
-    "resolution": "1080p",
+    "resolution": "480p",
     "fps": 24,
     "global_style_prompt": "",
     "global_negative_prompt": [],
@@ -159,7 +159,7 @@ Return valid JSON only.
         "shot_id": "shot_001",
         "shot_number": 1,
         "scene_id": "scene_1",
-        "duration_seconds": 8,
+        "duration_seconds": 5,
         "shot_purpose": "",
         "story_context": "",
         "location": "",
@@ -193,10 +193,10 @@ Return valid JSON only.
       "transitions": [],
       "music_direction": "",
       "sound_design_direction": "",
-      "subtitle_required": false
+      "subtitle_required": true
     },
     "quality_validation": {
-      "runtime_total_seconds": 60,
+      "runtime_total_seconds": 20,
       "shot_count": 0,
       "character_consistency_ready": true,
       "world_consistency_ready": true,
@@ -326,10 +326,8 @@ Default negatives:
 
 ```json
 [
-  "text",
   "logo",
   "watermark",
-  "subtitles",
   "extra limbs",
   "deformed hands",
   "distorted face",
@@ -340,6 +338,8 @@ Default negatives:
   "low quality"
 ]
 ```
+
+Do NOT put "text", "subtitles", or "captions" in the negatives — every episode is rendered with burned-in subtitles, so on-screen subtitle text must be allowed.
 
 ## Quality Checklist
 
@@ -423,11 +423,11 @@ Return provider-specific prompts and parameters.
         "shot_id": "shot_001",
         "provider": "kling",
         "model": "",
-        "duration_seconds": 8,
+        "duration_seconds": 5,
         "prompt": "",
         "negative_prompt": "",
         "aspect_ratio": "16:9",
-        "resolution": "1080p",
+        "resolution": "480p",
         "fps": 24,
         "reference_images": [],
         "first_frame": null,

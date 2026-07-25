@@ -173,7 +173,7 @@ Return JSON only.
     }
   ],
   "validation": {
-    "runtime_seconds": 60,
+    "runtime_seconds": 20,
     "runtime_within_limit": true,
     "story_continuity_preserved": true,
     "character_consistency_preserved": true,
@@ -209,12 +209,16 @@ Not allowed:
 
 The episode should feel neither rushed nor slow.
 
-Allowed improvements:
+HARD SHOT CONSTRAINTS — never violate these:
 
-- Adjust shot durations.
+- Every shot's `duration_seconds` MUST stay between **5 and 10 seconds**. Never set a shot below 5s — the video model cannot render clips shorter than 5 seconds. If a shot is under 5s, MERGE it into an adjacent shot rather than keeping it.
+- Keep the whole episode to **2–4 shots** totaling ~`runtime_seconds` (~20 seconds). Do NOT split shots into more, shorter shots.
+
+Allowed improvements (within the constraints above):
+
+- Adjust shot durations (but never below 5s or above 10s).
 - Remove repetitive shots.
-- Merge two redundant shots.
-- Add one reaction shot if emotionally necessary.
+- Merge two redundant shots (preferred over splitting).
 - Improve scene transition.
 
 Not allowed:

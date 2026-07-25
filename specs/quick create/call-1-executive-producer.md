@@ -32,7 +32,7 @@ The Executive Producer should think like an experienced Netflix anime producer e
   "story": "{{user_story}}",
   "genre": "{{genre}}",
   "art_style": "{{art_style}}",
-  "episode_length": "{{30_or_60_seconds}}",
+  "episode_length": "20_seconds",
   "target_audience": "{{optional}}"
 }
 ```

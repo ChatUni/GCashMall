@@ -18,7 +18,7 @@ export type { StarterTemplate }
 // Steps 1-4 are inputs; step 5 is the AI Director review; step 6 is Episode 1
 // generation. The last step reachable via "Continue"/next is 4 (then step 4 runs
 // the plan and jumps to 5, and step 5 runs the episode and jumps to 6).
-export const QUICK_CREATE_STEPS = 7
+export const QUICK_CREATE_STEPS = 6
 
 // ── Mockup-generated images, hosted on Cloudinary (GCash/quick create folder) ──
 
@@ -65,7 +65,6 @@ export const STEPPER_KEYS = [
   'ideaInput',
   'chooseGenre',
   'artStyle',
-  'episodeLength',
   'directorReview',
   'generating',
   'episodeReady',
@@ -265,7 +264,7 @@ const getInitialState = (): QuickCreateState => ({
   ideaTitle: '',
   genreId: null,
   artStyleId: null,
-  episodeLength: 30,
+  episodeLength: 20, // fixed 20s episode (4 shots × 5s); no longer creator-selectable
   templates: [],
   templatesLoaded: false,
   pipeline: getInitialPipeline(),
@@ -299,7 +298,6 @@ export const quickCreateStoreActions = {
   applyStory: (idea: string, ideaTitle: string) => setState({ idea, ideaTitle }),
   selectGenre: (genreId: string) => setState({ genreId }),
   selectArtStyle: (artStyleId: string) => setState({ artStyleId }),
-  selectEpisodeLength: (episodeLength: number) => setState({ episodeLength }),
   // Load starter-story templates from the DB (once)
   loadTemplates: async () => {
     if (state.templatesLoaded) return
@@ -383,7 +381,7 @@ export const quickCreateStoreActions = {
         episodeVideo: '',
       },
     })
-    setState('step', 6)
+    setState('step', 5)
     try {
       await startProductionJob(jobId, {
         mode: 'episode',
@@ -416,7 +414,7 @@ export const quickCreateStoreActions = {
       jobId,
       episodeJobId: jobId,
     })
-    setState('step', 6)
+    setState('step', 5)
     try {
       const job = await fetchProductionStatus(jobId)
       if (state.pipeline.jobId !== jobId) return
@@ -435,7 +433,7 @@ export const quickCreateStoreActions = {
       }
       if (job.status === 'done') {
         finishEpisode(job)
-        if (toReady) setState('step', 7)
+        if (toReady) setState('step', 6)
         return
       }
       if (job.status === 'error') {
@@ -687,7 +685,7 @@ const finishPlan = (job: ProductionJob) => {
       episodes,
     },
   })
-  setState('step', 5)
+  setState('step', 4)
 }
 
 // Episode phase done → populate the full production for step 6
@@ -787,8 +785,6 @@ export const canAdvance = (): boolean => {
       return state.genreId !== null
     case 3:
       return state.artStyleId !== null
-    case 4:
-      return state.episodeLength !== null
     default:
       return true
   }

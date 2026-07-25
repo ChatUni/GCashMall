@@ -53,7 +53,7 @@ Downstream consumers:
   "episode_blueprint": {...},
   "screenplay": {...},
   "director_intent": {...},
-  "episode_length_seconds": 60
+  "episode_length_seconds": 20
 }
 ```
 
@@ -142,7 +142,7 @@ The Story Graph is used later for:
 
 ### Output 2 — Shot Graph
 
-Every shot becomes a production node. Produce **one shot object per planned shot — 5 to 8 shots** that together cover the whole episode (the example below shows 6). Do **not** return just one or two shots, and never leave a shot as a bare stub: every shot must be fully specified.
+Every shot becomes a production node. Produce a small number of shots that together cover the episode — **typically 2–4 shots for a ~20-second episode** (the example below shows 3). Each shot is **at least 5 and at most 10 seconds** — the video model cannot render clips shorter than 5 seconds, so never plan a shot under 5s. Prefer **fewer, longer shots** (roughly one per scene beat); do not split a scene into many tiny sub-shots. Never leave a shot as a bare stub: every shot must be fully specified.
 
 ```json
 {
@@ -150,74 +150,38 @@ Every shot becomes a production node. Produce **one shot object per planned shot
     {
       "shot_id": "shot_001",
       "scene": 1,
-      "duration_seconds": 10,
-      "purpose": "Establish the Dragon Academy",
-      "camera": "Wide Aerial",
+      "duration_seconds": 8,
+      "purpose": "Establish the Dragon Academy and reveal the sealed egg",
+      "camera": "Wide Aerial into Slow Push-In",
       "emotion": "Wonder",
       "characters": ["Riku"],
-      "location": "Academy Gate",
+      "location": "Egg Chamber",
       "continuity_notes": "Golden morning light; Riku in blue academy jacket",
       "depends_on": []
     },
     {
       "shot_id": "shot_002",
-      "scene": 1,
-      "duration_seconds": 8,
-      "purpose": "Reveal the sealed dragon egg",
-      "camera": "Slow Push-In",
-      "emotion": "Mystery",
+      "scene": 2,
+      "duration_seconds": 7,
+      "purpose": "Riku approaches and the egg cracks as the dragon stirs",
+      "camera": "Medium Push-In into Close-Up",
+      "emotion": "Shock",
       "characters": ["Riku"],
       "location": "Egg Chamber",
-      "continuity_notes": "Egg glows faintly; same jacket and hairstyle",
+      "continuity_notes": "Egg glows; same jacket and hairstyle; keep eye color consistent",
       "depends_on": ["shot_001"]
     },
     {
       "shot_id": "shot_003",
-      "scene": 2,
-      "duration_seconds": 10,
-      "purpose": "Introduce Riku among the other students",
-      "camera": "Medium",
-      "emotion": "Anticipation",
-      "characters": ["Riku", "Luna"],
-      "location": "Main Hall",
-      "continuity_notes": "Luna's first appearance; consistent character design",
-      "depends_on": ["shot_001"]
-    },
-    {
-      "shot_id": "shot_004",
       "scene": 3,
-      "duration_seconds": 8,
-      "purpose": "The egg cracks in reaction to Riku",
-      "camera": "Close-Up",
-      "emotion": "Shock",
-      "characters": ["Riku"],
-      "location": "Egg Chamber",
-      "continuity_notes": "Match lighting from shot_002; keep eye color consistent",
-      "depends_on": ["shot_002", "shot_003"]
-    },
-    {
-      "shot_id": "shot_005",
-      "scene": 3,
-      "duration_seconds": 10,
-      "purpose": "The dragon awakens and chaos erupts",
-      "camera": "Dynamic Tracking",
-      "emotion": "Danger",
-      "characters": ["Riku", "Luna"],
-      "location": "Egg Chamber",
-      "continuity_notes": "Debris and dust; costumes unchanged",
-      "depends_on": ["shot_004"]
-    },
-    {
-      "shot_id": "shot_006",
-      "scene": 3,
-      "duration_seconds": 9,
-      "purpose": "The dragon chooses Riku (cliffhanger)",
+      "duration_seconds": 5,
+      "purpose": "The dragon awakens and chooses Riku (cliffhanger)",
       "camera": "Low-Angle Hero",
       "emotion": "Awe",
       "characters": ["Riku"],
       "location": "Egg Chamber",
       "continuity_notes": "Final beat; Riku looks up at the dragon, jacket and pendant visible",
-      "depends_on": ["shot_005"]
+      "depends_on": ["shot_002"]
     }
   ]
 }
@@ -233,7 +197,7 @@ Each shot must include:
 - Continuity notes
 - Dependency
 
-The number of shots equals the number of planned beats for the episode (5–8). This array becomes the Prompt Generator's input, so every shot here becomes exactly one shot prompt in Call 6.
+Choose the number of shots and their durations to fit the story, so they sum to roughly `episode_length_seconds` — typically **2–4 shots of 5–10 seconds each** for a ~20-second episode (never a shot under 5s). This array becomes the Prompt Generator's input, so every shot here becomes exactly one shot prompt in Call 6.
 
 ### Output 3 — Production Graph
 
@@ -301,12 +265,15 @@ The Episode State Graph allows:
 
 ## Storyboard Rules
 
-Scale the number of shots to the episode length, and make the shot durations **sum to exactly `episode_length_seconds`**:
+HARD LENGTH BUDGET: the total `duration_seconds` across **ALL** shots MUST sum to approximately `episode_length_seconds` (~20 seconds) — and **never exceed 25 seconds total**. This is a hard budget. If the screenplay contains more content than fits in ~20 seconds, **compress it**: select only the essential beats and cover the rest implicitly. Do not add shots to tell more story than fits.
 
-- **30-second episode → 4–5 shots** (~6–8s each)
-- **60-second episode → 7–8 shots** (~7–9s each)
+Within that ~20-second budget:
 
-Keep every shot between roughly **5 and 10 seconds** — video models render short clips reliably, so never plan a single shot longer than ~10s (split it into two instead). The shot count is driven by runtime, not by the number of scenes: one scene may become one shot or several.
+- **Every shot MUST be between 5 and 10 seconds.** The video model cannot render clips shorter than 5 seconds, so never plan a shot under 5s.
+- A ~20-second episode is therefore **2–4 shots** (never more than 4) — e.g. 5s + 5s + 5s + 5s, or 8s + 7s + 5s, or 10s + 10s.
+- Prefer **fewer, longer shots** — roughly one shot per scene beat. Do NOT split a scene into several short sub-shots.
+
+Before returning, check every shot: each `duration_seconds` must be ≥ 5 and ≤ 10, and the total must be ≤ 25 seconds. If any shot is under 5s, merge it into an adjacent shot; if the total is over 25s, remove or shorten shots until it fits.
 
 Each shot should:
 

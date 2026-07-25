@@ -27,8 +27,6 @@ import {
   IDEA_ACTIONS,
   GENRES,
   ART_STYLES,
-  EPISODE_LENGTHS,
-  STAT_ICONS,
   SERIES_PLAN,
   heroImage,
   type StepStatus,
@@ -48,7 +46,6 @@ const ideaT = (id: string) => (qc().step1.ideas as Record<string, string>)[id]
 const actionT = (id: string) => (qc().step1.actions as Record<string, { title: string; subtitle: string }>)[id]
 const genreT = (id: string) => (qc().step2.genres as Record<string, NameDesc>)[id]
 const styleT = (id: string) => (qc().step3.styles as Record<string, NameDesc>)[id]
-const statT = (key: string) => (qc().step4.stats as Record<string, string>)[key]
 const stepT = (key: string) => (qc().steps as Record<string, string>)[key]
 
 const CheckBadge = () => (
@@ -534,51 +531,7 @@ const Step3ArtStyle = () => (
   </div>
 )
 
-// ── Step 4: Episode length ──
-
-const Step4Length = () => (
-  <div class="qc-step">
-    <h2 class="qc-heading">{qc().step4.heading}</h2>
-    <p class="qc-subtitle">{qc().step4.subtitle}</p>
-    <div class="qc-length-grid">
-      <For each={EPISODE_LENGTHS}>
-        {(opt) => (
-          <button
-            class={`qc-length-card ${quickCreateStore.episodeLength === opt.seconds ? 'selected' : ''}`}
-            onClick={() => quickCreateStoreActions.selectEpisodeLength(opt.seconds)}
-          >
-            <div class="qc-length-thumb-wrap">
-              <img class="qc-length-thumb" src={opt.image} alt={`${opt.seconds}`} loading="lazy" />
-              <span class="qc-length-badge">
-                <span class="qc-length-badge-num">{opt.seconds}</span>
-                <span class="qc-length-badge-sec">{qc().step4.sec}</span>
-              </span>
-              <Show when={quickCreateStore.episodeLength === opt.seconds}>
-                <CheckBadge />
-              </Show>
-            </div>
-            <div class="qc-length-body">
-              <span class="qc-length-name">{opt.seconds === 30 ? qc().step4.name30 : qc().step4.name60}</span>
-              <span class="qc-length-desc">{opt.seconds === 30 ? qc().step4.desc30 : qc().step4.desc60}</span>
-              <div class="qc-length-stats">
-                <For each={opt.statKeys}>
-                  {(k) => (
-                    <span class="qc-stat-chip">
-                      <span class="qc-stat-icon">{STAT_ICONS[k]}</span>
-                      {statT(k)}
-                    </span>
-                  )}
-                </For>
-              </div>
-            </div>
-          </button>
-        )}
-      </For>
-    </div>
-  </div>
-)
-
-// ── Step 5: AI Director Review (real generated production) ──
+// ── Step 4: AI Director Review (real generated production) ──
 
 // Fallback image before a cover has been generated
 const fallbackSeriesImage = () => {
@@ -2060,8 +2013,6 @@ const stepHint = () => {
       return qc().step2.hint
     case 3:
       return qc().step3.hint
-    case 4:
-      return qc().step4.hint
     default:
       return ''
   }
@@ -2079,8 +2030,8 @@ const WizardNav = () => (
           ✨ {qc().continue}
         </button>
       </Match>
-      <Match when={quickCreateStore.step === 4}>
-        {/* Continue generates the 5-episode plan (cover/title/desc), then → step 5 */}
+      <Match when={quickCreateStore.step === 3}>
+        {/* Art style is the last input — Continue generates the 5-episode plan, then → Director Review */}
         <button
           class="qc-primary-btn"
           disabled={!canAdvance() || quickCreateStore.pipeline.running}
@@ -2089,8 +2040,8 @@ const WizardNav = () => (
           ✨ {qc().step1.next}
         </button>
       </Match>
-      <Match when={quickCreateStore.step === 5}>
-        {/* Generate Episode 1 → creates the My Series entry, runs the 6 calls, → step 6 */}
+      <Match when={quickCreateStore.step === 4}>
+        {/* Generate Episode 1 → creates the My Series entry, runs the calls, → Generating */}
         <button
           class="qc-primary-btn"
           disabled={!quickCreateStore.pipeline.plan}
@@ -2099,11 +2050,11 @@ const WizardNav = () => (
           🚀 {qc().step5.generate}
         </button>
       </Match>
-      <Match when={quickCreateStore.step === 6}>
-        {/* Generation runs in the background; once the episode video is ready, continue to step 7 */}
+      <Match when={quickCreateStore.step === 5}>
+        {/* Generation runs in the background; once the episode video is ready, continue to Ready */}
         <span class="qc-nav-hint">{qc().step6.mayLeave}</span>
         <Show when={quickCreateStore.pipeline.production?.episodeVideo}>
-          <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.goToStep(7)}>
+          <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.goToStep(6)}>
             {qc().step6.continueToReady}
           </button>
         </Show>
@@ -2131,10 +2082,10 @@ const QuickCreate = () => {
     }
   })
 
-  // The plan-phase overlay covers step 4 → 5; step 6 shows its own progress inline.
+  // The plan-phase overlay covers step 3 → 4; the Generating step shows its progress inline.
   const showOverlay = () =>
+    quickCreateStore.step !== 5 &&
     quickCreateStore.step !== 6 &&
-    quickCreateStore.step !== 7 &&
     (quickCreateStore.pipeline.running || !!quickCreateStore.pipeline.error)
 
   return (
@@ -2158,20 +2109,17 @@ const QuickCreate = () => {
                 <Step3ArtStyle />
               </Match>
               <Match when={quickCreateStore.step === 4}>
-                <Step4Length />
-              </Match>
-              <Match when={quickCreateStore.step === 5}>
                 <Step5Review />
               </Match>
-              <Match when={quickCreateStore.step === 6}>
+              <Match when={quickCreateStore.step === 5}>
                 <Step6Generating />
               </Match>
-              <Match when={quickCreateStore.step === 7}>
+              <Match when={quickCreateStore.step === 6}>
                 <Step7Ready />
               </Match>
             </Switch>
-            {/* Step 7 has its own bottom action bar */}
-            <Show when={quickCreateStore.step !== 7}>
+            {/* The Ready step has its own bottom action bar */}
+            <Show when={quickCreateStore.step !== 6}>
               <WizardNav />
             </Show>
           </Show>

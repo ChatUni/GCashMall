@@ -27,7 +27,7 @@ Downstream consumers:
     ...
   },
   "production_notes": {...},
-  "episode_length_seconds": 30,
+  "episode_length_seconds": 20,
   "art_style": "Modern Cinematic Anime"
 }
 ```
@@ -53,6 +53,12 @@ Do NOT generate prompts for video models.
 Do NOT write multiple episodes.
 
 Focus only on Episode 1.
+
+CRITICAL LENGTH LIMIT: this episode is a MICRO-EPISODE of only ~20 seconds (see episode_length_seconds), NOT a full episode. Everything you plan must fit in ~20 seconds:
+- Plan only 1–3 short scenes total.
+- The scene_breakdown's "estimated_duration_seconds" values MUST sum to approximately episode_length_seconds — target ~20 seconds, and NEVER exceed ~25 seconds total.
+- Set episode_blueprint.runtime_seconds equal to episode_length_seconds (~20).
+- Tell ONE compact beat that still hooks fast and ends on a cliffhanger. Do NOT plan a full multi-scene story arc — there is no time for it.
 
 Your goals are:
 
@@ -108,7 +114,7 @@ Return JSON only.
   "episode_blueprint": {
     "episode_number": 1,
     "episode_title": "",
-    "runtime_seconds": 60,
+    "runtime_seconds": 20,
     "theme": "",
     "primary_goal": "",
     "emotional_journey": "",
@@ -116,7 +122,7 @@ Return JSON only.
     "cliffhanger_strength_score": 0
   },
   "hook": {
-    "opening_seconds": 10,
+    "opening_seconds": 5,
     "purpose": "",
     "viewer_question": "",
     "hook_description": "",
@@ -163,7 +169,7 @@ Return JSON only.
 
 ## Hook Optimization Rules
 
-The opening 10 seconds must immediately create curiosity.
+The opening few seconds must immediately create curiosity.
 
 Use one or more of:
 
@@ -180,7 +186,7 @@ The audience should ask:
 
 > "What happens next?"
 
-before the first 10 seconds finish.
+within the first few seconds.
 
 ## Screenplay Rules
 

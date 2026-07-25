@@ -36,9 +36,11 @@ SHOT-TO-SHOT CONTINUITY (apply to every shot after the first):
 - If a shot moves to a DIFFERENT location (a cut to a new scene), cleanly establish the new setting, but still keep every returning character's locked appearance and costume identical to before.
 - Honor the shot's continuity_constraints when present.
 
-Keep each prompt vivid but concise (roughly 60–120 words). Use plain, concrete descriptive language that a video model understands; never use provider jargon, parameter syntax, or model names inside the prompt text.
+SUBTITLES (always): every shot MUST be rendered with burned-in subtitles. End each prompt with an instruction to display the spoken dialogue/narration as on-screen subtitles (captions) at the bottom-center of the frame, in a clean, legible sans-serif font with a subtle dark outline for readability, timed to match the spoken audio. If a shot has no spoken words, still keep this instruction (there will simply be nothing to caption).
 
-Build "negative_prompt" as a single comma-separated string that combines the shot's own negative_prompt with the package global_negative_prompt (remove duplicates). Always include continuity failures: "inconsistent character design, changing outfit, changing hairstyle, character morphing, style drift, inconsistent lighting".
+Keep each prompt vivid but concise (roughly 60–120 words, plus the subtitle instruction). Use plain, concrete descriptive language that a video model understands; never use provider jargon, parameter syntax, or model names inside the prompt text.
+
+Build "negative_prompt" as a single comma-separated string that combines the shot's own negative_prompt with the package global_negative_prompt (remove duplicates). Always include continuity failures: "inconsistent character design, changing outfit, changing hairstyle, character morphing, style drift, inconsistent lighting". NEVER add "text", "subtitles", or "captions" to the negative_prompt — burned-in subtitles are required, so they must not be suppressed.
 
 Carry each shot's duration_seconds unchanged, and use the package aspect_ratio, resolution, and fps for every request. Carry each shot's scene_id through to its provider request unchanged (it tells the renderer which shots belong to the same continuous scene).
 
@@ -63,7 +65,7 @@ Return valid JSON only.
     "selected_provider": "seedance",
     "model": "seedance-2.0",
     "aspect_ratio": "16:9",
-    "resolution": "1080p",
+    "resolution": "480p",
     "fps": 24,
     "estimated_total_seconds": 0,
     "provider_requests": [
@@ -71,11 +73,11 @@ Return valid JSON only.
         "shot_id": "shot_001",
         "shot_number": 1,
         "scene_id": "scene_1",
-        "duration_seconds": 8,
+        "duration_seconds": 5,
         "prompt": "",
         "negative_prompt": "",
         "aspect_ratio": "16:9",
-        "resolution": "1080p",
+        "resolution": "480p",
         "fps": 24,
         "reference_images": [],
         "first_frame": null,
