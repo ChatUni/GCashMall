@@ -18,6 +18,24 @@ export const getApiBaseUrl = (): string => {
 const stripTrailingSlash = (url: string): string =>
   url.endsWith('/') ? url.slice(0, -1) : url
 
+// ── Session-expiry handling ──
+// When an authenticated request is rejected because the login token is missing or
+// expired, we clear the stale token and notify the app shell so it can show the login
+// dialog. The handler is registered by App (setAuthErrorHandler) to avoid importing
+// stores here (which would create a circular dependency: stores → dataService → api).
+let authErrorHandler: (() => void) | null = null
+export const setAuthErrorHandler = (fn: () => void): void => {
+  authErrorHandler = fn
+}
+
+const AUTH_ERROR_RE = /invalid or expired token|authentication required/i
+const handleAuthError = (data: { success?: boolean; error?: string }): void => {
+  if (data && data.success === false && typeof data.error === 'string' && AUTH_ERROR_RE.test(data.error)) {
+    clearAuthData()
+    authErrorHandler?.()
+  }
+}
+
 const buildUrl = (type: string, params?: Record<string, string | number>): string => {
   const baseUrl = getApiBaseUrl()
   const url = new URL(`${baseUrl}/.netlify/functions/api`)
@@ -68,6 +86,7 @@ export const apiGetWithAuth = async <T>(
 
     const response = await fetch(url, { headers })
     const data = await response.json()
+    handleAuthError(data)
     return data
   } catch (error) {
     console.error(`API GET (auth) error for type "${type}":`, error)
@@ -127,6 +146,7 @@ export const apiPostWithAuth = async <T>(
       body: JSON.stringify(body),
     })
     const data = await response.json()
+    handleAuthError(data)
     return data
   } catch (error) {
     console.error(`API POST (auth) error for type "${type}":`, error)
@@ -186,6 +206,7 @@ export const apiDeleteWithAuth = async <T>(
       body: JSON.stringify(body),
     })
     const data = await response.json()
+    handleAuthError(data)
     return data
   } catch (error) {
     console.error(`API DELETE (auth) error for type "${type}":`, error)

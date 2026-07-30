@@ -1,7 +1,14 @@
 // Data fetching services - called outside useEffect
 // Following Rule #5: Avoid calling APIs in useEffect
 
-import { apiGet, apiGetWithAuth, apiPost, apiPostWithAuth, getApiBaseUrl } from '../utils/api'
+import {
+  apiGet,
+  apiGetWithAuth,
+  apiPost,
+  apiPostWithAuth,
+  apiDeleteWithAuth,
+  getApiBaseUrl,
+} from '../utils/api'
 import { updateOgMeta } from '../utils/ogMeta'
 import {
   featuredStoreActions,
@@ -443,7 +450,7 @@ export interface ProductionEpisode {
 // The production job document polled while (and after) generation runs
 export interface ProductionJob {
   jobId?: string
-  mode?: 'plan' | 'episode'
+  mode?: 'plan' | 'episode' | 'v1proposal' | 'v1produce'
   status: 'pending' | 'running' | 'done' | 'error'
   error?: string
   seriesId?: string // set once the production's Episode 1 has been published as a series
@@ -477,6 +484,15 @@ export interface ProductionJob {
   genre?: string | null
   artStyle?: string | null
   episodeLength?: number | null
+  episodeBunnyVideoId?: string // s1 storage: the episode's Bunny video guid
+  // Quick Create V1 fields
+  v?: number
+  proposal?: V1Proposal | null
+  editResult?: { id: string; status: string }
+  callsV1?: {
+    episodeDirector?: { episodePlan?: { shots?: Array<Record<string, unknown>> } }
+    [k: string]: unknown
+  }
 }
 
 // Start the 6-call pipeline in the background function. Returns once the job is
@@ -652,11 +668,113 @@ export const fetchProductionStatus = async (jobId: string): Promise<ProductionJo
   throw new Error(result.error || 'Failed to check generation status')
 }
 
+// Delete a Quick Create production (the job doc). Does not delete a published series.
+export const deleteProduction = async (jobId: string): Promise<void> => {
+  const result = await apiDeleteWithAuth<{ deleted: boolean }>('production', { jobId })
+  if (!result.success) throw new Error(result.error || 'Failed to delete production')
+}
+
 // List the logged-in user's Quick Create productions (for the My Series group)
 export const fetchMyProductions = async (): Promise<ProductionJob[]> => {
   const result = await apiGetWithAuth<ProductionJob[]>('myProductions')
   if (result.success && result.data) return result.data
   return []
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Quick Create V1
+// ══════════════════════════════════════════════════════════════════════════
+
+export interface V1Character {
+  name: string
+  role: string
+  personality?: string
+  background?: string
+  importance?: string
+}
+export interface V1RoadmapEpisode {
+  episode: number
+  title: string
+  summary: string
+  keyMoments?: string[]
+  goal?: string
+  endingCliffhanger?: string
+}
+export interface V1Proposal {
+  proposal?: { version?: number; status?: string }
+  project?: { title?: string; language?: string }
+  creatorVision?: { originalIdea?: string }
+  creativeDirection?: {
+    storySoul?: string
+    logline?: string
+    genre?: string
+    genres?: string[]
+    theme?: string
+    tone?: string
+    targetAudience?: string
+    visualDirection?: string
+    storytellingDirection?: string
+  }
+  productionPlan?: {
+    episodeLengthSeconds?: number
+    episodeCount?: number
+    estimatedShotsPerEpisode?: number
+    productionDifficulty?: string
+  }
+  world?: { summary?: string; setting?: string; rules?: string }
+  mainCharacters?: V1Character[]
+  seasonOverview?: { overallArc?: string; creatorPromise?: string; finale?: string }
+  seasonRoadmap?: V1RoadmapEpisode[]
+  episode1Plan?: {
+    title?: string
+    summary?: string
+    openingHook?: string
+    mainConflict?: string
+    endingHook?: string
+    requiredCharacters?: string[]
+  }
+  creatorNotes?: string[]
+}
+
+// Active video-storage flow: 's0' (Cloudinary, default) | 's1' (Bunny-only). Shared with
+// the server via the same VITE_VIDEO_STORAGE env var.
+export const videoStorage = (): 's0' | 's1' =>
+  import.meta.env.VITE_VIDEO_STORAGE === 's1' ? 's1' : 's0'
+
+// PUBLIC shared-episode info for the /watch/:jobId share page (no auth).
+export interface SharedEpisode {
+  title: string
+  cover: string
+  videoId: string
+  embedUrl: string
+  mp4Url: string
+  seriesId: string
+}
+export const fetchSharedEpisode = async (jobId: string): Promise<SharedEpisode | null> => {
+  const result = await apiGet<SharedEpisode>('sharedEpisode', { jobId })
+  if (result.success && result.data) return result.data
+  return null
+}
+
+// Start a Quick Create V1 background job. mode: 'proposal' | 'edit' | 'produce'.
+// Responds 202; progress/results are read via fetchProductionStatus(jobId).
+export const startV1Job = async (
+  jobId: string,
+  body: Record<string, unknown>,
+): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  const res = await fetch(`${base}/.netlify/functions/pipeline-v1-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId, ...body }),
+  })
+  if (!res.ok && res.status !== 202) {
+    throw new Error(`Failed to start generation (${res.status})`)
+  }
 }
 
 // ── Feedback ──

@@ -1,0 +1,84 @@
+/* Genre picker — tag input + autocomplete chips. Theme-aware. */
+.genre-picker {
+  --gp-card2: #171724;
+  --gp-border: #2a2a3a;
+  --gp-text: #ececf4;
+  --gp-muted: #9a9ab4;
+  --gp-purple: #a855f7;
+  --gp-bg: #0d0d18;
+  width: 100%;
+}
+:root[data-theme='light'] .genre-picker {
+  --gp-card2: #f4f4fb;
+  --gp-border: #e4e4ef;
+  --gp-text: #1a1a2e;
+  --gp-muted: #63637a;
+  --gp-bg: #ffffff;
+}
+.genre-picker-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.genre-picker-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 85, 247, 0.16);
+  color: var(--gp-purple);
+  border: 1px solid var(--gp-purple);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.genre-picker-tag-x {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  line-height: 1;
+}
+.genre-picker-input {
+  width: 100%;
+  background: var(--gp-bg);
+  border: 1px solid var(--gp-border);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: var(--gp-text);
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.genre-picker-input:focus {
+  outline: none;
+  border-color: var(--gp-purple);
+}
+/* Autocomplete results rendered as filter chips */
+.genre-picker-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.genre-picker-suggest-chip {
+  background: transparent;
+  border: 1px solid var(--gp-border);
+  color: var(--gp-muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.genre-picker-suggest-chip:hover {
+  border-color: var(--gp-purple);
+  color: var(--gp-purple);
+  background: rgba(168, 85, 247, 0.12);
+}
+.genre-picker-suggest-chip::before {
+  content: '+ ';
+}

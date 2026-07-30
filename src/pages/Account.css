@@ -2636,6 +2636,65 @@
   padding: 3px 9px;
 }
 
+/* Delete control (top-left of the cover so it doesn't clash with the % badge) */
+.production-card-del {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  color: #ef4444;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.production-card-del svg {
+  width: 16px;
+  height: 16px;
+}
+.production-card-del:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.production-card-confirm {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #fff;
+}
+.production-card-confirm > span:first-child {
+  flex: 1;
+}
+.production-card-confirm .pcc-yes,
+.production-card-confirm .pcc-no {
+  cursor: pointer;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.production-card-confirm .pcc-yes {
+  background: #ef4444;
+  color: #fff;
+}
+.production-card-confirm .pcc-no {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .production-card-body {
   padding: 12px;
   display: flex;

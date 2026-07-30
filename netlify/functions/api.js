@@ -69,6 +69,8 @@ import {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  getSharedEpisode,
+  deleteProduction,
   getMyProductions,
   getComments,
   addComment,
@@ -101,6 +103,7 @@ const apiHandlers = {
     templates: () => getTemplates(),
     pipelinePrompts: (params, authHeader) => getPipelinePrompts(params, authHeader),
     productionStatus: (params, authHeader) => getProductionStatus(params, authHeader),
+    sharedEpisode: (params) => getSharedEpisode(params),
     myProductions: (params, authHeader) => getMyProductions(params, authHeader),
     comments: (params) => getComments(params),
   },
@@ -153,6 +156,7 @@ const apiHandlers = {
   delete: {
     todo: (body) => deleteTodo(body),
     series: (body, authHeader) => deleteSeries(body, authHeader),
+    production: (body, authHeader) => deleteProduction(body, authHeader),
   },
 }
 

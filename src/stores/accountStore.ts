@@ -307,6 +307,8 @@ export const accountStoreActions = {
     setAccountState({ mySeriesLoading }),
   setMyProductions: (myProductions: ProductionJob[]) =>
     setAccountState({ myProductions }),
+  removeProduction: (jobId: string) =>
+    setAccountState('myProductions', (prev) => prev.filter((p) => p.jobId !== jobId)),
   setEditingSeries: (editingSeries: Series | null) =>
     setAccountState({ editingSeries }),
   setEditingSeriesId: (editingSeriesId: string | null) =>

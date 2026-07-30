@@ -12,6 +12,8 @@ import {
   suggestDescription,
   startCoverGen,
   uploadCoverImage,
+  videoStorage,
+  type ProductionJob,
 } from '../services/dataService'
 import { SocialSharePopup } from '../components/SocialShare'
 import { Toast } from '../components/PlayerModals'
@@ -47,6 +49,30 @@ const actionT = (id: string) => (qc().step1.actions as Record<string, { title: s
 const genreT = (id: string) => (qc().step2.genres as Record<string, NameDesc>)[id]
 const styleT = (id: string) => (qc().step3.styles as Record<string, NameDesc>)[id]
 const stepT = (key: string) => (qc().steps as Record<string, string>)[key]
+
+// ── Video storage flow (s0 = Cloudinary mp4, s1 = Bunny embed) ──
+const S1 = videoStorage() === 's1'
+const isBunnyEmbed = (url: string) => typeof url === 'string' && url.includes('iframe.mediadelivery.net')
+const shareBase = () => (import.meta.env.VITE_PROD_SERVER as string) || window.location.origin
+const watchUrl = (jobId?: string | null) => `${shareBase()}/watch/${jobId || ''}`
+
+// Renders an episode as a plain <video> (s0 / Cloudinary mp4) or a Bunny embed iframe
+// (s1, when the url is a Bunny embed). Per-shot clips keep using <video> (mp4).
+const EpisodePlayer = (props: { url: string; cls?: string }) => (
+  <Show
+    when={isBunnyEmbed(props.url)}
+    fallback={<video class={props.cls} src={props.url} controls preload="metadata" />}
+  >
+    <div class={`qc-embed ${props.cls || ''}`}>
+      <iframe
+        src={`${props.url}?autoplay=false&preload=true`}
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+        allowfullscreen
+        loading="lazy"
+      />
+    </div>
+  </Show>
+)
 
 const CheckBadge = () => (
   <span class="qc-check">
@@ -822,12 +848,14 @@ const Step6Generating = () => {
                   <button
                     class="qc-s6-share-btn"
                     title={s6().share}
-                    onClick={() => setShareUrl(episodeUrl)}
+                    onClick={() =>
+                      setShareUrl(S1 ? watchUrl(quickCreateStore.pipeline.episodeJobId) : episodeUrl)
+                    }
                   >
                     <ShareIcon /> {s6().share}
                   </button>
                 </div>
-                <video class="qc-s6-episode-el" src={episodeUrl} controls preload="metadata" />
+                <EpisodePlayer url={episodeUrl} cls="qc-s6-episode-el" />
               </div>
             )}
           </Show>
@@ -974,7 +1002,7 @@ const Step7Ready = () => {
             keyed
             fallback={<img class="qc-s7-video" src={heroCover()} alt={ep1()?.title || ''} />}
           >
-            {(url) => <video class="qc-s7-video" src={url} controls preload="metadata" />}
+            {(url) => <EpisodePlayer url={url} cls="qc-s7-video" />}
           </Show>
 
           <div class="qc-s7-epinfo">
@@ -1077,7 +1105,13 @@ const Step7Ready = () => {
         <button class="qc-s7-action" onClick={quickCreateStoreActions.openPublish}>
           ⬆ {s7().publish}
         </button>
-        <button class="qc-s7-action" onClick={() => episodeVideo() && setShareUrl(episodeVideo())}>
+        <button
+          class="qc-s7-action"
+          onClick={() =>
+            episodeVideo() &&
+            setShareUrl(S1 ? watchUrl(quickCreateStore.pipeline.episodeJobId) : episodeVideo())
+          }
+        >
           🔗 {s7().share}
         </button>
         <button class="qc-s7-action outline" onClick={() => navigate('/account?tab=mySeries')}>
@@ -1107,23 +1141,37 @@ const Step7Ready = () => {
 
 // ── Publish Episode page (full-screen view over the wizard, no stepper) ──
 
-const PublishEpisode = () => {
+// The Quick Create publish page. Defined here (v0), but exported and prop-parameterized
+// so Quick Create V1 can reuse the exact same UI: pass a production object + jobId +
+// callbacks; with no props it reads the v0 store as before.
+export const PublishEpisode = (
+  props: {
+    production?: ProductionJob
+    jobId?: string
+    fallbackTitle?: string
+    episodeLength?: number
+    defaultTags?: string[]
+    onClose?: () => void
+    onPublished?: (seriesId: string) => void
+  } = {},
+) => {
   const pub = () => qc().publish
   const pl = () => quickCreateStore.pipeline
-  const production = () => pl().production
+  const production = () => props.production ?? pl().production
+  const close = () => (props.onClose ? props.onClose() : quickCreateStoreActions.closePublish())
   const episodes = () => production()?.episodes || []
   const ep1 = () => episodes()[0]
   const seriesTitle = () =>
     production()?.seriesName ||
     production()?.ideaTitle ||
-    quickCreateStore.ideaTitle.trim() ||
+    (props.fallbackTitle ?? quickCreateStore.ideaTitle).trim() ||
     qc().step5.untitled
   const heroCover = () => ep1()?.cover || fallbackSeriesImage()
   const episodeVideo = () => production()?.episodeVideo || ''
   const genreText = () => (production()?.genre ? genreT(production()!.genre!).name : '')
   const styleText = () => (production()?.artStyle ? styleT(production()!.artStyle!).name : '')
   const lengthText = () =>
-    `${production()?.episodeLength ?? quickCreateStore.episodeLength} ${qc().step4.sec}`
+    `${production()?.episodeLength ?? props.episodeLength ?? quickCreateStore.episodeLength} ${qc().step4.sec}`
 
   // Publishing Episode 1 also creates the series, so collect series-level details.
   const isEpisode1 = () => (ep1()?.n ?? 1) === 1
@@ -1146,7 +1194,9 @@ const PublishEpisode = () => {
     coverSel() === 'upload' ? uploadedCover() : coverSel() === 'ai' ? aiCover() : seriesCover()
   const [title, setTitle] = createSignal(ep1()?.title || '')
   const [desc, setDesc] = createSignal(ep1()?.desc || '')
-  const [tags, setTags] = createSignal<string[]>([genreText(), styleText()].filter(Boolean))
+  const [tags, setTags] = createSignal<string[]>(
+    props.defaultTags ?? [genreText(), styleText()].filter(Boolean),
+  )
   const [tagInput, setTagInput] = createSignal('')
 
   // Tags are genres. Load existing genres for the autocomplete, and title-case new tags.
@@ -1360,7 +1410,7 @@ const PublishEpisode = () => {
   }
 
   // Random Frame: extract a few frames from the episode video (ffmpeg) and pick one
-  const jobId = () => quickCreateStore.pipeline.episodeJobId
+  const jobId = () => props.jobId ?? quickCreateStore.pipeline.episodeJobId
   const [randomCover, setRandomCover] = createSignal('')
   const [randomDialogOpen, setRandomDialogOpen] = createSignal(false)
   const [randomLoading, setRandomLoading] = createSignal(false)
@@ -1432,7 +1482,8 @@ const PublishEpisode = () => {
         thumbnail: effectiveThumbnail(),
       })
       toastStoreActions.show(res.created ? pub().publishedSuccess : pub().updatedSuccess, 'success')
-      quickCreateStoreActions.closePublish()
+      props.onPublished?.(res.seriesId)
+      close()
       navigate('/account?tab=mySeries')
     } catch (e) {
       toastStoreActions.show(e instanceof Error ? e.message : pub().publishFailed, 'error')
@@ -1457,7 +1508,7 @@ const PublishEpisode = () => {
   return (
     <div class="qc-publish">
       <div class="qc-pub-header">
-        <button class="qc-s7-back" onClick={quickCreateStoreActions.closePublish} title={qc().back}>
+        <button class="qc-s7-back" onClick={close} title={qc().back}>
           ←
         </button>
         <div>
@@ -1787,7 +1838,7 @@ const PublishEpisode = () => {
                 keyed
                 fallback={<img src={heroCover()} alt={title()} />}
               >
-                {(url) => <video src={url} controls preload="metadata" />}
+                {(url) => <EpisodePlayer url={url} />}
               </Show>
               <span class="qc-pub-preview-badge">
                 {pub().episodeLabel} {ep1()?.n ?? 1}

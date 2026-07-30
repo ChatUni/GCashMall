@@ -18,6 +18,7 @@ import { generateVideo } from './seedance.js'
 import { extractLastFrame, extractCoverFrame, extractFrameAt, probeDuration } from './ffmpeg.js'
 import { uploadImage } from './cloudinaryUtil.js'
 import { ensureCharacterRefs, refImagesForShot } from './characterRefs.js'
+import { isS1, createBunnyVideo, fetchBunnyVideoFromUrl } from './bunny.js'
 
 const updateJob = (jobId, fields) =>
   update('productions', { jobId }, { $set: { ...fields, updatedAt: new Date() } })
@@ -219,6 +220,19 @@ export const runVideoGeneration = async (jobId, userId) => {
         if (frames.lastUrl) video.lastFrameUrl = frames.lastUrl
       }
       prevFrameUrl = chainable ? video.lastFrameUrl || null : null
+
+      // s1 storage: persist each shot durably on Bunny (Seedance URLs expire). Bunny
+      // ingests from the shot's public Seedance URL. Best-effort — a failure doesn't
+      // block the episode (the concat still uses the raw url below).
+      if (isS1() && video.url && !video.bunnyVideoId) {
+        try {
+          const bvid = await createBunnyVideo(`${jobId}-${req.shot_id}`)
+          await fetchBunnyVideoFromUrl(bvid, video.url)
+          video.bunnyVideoId = bvid
+        } catch (error) {
+          console.error(`Bunny shot upload ${req.shot_id} failed:`, error.message)
+        }
+      }
 
       completed++
       results.push(video)

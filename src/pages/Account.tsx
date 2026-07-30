@@ -69,14 +69,18 @@ import {
   getStatusText,
   fetchRevenueData,
 } from '../services/accountService'
-import { toastStore } from '../stores'
+import { toastStore, toastStoreActions } from '../stores'
 import {
   fetchPipelinePrompts,
   savePipelinePrompt,
+  deleteProduction,
   type PipelinePrompt,
   type ProductionJob,
 } from '../services/dataService'
 import { quickCreateStoreActions } from '../stores/quickCreateStore'
+// Default Quick Create cover (Cloudinary — same asset set as the v1 page)
+const defaultIdeaCover =
+  'https://res.cloudinary.com/daqc8bim3/image/upload/GCash/quick%20create%20v1/banner-hero.webp'
 import { renderMarkdown } from '../utils/markdown'
 import type { Series, User } from '../types'
 import './Account.css'
@@ -1144,7 +1148,9 @@ function ProductionCard(props: {
   translations: Record<string, string>
   published?: boolean
   onClick: () => void
+  onDelete?: () => void | Promise<void>
 }) {
+  const isProposal = () => props.production.mode === 'v1proposal'
   const percent = () => {
     if (typeof props.production.percent === 'number') return props.production.percent
     const calls = props.production.progress?.calls || []
@@ -1153,21 +1159,91 @@ function ProductionCard(props: {
   }
   const statusText = () => {
     if (props.published) return props.translations.productionPublished || 'Published'
+    if (isProposal()) return props.translations.productionDraft || 'Draft — review proposal'
     if (props.production.status === 'done') return props.translations.productionReady || 'Episode 1 ready'
     if (props.production.status === 'error') return props.translations.productionFailed || 'Generation failed'
     return `${props.translations.productionGenerating || 'Generating'} ${percent()}%`
   }
 
-  // Published productions show the published series cover; otherwise the production cover
-  const cover = () => props.production.seriesCover || props.production.cover
+  // Inline delete confirm (the whole card is a <button>, so use non-button controls).
+  const [confirming, setConfirming] = createSignal(false)
+  const [deleting, setDeleting] = createSignal(false)
+  const stop = (e: Event) => {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  const doDelete = async (e: Event) => {
+    stop(e)
+    if (deleting()) return
+    setDeleting(true)
+    try {
+      await props.onDelete?.()
+    } finally {
+      setDeleting(false)
+      setConfirming(false)
+    }
+  }
+
+  // Most recently finished shot's thumbnail (while an episode is still generating).
+  const lastShotCover = () => {
+    const vids = props.production.videos || []
+    for (let i = vids.length - 1; i >= 0; i--) {
+      if (vids[i]?.coverUrl) return vids[i].coverUrl as string
+    }
+    return ''
+  }
+  // Cover priority: published series cover → the finished video's cover → the last
+  // finished shot's thumbnail → a default idea cover.
+  const cover = () =>
+    props.production.seriesCover ||
+    props.production.cover ||
+    lastShotCover() ||
+    defaultIdeaCover
   return (
     <button class="production-card" onClick={props.onClick}>
       <div class="production-card-cover">
         <Show when={cover()} fallback={<div class="production-card-placeholder">✨</div>}>
           <img src={cover()} alt={props.production.title || ''} loading="lazy" />
         </Show>
-        <Show when={props.production.status !== 'done'}>
+        <Show when={props.production.status !== 'done' && !isProposal()}>
           <div class="production-card-badge">{percent()}%</div>
+        </Show>
+        <Show when={props.onDelete}>
+          <Show
+            when={confirming()}
+            fallback={
+              <div
+                class="production-card-del"
+                title={props.translations.deleteLabel || 'Delete'}
+                onClick={(e) => {
+                  stop(e)
+                  setConfirming(true)
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+            }
+          >
+            <div class="production-card-confirm" onClick={stop}>
+              <span>{props.translations.deleteConfirm || 'Delete?'}</span>
+              <span class="pcc-yes" onClick={doDelete}>
+                {deleting() ? '…' : props.translations.deleteYes || 'Delete'}
+              </span>
+              <span
+                class="pcc-no"
+                onClick={(e) => {
+                  stop(e)
+                  setConfirming(false)
+                }}
+              >
+                {props.translations.deleteNo || 'Cancel'}
+              </span>
+            </div>
+          </Show>
         </Show>
       </div>
       <div class="production-card-body">
@@ -1190,9 +1266,25 @@ function MySeriesSection() {
     'quickCreate' | 'published' | 'uploaded' | 'revenue'
   >('quickCreate')
 
-  // A production moves from Quick Create → Published once its Episode 1 is published
-  const quickCreateProductions = () => accountStore.myProductions.filter((p) => !p.seriesId)
-  const publishedProductions = () => accountStore.myProductions.filter((p) => p.seriesId)
+  // Show only productions matching the active Quick Create version (v1 docs carry v:1;
+  // v0 docs have no v). A production moves from Quick Create → Published once published.
+  const isV1 = import.meta.env.VITE_QUICK_CREATE_VERSION === 'v1'
+  const versionMatch = (p: ProductionJob) => (isV1 ? p.v === 1 : p.v !== 1)
+  const quickCreateProductions = () =>
+    accountStore.myProductions.filter((p) => versionMatch(p) && !p.seriesId)
+  const publishedProductions = () =>
+    accountStore.myProductions.filter((p) => versionMatch(p) && p.seriesId)
+
+  const handleDeleteProduction = async (prod: ProductionJob) => {
+    if (!prod.jobId) return
+    try {
+      await deleteProduction(prod.jobId)
+      accountStoreActions.removeProduction(prod.jobId)
+      toastStoreActions.show(mySeries().deleteSuccess || 'Deleted', 'success')
+    } catch (e) {
+      toastStoreActions.show(e instanceof Error ? e.message : 'Failed to delete', 'error')
+    }
+  }
 
   // Fetch revenue data when revenue tab is selected
   createEffect(() => {
@@ -1283,6 +1375,7 @@ function MySeriesSection() {
                       production={prod}
                       translations={mySeries()}
                       onClick={() => navigate(`/quick-create?production=${prod.jobId}`)}
+                      onDelete={() => handleDeleteProduction(prod)}
                     />
                   )}
                 </For>

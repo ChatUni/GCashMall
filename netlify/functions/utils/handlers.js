@@ -10,6 +10,7 @@ import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
+import { bunnyEmbedUrl } from './bunny.js'
 
 // Configure Stripe
 const stripe = process.env.STRIPE_PRIVATE_KEY
@@ -2024,8 +2025,13 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
   // ── Create path: first publish ──
   if (!doc.episodeVideo) throw new Error('Episode video is not ready yet')
 
-  const videoId = await createBunnyVideo(episodeTitle)
-  await fetchBunnyVideoFromUrl(videoId, doc.episodeVideo)
+  // s1 storage: the episode is already on Bunny — reuse that video instead of creating
+  // a second one and re-ingesting. s0: create a fresh Bunny video from the Cloudinary mp4.
+  let videoId = doc.episodeBunnyVideoId
+  if (!videoId) {
+    videoId = await createBunnyVideo(episodeTitle)
+    await fetchBunnyVideoFromUrl(videoId, doc.episodeVideo)
+  }
   if (body.thumbnail) {
     await setBunnyThumbnail(videoId, body.thumbnail).catch((e) =>
       console.error('setBunnyThumbnail failed:', e.message),
@@ -3377,6 +3383,8 @@ export {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  getSharedEpisode,
+  deleteProduction,
   getMyProductions,
   getComments,
   addComment,
@@ -4212,10 +4220,13 @@ const savePipelinePrompt = async (body, authHeader) => {
 const getMyProductions = async (params, authHeader) => {
   const userId = await validateAuth(authHeader)
   try {
+    // v0 episodes plus v1 productions AND v1 proposal drafts (so an un-approved proposal
+    // is resumable/deletable from My Series). The client filters by the active
+    // VITE_QUICK_CREATE_VERSION (v1 docs carry v:1). v0 'plan' drafts stay hidden.
     const docs = await get(
       'productions',
-      { userId, mode: 'episode' },
-      { calls: 0 },
+      { userId, mode: { $in: ['episode', 'v1produce', 'v1proposal'] } },
+      { calls: 0, callsV1: 0 },
       { createdAt: -1 },
       50,
     )
@@ -4243,5 +4254,46 @@ const getProductionStatus = async (params, authHeader) => {
     return { success: true, data: doc }
   } catch (error) {
     throw new Error(`Failed to get production status: ${error.message}`)
+  }
+}
+
+// Delete a Quick Create production (the job doc). Only the owner may delete it. Does not
+// touch a published series — that lives independently once published.
+const deleteProduction = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+  const docs = await get('productions', { jobId: body.jobId }, {}, {}, 1)
+  if (docs && docs.length > 0) {
+    if (String(docs[0].userId) !== String(userId)) {
+      throw new Error('Not authorized to delete this production')
+    }
+    await remove('productions', { jobId: body.jobId })
+  }
+  return { success: true, data: { deleted: true } }
+}
+
+// PUBLIC: minimal shared-episode info for the /watch/:jobId share page (no auth — anyone
+// with the link can watch the full episode). Returns the Bunny embed (s1) or mp4 (s0).
+const getSharedEpisode = async (params) => {
+  if (!params || !params.jobId) throw new Error('jobId is required')
+  try {
+    const docs = await get('productions', { jobId: params.jobId }, {}, {}, 1)
+    if (!docs || docs.length === 0) return { success: false, error: 'Not found' }
+    const doc = docs[0]
+    const videoId = doc.episodeBunnyVideoId || ''
+    return {
+      success: true,
+      data: {
+        title: doc.title || doc.ideaTitle || 'Episode 1',
+        cover: doc.cover || '',
+        videoId,
+        embedUrl: videoId ? bunnyEmbedUrl(videoId) : '',
+        // s0 fallback: episodeVideo is a real mp4 the watch page can play directly.
+        mp4Url: !videoId && doc.episodeVideo ? doc.episodeVideo : '',
+        seriesId: doc.seriesId ? String(doc.seriesId) : '',
+      },
+    }
+  } catch (error) {
+    throw new Error(`Failed to get shared episode: ${error.message}`)
   }
 }

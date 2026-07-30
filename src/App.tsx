@@ -2,6 +2,9 @@ import { Router, HashRouter, Route } from '@solidjs/router'
 import { Show } from 'solid-js'
 import { isCordova, shouldShowComingSoon } from './utils/cordova'
 import { deviceStore } from './stores/deviceStore'
+import { setAuthErrorHandler } from './utils/api'
+import { loginModalStoreActions } from './stores'
+import { topBarStoreActions } from './stores/topBarStore'
 import ComingSoon from './pages/ComingSoon'
 
 // Desktop Pages
@@ -12,6 +15,8 @@ import Genre from './pages/Genre'
 import SeriesEdit from './pages/SeriesEdit'
 import Player from './pages/Player'
 import QuickCreate from './pages/QuickCreate'
+import QuickCreateV1 from './pages/QuickCreateV1'
+import WatchEpisode from './pages/WatchEpisode'
 import CreatorProgram from './pages/CreatorProgram'
 import Account from './pages/Account'
 import ResetPassword from './pages/ResetPassword'
@@ -59,9 +64,17 @@ const routes = (
     {/* Contact */}
     <Route path="/contact" component={() => <ResponsiveRoute desktop={() => <Contact />} phone={() => <PhoneContact />} />} />
 
-    {/* Quick Create wizard */}
-    <Route path="/quick-create" component={QuickCreate} />
+    {/* Quick Create wizard — VITE_QUICK_CREATE_VERSION selects v0 (default) or v1 */}
+    <Route
+      path="/quick-create"
+      component={
+        import.meta.env.VITE_QUICK_CREATE_VERSION === 'v1' ? QuickCreateV1 : QuickCreate
+      }
+    />
     <Route path="/creator-program" component={CreatorProgram} />
+
+    {/* Public share/watch page for a Quick Create episode (full watch, no trial limit) */}
+    <Route path="/watch/:jobId" component={WatchEpisode} />
 
     {/* Desktop-only routes (admin/management features) */}
     <Route path="/products" component={ProductList} />
@@ -71,6 +84,15 @@ const routes = (
     <Route path="/reset-password" component={ResetPassword} />
   </>
 )
+
+// When an authenticated API call is rejected for a missing/expired login token, the
+// API client clears the stale token and calls this handler. Open the login dialog so the
+// user can re-authenticate. Both modal render sites are covered (TopBar-based pages and
+// the Player/phone pages that render the global loginModalStore modal).
+setAuthErrorHandler(() => {
+  topBarStoreActions.setShowLoginModal(true)
+  loginModalStoreActions.open()
+})
 
 // Use HashRouter for Cordova (file:// protocol doesn't support BrowserRouter)
 // Use Router for web (needed for OAuth redirects with query params)

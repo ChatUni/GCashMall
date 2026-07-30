@@ -13,6 +13,7 @@ import { synthesizeSpeech } from './tts.js'
 import { muxAudioOntoVideo, concatVideos } from './ffmpeg.js'
 import { callOpenAIChatJson } from './pipeline.js'
 import { modelHasNativeAudio } from './seedance.js'
+import { isS1, uploadEpisodeToBunny, bunnyEmbedUrl, setBunnyThumbnail } from './bunny.js'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -202,15 +203,22 @@ export const runAudioComposition = async (jobId, userId) => {
     progress.calls[cIdx].status = 'running'
     await updateJob(jobId, { progress, videos: doc.videos, percent: percentOf(progress) })
 
-    // Stitch all shots into one episode video
+    // Stitch all shots into one episode video, then store it. s0 → Cloudinary mp4;
+    // s1 → Bunny (episodeVideo holds the Bunny embed URL for playback).
     let episodeVideo = ''
+    let episodeBunnyVideoId = ''
     let compositionError = ''
     if (composedPaths.length > 0) {
       const listPath = path.join(tmp, 'list.txt')
       const epPath = path.join(tmp, 'episode.mp4')
       try {
         await concatVideos({ paths: composedPaths, listPath, outPath: epPath })
-        episodeVideo = await uploadVideo(epPath)
+        if (isS1()) {
+          episodeBunnyVideoId = await uploadEpisodeToBunny(episodeTitle, epPath)
+          episodeVideo = bunnyEmbedUrl(episodeBunnyVideoId)
+        } else {
+          episodeVideo = await uploadVideo(epPath)
+        }
       } catch (error) {
         compositionError = error.message
         firstError ||= `concat: ${error.message}`
@@ -219,10 +227,21 @@ export const runAudioComposition = async (jobId, userId) => {
 
     // If the stitch produced nothing, mark composition as errored so it can be retried
     progress.calls[cIdx].status = episodeVideo ? 'done' : 'error'
+    // Give the finished production a cover if it has none (e.g. Quick Create V1, which
+    // generates no cover art): use the opening shot's thumbnail as the episode cover.
+    const cover = doc.cover || videos.find((v) => v.coverUrl)?.coverUrl || ''
+    // In s1, use that cover as the Bunny video's poster (best-effort).
+    if (episodeBunnyVideoId && cover) {
+      await setBunnyThumbnail(episodeBunnyVideoId, cover).catch((e) =>
+        console.error('setBunnyThumbnail (episode) failed:', e.message),
+      )
+    }
     await updateJob(jobId, {
       progress,
       videos: doc.videos,
       episodeVideo,
+      episodeBunnyVideoId,
+      cover,
       audioError: firstError || compositionError || '',
       status: 'done',
       percent: 100,
