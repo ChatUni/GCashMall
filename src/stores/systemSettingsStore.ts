@@ -17,6 +17,7 @@ const getInitialState = (): SystemSettingsState => ({
   previewLength: TIME_LIMIT,
   creatorShare: 50,
   episodeCost: 0.1,
+  nextEpisodeCost: 0.99,
   loaded: false,
   saving: false,
 })
@@ -29,9 +30,12 @@ export const systemSettingsStore = state
 export const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
 export const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
+export const NEXT_EPISODE_COST_OPTIONS = [0.49, 0.99, 1.49, 1.99, 2.99]
 
 // Preview length (seconds) for the player trial, falling back to TIME_LIMIT
 export const getPreviewLength = (): number => state.previewLength || TIME_LIMIT
+// GUSD cost to generate a follow-up episode
+export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 0.99
 
 export const systemSettingsStoreActions = {
   load: async () => {
@@ -49,6 +53,7 @@ export const systemSettingsStoreActions = {
       previewLength: changes.previewLength ?? state.previewLength,
       creatorShare: changes.creatorShare ?? state.creatorShare,
       episodeCost: changes.episodeCost ?? state.episodeCost,
+      nextEpisodeCost: changes.nextEpisodeCost ?? state.nextEpisodeCost,
     }
     setState({ saving: true })
     try {

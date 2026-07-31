@@ -138,6 +138,24 @@ export const fetchUserData = async () => {
   }
 }
 
+// Fresh authenticated user (up-to-date permissions like allowUpload).
+export const fetchMe = async (): Promise<User | null> => {
+  const result = await apiGetWithAuth<User>('me')
+  return result.success && result.data ? result.data : null
+}
+
+// Join the Creator Program → grants publish/upload permission; returns the updated user.
+export const joinCreatorProgram = async (payload: {
+  profile?: unknown
+  payoutMethod?: string | null
+}): Promise<User | null> => {
+  const result = await apiPostWithAuth<User>(
+    'joinCreatorProgram',
+    payload as Record<string, unknown>,
+  )
+  return result.success && result.data ? result.data : null
+}
+
 // Check login status
 export const checkLoginStatus = async (): Promise<boolean> => {
   if (isLoggedIn()) {
@@ -485,6 +503,10 @@ export interface ProductionJob {
   artStyle?: string | null
   episodeLength?: number | null
   episodeBunnyVideoId?: string // s1 storage: the episode's Bunny video guid
+  episode?: number // which episode this production represents (1-based)
+  episodeGroup?: string // series-group key shared by all episodes of one series
+  parentJobId?: string // the root (episode-1) production's jobId
+  keyMoments?: string[] // key beats of the generated episode (from its shot list)
   // Quick Create V1 fields
   v?: number
   proposal?: V1Proposal | null
@@ -628,6 +650,7 @@ export interface PublishEpisodeResult {
 }
 export const publishQuickCreateEpisode = async (payload: {
   jobId: string
+  episode?: number
   name: string
   description: string
   cover: string
@@ -666,6 +689,21 @@ export const fetchProductionStatus = async (jobId: string): Promise<ProductionJo
   const result = await apiGetWithAuth<ProductionJob>('productionStatus', { jobId })
   if (result.success && result.data) return result.data
   throw new Error(result.error || 'Failed to check generation status')
+}
+
+// Charge for + unlock generation of episode N from a production. Idempotent (free retry
+// once unlocked). Returns the episode-N production jobId to generate.
+export interface StartNextEpisodeResult {
+  jobId: string
+  charged: boolean
+  balance?: number
+  alreadyUnlocked?: boolean
+}
+export const startNextEpisode = async (
+  jobId: string,
+  episode: number,
+): Promise<{ success: boolean; data?: StartNextEpisodeResult; error?: string }> => {
+  return apiPostWithAuth<StartNextEpisodeResult>('startNextEpisode', { jobId, episode })
 }
 
 // Delete a Quick Create production (the job doc). Does not delete a published series.
@@ -792,6 +830,7 @@ const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   previewLength: 3,
   creatorShare: 50,
   episodeCost: 0.1,
+  nextEpisodeCost: 0.99,
 }
 
 export const fetchSystemSettings = async (): Promise<SystemSettings> => {

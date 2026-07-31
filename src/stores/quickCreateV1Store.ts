@@ -7,6 +7,7 @@ import { createStore, reconcile } from 'solid-js/store'
 import {
   startV1Job,
   fetchProductionStatus,
+  fetchMyProductions,
   generateStoryPrompt,
   type V1Proposal,
   type ProductionJob,
@@ -63,6 +64,15 @@ export interface ShotVideo {
   error?: string
 }
 
+// A sibling production of the same series (for the Ready page's Generated Episodes list).
+export interface SeriesEpisode {
+  episode: number
+  jobId: string
+  title: string
+  status: string
+  cover: string
+}
+
 export interface V1State {
   step: number
   idea: string
@@ -89,11 +99,15 @@ export interface V1State {
   videoPercent: number // avg render progress across shots (0-100), from the server
   renderStartMs: number // when shot rendering began (for the time estimate)
   resumed: boolean // opened from My Series (disallow going back into the Studio)
+  resuming: boolean // loading a resumed production — hide the wizard until the step is known
   episodeShots: PreviewShot[] // shot list for the live preview
   previewIndex: number // which shot the preview panel is showing
   previewPinned: boolean // user browsed manually → stop auto-advancing the preview
   episodeVideo: string
   episodeBunnyVideoId: string // s1 storage: the episode's Bunny video guid
+  episodeNumber: number // which episode is being produced / shown (1-based)
+  episodeKeyMoments: string[] // key beats of the generated episode (from its shot list)
+  seriesEpisodes: SeriesEpisode[] // all productions of this series (Generated Episodes list)
   seriesId: string // set once published — puts the publish page into edit mode
   activityLog: LogLine[]
   createdAt: number // ms timestamp when production started (for total-time display)
@@ -136,11 +150,15 @@ const getInitialState = (): V1State => ({
   videoPercent: 0,
   renderStartMs: 0,
   resumed: false,
+  resuming: false,
   episodeShots: [],
   previewIndex: 0,
   previewPinned: false,
   episodeVideo: '',
   episodeBunnyVideoId: '',
+  episodeNumber: 1,
+  episodeKeyMoments: [],
+  seriesEpisodes: [],
   seriesId: '',
   activityLog: [],
   createdAt: 0,
@@ -270,6 +288,7 @@ export const quickCreateV1Actions = {
     if (!jobId || !state.proposal) return
     setState({
       step: 3,
+      episodeNumber: 1,
       producing: true,
       produceError: '',
       progress: STUDIO_STAGES.map((st, i) => ({
@@ -284,6 +303,7 @@ export const quickCreateV1Actions = {
       episodeShots: [],
       previewIndex: 0,
       episodeVideo: '',
+      episodeKeyMoments: [],
       activityLog: [logNow('started')],
       createdAt: nowMs(),
     })
@@ -301,12 +321,13 @@ export const quickCreateV1Actions = {
   // Open an existing v1 production (from My Series). Jumps to the Ready page when the
   // episode is finished, otherwise re-enters the Studio and resumes polling.
   openProduction: async (jobId: string, publish = false) => {
-    setState({ ...getInitialState(), jobId, resumed: true })
+    // resuming=true hides the wizard (so step 1 never flashes) until the real step is known.
+    setState({ ...getInitialState(), jobId, resumed: true, resuming: true })
     let job: ProductionJob
     try {
       job = await fetchProductionStatus(jobId)
     } catch (e) {
-      setState({ step: 4, produceError: (e as Error).message })
+      setState({ step: 4, resuming: false, produceError: (e as Error).message })
       return
     }
     // A proposal-only production (never approved) resumes on the Review Proposal page.
@@ -316,6 +337,7 @@ export const quickCreateV1Actions = {
         seriesId: job.seriesId || '',
         proposalLoading: false,
         step: 2,
+        resuming: false,
       })
       return
     }
@@ -326,6 +348,8 @@ export const quickCreateV1Actions = {
       proposal: job.proposal || null,
       episodeVideo: job.episodeVideo || '',
       episodeBunnyVideoId: job.episodeBunnyVideoId || '',
+      episodeNumber: (job as { episode?: number }).episode || 1,
+      episodeKeyMoments: job.keyMoments || [],
       seriesId: job.seriesId || '',
       videos: (job.videos as ShotVideo[]) || [],
       videoDone: job.videoProgress?.done || 0,
@@ -339,18 +363,54 @@ export const quickCreateV1Actions = {
       wantPublish: publish,
     })
     if (job.episodeVideo || job.status === 'done') {
-      setState({ step: 4, producing: false })
+      setState({ step: 4, producing: false, resuming: false })
+      quickCreateV1Actions.loadSeriesEpisodes()
     } else if (job.status === 'error') {
-      setState({ step: 4, producing: false, produceError: job.error || 'Generation failed' })
+      setState({ step: 4, producing: false, resuming: false, produceError: job.error || 'Generation failed' })
     } else {
-      setState({ step: 3, producing: true })
+      setState({ step: 3, producing: true, resuming: false })
       startStageTicker()
       pollProduce(jobId)
     }
   },
+  setResuming: (resuming: boolean) => setState({ resuming }),
   openPublish: () => setState({ wantPublish: true }),
   closePublish: () => setState({ wantPublish: false }),
   setSeriesId: (seriesId: string) => setState({ seriesId }),
+
+  // Load every production of this series (episode 1 + follow-ups) for the Ready page's
+  // "Generated Episodes" list. Groups by the same key My Series uses.
+  loadSeriesEpisodes: async () => {
+    const jobId = state.jobId
+    if (!jobId) return
+    let prods: ProductionJob[]
+    try {
+      prods = await fetchMyProductions()
+    } catch {
+      return
+    }
+    if (state.jobId !== jobId) return
+    // Group key = the root (episode-1) production's jobId — stable regardless of which
+    // episodes are published (seriesId is added only after publishing).
+    const keyOf = (p: ProductionJob) => `grp:${p.parentJobId || p.jobId}`
+    const cur = prods.find((p) => p.jobId === jobId)
+    if (!cur) return
+    const k = keyOf(cur)
+    const members = prods.filter((p) => p.v === 1 && keyOf(p) === k && p.jobId)
+    const eps: SeriesEpisode[] = members
+      .map((p) => ({
+        episode: p.episode || 1,
+        jobId: p.jobId as string,
+        title: p.title || p.ideaTitle || '',
+        status: p.status || '',
+        cover: p.cover || p.videos?.find((v) => v.coverUrl)?.coverUrl || '',
+      }))
+      .sort((a, b) => a.episode - b.episode)
+    // Adopt the group's published series id so publishing a follow-up episode edits the
+    // existing series (seeds its saved name/cover) instead of creating a new one.
+    const publishedSeriesId = members.find((p) => p.seriesId)?.seriesId || state.seriesId || ''
+    setState({ seriesEpisodes: eps, seriesId: publishedSeriesId })
+  },
 
   // Manual browsing pins the preview so live polling stops yanking it to the newest shot.
   prevShot: () => setState({ previewPinned: true, previewIndex: Math.max(0, state.previewIndex - 1) }),
@@ -360,6 +420,50 @@ export const quickCreateV1Actions = {
       previewIndex: Math.min(Math.max(0, state.episodeShots.length - 1), state.previewIndex + 1),
     }),
   setPreviewIndex: (i: number) => setState({ previewIndex: i, previewPinned: true }),
+
+  // Start generating a follow-up episode (already charged/unlocked server-side). Points
+  // the store at the new production, resets studio state, and runs the pipeline for it.
+  startNextEpisode: async (newJobId: string, episode: number) => {
+    const proposal = state.proposal
+    setState({
+      jobId: newJobId,
+      episodeNumber: episode,
+      step: 3,
+      resumed: false,
+      producing: true,
+      produceError: '',
+      progress: STUDIO_STAGES.map((st, i) => ({
+        key: st.serverKeys[0],
+        status: i === 0 ? 'done' : 'pending',
+      })),
+      percent: 0,
+      stagePct: { executiveProducer: 100 },
+      videos: [],
+      videoDone: 0,
+      videoTotal: 0,
+      videoPercent: 0,
+      renderStartMs: 0,
+      totalTimeSec: 0,
+      episodeShots: [],
+      previewIndex: 0,
+      previewPinned: false,
+      episodeVideo: '',
+      episodeBunnyVideoId: '',
+      episodeKeyMoments: [],
+      seriesId: '',
+      activityLog: [logNow('started')],
+      createdAt: nowMs(),
+    })
+    startStageTicker()
+    try {
+      await startV1Job(newJobId, { mode: 'produce', proposal, episode })
+    } catch (e) {
+      stopStageTicker()
+      setState({ producing: false, produceError: (e as Error).message })
+      return
+    }
+    pollProduce(newJobId)
+  },
 }
 
 // ── Polling loops ──
@@ -447,10 +551,12 @@ const pollProduce = async (jobId: string): Promise<void> => {
       setState({
         episodeVideo: job.episodeVideo,
         episodeBunnyVideoId: job.episodeBunnyVideoId || '',
+        episodeKeyMoments: job.keyMoments || state.episodeKeyMoments,
         producing: false,
         step: 4,
         totalTimeSec: state.createdAt ? Math.round((nowMs() - state.createdAt) / 1000) : 0,
       })
+      quickCreateV1Actions.loadSeriesEpisodes()
       return
     }
     if (job.status === 'error') {
@@ -578,6 +684,11 @@ const applyProduceProgress = (job: ProductionJob): void => {
     const cur = Math.min((job.videoProgress.done ?? 0) + 1, total)
     const rk = `rendering:${cur}/${total}`
     if (log[log.length - 1]?.key !== rk) log.push(logNow(rk))
+  }
+  // Shots done, final composition/encoding running (incl. the Bunny-encode wait in s1).
+  const comp = calls.find((c) => c.key === 'composition')
+  if (vg?.status === 'done' && comp?.status === 'running' && !job.episodeVideo && !hasKey('encoding')) {
+    log.push(logNow('encoding'))
   }
   if (log.length !== state.activityLog.length) setState({ activityLog: log })
 

@@ -68,6 +68,7 @@ EXECUTIVE PRODUCER PRINCIPLES:
 - `creativeDirection.genre` is a short primary genre label (e.g. "Slice of Life"); `theme` is a short thematic label (e.g. "Supernatural").
 - For every main character, give a concise `personality` (a few descriptive words) and a one-line `background`.
 - Design the FIVE-episode Season 1 roadmap (episodes 1–5). For EACH episode provide a 2–3 sentence `summary`, 3–4 short `keyMoments` bullet strings, a one-line `goal`, and a one-line `endingCliffhanger`.
+- CRITICAL: EVERY episode in `seasonRoadmap` (all five, not only episode 1) MUST have a NON-EMPTY `keyMoments` array with 3–4 entries. Never return an empty `keyMoments` for any episode.
 - Focus on the major story progression rather than detailed scenes.
 - Introduce only the main characters needed to understand the series.
 - Make Episode 1 engaging enough that viewers want to continue to Episode 2.

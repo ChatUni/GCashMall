@@ -1721,6 +1721,32 @@ const buildUserResponse = async (user) => {
   }
 }
 
+// Return the authenticated user's fresh profile (up-to-date permission checks, e.g.
+// whether they may publish). Unlike getUser (a mock), this resolves the real user.
+const getMe = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) return { success: false, error: 'User not found' }
+  return { success: true, data: await buildUserResponse(users[0]) }
+}
+
+// Join the Creator Program → grant publish/upload permission. Stores the creator profile
+// and returns the updated user so the client can refresh its store + cached login user.
+const joinCreatorProgram = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) return { success: false, error: 'User not found' }
+  const updated = {
+    ...users[0],
+    allowUpload: true,
+    creatorProfile: (body && body.profile) || users[0].creatorProfile || null,
+    creatorPayoutMethod: (body && body.payoutMethod) || users[0].creatorPayoutMethod || null,
+    updatedAt: new Date(),
+  }
+  await save('users', updated)
+  return { success: true, data: await buildUserResponse(updated) }
+}
+
 const uploadImage = async (body) => {
   validateUploadImageBody(body)
 
@@ -1979,65 +2005,113 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
   }
 
   const tags = Array.isArray(body.tags) ? body.tags : []
-  const episodeTitle = body.episodeTitle || 'Episode 1'
+  const episode = parseInt(body.episode) || 1
+  const episodeTitle = body.episodeTitle || `Episode ${episode}`
   // Tags are genres: resolve to genre ids (creating any that don't exist yet).
   const { ids: genreIds, names: genreNames } = await resolveGenres(tags)
 
-  // ── Update path: the series already exists (re-publish) — no video re-upload ──
-  if (doc.seriesId) {
-    const existing = await get('series', { _id: new ObjectId(String(doc.seriesId)) }, {}, {}, 1)
-    if (existing && existing.length > 0) {
-      const series = existing[0]
-      if (String(series.uploaderId) !== String(userId)) {
-        throw new Error('You are not authorized to edit this series')
-      }
-      series.name = body.name
-      series.description = body.description || ''
-      if (body.cover) series.cover = body.cover
+  // Get (or create) a Bunny video for this production's episode video. s1: reuse the
+  // already-uploaded Bunny video; s0: create one and ingest from the Cloudinary mp4.
+  const getEpisodeVideoId = async () => {
+    if (!doc.episodeVideo) throw new Error('Episode video is not ready yet')
+    let videoId = doc.episodeBunnyVideoId
+    if (!videoId) {
+      videoId = await createBunnyVideo(episodeTitle)
+      await fetchBunnyVideoFromUrl(videoId, doc.episodeVideo)
+    }
+    if (body.thumbnail) {
+      await setBunnyThumbnail(videoId, body.thumbnail).catch((e) =>
+        console.error('setBunnyThumbnail failed:', e.message),
+      )
+    }
+    return videoId
+  }
+
+  // Resolve the series this production belongs to (episode 1 creates it; follow-up
+  // episodes attach to the same series, found via this doc's seriesId or a sibling's).
+  const rootJobId = doc.parentJobId || doc.jobId
+  let series = null
+  const loadSeries = async (id) => {
+    if (!id) return null
+    const ex = await get('series', { _id: new ObjectId(String(id)) }, {}, {}, 1)
+    return ex && ex.length > 0 ? ex[0] : null
+  }
+  series = await loadSeries(doc.seriesId)
+  if (!series) {
+    const sibs = await get(
+      'productions',
+      {
+        userId: doc.userId,
+        $or: [{ jobId: rootJobId }, { parentJobId: rootJobId }],
+        seriesId: { $exists: true, $nin: [null, ''] },
+      },
+      {},
+      {},
+      1,
+    )
+    if (sibs && sibs.length > 0) series = await loadSeries(sibs[0].seriesId)
+  }
+
+  // ── Attach to an existing series (add or update this episode) ──
+  if (series) {
+    if (String(series.uploaderId) !== String(userId)) {
+      throw new Error('You are not authorized to edit this series')
+    }
+    // Any episode may update the series info (the publish form is seeded from the current
+    // series, so this only changes what the user actually edited).
+    if (body.name) series.name = body.name
+    if (body.description !== undefined) series.description = body.description || ''
+    if (body.cover) series.cover = body.cover
+    if (genreNames.length) {
       series.tags = genreNames
       series.genre = genreIds
-      series.quickCreate = true // backfill the flag on re-publish
-      const ep = (series.episodes || []).find((e) => e.episodeNumber === 1)
-      if (ep) {
-        ep.title = episodeTitle
-        if (body.episodeDescription !== undefined) ep.description = body.episodeDescription
-        if (body.thumbnail) {
-          ep.thumbnail = body.thumbnail
-          if (ep.videoId) {
-            await setBunnyThumbnail(ep.videoId, body.thumbnail).catch((e) =>
-              console.error('setBunnyThumbnail failed:', e.message),
-            )
-          }
+    }
+    series.quickCreate = true
+    series.episodes = series.episodes || []
+    const ep = series.episodes.find((e) => e.episodeNumber === episode)
+    let created = false
+    if (ep) {
+      ep.title = episodeTitle
+      if (body.episodeDescription !== undefined) ep.description = body.episodeDescription
+      if (body.thumbnail) {
+        ep.thumbnail = body.thumbnail
+        if (ep.videoId) {
+          await setBunnyThumbnail(ep.videoId, body.thumbnail).catch((e) =>
+            console.error('setBunnyThumbnail failed:', e.message),
+          )
         }
       }
-      series.updatedAt = new Date()
-      await save('series', series)
-      await update(
-        'productions',
-        { jobId: body.jobId },
-        { $set: { seriesName: body.name, seriesCover: series.cover || '', updatedAt: new Date() } },
-      )
-      return { success: true, data: { seriesId: String(series._id), created: false } }
+    } else {
+      const videoId = await getEpisodeVideoId()
+      series.episodes.push({
+        episodeNumber: episode,
+        title: episodeTitle,
+        description: body.episodeDescription || '',
+        thumbnail: body.thumbnail || body.cover || '',
+        videoId,
+      })
+      series.episodes.sort((a, b) => (a.episodeNumber || 0) - (b.episodeNumber || 0))
+      created = true
     }
-    // series was deleted — fall through and create a fresh one
-  }
-
-  // ── Create path: first publish ──
-  if (!doc.episodeVideo) throw new Error('Episode video is not ready yet')
-
-  // s1 storage: the episode is already on Bunny — reuse that video instead of creating
-  // a second one and re-ingesting. s0: create a fresh Bunny video from the Cloudinary mp4.
-  let videoId = doc.episodeBunnyVideoId
-  if (!videoId) {
-    videoId = await createBunnyVideo(episodeTitle)
-    await fetchBunnyVideoFromUrl(videoId, doc.episodeVideo)
-  }
-  if (body.thumbnail) {
-    await setBunnyThumbnail(videoId, body.thumbnail).catch((e) =>
-      console.error('setBunnyThumbnail failed:', e.message),
+    series.updatedAt = new Date()
+    await save('series', series)
+    await update(
+      'productions',
+      { jobId: body.jobId },
+      {
+        $set: {
+          seriesId: String(series._id),
+          seriesName: series.name,
+          seriesCover: series.cover || '',
+          updatedAt: new Date(),
+        },
+      },
     )
+    return { success: true, data: { seriesId: String(series._id), created } }
   }
 
+  // ── Create path: no series yet → create it with this episode ──
+  const videoId = await getEpisodeVideoId()
   const seriesDoc = {
     name: body.name,
     description: body.description || '',
@@ -2049,7 +2123,7 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
     shelved: false,
     episodes: [
       {
-        episodeNumber: 1,
+        episodeNumber: episode,
         title: episodeTitle,
         description: body.episodeDescription || '',
         thumbnail: body.thumbnail || body.cover || '',
@@ -3385,6 +3459,9 @@ export {
   getProductionStatus,
   getSharedEpisode,
   deleteProduction,
+  startNextEpisode,
+  getMe,
+  joinCreatorProgram,
   getMyProductions,
   getComments,
   addComment,
@@ -3827,6 +3904,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
   previewLength: 3, // seconds of free preview before purchase is required
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 0.1, // GUSD cost to unlock an episode
+  nextEpisodeCost: 0.99, // GUSD cost to generate a follow-up episode
 }
 const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
@@ -3841,6 +3919,7 @@ const readSystemSettings = async () => {
     previewLength: saved.previewLength ?? DEFAULT_SYSTEM_SETTINGS.previewLength,
     creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
+    nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
   }
 }
 
@@ -3862,6 +3941,7 @@ const saveSettings = async (body, authHeader) => {
       previewLength: body.previewLength,
       creatorShare: body.creatorShare,
       episodeCost: body.episodeCost,
+      nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
       updatedAt: new Date(),
     }
 
@@ -4255,6 +4335,89 @@ const getProductionStatus = async (params, authHeader) => {
   } catch (error) {
     throw new Error(`Failed to get production status: ${error.message}`)
   }
+}
+
+// Charge for + unlock the generation of episode N from an existing production. Idempotent:
+// once a (paid) episode-N production exists for this series/production group, we reuse it
+// and never re-charge — so a failed render can be retried for free. Returns the jobId of
+// the episode-N production to generate.
+const startNextEpisode = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+  const episode = parseInt(body.episode)
+  if (!episode || episode < 2) throw new Error('A valid episode number (>= 2) is required')
+
+  const parents = await get('productions', { jobId: body.jobId }, {}, {}, 1)
+  if (!parents || parents.length === 0) return { success: false, error: 'Production not found' }
+  const parent = parents[0]
+  if (String(parent.userId) !== String(userId)) return { success: false, error: 'Not authorized' }
+
+  const rootJobId = parent.parentJobId || parent.jobId
+  const groupKey = parent.seriesId ? `series:${parent.seriesId}` : `job:${rootJobId}`
+
+  // Already unlocked → reuse the existing paid production (free retry, no re-charge).
+  const existing = await get(
+    'productions',
+    { userId: parent.userId, episodeGroup: groupKey, episode },
+    {},
+    {},
+    1,
+  )
+  if (existing && existing.length > 0) {
+    return { success: true, data: { jobId: existing[0].jobId, charged: false, alreadyUnlocked: true } }
+  }
+
+  // Charge the user's GUSD balance (cost is admin-configurable via system settings).
+  const { nextEpisodeCost } = await readSystemSettings()
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) return { success: false, error: 'User not found' }
+  const user = users[0]
+  const balance = user.balance || 0
+  if (balance < nextEpisodeCost) return { success: false, error: 'Insufficient balance' }
+
+  const seriesTitle = parent.proposal?.project?.title || parent.ideaTitle || 'Series'
+  const episodeTitle = (parent.proposal?.seasonRoadmap || [])[episode - 1]?.title || ''
+  const transaction = {
+    id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    referenceId: generateReferenceId(),
+    type: 'generate',
+    amount: nextEpisodeCost,
+    description: `Generate ${seriesTitle} — Episode ${episode}`,
+    source: { seriesName: seriesTitle, episodeNumber: episode, episodeTitle },
+    status: 'success',
+    createdAt: new Date(),
+  }
+  const transactions = user.transactions || []
+  transactions.unshift(transaction)
+  const newBalance = balance - nextEpisodeCost
+  await save('users', { ...user, balance: newBalance, transactions, updatedAt: new Date() })
+
+  // Create the (paid) episode-N production doc, reusing the parent's Character Bible for
+  // visual consistency. Deterministic jobId keeps retries pointing at the same doc.
+  const newJobId = `${rootJobId}-ep${episode}`
+  await save('productions', {
+    jobId: newJobId,
+    userId: parent.userId,
+    v: 1,
+    mode: 'v1produce',
+    episode,
+    paid: true,
+    episodeGroup: groupKey,
+    parentJobId: rootJobId,
+    seriesId: parent.seriesId || null,
+    status: 'pending',
+    proposal: parent.proposal || null,
+    ideaTitle: seriesTitle,
+    title: seriesTitle,
+    episodeLength: 30,
+    callsV1: parent.callsV1?.characterDirector
+      ? { characterDirector: parent.callsV1.characterDirector }
+      : {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })
+
+  return { success: true, data: { jobId: newJobId, charged: true, balance: newBalance } }
 }
 
 // Delete a Quick Create production (the job doc). Only the owner may delete it. Does not

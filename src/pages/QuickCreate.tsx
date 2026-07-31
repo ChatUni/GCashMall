@@ -1,6 +1,8 @@
 import { For, Show, Switch, Match, createSignal, createEffect, onMount, type JSX } from 'solid-js'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { t } from '../stores/languageStore'
+import { getStoredUser, setStoredUser } from '../utils/api'
+import { accountStoreActions } from '../stores/accountStore'
 import {
   extractStory,
   generateStoryPrompt,
@@ -13,6 +15,7 @@ import {
   startCoverGen,
   uploadCoverImage,
   videoStorage,
+  fetchMe,
   type ProductionJob,
 } from '../services/dataService'
 import { SocialSharePopup } from '../components/SocialShare'
@@ -948,6 +951,25 @@ const Step7Ready = () => {
 
   const [shareUrl, setShareUrl] = createSignal('')
   const shareText = () => getShareText(seriesTitle(), 1)
+
+  // Only Creator-Program members (publishers) may publish. Re-check with the server on
+  // click (allowUpload can change after joining) and refresh the cached user.
+  const [joinPrompt, setJoinPrompt] = createSignal(false)
+  const onPublishClick = async () => {
+    let allowed = (getStoredUser() as { allowUpload?: boolean } | null)?.allowUpload === true
+    try {
+      const me = await fetchMe()
+      if (me) {
+        accountStoreActions.setUser(me)
+        setStoredUser(me)
+        allowed = me.allowUpload === true
+      }
+    } catch {
+      /* keep the cached decision */
+    }
+    if (allowed) quickCreateStoreActions.openPublish()
+    else setJoinPrompt(true)
+  }
   const comingSoon = () => toastStoreActions.show(s7().comingSoon, 'info')
 
   // If published, prefer the actual published series cover + episode info
@@ -1102,7 +1124,7 @@ const Step7Ready = () => {
 
       {/* Bottom action bar (replaces the wizard nav on this step) */}
       <div class="qc-s7-actions">
-        <button class="qc-s7-action" onClick={quickCreateStoreActions.openPublish}>
+        <button class="qc-s7-action" onClick={onPublishClick}>
           ⬆ {s7().publish}
         </button>
         <button
@@ -1134,6 +1156,24 @@ const Step7Ready = () => {
           closeLabel={s7().close}
           onClose={() => setShareUrl('')}
         />
+      </Show>
+
+      {/* Publishing requires Creator Program membership */}
+      <Show when={joinPrompt()}>
+        <div class="qc-pub-dialog-overlay" onClick={() => setJoinPrompt(false)}>
+          <div class="qc-join-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3 class="qc-join-title">✦ {s7().joinTitle}</h3>
+            <p class="qc-join-desc">{s7().joinDesc}</p>
+            <div class="qc-join-actions">
+              <button class="qc-s7-action outline" onClick={() => setJoinPrompt(false)}>
+                {s7().close}
+              </button>
+              <button class="qc-primary-btn" onClick={() => navigate('/creator-program')}>
+                {s7().joinBtn}
+              </button>
+            </div>
+          </div>
+        </div>
       </Show>
     </div>
   )
@@ -1173,8 +1213,9 @@ export const PublishEpisode = (
   const lengthText = () =>
     `${production()?.episodeLength ?? props.episodeLength ?? quickCreateStore.episodeLength} ${qc().step4.sec}`
 
-  // Publishing Episode 1 also creates the series, so collect series-level details.
-  const isEpisode1 = () => (ep1()?.n ?? 1) === 1
+  // Every publish shows the series section: whichever episode is published first creates
+  // the series; later publishes update its info (name/cover/…) if the user changes them.
+  const withSeries = () => true
   const seriesLogline = () => {
     const exec = production()?.calls?.executiveProducer as
       | { series_blueprint?: { logline?: string } }
@@ -1466,14 +1507,15 @@ export const PublishEpisode = (
   const navigate = useNavigate()
   const [publishing, setPublishing] = createSignal(false)
   const canPublish = () =>
-    !!jobId() && titleOk() && descOk() && !!episodeVideo() && (!isEpisode1() || seriesOk())
+    !!jobId() && titleOk() && descOk() && !!episodeVideo() && (!withSeries() || seriesOk())
   const onPublish = async () => {
     if (!canPublish() || publishing()) return
     setPublishing(true)
     try {
       const res = await publishQuickCreateEpisode({
         jobId: jobId()!,
-        name: isEpisode1() ? seriesName() : seriesTitle(),
+        episode: ep1()?.n ?? 1,
+        name: withSeries() ? seriesName() : seriesTitle(),
         description: seriesDesc(),
         cover: effectiveSeriesCover(),
         tags: tags(),
@@ -1512,7 +1554,7 @@ export const PublishEpisode = (
           ←
         </button>
         <div>
-          <h2 class="qc-pub-heading">✦ {pub().heading}</h2>
+          <h2 class="qc-pub-heading">✦ {pub().heading.replace('{n}', String(ep1()?.n ?? 1))}</h2>
           <p class="qc-subtitle">{pub().subtitle}</p>
         </div>
       </div>
@@ -1521,7 +1563,7 @@ export const PublishEpisode = (
         {/* Left: form */}
         <div class="qc-pub-form">
           {/* Series section — only when publishing Episode 1 (which creates the series) */}
-          <Show when={isEpisode1()}>
+          <Show when={withSeries()}>
             <div class="qc-pub-section">
               <h3 class="qc-pub-section-title">{pub().seriesSection}</h3>
 
@@ -1859,7 +1901,7 @@ export const PublishEpisode = (
           <div class="qc-pub-checklist-row">
             <div class="qc-pub-checklist">
               <div class="qc-pub-check-title">{pub().beforePublish}</div>
-              <Show when={isEpisode1()}>
+              <Show when={withSeries()}>
                 <div class={`qc-pub-check ${seriesOk() ? 'ok' : ''}`}>
                   <span>{seriesOk() ? '✓' : '○'}</span> {pub().checkSeries}
                 </div>
@@ -1895,7 +1937,7 @@ export const PublishEpisode = (
             disabled={!canPublish() || publishing()}
             onClick={onPublish}
           >
-            ⬆ {publishing() ? pub().publishing : pub().publishNow}
+            ⬆ {publishing() ? pub().publishing : pub().publishNow.replace('{n}', String(ep1()?.n ?? 1))}
           </button>
           <span class="qc-s7-generate-note">{pub().liveImmediately}</span>
         </div>

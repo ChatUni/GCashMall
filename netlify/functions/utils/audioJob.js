@@ -13,7 +13,13 @@ import { synthesizeSpeech } from './tts.js'
 import { muxAudioOntoVideo, concatVideos } from './ffmpeg.js'
 import { callOpenAIChatJson } from './pipeline.js'
 import { modelHasNativeAudio } from './seedance.js'
-import { isS1, uploadEpisodeToBunny, bunnyEmbedUrl, setBunnyThumbnail } from './bunny.js'
+import {
+  isS1,
+  uploadEpisodeToBunny,
+  bunnyEmbedUrl,
+  setBunnyThumbnail,
+  waitForBunnyReady,
+} from './bunny.js'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -215,6 +221,9 @@ export const runAudioComposition = async (jobId, userId) => {
         await concatVideos({ paths: composedPaths, listPath, outPath: epPath })
         if (isS1()) {
           episodeBunnyVideoId = await uploadEpisodeToBunny(episodeTitle, epPath)
+          // Part of the composition step: wait for Bunny to finish encoding so the episode
+          // is actually playable before we mark the production done and reveal it.
+          await waitForBunnyReady(episodeBunnyVideoId).catch(() => {})
           episodeVideo = bunnyEmbedUrl(episodeBunnyVideoId)
         } else {
           episodeVideo = await uploadVideo(epPath)

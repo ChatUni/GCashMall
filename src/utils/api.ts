@@ -273,6 +273,12 @@ export const getStoredToken = (): string | null => {
   return localStorage.getItem(TOKEN_KEY)
 }
 
+// Update just the cached login user (keeps the token). Used after the server returns a
+// fresh user (e.g. joining the Creator Program grants allowUpload).
+export const setStoredUser = (user: AuthResponse['user']): void => {
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
 export const getStoredUser = (): AuthResponse['user'] | null => {
   const userJson = localStorage.getItem(USER_KEY)
   if (!userJson) return null

@@ -12,7 +12,16 @@ import GenrePicker from '../components/GenrePicker'
 import { heroImage } from '../stores/quickCreateStore'
 import { SocialSharePopup } from '../components/SocialShare'
 import { getShareText } from '../utils/playerHelpers'
-import { videoStorage, type ProductionJob } from '../services/dataService'
+import {
+  videoStorage,
+  startNextEpisode as startNextEpisodeApi,
+  fetchMe,
+  type ProductionJob,
+  type V1RoadmapEpisode,
+} from '../services/dataService'
+import { accountStore, accountStoreActions } from '../stores/accountStore'
+import { getStoredUser, setStoredUser } from '../utils/api'
+import { systemSettingsStore, systemSettingsStoreActions } from '../stores/systemSettingsStore'
 import { t } from '../stores/languageStore'
 import { toastStore, toastStoreActions } from '../stores/index'
 import {
@@ -31,6 +40,9 @@ const tv = () => t().quickCreateV1
 const S1 = videoStorage() === 's1'
 const shareBase = (): string =>
   (import.meta.env.VITE_PROD_SERVER as string) || window.location.origin
+
+// GUSD currency logo. The generation cost is an admin-configurable system setting.
+const GUSD_LOGO = 'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png'
 
 // Imagery on Cloudinary (GCash/quick create v1/*.webp), mirroring the v0 CDN set.
 // Uploaded via scripts/upload-qc-v1-cloudinary.mjs.
@@ -729,8 +741,12 @@ const Page3Studio = () => {
             </div>
             <div class="qcv1-preview-body">
               <div class="qcv1-preview-left">
-                <div class="qcv1-preview-ep-title">{st().creatingEpisode}</div>
-                <div class="qcv1-preview-ep-sub">{s.proposal?.seasonRoadmap?.[0]?.title || ''}</div>
+                <div class="qcv1-preview-ep-title">
+                  {st().creatingEpisode} {s.episodeNumber}
+                </div>
+                <div class="qcv1-preview-ep-sub">
+                  {s.proposal?.seasonRoadmap?.[s.episodeNumber - 1]?.title || ''}
+                </div>
                 <Show when={previewShot()}>
                   <div class="qcv1-current-shot">
                     <span class="qcv1-current-shot-label">{st().currentShot.toUpperCase()}</span>
@@ -849,7 +865,8 @@ const Page3Studio = () => {
 const Page4Ready = () => {
   const r = () => tv().ready
   const navigate = useNavigate()
-  const ep1 = () => s.proposal?.seasonRoadmap?.[0]
+  const ep1 = () =>
+    s.proposal?.seasonRoadmap?.[s.episodeNumber - 1] || s.proposal?.seasonRoadmap?.[0]
   const title = () => ep1()?.title || s.proposal?.project?.title || 'Episode 1'
   const cd = () => s.proposal?.creativeDirection || {}
   const totalTime = () => (s.totalTimeSec > 0 ? mmss(s.totalTimeSec) : '—')
@@ -860,9 +877,53 @@ const Page4Ready = () => {
       return ''
     }
   }
-  const keyMoments = () => ep1()?.keyMoments || []
+  // Prefer the generated episode's actual beats; fall back to the proposal roadmap.
+  const keyMoments = () =>
+    s.episodeKeyMoments.length ? s.episodeKeyMoments : ep1()?.keyMoments || []
   const kmTime = (i: number, n: number) => mmss(Math.round(((i + 1) / (n + 1)) * 30))
-  const nextEpisodes = () => (s.proposal?.seasonRoadmap || []).slice(1, 5)
+  // Episodes that already have a production (generated or generating).
+  const producedNums = () => new Set(s.seriesEpisodes.map((e) => e.episode))
+  // What's Next = roadmap episodes with no production yet (and not the current one).
+  const nextEpisodes = () =>
+    (s.proposal?.seasonRoadmap || []).filter(
+      (e) => !producedNums().has(e.episode) && e.episode !== s.episodeNumber,
+    )
+
+  // "What's Next": confirm dialog → balance check → charge/unlock → generate the episode.
+  const [nextEp, setNextEp] = createSignal<V1RoadmapEpisode | null>(null)
+  const [charging, setCharging] = createSignal(false)
+  const cost = () => systemSettingsStore.nextEpisodeCost ?? 0.99
+  const balance = () => accountStore.balance
+  const canAfford = () => balance() >= cost()
+  const goTopUp = () => {
+    setNextEp(null)
+    navigate('/account?tab=wallet')
+  }
+  const confirmNext = async () => {
+    const ep = nextEp()
+    if (!ep || charging() || !s.jobId) return
+    if (!canAfford()) return goTopUp() // client-side balance check
+    setCharging(true)
+    try {
+      const res = await startNextEpisodeApi(s.jobId, ep.episode)
+      if (!res.success || !res.data) {
+        if (res.error === 'Insufficient balance') {
+          toastStoreActions.show(r().insufficientBalance, 'error')
+          goTopUp()
+        } else {
+          toastStoreActions.show(res.error || 'Failed', 'error')
+        }
+        return
+      }
+      if (res.data.charged && typeof res.data.balance === 'number') {
+        accountStoreActions.setBalance(res.data.balance)
+      }
+      setNextEp(null)
+      actions.startNextEpisode(res.data.jobId, ep.episode)
+    } finally {
+      setCharging(false)
+    }
+  }
 
   const download = () => {
     if (!s.episodeVideo) return
@@ -875,7 +936,27 @@ const Page4Ready = () => {
   const shareCover = () => s.videos.find((v) => v.coverUrl)?.coverUrl || ''
   // s1: share the app /watch page (full watch, no trial limit). s0: share the mp4.
   const shareUrl = () => (S1 ? `${shareBase()}/watch/${s.jobId}` : s.episodeVideo)
-  const publish = () => actions.openPublish()
+  // Only Creator-Program members (publishers) may publish. On click, re-check with the
+  // server (allowUpload can change after joining) and refresh the cached user; fall back
+  // to the cached value if the request fails.
+  const [joinPrompt, setJoinPrompt] = createSignal(false)
+  const cachedAllowUpload = () =>
+    ((accountStore.user || getStoredUser()) as { allowUpload?: boolean } | null)?.allowUpload === true
+  const publish = async () => {
+    let allowed = cachedAllowUpload()
+    try {
+      const me = await fetchMe()
+      if (me) {
+        accountStoreActions.setUser(me)
+        setStoredUser(me)
+        allowed = me.allowUpload === true
+      }
+    } catch {
+      /* keep the cached decision */
+    }
+    if (allowed) actions.openPublish()
+    else setJoinPrompt(true)
+  }
   const soon = () => toastStoreActions.show(r().editBtn, 'info')
 
   const ActionCard = (props: {
@@ -912,7 +993,9 @@ const Page4Ready = () => {
         <div class="qcv1-p4-main">
           <div class="qcv1-p4-head">
             <div>
-              <h1 class="qcv1-h1">{r().title} 🎉</h1>
+              <h1 class="qcv1-h1">
+                {r().episodeWord} {s.episodeNumber} {r().readySuffix} 🎉
+              </h1>
               <p class="qcv1-lead">{r().subtitle}</p>
             </div>
             <div class="qcv1-time-card">
@@ -952,7 +1035,7 @@ const Page4Ready = () => {
                 <span class="qcv1-ep-icon">🎬</span>
                 <div>
                   <div class="qcv1-ep-eyebrow">
-                    {r().episodeWord} 1
+                    {r().episodeWord} {s.episodeNumber}
                   </div>
                   <div class="qcv1-ep-big-title">{title()}</div>
                 </div>
@@ -982,6 +1065,38 @@ const Page4Ready = () => {
             </div>
           </div>
 
+          {/* Generated Episodes — every produced episode of this series */}
+          <Show when={s.seriesEpisodes.length > 0}>
+            <div class="qcv1-next">
+              <div class="qcv1-next-head">
+                <b>{r().generatedEpisodes}</b>
+              </div>
+              <div class="qcv1-next-grid">
+                <For each={s.seriesEpisodes}>
+                  {(ep) => (
+                    <button
+                      class={`qcv1-next-card gen ${ep.episode === s.episodeNumber ? 'active' : ''}`}
+                      onClick={() => actions.openProduction(ep.jobId)}
+                    >
+                      <div class="qcv1-next-thumb">
+                        <Show when={ep.cover} fallback={<span>🎬</span>}>
+                          <img src={ep.cover} alt="" />
+                        </Show>
+                      </div>
+                      <div class="qcv1-next-eyebrow">
+                        {r().episodeWord} {ep.episode}
+                      </div>
+                      <div class="qcv1-next-title">{ep.title}</div>
+                      <div class="qcv1-next-genstatus">
+                        {ep.status === 'done' ? `▶ ${r().watchBtn}` : r().generatingLabel}
+                      </div>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </div>
+          </Show>
+
           <Show when={nextEpisodes().length > 0}>
             <div class="qcv1-next">
               <div class="qcv1-next-head">
@@ -995,8 +1110,11 @@ const Page4Ready = () => {
                       <div class="qcv1-next-eyebrow">{r().episodeWord} {ep.episode}</div>
                       <div class="qcv1-next-title">{ep.title}</div>
                       <div class="qcv1-next-desc">{ep.summary}</div>
-                      <button class="qcv1-btn ghost sm full" onClick={() => actions.reset()}>
-                        {r().createEpisode} {ep.episode} →
+                      <button class="qcv1-btn ghost sm full qcv1-next-btn" onClick={() => setNextEp(ep)}>
+                        <span>{r().createEpisode} {ep.episode} →</span>
+                        <span class="qcv1-next-price">
+                          <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {cost().toFixed(2)}
+                        </span>
                       </button>
                     </div>
                   )}
@@ -1014,8 +1132,13 @@ const Page4Ready = () => {
             <ActionCard icon="⬇" title={r().downloadTitle} desc={r().downloadDesc} btn={`${r().downloadBtn} ⬇`} onClick={download} disabled={!s.episodeVideo} />
           </Show>
           <ActionCard icon="✎" title={r().editTitle} desc={r().editDesc} btn={`${r().editBtn} ⧉`} onClick={soon} />
-          <ActionCard icon="▣" title={r().publishTitle} desc={r().publishDesc} btn={r().publishBtn} onClick={publish} />
-          <ActionCard icon="▤" title={r().viewAllTitle} desc={r().viewAllDesc} btn={`${r().viewAllBtn} ⬇`} onClick={() => actions.goToStep(2)} />
+          <ActionCard
+            icon="▣"
+            title={r().publishTitle}
+            desc={r().publishDesc.replace('{n}', String(s.episodeNumber))}
+            btn={r().publishBtn.replace('{n}', String(s.episodeNumber))}
+            onClick={publish}
+          />
         </div>
       </div>
 
@@ -1042,6 +1165,75 @@ const Page4Ready = () => {
           onClose={() => setShareOpen(false)}
         />
       </Show>
+
+      {/* Publishing requires Creator Program membership */}
+      <Show when={joinPrompt()}>
+        <div class="qcv1-modal-overlay" onClick={() => setJoinPrompt(false)}>
+          <div class="qcv1-modal" onClick={(e) => e.stopPropagation()}>
+            <div class="qcv1-modal-eyebrow">✦ {r().joinEyebrow}</div>
+            <h3 class="qcv1-modal-title">{r().joinTitle}</h3>
+            <p class="qcv1-modal-summary">{r().joinDesc}</p>
+            <div class="qcv1-modal-actions">
+              <button class="qcv1-btn ghost" onClick={() => setJoinPrompt(false)}>
+                {r().cancel}
+              </button>
+              <button class="qcv1-btn primary" onClick={() => navigate('/creator-program')}>
+                {r().joinBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
+
+      {/* Generate-next-episode confirm dialog */}
+      <Show when={nextEp()}>
+        <div class="qcv1-modal-overlay" onClick={() => !charging() && setNextEp(null)}>
+          <div class="qcv1-modal" onClick={(e) => e.stopPropagation()}>
+            <div class="qcv1-modal-eyebrow">
+              {r().episodeWord} {nextEp()!.episode}
+            </div>
+            <h3 class="qcv1-modal-title">{nextEp()!.title}</h3>
+            <p class="qcv1-modal-summary">{nextEp()!.summary}</p>
+            <Show when={nextEp()!.endingCliffhanger}>
+              <p class="qcv1-modal-hook">🎬 {nextEp()!.endingCliffhanger}</p>
+            </Show>
+            <div class="qcv1-modal-cost">
+              <span>
+                {r().generateCostPre} {nextEp()!.episode} {r().generateCostMid}
+              </span>
+              <span class="qcv1-modal-price">
+                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> <b>{cost().toFixed(2)}</b>
+              </span>
+            </div>
+            <div class="qcv1-modal-balance">
+              <span>{r().yourBalance}</span>
+              <span class={`qcv1-modal-bal ${canAfford() ? '' : 'low'}`}>
+                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {balance().toFixed(2)}
+              </span>
+            </div>
+            <Show when={!canAfford()}>
+              <p class="qcv1-error sm">{r().insufficientBalance}</p>
+            </Show>
+            <div class="qcv1-modal-actions">
+              <button class="qcv1-btn ghost" disabled={charging()} onClick={() => setNextEp(null)}>
+                {r().cancel}
+              </button>
+              <Show
+                when={canAfford()}
+                fallback={
+                  <button class="qcv1-btn secondary" onClick={goTopUp}>
+                    {r().topUp}
+                  </button>
+                }
+              >
+                <button class="qcv1-btn primary" disabled={charging()} onClick={confirmNext}>
+                  {charging() ? r().generatingNext : r().continueGenerate}
+                </button>
+              </Show>
+            </div>
+          </div>
+        </div>
+      </Show>
     </div>
   )
 }
@@ -1064,7 +1256,8 @@ const publishTags = (): string[] => {
 const v1PublishProduction = (): ProductionJob => {
   const p = s.proposal
   const cd = p?.creativeDirection || {}
-  const ep1 = p?.seasonRoadmap?.[0]
+  const epNum = s.episodeNumber || 1
+  const ep1 = p?.seasonRoadmap?.[epNum - 1] || p?.seasonRoadmap?.[0]
   const cover = s.videos.find((v) => v.coverUrl)?.coverUrl || ''
   return {
     status: 'done',
@@ -1081,7 +1274,7 @@ const v1PublishProduction = (): ProductionJob => {
     artStyle: null,
     videos: s.videos as ProductionJob['videos'],
     episodes: [
-      { n: 1, title: ep1?.title || p?.project?.title || 'Episode 1', desc: ep1?.summary || '', cover },
+      { n: epNum, title: ep1?.title || p?.project?.title || `Episode ${epNum}`, desc: ep1?.summary || '', cover },
     ],
     calls: { executiveProducer: { series_blueprint: { logline: cd.logline || '' } } },
   } as ProductionJob
@@ -1089,41 +1282,53 @@ const v1PublishProduction = (): ProductionJob => {
 
 const QuickCreateV1 = () => {
   const [params] = useSearchParams()
+  const resumeId = typeof params.production === 'string' ? params.production : ''
+  // Set synchronously (before first render) so resuming from My Series shows a loader
+  // instead of flashing Page 1 while openProduction fetches the real step.
+  if (resumeId) actions.setResuming(true)
 
-  // Resuming from My Series (?production=<jobId>); ?view=ready or ?publish opens Ready.
   onMount(() => {
-    const jobId = params.production
-    if (typeof jobId === 'string' && jobId) {
-      actions.openProduction(jobId, params.publish === '1')
-    }
+    // Ensure the follow-up-episode cost (system setting) is loaded for Page 4.
+    if (!systemSettingsStore.loaded) systemSettingsStoreActions.load()
+    if (resumeId) actions.openProduction(resumeId, params.publish === '1')
   })
 
   return (
     <div class="qcv1-page">
       <TopBar />
-      <Show when={!s.wantPublish}>
-        <StepBar />
-      </Show>
-      <div class="qcv1-content">
-        <Show
-          when={s.wantPublish && s.jobId}
-          fallback={
-            <Switch>
-              <Match when={s.step === 1}>
-                <Page1Idea />
-              </Match>
-              <Match when={s.step === 2}>
-                <Page2Proposal />
-              </Match>
-              <Match when={s.step === 3}>
-                <Page3Studio />
-              </Match>
-              <Match when={s.step === 4}>
-                <Page4Ready />
-              </Match>
-            </Switch>
-          }
-        >
+      <Show
+        when={!s.resuming}
+        fallback={
+          <div class="qcv1-content">
+            <div class="qcv1-loading tall">
+              <div class="qcv1-spinner" />
+            </div>
+          </div>
+        }
+      >
+        <Show when={!s.wantPublish}>
+          <StepBar />
+        </Show>
+        <div class="qcv1-content">
+          <Show
+            when={s.wantPublish && s.jobId}
+            fallback={
+              <Switch>
+                <Match when={s.step === 1}>
+                  <Page1Idea />
+                </Match>
+                <Match when={s.step === 2}>
+                  <Page2Proposal />
+                </Match>
+                <Match when={s.step === 3}>
+                  <Page3Studio />
+                </Match>
+                <Match when={s.step === 4}>
+                  <Page4Ready />
+                </Match>
+              </Switch>
+            }
+          >
           {/* The shared v0 publish page, fed the v1 production. */}
           <PublishEpisode
             production={v1PublishProduction()}
@@ -1134,8 +1339,9 @@ const QuickCreateV1 = () => {
             onClose={() => actions.closePublish()}
             onPublished={(id) => actions.setSeriesId(id)}
           />
-        </Show>
-      </div>
+          </Show>
+        </div>
+      </Show>
       <Toast />
     </div>
   )

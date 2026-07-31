@@ -65,11 +65,13 @@ export type OAuthType = 'google'
 export type TransactionType = 'topup' | 'withdraw' | 'earning'
 export type TransactionStatus = 'success' | 'failed' | 'processing'
 
-// Source of a creator 'earning' transaction (the purchased episode)
+// Source of a creator 'earning' transaction (the purchased episode), or the series/
+// episode a Quick Create 'generate' transaction paid to produce.
 export interface EarningSource {
-  seriesId: string
+  seriesId?: string
   seriesName: string
   episodeNumber: number
+  episodeTitle?: string
 }
 export type TransactionMethod = 'Credit Card' | 'GUSD'
 
@@ -243,6 +245,7 @@ export interface SystemSettings {
   previewLength: number // seconds of free preview before purchase is required
   creatorShare: number // percent of episode revenue paid to the creator
   episodeCost: number // GUSD cost to unlock an episode
+  nextEpisodeCost: number // GUSD cost to generate a follow-up episode
 }
 
 // Revenue sharing types

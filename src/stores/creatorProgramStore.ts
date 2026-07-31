@@ -2,13 +2,16 @@
 // UI-only flow (Rule #7: shared state lives outside the component tree).
 
 import { createStore } from 'solid-js/store'
+import { joinCreatorProgram } from '../services/dataService'
+import { setStoredUser } from '../utils/api'
+import { accountStoreActions } from './accountStore'
 
 export type PayoutMethod = 'stripe' | 'gusd'
 export type CreatorView = 'landing' | 'join'
 
-// The 4 wizard steps (matching the mockups)
-export const JOIN_STEPS = ['agreement', 'payout', 'profile', 'complete'] as const
-export const JOIN_STEP_COUNT = 4
+// The 2 wizard steps (redesign): accept agreement, then create profile.
+export const JOIN_STEPS = ['agreement', 'profile'] as const
+export const JOIN_STEP_COUNT = 2
 
 export interface CreatorSocials {
   youtube: string
@@ -36,6 +39,8 @@ interface CreatorProgramState {
   payoutDeferred: boolean // chose "I'll do it later"
   profile: CreatorProfile
   joined: boolean
+  submitting: boolean
+  submitError: string
 }
 
 const getInitialProfile = (): CreatorProfile => ({
@@ -51,10 +56,12 @@ const getInitialState = (): CreatorProgramState => ({
   view: 'landing',
   step: 1,
   agreementAccepted: false,
-  payoutMethod: 'stripe',
-  payoutDeferred: false,
+  payoutMethod: 'gusd', // default payout is GUSD in the redesign
+  payoutDeferred: true, // KYC/payout is deferred until the first payout request
   profile: getInitialProfile(),
   joined: false,
+  submitting: false,
+  submitError: '',
 })
 
 const [state, setState] = createStore<CreatorProgramState>(getInitialState())
@@ -79,6 +86,28 @@ export const creatorProgramStoreActions = {
   setSocial: (key: keyof CreatorSocials, value: string) => setState('profile', 'socials', key, value),
 
   complete: () => setState({ joined: true, step: JOIN_STEP_COUNT }),
+
+  // Finalize joining: grant publish permission on the server, refresh the account store +
+  // cached login user (so allowUpload is fresh everywhere), then show the success step.
+  submitJoin: async () => {
+    if (state.submitting) return
+    setState({ submitting: true, submitError: '' })
+    try {
+      const user = await joinCreatorProgram({
+        profile: state.profile,
+        payoutMethod: state.payoutMethod,
+      })
+      if (user) {
+        accountStoreActions.setUser(user)
+        setStoredUser(user)
+      }
+      setState({ joined: true, step: JOIN_STEP_COUNT })
+    } catch (e) {
+      setState({ submitError: e instanceof Error ? e.message : 'Failed to join' })
+    } finally {
+      setState({ submitting: false })
+    }
+  },
   reset: () => setState(getInitialState()),
 
   // Prefill the profile from the logged-in user (called on mount)
@@ -98,13 +127,7 @@ export const canAdvanceJoin = (): boolean => {
     case 1:
       return state.agreementAccepted
     case 2:
-      return state.payoutMethod !== null || state.payoutDeferred
-    case 3:
-      return (
-        state.profile.creatorName.trim().length > 0 &&
-        state.profile.email.trim().length > 0 &&
-        state.profile.displayName.trim().length > 0
-      )
+      return state.profile.displayName.trim().length > 0
     default:
       return true
   }

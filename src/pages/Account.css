@@ -1437,6 +1437,10 @@
   color: #eab308;
 }
 
+.transaction-type.type-generate {
+  color: #ec4899;
+}
+
 /* Purchase Type Cell - Two Lines */
 .purchase-type-cell {
   display: flex;
@@ -2636,6 +2640,20 @@
   padding: 3px 9px;
 }
 
+/* Episode-count pill for a grouped series (bottom-left of the cover) */
+.production-card-eps {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.62);
+  border-radius: 12px;
+  padding: 3px 9px;
+}
+
 /* Delete control (top-left of the cover so it doesn't clash with the % badge) */
 .production-card-del {
   position: absolute;
@@ -2717,7 +2735,7 @@
 }
 
 .production-card-status.done {
-  color: #4ade80;
+  color: #16a34a;
 }
 
 .production-card-status.error {
@@ -2770,4 +2788,37 @@
     flex: 1;
     text-align: center;
   }
+}
+
+/* Episode chooser dialog (grouped multi-episode series) */
+.qc-chooser-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.62);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.qc-chooser {
+  width: fit-content;
+  max-width: min(680px, 92vw);
+  background: var(--c-surface);
+  border: 1px solid #26262b;
+  border-radius: 14px;
+  padding: 20px;
+}
+.qc-chooser-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+.qc-chooser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 2px;
 }

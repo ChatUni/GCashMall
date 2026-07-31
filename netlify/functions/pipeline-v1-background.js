@@ -97,6 +97,11 @@ const runProduce = async (jobId, userId, body) => {
   const docs = await get('productions', { jobId }, {}, {}, 1)
   const proposal = body.proposal || docs?.[0]?.proposal || {}
   const seriesTitle = proposal?.project?.title || 'Untitled Series'
+  // Which episode to produce (default 1). Follow-up episodes reuse the parent's Character
+  // Bible (pre-seeded on the doc) so characters stay consistent across the series.
+  const episode = Number(body.episode || docs?.[0]?.episode || 1)
+  const reusedBible = docs?.[0]?.callsV1?.characterDirector
+  const episodeBrief = (proposal?.seasonRoadmap || [])[episode - 1] || {}
 
   const progress = {
     calls: [
@@ -112,10 +117,16 @@ const runProduce = async (jobId, userId, body) => {
     ],
     coverStatus: 'done',
   }
+  // Reused character bible → mark that stage already done.
+  if (reusedBible) {
+    const c = progress.calls.find((x) => x.key === 'characterDirector')
+    if (c) c.status = 'done'
+  }
   const fields = {
     userId,
     v: 1,
     mode: 'v1produce',
+    episode,
     status: 'running',
     error: '',
     title: seriesTitle,
@@ -137,22 +148,34 @@ const runProduce = async (jobId, userId, body) => {
 
   const callsV1 = {}
 
-  // Call 2 — Character Director
-  await setCall('characterDirector', 'running')
-  callsV1.characterDirector = await runV1Call('characterDirector', { productionProposal: proposal })
-  await setCall('characterDirector', 'done')
+  // Call 2 — Character Director (reuse the parent's bible for follow-up episodes)
+  if (reusedBible) {
+    callsV1.characterDirector = reusedBible
+  } else {
+    await setCall('characterDirector', 'running')
+    callsV1.characterDirector = await runV1Call('characterDirector', { productionProposal: proposal })
+    await setCall('characterDirector', 'done')
+  }
   await updateJob(jobId, { callsV1 })
 
-  // Call 3 — Episode Director
+  // Call 3 — Episode Director (plans the target episode)
   await setCall('episodeDirector', 'running')
   callsV1.episodeDirector = await runV1Call('episodeDirector', {
     productionProposal: proposal,
     characterBible: callsV1.characterDirector,
+    targetEpisode: episode,
+    episodeBrief,
   })
   await setCall('episodeDirector', 'done')
   await updateJob(jobId, { callsV1 })
 
   const episodePlan = callsV1.episodeDirector?.episodePlan || {}
+  // Key Moments for the Ready page, derived from the ACTUAL generated episode's shots
+  // (the proposal roadmap only fills keyMoments for episode 1).
+  const keyMoments = (episodePlan.shots || [])
+    .map((sh) => sh.title || sh.summary || sh.action)
+    .filter(Boolean)
+  await updateJob(jobId, { keyMoments })
 
   // Calls 4A ‖ 4B — Visual Asset Director and Audio Director run in parallel
   await setCall('visualAssetDirector', 'running')

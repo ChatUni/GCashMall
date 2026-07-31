@@ -25,7 +25,7 @@ export interface Transaction {
 }
 
 // Combined transaction type for display (includes purchases)
-export type CombinedTransactionType = 'topup' | 'withdraw' | 'purchase' | 'earning'
+export type CombinedTransactionType = 'topup' | 'withdraw' | 'purchase' | 'earning' | 'generate'
 
 export interface CombinedTransaction {
   id: string
@@ -548,9 +548,9 @@ export const phoneNavItems: { key: AccountTab; icon: string }[] = [
   { key: 'contact', icon: '✉️' },
 ]
 
-// My Series shows for uploaders, or for anyone with Quick Create productions
-const canSeeMySeries = () =>
-  accountState.user?.allowUpload === true || accountState.myProductions.length > 0
+// My Series is always visible (anyone can Quick Create); its publisher-only sub-tabs
+// (Published / Uploaded / Revenue) are gated separately in the UI.
+const canSeeMySeries = () => true
 
 // Derived nav items filtered by user permissions
 export const getFilteredNavItems = () =>

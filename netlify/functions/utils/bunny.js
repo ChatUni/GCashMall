@@ -64,6 +64,30 @@ export const uploadFileToBunny = async (videoId, filePath) => {
   if (!res.ok) throw new Error(`Bunny upload failed (${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
+// Fetch a Bunny video's metadata (includes `status` and `encodeProgress`).
+export const getBunnyVideo = async (videoId) => {
+  const res = await fetch(`https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) return null
+  return res.json()
+}
+
+// Poll until Bunny finishes encoding the video (so it's actually playable) or it errors /
+// times out. Bunny status: 4 = Finished, 5 = Error, 6 = UploadFailed. Returns true if
+// finished, false on error/timeout (caller proceeds either way).
+export const waitForBunnyReady = async (videoId, { timeoutMs = 6 * 60 * 1000, intervalMs = 4000 } = {}) => {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const v = await getBunnyVideo(videoId).catch(() => null)
+    const status = v?.status
+    if (status === 4) return true
+    if (status === 5 || status === 6) return false
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+  return false
+}
+
 // Set a custom thumbnail (from a public image URL) on a Bunny video.
 export const setBunnyThumbnail = async (videoId, thumbnailUrl) => {
   const res = await fetch(

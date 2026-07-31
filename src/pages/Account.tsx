@@ -16,6 +16,7 @@ import {
   PREVIEW_LENGTH_OPTIONS,
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
+  NEXT_EPISODE_COST_OPTIONS,
 } from '../stores/systemSettingsStore'
 import type { Language } from '../i18n'
 import {
@@ -74,9 +75,11 @@ import {
   fetchPipelinePrompts,
   savePipelinePrompt,
   deleteProduction,
+  fetchMe,
   type PipelinePrompt,
   type ProductionJob,
 } from '../services/dataService'
+import { isLoggedIn, setStoredUser } from '../utils/api'
 import { quickCreateStoreActions } from '../stores/quickCreateStore'
 // Default Quick Create cover (Cloudinary — same asset set as the v1 page)
 const defaultIdeaCover =
@@ -110,6 +113,19 @@ const Account = () => {
 
   // Initialize data using shared service function
   initializeAccountPage(getUrlSearchParams(), (params) => setSearchParams(params), navigate)
+
+  // Refresh the user from the server so permissions (e.g. allowUpload / publisher status)
+  // are up to date — drives which My Series tabs and publish actions are available.
+  if (isLoggedIn()) {
+    fetchMe()
+      .then((me) => {
+        if (me) {
+          accountStoreActions.setUser(me)
+          setStoredUser(me)
+        }
+      })
+      .catch(() => {})
+  }
 
   // Handle Stripe payment callback if present
   handleStripeCallback(getUrlSearchParams(), (params) => setSearchParams(params), t().account)
@@ -812,6 +828,22 @@ function SystemSettingsCard() {
           </For>
         </select>
       </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().nextEpisodeCost || 'Next episode cost (GUSD)'}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.nextEpisodeCost}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) =>
+            systemSettingsStoreActions.save({ nextEpisodeCost: Number(e.currentTarget.value) })
+          }
+        >
+          <For each={NEXT_EPISODE_COST_OPTIONS}>
+            {(cost) => <option value={cost}>{cost}</option>}
+          </For>
+        </select>
+      </div>
     </div>
   )
 }
@@ -936,7 +968,27 @@ function WalletSection() {
                       <td class={`transaction-type type-${transaction.type}`}>
                         <Show when={transaction.type === 'purchase' && transaction.purchase} fallback={
                           <Show when={transaction.type === 'earning'} fallback={
-                            transaction.type === 'topup' ? (wallet().topUp || 'Top Up') : (wallet().withdraw || 'Withdraw')
+                            <Show
+                              when={transaction.type === 'generate'}
+                              fallback={
+                                transaction.type === 'topup'
+                                  ? (wallet().topUp || 'Top Up')
+                                  : (wallet().withdraw || 'Withdraw')
+                              }
+                            >
+                              <div class="purchase-type-cell">
+                                <span class="purchase-type-series">
+                                  {wallet().quickCreate || 'Quick Create'}
+                                  {transaction.source?.seriesName ? ` · ${transaction.source.seriesName}` : ''}
+                                </span>
+                                <Show when={transaction.source}>
+                                  <span class="purchase-type-episode">
+                                    EP {transaction.source!.episodeNumber}
+                                    {transaction.source!.episodeTitle ? ` ${transaction.source!.episodeTitle}` : ''}
+                                  </span>
+                                </Show>
+                              </div>
+                            </Show>
                           }>
                             <div class="purchase-type-cell">
                               <span class="purchase-type-series">{wallet().earning || 'Earning'}</span>
@@ -1147,6 +1199,9 @@ function ProductionCard(props: {
   production: ProductionJob
   translations: Record<string, string>
   published?: boolean
+  episodeCount?: number
+  readyEpisodes?: number[]
+  coverOverride?: string // e.g. the already-published series cover for a grouped card
   onClick: () => void
   onDelete?: () => void | Promise<void>
 }) {
@@ -1160,7 +1215,18 @@ function ProductionCard(props: {
   const statusText = () => {
     if (props.published) return props.translations.productionPublished || 'Published'
     if (isProposal()) return props.translations.productionDraft || 'Draft — review proposal'
-    if (props.production.status === 'done') return props.translations.productionReady || 'Episode 1 ready'
+    // Grouped series with 2+ ready episodes → "Episode 1, 2 are ready"
+    if (props.readyEpisodes && props.readyEpisodes.length > 1) {
+      return (props.translations.episodesReady || 'Episode {list} are ready').replace(
+        '{list}',
+        props.readyEpisodes.join(', '),
+      )
+    }
+    if (props.production.status === 'done')
+      return (props.translations.productionReadyN || 'Episode {n} ready').replace(
+        '{n}',
+        String(props.production.episode || 1),
+      )
     if (props.production.status === 'error') return props.translations.productionFailed || 'Generation failed'
     return `${props.translations.productionGenerating || 'Generating'} ${percent()}%`
   }
@@ -1195,6 +1261,7 @@ function ProductionCard(props: {
   // Cover priority: published series cover → the finished video's cover → the last
   // finished shot's thumbnail → a default idea cover.
   const cover = () =>
+    props.coverOverride ||
     props.production.seriesCover ||
     props.production.cover ||
     lastShotCover() ||
@@ -1207,6 +1274,11 @@ function ProductionCard(props: {
         </Show>
         <Show when={props.production.status !== 'done' && !isProposal()}>
           <div class="production-card-badge">{percent()}%</div>
+        </Show>
+        <Show when={(props.episodeCount || 1) > 1}>
+          <div class="production-card-eps">
+            {props.episodeCount} {props.translations.episodesLabel || 'episodes'}
+          </div>
         </Show>
         <Show when={props.onDelete}>
           <Show
@@ -1270,16 +1342,47 @@ function MySeriesSection() {
   // v0 docs have no v). A production moves from Quick Create → Published once published.
   const isV1 = import.meta.env.VITE_QUICK_CREATE_VERSION === 'v1'
   const versionMatch = (p: ProductionJob) => (isV1 ? p.v === 1 : p.v !== 1)
-  const quickCreateProductions = () =>
-    accountStore.myProductions.filter((p) => versionMatch(p) && !p.seriesId)
-  const publishedProductions = () =>
-    accountStore.myProductions.filter((p) => versionMatch(p) && p.seriesId)
+  // Group all episodes of one series into a single card. Key = the root (episode-1)
+  // production's jobId — stable whether or not episodes are published.
+  const groupKey = (p: ProductionJob) => `grp:${p.parentJobId || p.jobId}`
+  interface SeriesGroup {
+    items: ProductionJob[]
+    published: ProductionJob[] // episodes added to a series
+    unpublished: ProductionJob[] // drafts / not-yet-published episodes
+    publishedCover: string // the already-published series cover
+  }
+  const allGroups = (): SeriesGroup[] => {
+    const map = new Map<string, ProductionJob[]>()
+    for (const p of accountStore.myProductions.filter(versionMatch)) {
+      const k = groupKey(p)
+      const arr = map.get(k) || []
+      arr.push(p)
+      map.set(k, arr)
+    }
+    return [...map.values()].map((items) => {
+      const sorted = [...items].sort((a, b) => (a.episode || 1) - (b.episode || 1))
+      const published = sorted.filter((p) => p.seriesId)
+      return {
+        items: sorted,
+        published,
+        unpublished: sorted.filter((p) => !p.seriesId),
+        publishedCover: published.find((p) => p.seriesCover)?.seriesCover || '',
+      }
+    })
+  }
+  // A series shows in Quick Create while it has unpublished episodes, and in Published
+  // once it has published episodes — so a mixed series appears in both.
+  const quickCreateGroups = () => allGroups().filter((g) => g.unpublished.length > 0)
+  const publishedGroups = () => allGroups().filter((g) => g.published.length > 0)
+  const readyEpsOf = (list: ProductionJob[]) =>
+    list.filter((p) => p.status === 'done').map((p) => p.episode || 1)
+  // When a grouped series is clicked, let the user pick which episode/production to open.
+  const [chooser, setChooser] = createSignal<ProductionJob[] | null>(null)
 
-  const handleDeleteProduction = async (prod: ProductionJob) => {
-    if (!prod.jobId) return
+  const handleDeleteGroup = async (items: ProductionJob[]) => {
     try {
-      await deleteProduction(prod.jobId)
-      accountStoreActions.removeProduction(prod.jobId)
+      await Promise.all(items.map((p) => (p.jobId ? deleteProduction(p.jobId) : null)))
+      items.forEach((p) => p.jobId && accountStoreActions.removeProduction(p.jobId))
       toastStoreActions.show(mySeries().deleteSuccess || 'Deleted', 'success')
     } catch (e) {
       toastStoreActions.show(e instanceof Error ? e.message : 'Failed to delete', 'error')
@@ -1327,36 +1430,40 @@ function MySeriesSection() {
           </div>
 
           {/* Tabs: Quick Create, Uploaded, Revenue */}
-          <div class="my-series-tabs">
-            <button
-              class={`my-series-tab ${activeSubTab() === 'quickCreate' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('quickCreate')}
-            >
-              ✨ {mySeries().quickCreateGroup || 'Quick Create'}
-            </button>
-            <button
-              class={`my-series-tab ${activeSubTab() === 'published' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('published')}
-            >
-              🚀 {mySeries().publishedTab || 'Published'}
-            </button>
-            <button
-              class={`my-series-tab ${activeSubTab() === 'uploaded' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('uploaded')}
-            >
-              {mySeries().uploadedTab || 'Uploaded'}
-            </button>
-            <button
-              class={`my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('revenue')}
-            >
-              💰 {mySeries().revenueTab || 'Revenue'}
-            </button>
-          </div>
+          {/* The tab bar (Published / Uploaded / Revenue) is a publisher feature. Non-
+              publishers only see their Quick Create productions, so hide the tabs. */}
+          <Show when={accountStore.user?.allowUpload}>
+            <div class="my-series-tabs">
+              <button
+                class={`my-series-tab ${activeSubTab() === 'quickCreate' ? 'active' : ''}`}
+                onClick={() => setActiveSubTab('quickCreate')}
+              >
+                ✨ {mySeries().quickCreateGroup || 'Quick Create'}
+              </button>
+              <button
+                class={`my-series-tab ${activeSubTab() === 'published' ? 'active' : ''}`}
+                onClick={() => setActiveSubTab('published')}
+              >
+                🚀 {mySeries().publishedTab || 'Published'}
+              </button>
+              <button
+                class={`my-series-tab ${activeSubTab() === 'uploaded' ? 'active' : ''}`}
+                onClick={() => setActiveSubTab('uploaded')}
+              >
+                {mySeries().uploadedTab || 'Uploaded'}
+              </button>
+              <button
+                class={`my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
+                onClick={() => setActiveSubTab('revenue')}
+              >
+                💰 {mySeries().revenueTab || 'Revenue'}
+              </button>
+            </div>
+          </Show>
 
           {/* Quick Create Tab (unpublished productions) */}
           <Show when={activeSubTab() === 'quickCreate'}>
-            <Show when={quickCreateProductions().length > 0} fallback={
+            <Show when={quickCreateGroups().length > 0} fallback={
               <EmptyState
                 icon="✨"
                 title={mySeries().quickCreateEmptyTitle || 'No creations yet'}
@@ -1369,23 +1476,34 @@ function MySeriesSection() {
               />
             }>
               <div class="content-grid">
-                <For each={quickCreateProductions()}>
-                  {(prod) => (
-                    <ProductionCard
-                      production={prod}
-                      translations={mySeries()}
-                      onClick={() => navigate(`/quick-create?production=${prod.jobId}`)}
-                      onDelete={() => handleDeleteProduction(prod)}
-                    />
-                  )}
+                <For each={quickCreateGroups()}>
+                  {(g) => {
+                    const list = g.unpublished
+                    const rep = list[list.length - 1]
+                    return (
+                      <ProductionCard
+                        production={rep}
+                        translations={mySeries()}
+                        episodeCount={list.length}
+                        readyEpisodes={readyEpsOf(list)}
+                        coverOverride={g.publishedCover}
+                        onClick={() =>
+                          list.length > 1
+                            ? setChooser(list)
+                            : navigate(`/quick-create?production=${rep.jobId}`)
+                        }
+                        onDelete={() => handleDeleteGroup(list)}
+                      />
+                    )
+                  }}
                 </For>
               </div>
             </Show>
           </Show>
 
-          {/* Published Tab (productions published as a series) */}
+          {/* Published Tab (series with one or more published episodes) */}
           <Show when={activeSubTab() === 'published'}>
-            <Show when={publishedProductions().length > 0} fallback={
+            <Show when={publishedGroups().length > 0} fallback={
               <EmptyState
                 icon="🚀"
                 title={mySeries().publishedEmptyTitle || 'Nothing published yet'}
@@ -1395,17 +1513,25 @@ function MySeriesSection() {
               />
             }>
               <div class="content-grid">
-                <For each={publishedProductions()}>
-                  {(prod) => (
-                    <ProductionCard
-                      production={prod}
-                      translations={mySeries()}
-                      published
-                      onClick={() =>
-                        navigate(`/quick-create?production=${prod.jobId}&view=ready`)
-                      }
-                    />
-                  )}
+                <For each={publishedGroups()}>
+                  {(g) => {
+                    const list = g.published
+                    const rep = list[list.length - 1]
+                    return (
+                      <ProductionCard
+                        production={rep}
+                        translations={mySeries()}
+                        published
+                        episodeCount={list.length}
+                        coverOverride={g.publishedCover}
+                        onClick={() =>
+                          list.length > 1
+                            ? setChooser(list)
+                            : navigate(`/quick-create?production=${rep.jobId}&view=ready`)
+                        }
+                      />
+                    )
+                  }}
                 </For>
               </div>
             </Show>
@@ -1441,6 +1567,29 @@ function MySeriesSection() {
           {/* Revenue Tab */}
           <Show when={activeSubTab() === 'revenue'}>
             <RevenueSection translations={mySeries()} />
+          </Show>
+
+          {/* Episode chooser for a grouped multi-episode series */}
+          <Show when={chooser()}>
+            <div class="qc-chooser-overlay" onClick={() => setChooser(null)}>
+              <div class="qc-chooser" onClick={(e) => e.stopPropagation()}>
+                <h3 class="qc-chooser-title">{mySeries().chooseEpisode || 'Choose an episode'}</h3>
+                <div class="qc-chooser-grid">
+                  <For each={chooser()!}>
+                    {(p) => (
+                      <ProductionCard
+                        production={p}
+                        translations={mySeries()}
+                        onClick={() => {
+                          setChooser(null)
+                          navigate(`/quick-create?production=${p.jobId}`)
+                        }}
+                      />
+                    )}
+                  </For>
+                </div>
+              </div>
+            </div>
           </Show>
 
           {/* Shelve Confirmation Modal */}
