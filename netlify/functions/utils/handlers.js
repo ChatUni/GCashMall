@@ -27,6 +27,9 @@ cloudinary.config({
 // Bunny.net Video configuration
 const BUNNY_VIDEO_LIBRARY_ID = process.env.VITE_BUNNY_LIBRARY_ID
 const BUNNY_API_KEY = process.env.BUNNY_API_KEY
+// CDN pull-zone host for direct asset URLs (thumbnails). Prefer the env var; the fallback
+// must match the CURRENT library (VITE_BUNNY_LIBRARY_ID) or URLs hit "domain not configured".
+const BUNNY_PULL_ZONE = (process.env.BUNNY_PULL_ZONE || 'vz-918d4e7e-1fb.b-cdn.net').replace(/^["']|["']$/g, '')
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getTodos = async (params) => {
@@ -1856,7 +1859,7 @@ const uploadVideo = async (body) => {
         videoId,
         uploadUrl: `https://video.bunnycdn.com/library/${BUNNY_VIDEO_LIBRARY_ID}/videos/${videoId}`,
         embedUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_VIDEO_LIBRARY_ID}/${videoId}`,
-        thumbnailUrl: `https://vz-4ecde8c7-5c4.b-cdn.net/${videoId}/thumbnail.jpg`,
+        thumbnailUrl: `https://${BUNNY_PULL_ZONE}/${videoId}/thumbnail.jpg`,
         accessKey: BUNNY_API_KEY,
       },
     }
@@ -2469,7 +2472,7 @@ const addPurchase = async (body, authHeader) => {
         if (episode.thumbnail) {
           episodeThumbnail = episode.thumbnail
         } else if (episode.videoId) {
-          episodeThumbnail = `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
+          episodeThumbnail = `https://${BUNNY_PULL_ZONE}/${episode.videoId}/thumbnail.jpg`
         }
         actualEpisodeId = episode._id || `${seriesId}-ep${episodeNumber}`
       }
@@ -2656,13 +2659,21 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     throw new Error('GUSD_API_URL is not configured')
   }
 
+  // GUSD rejects non-public callback URLs (e.g. localhost → "callback url is invalid"). For
+  // local dev, set GUSD_CALLBACK_BASE_URL to a public tunnel (e.g. an ngrok URL mapping to
+  // :8888) — it rebases all three callback URLs so the provider accepts them while the
+  // redirect/webhook still reach your machine. Unset in prod → uses the client's origin.
+  const callback = rebaseCallbackOrigin(callbackUrl, process.env.GUSD_CALLBACK_BASE_URL)
+  // Point the webhook at the same host as redirect/failure (keeps the configured path).
+  const notifyUrl = resolveNotifyUrl(gusdNotifyUrl, callback)
+
   const requestBody = {
     price: String(amount),
     order_id: orderId,
     desc: `Top Up ${amount} GUSD`,
-    notify_url: gusdNotifyUrl,
-    redirect_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=success&order_id=${orderId}`,
-    failure_url: `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}topup_status=cancelled&order_id=${orderId}`,
+    notify_url: notifyUrl,
+    redirect_url: `${callback}${callback.includes('?') ? '&' : '?'}topup_status=success&order_id=${orderId}`,
+    failure_url: `${callback}${callback.includes('?') ? '&' : '?'}topup_status=cancelled&order_id=${orderId}`,
   }
 
   console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
@@ -2692,6 +2703,22 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     throw new Error(data.message || data.msg || `GUSD API error (${response.status}): ${responseText.substring(0, 200)}`)
   }
 
+  // GUSD looks up orders by its OWN payment id (the last path segment of pay_url), not our
+  // merchant order_id. Persist the mapping so completeGUSDTopUp can confirm the payment.
+  const gusdPaymentId = extractGusdPaymentId(data.data.pay_url)
+  try {
+    await save('gusdOrders', {
+      orderId,
+      gusdPaymentId,
+      userId: String(userId),
+      amount: Number(amount),
+      status: 'created',
+      createdAt: new Date(),
+    })
+  } catch (error) {
+    console.error('[GUSD] Failed to save pending order:', error.message)
+  }
+
   return data
 }
 
@@ -2700,6 +2727,33 @@ const parseGUSDResponse = (responseText) => {
     return JSON.parse(responseText)
   } catch {
     throw new Error(`GUSD API returned invalid JSON: ${responseText.substring(0, 200)}`)
+  }
+}
+
+// Replace a callback URL's origin with a public base (GUSD_CALLBACK_BASE_URL) when set,
+// preserving its path/query — lets local dev route GUSD callbacks through a public tunnel.
+// No override → the URL is returned unchanged.
+const rebaseCallbackOrigin = (callbackUrl, baseOverride) => {
+  const base = (baseOverride || '').trim().replace(/\/+$/, '')
+  if (!base) return callbackUrl
+  try {
+    const u = new URL(callbackUrl)
+    return `${base}${u.pathname}${u.search}${u.hash}`
+  } catch {
+    return callbackUrl
+  }
+}
+
+// Build the webhook (notify) URL from the configured GUSD_NOTIFY_URL's path but the
+// caller's origin, so it matches the redirect/failure host. Falls back to the configured
+// URL if either can't be parsed.
+const resolveNotifyUrl = (configuredNotifyUrl, callbackUrl) => {
+  try {
+    const origin = new URL(callbackUrl).origin
+    const { pathname, search } = new URL(configuredNotifyUrl)
+    return `${origin}${pathname}${search}`
+  } catch {
+    return configuredNotifyUrl
   }
 }
 
@@ -2848,28 +2902,127 @@ const completeGUSDTopUp = async (body, authHeader) => {
 
     const currentUser = users[0]
 
-    // Check if this referenceId has already been processed (by the webhook)
-    const existingTxn = (currentUser.transactions || []).find(
-      (t) => t.referenceId === referenceId,
-    )
-    if (existingTxn) {
-      // Already processed by webhook, just return the current user data
-      return {
-        success: true,
-        data: await buildUserResponse(currentUser),
-      }
+    // Already recorded (by the webhook or a prior confirm) → nothing to do.
+    if ((currentUser.transactions || []).find((t) => t.referenceId === referenceId)) {
+      return { success: true, data: await buildUserResponse(currentUser) }
     }
 
-    // If the webhook hasn't processed it yet, we return the current user data
-    // The webhook will process the payment asynchronously
-    // Client should poll or the balance will update on next page load
-    return {
-      success: true,
-      data: await buildUserResponse(currentUser),
+    // Not yet recorded — actively confirm the payment with GUSD instead of depending on the
+    // async webhook (which may be delayed or unreachable). Look up the pending order saved
+    // at creation to get GUSD's payment id (its lookup key) and the expected amount.
+    const pendingOrders = await get('gusdOrders', { orderId }, {}, {}, 1)
+    const pending = pendingOrders && pendingOrders[0]
+    let orderInfo
+    try {
+      orderInfo = await fetchGUSDOrderInfo(pending?.gusdPaymentId)
+    } catch (error) {
+      console.error('[completeGUSDTopUp] order info lookup failed:', error.message)
+      return { success: true, data: await buildUserResponse(currentUser) }
     }
+    if (!isGUSDOrderPaid(orderInfo)) {
+      return { success: true, data: await buildUserResponse(currentUser) }
+    }
+
+    // Credit the paid amount reported by GUSD, falling back to the amount we recorded at
+    // creation (never trust the client).
+    const amount = parseFloat(orderInfo.price || orderInfo.amount || pending?.amount || 0)
+    if (!amount || amount <= 0) {
+      return { success: false, error: 'Paid order has an invalid amount' }
+    }
+
+    // Same transaction shape the webhook writes, so history renders identically.
+    const transaction = {
+      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      referenceId,
+      bridge_order_id: orderInfo.bridge_order_id || null,
+      order_id: orderId,
+      gusd_user_id: orderInfo.user_id || null,
+      type: 'topup',
+      method: 'GUSD',
+      amount,
+      transactionId: '',
+      status: 'success',
+      pay_time: orderInfo.pay_time || null,
+      createdAt: new Date(),
+    }
+    // Atomic + idempotent: credit only if this referenceId isn't already recorded (by the
+    // webhook or a concurrent confirm). Shares the exact dedupe key with the webhook, so the
+    // two paths can never double-credit the same order.
+    const result = await update(
+      'users',
+      { _id: new ObjectId(userId), 'transactions.referenceId': { $ne: referenceId } },
+      {
+        $inc: { balance: amount },
+        $push: { transactions: { $each: [transaction], $position: 0 } },
+        $set: { updatedAt: new Date() },
+      },
+    )
+    if (result.matchedCount > 0) {
+      console.log('[completeGUSDTopUp] Credited via order-info confirm:', referenceId, 'amount:', amount)
+    }
+    // Return the current user (freshly read: either just credited, or already credited).
+    const updated = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    return { success: true, data: await buildUserResponse((updated && updated[0]) || currentUser) }
   } catch (error) {
     throw new Error(`Failed to complete GUSD top up: ${error.message}`)
   }
+}
+
+// Extract GUSD's payment id from a pay_url (its last path segment), e.g.
+// https://paygusd.com/dashboard/payments/807df16e-... → 807df16e-...
+const extractGusdPaymentId = (payUrl) => {
+  try {
+    const parts = new URL(payUrl).pathname.split('/').filter(Boolean)
+    return parts[parts.length - 1] || ''
+  } catch {
+    return ''
+  }
+}
+
+// Query GUSD for a pay order's current status by GUSD's OWN payment id. Used by
+// completeGUSDTopUp to confirm a payment on the redirect path (so crediting doesn't rely
+// solely on the async webhook). Reuses the same signed-header auth as createGUSDPayOrder;
+// the order-info path lives on the same host as GUSD_API_URL.
+const fetchGUSDOrderInfo = async (gusdPaymentId) => {
+  const appId = process.env.GUSD_APPID
+  const secret = process.env.GUSD_SECRET
+  const gusdApiUrl = process.env.GUSD_API_URL
+  validateGUSDConfig(appId, secret)
+  if (!gusdApiUrl) {
+    throw new Error('GUSD_API_URL is not configured')
+  }
+  if (!gusdPaymentId) {
+    throw new Error('GUSD payment id is unknown for this order')
+  }
+
+  const nonce = generateGUSDNonce()
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
+  const url = `${new URL(gusdApiUrl).origin}/api/v1/bridge/pay_order_info?order_id=${encodeURIComponent(gusdPaymentId)}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      appid: String(appId),
+      nonce: String(nonce),
+      timestamp: String(timestamp),
+      signature: String(signature),
+    },
+  })
+  const responseText = await response.text()
+  console.log('[GUSD] pay_order_info status:', response.status, 'body:', responseText)
+  const data = parseGUSDResponse(responseText)
+  if (!response.ok || data.code !== 200) {
+    throw new Error(data.msg || data.message || `GUSD order info error (${response.status}): ${responseText.substring(0, 200)}`)
+  }
+  return data.data || {}
+}
+
+// GUSD marks a completed payment with state 'payment_processed' (same signal the webhook
+// checks). Accept a few common synonyms defensively since we don't have the full API docs.
+const isGUSDOrderPaid = (data) => {
+  const state = String(data?.state || data?.status || '').toLowerCase()
+  return state === 'payment_processed' || state === 'success' || state === 'paid' || data?.paid === true
 }
 
 // Parse userId and referenceId from the GUSD order_id
@@ -3457,6 +3610,7 @@ export {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  getModerationStatus,
   getSharedEpisode,
   deleteProduction,
   startNextEpisode,
@@ -4334,6 +4488,26 @@ const getProductionStatus = async (params, authHeader) => {
     return { success: true, data: doc }
   } catch (error) {
     throw new Error(`Failed to get production status: ${error.message}`)
+  }
+}
+
+// Status of an uploaded video's content-moderation job (transcribe + text/frame checks).
+// Polled by the upload flow, which won't publish an episode until it reads 'approved'.
+const getModerationStatus = async (params, authHeader) => {
+  await validateAuth(authHeader)
+  if (!params || !params.videoId) throw new Error('videoId is required')
+  const docs = await get('videoModeration', { videoId: params.videoId }, {}, {}, 1)
+  if (!docs || docs.length === 0) return { success: true, data: { status: 'pending', progress: 0 } }
+  const m = docs[0]
+  return {
+    success: true,
+    data: {
+      status: m.status || 'processing',
+      stage: m.stage || '',
+      progress: m.progress || 0,
+      reason: m.reason || '',
+      categories: m.categories || [],
+    },
   }
 }
 

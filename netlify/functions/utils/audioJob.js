@@ -17,9 +17,12 @@ import {
   isS1,
   uploadEpisodeToBunny,
   bunnyEmbedUrl,
+  bunnyHlsUrl,
+  bunnyReferer,
   setBunnyThumbnail,
   waitForBunnyReady,
 } from './bunny.js'
+import { transcribeEpisode } from './transcribe.js'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -34,6 +37,36 @@ const percentOf = (progress) => {
   const steps = progress.calls || []
   const done = steps.filter((c) => c.status === 'done').length
   return steps.length ? Math.round((done / steps.length) * 100) : 0
+}
+
+// The "Transcribe" pipeline step: while Bunny encodes the episode in the background,
+// extract audio → whisper SRT → translate → upload captions. Best-effort: a failure
+// marks the step errored but never fails the production. `transcribeProgress` on the job
+// (percent 0→100 across all 4 tasks) drives the studio's Transcribe progress bar.
+const runTranscribe = async ({ jobId, epPath, videoId, progress, ensureStep, referer }) => {
+  const tIdx = ensureStep('transcribe')
+  progress.calls[tIdx].status = 'running'
+  await updateJob(jobId, {
+    progress,
+    transcribeProgress: { percent: 0, task: 'extractAudio' },
+    percent: percentOf(progress),
+  })
+  const onProgress = (percent, task) => updateJob(jobId, { transcribeProgress: { percent, task } })
+  const log = (key, arg) =>
+    console.log(`[transcribe ${jobId}] ${key}${arg ? ` ${arg}` : ''}`)
+  try {
+    await transcribeEpisode({ videoPath: epPath, videoId, referer, onProgress, log })
+    progress.calls[tIdx].status = 'done'
+  } catch (error) {
+    console.error(`[transcribe ${jobId}] failed:`, error.message)
+    progress.calls[tIdx].status = 'error'
+    await updateJob(jobId, { transcribeError: error.message })
+  }
+  await updateJob(jobId, {
+    progress,
+    transcribeProgress: { percent: 100, task: 'uploadSubs' },
+    percent: percentOf(progress),
+  })
 }
 
 const downloadTo = async (url, dest) => {
@@ -221,10 +254,14 @@ export const runAudioComposition = async (jobId, userId) => {
         await concatVideos({ paths: composedPaths, listPath, outPath: epPath })
         if (isS1()) {
           episodeBunnyVideoId = await uploadEpisodeToBunny(episodeTitle, epPath)
-          // Part of the composition step: wait for Bunny to finish encoding so the episode
-          // is actually playable before we mark the production done and reveal it.
-          await waitForBunnyReady(episodeBunnyVideoId).catch(() => {})
           episodeVideo = bunnyEmbedUrl(episodeBunnyVideoId)
+          // Composition (stitch + upload) is complete; Bunny now encodes in the background.
+          progress.calls[cIdx].status = 'done'
+          await updateJob(jobId, { progress, episodeBunnyVideoId, percent: percentOf(progress) })
+          // While Bunny encodes, transcribe the episode and attach subtitle tracks.
+          await runTranscribe({ jobId, epPath, videoId: episodeBunnyVideoId, progress, ensureStep })
+          // Make sure the episode is actually playable before we reveal it.
+          await waitForBunnyReady(episodeBunnyVideoId).catch(() => {})
         } else {
           episodeVideo = await uploadVideo(epPath)
         }
@@ -262,4 +299,55 @@ export const runAudioComposition = async (jobId, userId) => {
       /* ignore */
     }
   }
+}
+
+// Backfill subtitles for an already-finished s1 episode that was produced before the
+// Transcribe step existed (or whose transcribe errored). The source video already lives
+// on Bunny — no local file — so we download the encoded mp4 and run the same 4 tasks.
+// Leaves the production's overall status untouched (it stays 'done'); only the transcribe
+// step + `transcribeProgress` are updated so the studio can show live progress.
+export const runTranscribeBackfill = async (jobId, userId) => {
+  const docs = await get('productions', { jobId }, {}, {}, 1)
+  if (!docs || docs.length === 0) throw new Error('production not found')
+  const doc = docs[0]
+  if (userId && String(doc.userId) !== String(userId)) {
+    throw new Error('not authorized for this production')
+  }
+  const videoId = doc.episodeBunnyVideoId
+  if (!isS1() || !videoId) return { skipped: 'not an s1 episode' }
+
+  const progress = doc.progress || { calls: [] }
+  const ensureStep = (key) => {
+    let i = (progress.calls || []).findIndex((c) => c.key === key)
+    if (i < 0) {
+      progress.calls = [...(progress.calls || []), { key, status: 'pending' }]
+      i = progress.calls.length - 1
+    }
+    return i
+  }
+  const tIdx = ensureStep('transcribe')
+  // Already have subtitles, or a backfill is already running — don't start another.
+  if (progress.calls[tIdx].status === 'done' || progress.calls[tIdx].status === 'running') {
+    return { skipped: `transcribe ${progress.calls[tIdx].status}` }
+  }
+  // Claim the step (persisted) up-front so a re-open during transcription can't start a
+  // second backfill for the same episode.
+  progress.calls[tIdx].status = 'running'
+  await updateJob(jobId, {
+    progress,
+    transcribeProgress: { percent: 0, task: 'extractAudio' },
+    percent: percentOf(progress),
+  })
+
+  // The episode only lives on Bunny (no local file). Read audio from the HLS stream — it
+  // exists for every video (unlike MP4 fallback, which only covers videos encoded after it
+  // was enabled). ffmpeg's -referer is an HTTP option applied to EVERY request it makes,
+  // so the playlist AND each .ts segment carry the allowed Referer past Bunny's
+  // "Block direct url file access" protection.
+  await waitForBunnyReady(videoId).catch(() => {})
+  const epPath = bunnyHlsUrl(videoId)
+  const referer = bunnyReferer()
+  console.log(`[transcribe ${jobId}] source=${epPath} referer=${referer}`)
+  await runTranscribe({ jobId, epPath, videoId, progress, ensureStep, referer })
+  return { started: true }
 }

@@ -59,6 +59,7 @@ const STAGE_ICON: Record<string, string> = {
   episodeProducer: '🎞️',
   renderingShots: '🎥',
   episodeRenderer: '🚀',
+  transcribe: '💬',
 }
 
 // The 7 Production-Progress items map to a driving studio stage.
@@ -822,6 +823,8 @@ const Page3Studio = () => {
                 if (line.text) return line.text
                 if (line.key.startsWith('rendering:'))
                   return `${st().log.rendering} ${line.key.slice(10)}`
+                if (line.key.startsWith('transcribe:'))
+                  return (st().log as Record<string, string>)[line.key.slice(11)] || line.key
                 return (st().log as Record<string, string>)[line.key] || line.key
               }
               return (

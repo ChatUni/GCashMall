@@ -559,7 +559,12 @@ export const getFilteredNavItems = () =>
 export const getFilteredPhoneNavItems = () =>
   phoneNavItems.filter((item) => item.key !== 'mySeries' || canSeeMySeries())
 
-export const walletAmounts = [5, 10, 20, 50]
+// GUSD test mode (VITE_GUSD_TEST_MODE=true): expose tiny amounts so top-up/withdraw can be
+// exercised end-to-end for a few cents. GUSD is the web payment path, so these are added to
+// the standard amounts only — never to the iOS IAP tiers below.
+export const isGusdTestMode = import.meta.env.VITE_GUSD_TEST_MODE === 'true'
+const GUSD_TEST_AMOUNTS = [0.1, 0.2, 0.5, 1]
+export const walletAmounts = isGusdTestMode ? [...GUSD_TEST_AMOUNTS, 5, 10, 20, 50] : [5, 10, 20, 50]
 
 // iOS In-App Purchase tiers - must be a subset of the registered IAP_TIERS / App Store Connect products
 export const iapWalletAmounts = [5, 10, 20, 50]

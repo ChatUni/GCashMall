@@ -72,6 +72,14 @@ export const muxAudioOntoVideo = async ({ videoPath, narrationPath, bgmPath, out
   ])
 }
 
+// Extract the audio track from a video as a compact mono mp3 (16 kHz is plenty for
+// speech-to-text and keeps the upload to Whisper small). `videoPath` may be a URL;
+// pass `referer` to satisfy a CDN that blocks direct access without an allowed referer.
+export const extractAudioTrack = async ({ videoPath, outPath, referer }) => {
+  const pre = referer ? ['-referer', referer] : []
+  await run([...pre, '-i', videoPath, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'libmp3lame', '-b:a', '64k', outPath])
+}
+
 // Concatenate videos into one (re-encoded, since sources may differ slightly).
 // Extract a frame near the very end of a video as a JPEG. Used for frame-chaining:
 // the last frame of one shot seeds the next shot's first-frame image. -sseof seeks
@@ -86,9 +94,12 @@ export const extractCoverFrame = async ({ videoPath, outPath }) => {
   await run(['-ss', '0.5', '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
 }
 
-// Extract a single frame at a given timestamp (seconds) as a JPEG.
-export const extractFrameAt = async ({ videoPath, seconds, outPath }) => {
-  await run(['-ss', String(seconds), '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
+// Extract a single frame at a given timestamp (seconds) as a JPEG. `videoPath` may be a
+// URL; pass `referer` for a CDN that requires an allowed referer. -ss before -i seeks so
+// only the needed region is fetched (cheap for remote HLS).
+export const extractFrameAt = async ({ videoPath, seconds, outPath, referer }) => {
+  const pre = referer ? ['-referer', referer] : []
+  await run([...pre, '-ss', String(seconds), '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath])
 }
 
 // Read a video's duration (seconds) by parsing ffmpeg's own stderr banner — avoids

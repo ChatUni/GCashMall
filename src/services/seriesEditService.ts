@@ -5,6 +5,7 @@ import { apiGet, apiPostWithAuth } from '../utils/api'
 import { seriesEditStoreActions, type EpisodeFormData, createNewEpisode } from '../stores/seriesEditStore'
 import { toastStoreActions } from '../stores'
 import type { Series, Genre, Episode } from '../types'
+import { startUploadModeration, fetchModerationStatus } from './dataService'
 
 // Initialize series edit form
 export const initializeSeriesEdit = async (id: string | undefined, isEditMode: boolean) => {
@@ -87,6 +88,7 @@ export const saveSeriesWithConfirmation = async (
   seriesEditStoreActions.setSaving(true)
   seriesEditStoreActions.setError(null)
   seriesEditStoreActions.setSuccess(null)
+  seriesEditStoreActions.setModerationError(null)
 
   try {
     const state = seriesEditStoreActions.getState()
@@ -119,7 +121,14 @@ export const saveSeriesWithConfirmation = async (
     toastStoreActions.show(t.saveSuccess || 'Series saved successfully.', 'success')
     setTimeout(onSuccess, 1500)
   } catch (err) {
-    toastStoreActions.show(err instanceof Error ? err.message : (t.saveError || 'Failed to save series.'), 'error')
+    // Moderation rejections get a dialog (with the reason), not a transient toast.
+    if ((err as ModerationRejection)?.isModeration) {
+      seriesEditStoreActions.setModerationError(
+        err instanceof Error ? err.message : String(err),
+      )
+    } else {
+      toastStoreActions.show(err instanceof Error ? err.message : (t.saveError || 'Failed to save series.'), 'error')
+    }
   } finally {
     seriesEditStoreActions.setSaving(false)
     seriesEditStoreActions.setUploadProgress({ show: false, message: '', current: 0, total: 0 })
@@ -221,6 +230,8 @@ const handleEpisodeListChanges = async (t: Record<string, string>): Promise<Epis
     const index = updatedEpisodes.findIndex((ep) => ep === episode)
     if (index !== -1 && episode.videoFile) {
       const videoId = await uploadEpisodeVideo(episode)
+      // Content moderation gate: reject (and abort the save) if the video fails checks.
+      await moderateUploadedVideo(videoId, episode, t)
       updatedEpisodes[index] = { ...updatedEpisodes[index], videoId }
     }
     currentOperation++
@@ -228,6 +239,66 @@ const handleEpisodeListChanges = async (t: Record<string, string>): Promise<Epis
   }
 
   return updatedEpisodes.filter((ep) => !ep.isDeleted)
+}
+
+// Run content moderation on a just-uploaded video and wait for the verdict. Resolves when
+// approved; throws (aborting the save) when rejected or timed out. The server deletes a
+// rejected video from Bunny itself.
+const MODERATION_TIMEOUT_MS = 15 * 60 * 1000
+const moderateUploadedVideo = async (
+  videoId: string,
+  episode: EpisodeFormData,
+  t: Record<string, string>,
+) => {
+  const epName = episode.title || `Episode ${episode.episodeNumber}`
+  const checking = t.moderatingVideos || 'Checking content…'
+  seriesEditStoreActions.updateUploadProgress({ message: checking })
+  await startUploadModeration(videoId)
+
+  const start = Date.now()
+  while (Date.now() - start < MODERATION_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, 4000))
+    let status
+    try {
+      status = await fetchModerationStatus(videoId)
+    } catch {
+      continue
+    }
+    if (status.status === 'approved') return
+    if (status.status === 'rejected') {
+      // Drop the offending video from the episode (keep the episode itself).
+      clearEpisodeVideo(episode)
+      throwModerationError(
+        (t.moderationRejected || 'Content check failed for "{ep}". Please upload a different video.').replace(
+          '{ep}',
+          epName,
+        ),
+      )
+    }
+    seriesEditStoreActions.updateUploadProgress({ message: `${checking} ${status.progress || 0}%` })
+  }
+  throw new Error(t.moderationTimeout || 'Content check timed out. Please try again.')
+}
+
+// A moderation rejection is surfaced as a dialog (not a toast); tag the error so the save
+// handler can tell it apart from ordinary failures.
+export interface ModerationRejection extends Error {
+  isModeration: true
+}
+const throwModerationError = (message: string): never => {
+  const err = new Error(message) as ModerationRejection
+  err.isModeration = true
+  throw err
+}
+
+// Remove the video (uploaded id + local file/preview) from the episode in the store,
+// leaving the episode in place so the creator can pick a different video.
+const clearEpisodeVideo = (episode: EpisodeFormData) => {
+  const eps = seriesEditStoreActions.getState().formData.episodes
+  const idx = eps.findIndex((ep) => ep === episode || (!!ep.videoFile && ep.videoFile === episode.videoFile))
+  if (idx >= 0) {
+    seriesEditStoreActions.updateEpisode(idx, { videoId: '', videoFile: null, videoPreview: undefined })
+  }
 }
 
 const deleteEpisodeVideo = async (episode: EpisodeFormData) => {

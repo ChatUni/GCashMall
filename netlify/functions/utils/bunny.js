@@ -7,12 +7,24 @@
 //   VITE_VIDEO_STORAGE     — 's0' (Cloudinary, default) | 's1' (Bunny-only)
 
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 
 const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
 
 const LIBRARY_ID = clean(process.env.VITE_BUNNY_LIBRARY_ID)
 const API_KEY = clean(process.env.BUNNY_API_KEY)
-const PULL_ZONE = clean(process.env.BUNNY_PULL_ZONE) || 'vz-4ecde8c7-5c4.b-cdn.net'
+// CDN pull-zone host for the Stream library. Prefer the env var; the fallback must match
+// the CURRENT library (VITE_BUNNY_LIBRARY_ID) or direct CDN URLs hit a "domain not
+// configured" page. Find it in the embed player or Stream → library → CDN Hostname.
+const PULL_ZONE = clean(process.env.BUNNY_PULL_ZONE) || 'vz-918d4e7e-1fb.b-cdn.net'
+// CDN "URL Token Authentication" key (Stream library → Security). Only needed if CDN
+// token auth is enabled; harmless otherwise.
+const TOKEN_KEY = clean(process.env.BUNNY_TOKEN_KEY)
+// Referer sent on server-side CDN reads so they satisfy the library's "Block direct url
+// file access" (allowed-referrers) protection. Must match one of the allowed referrers.
+const REFERER = clean(process.env.BUNNY_REFERER)
+export const bunnyReferer = () =>
+  REFERER || clean(process.env.VITE_PROD_SERVER) || 'https://ganime.io'
 
 // Which storage flow is active. 's1' = every video (shots + episode) lives on Bunny.
 export const storageFlow = () => (clean(process.env.VITE_VIDEO_STORAGE) === 's1' ? 's1' : 's0')
@@ -26,6 +38,29 @@ export const bunnyThumbnailUrl = (videoId) => `https://${PULL_ZONE}/${videoId}/t
 export const bunnyMp4Url = (videoId, res = 720) => `https://${PULL_ZONE}/${videoId}/play_${res}p.mp4`
 
 const authHeaders = (extra = {}) => ({ Accept: 'application/json', AccessKey: API_KEY, ...extra })
+
+export const hasBunnyToken = () => !!TOKEN_KEY
+
+// Sign a Bunny CDN URL for direct server-side access when the pull zone has Token
+// Authentication enabled (otherwise the CDN returns 403). Uses Bunny's per-file token
+// scheme: token = urlsafe-base64( SHA256(securityKey + path + expires) ). Correct for a
+// single-file fetch (e.g. an mp4) — no HLS sub-requests to authorize. Returns the plain
+// URL if no BUNNY_TOKEN_KEY is configured (caller will then get a 403).
+export const signBunnyUrl = (videoId, file, ttlSec = 60 * 60) => {
+  const urlPath = `/${videoId}/${file}`
+  const base = `https://${PULL_ZONE}${urlPath}`
+  if (!TOKEN_KEY) return base
+  const expires = Math.floor(Date.now() / 1000) + ttlSec
+  const token = crypto
+    .createHash('sha256')
+    .update(TOKEN_KEY + urlPath + expires)
+    .digest('base64')
+    .replace(/\n/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+  return `${base}?token=${token}&expires=${expires}`
+}
 
 // Create an empty Bunny video object; returns its guid.
 export const createBunnyVideo = async (title) => {
@@ -64,6 +99,17 @@ export const uploadFileToBunny = async (videoId, filePath) => {
   if (!res.ok) throw new Error(`Bunny upload failed (${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
+// Delete a Bunny video (used to reject an upload that fails moderation).
+export const deleteBunnyVideo = async (videoId) => {
+  if (!videoId) return
+  const res = await fetch(`https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (!res.ok && res.status !== 404)
+    throw new Error(`Bunny delete failed (${res.status}): ${(await res.text()).slice(0, 200)}`)
+}
+
 // Fetch a Bunny video's metadata (includes `status` and `encodeProgress`).
 export const getBunnyVideo = async (videoId) => {
   const res = await fetch(`https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`, {
@@ -95,6 +141,30 @@ export const setBunnyThumbnail = async (videoId, thumbnailUrl) => {
     { method: 'POST', headers: authHeaders() },
   )
   if (!res.ok) throw new Error(`Bunny thumbnail failed (${res.status}): ${(await res.text()).slice(0, 200)}`)
+}
+
+// Attach a subtitle track (SRT/VTT text) to a Bunny video. `srclang` is the caption
+// language code (e.g. 'en', 'zh'), `label` is what the player shows in the CC menu.
+// Bunny stores one caption per language; re-uploading the same srclang replaces it.
+export const uploadBunnyCaption = async (videoId, srclang, label, captionsText) => {
+  if (!LIBRARY_ID || !API_KEY) throw new Error('Bunny is not configured')
+  if (!videoId) throw new Error('videoId is required')
+  if (!srclang) throw new Error('srclang is required')
+  if (!captionsText) throw new Error('captionsText is required')
+  const res = await fetch(
+    `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}/captions/${srclang}`,
+    {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        srclang,
+        label: label || srclang,
+        captionsFile: Buffer.from(captionsText, 'utf8').toString('base64'),
+      }),
+    },
+  )
+  if (!res.ok)
+    throw new Error(`Bunny caption failed (${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
 // Create a Bunny video from a local file in one call; returns the guid.

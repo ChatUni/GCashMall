@@ -16,6 +16,7 @@ import { callOpenAIChatJson } from './utils/pipeline.js'
 import { buildV1RenderStructures } from './utils/renderV1.js'
 import { triggerBackground } from './utils/trigger.js'
 import { modelHasNativeAudio } from './utils/seedance.js'
+import { isS1 } from './utils/bunny.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
@@ -114,6 +115,8 @@ const runProduce = async (jobId, userId, body) => {
       { key: 'videoGeneration', status: 'pending' },
       ...(modelHasNativeAudio() ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
       { key: 'composition', status: 'pending' },
+      // s1 only: subtitles are generated + attached to the Bunny video after composition.
+      ...(isS1() ? [{ key: 'transcribe', status: 'pending' }] : []),
     ],
     coverStatus: 'done',
   }

@@ -89,15 +89,15 @@ const remove = async (docName, filter) => {
 }
 
 // Update with support for $set and $unset operations
-const update = async (docName, filter, updates) => {
+const update = async (docName, filter, updates, options = {}) => {
   validateInput(docName, 'docName')
   validateInput(filter, 'filter')
   validateInput(updates, 'updates')
-  
+
   const db = await connectDB()
   const collection = db.collection(docName)
-  
-  return await collection.updateOne(filter, updates)
+
+  return await collection.updateOne(filter, updates, options)
 }
 
 const validateInput = (value, paramName) => {

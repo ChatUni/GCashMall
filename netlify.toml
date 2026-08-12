@@ -32,6 +32,16 @@
   external_node_modules = ["ffmpeg-static"]
   included_files = ["node_modules/ffmpeg-static/**"]
 
+# The subtitle-backfill function extracts audio from the episode (via ffmpeg) to transcribe.
+[functions."pipeline-transcribe-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
+# The upload-moderation function extracts audio + frames from the video with ffmpeg.
+[functions."moderate-upload-background"]
+  external_node_modules = ["ffmpeg-static"]
+  included_files = ["node_modules/ffmpeg-static/**"]
+
 [dev]
   port = 8888
   framework = "#custom"

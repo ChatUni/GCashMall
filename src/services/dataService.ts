@@ -482,6 +482,8 @@ export interface ProductionJob {
     coverStatus: string
   }
   videoProgress?: { done: number; total: number; percent?: number }
+  transcribeProgress?: { percent: number; task: string } // s1 subtitle step (0-100)
+  transcribeError?: string
   calls?: Record<string, Record<string, unknown>>
   episodes?: ProductionEpisode[]
   videos?: {
@@ -815,6 +817,22 @@ export const startV1Job = async (
   }
 }
 
+// Backfill subtitles for a finished s1 episode that has none yet. Responds 202; progress
+// is read via fetchProductionStatus(jobId) like any other production job. Best-effort —
+// callers can ignore failures.
+export const startTranscribeBackfill = async (jobId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  await fetch(`${base}/.netlify/functions/pipeline-transcribe-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ jobId }),
+  }).catch(() => {})
+}
+
 // ── Feedback ──
 
 export const submitFeedback = async (
@@ -984,6 +1002,34 @@ export const uploadVideoDirectly = async (
   if (!response.ok) {
     throw new Error(`Failed to upload video: ${response.statusText}`)
   }
+}
+
+// Kick off content moderation for a freshly-uploaded video (transcribe + text/frame
+// checks). Responds 202; poll fetchModerationStatus until it's approved or rejected.
+export const startUploadModeration = async (videoId: string): Promise<void> => {
+  const base = getApiBaseUrl()
+  const token = localStorage.getItem('gcashmall_token')
+  await fetch(`${base}/.netlify/functions/moderate-upload-background`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ videoId }),
+  })
+}
+
+export interface ModerationStatus {
+  status: 'pending' | 'processing' | 'approved' | 'rejected'
+  stage?: string
+  progress?: number
+  reason?: string
+  categories?: string[]
+}
+export const fetchModerationStatus = async (videoId: string): Promise<ModerationStatus> => {
+  const result = await apiGetWithAuth<ModerationStatus>('moderationStatus', { videoId })
+  if (result.success && result.data) return result.data
+  return { status: 'processing', progress: 0 }
 }
 
 export const deleteVideo = async (videoId: string) => {

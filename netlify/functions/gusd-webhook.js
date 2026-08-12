@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import crypto from 'crypto'
-import { get, save } from './utils/db.js'
+import { update } from './utils/db.js'
 
 // Build user response without sensitive fields (same as handlers.js)
 const buildUserResponseForWebhook = (user) => ({
@@ -106,30 +106,15 @@ const validateGUSDCallbackBody = (body) => {
   }
 }
 
-// Process the GUSD top up (add balance and create transaction with GUSD-specific fields)
+// Process the GUSD top up (add balance and create transaction with GUSD-specific fields).
+// Atomic + idempotent: a single conditional $inc/$push credits the wallet only if this
+// referenceId hasn't already been recorded (by a webhook retry or the redirect-path
+// confirm). This avoids the lost-update race when GUSD delivers a BURST of retried
+// webhooks concurrently — read-modify-save would clobber each other's transactions.
 const processGUSDTopUp = async (userId, amount, body) => {
-  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
-  if (!users || users.length === 0) {
-    console.error('[gusd-webhook] User not found:', userId)
-    return
-  }
-
-  const currentUser = users[0]
-  const currentBalance = currentUser.balance || 0
-  const transactions = currentUser.transactions || []
-
-  // Parse referenceId from order_id
   const { referenceId: parsedReferenceId } = parseGUSDOrderId(body.order_id)
   const referenceId = parsedReferenceId || generateReferenceId()
 
-  // Check if this referenceId has already been processed (prevent double processing)
-  const existingTxn = transactions.find((t) => t.referenceId === referenceId)
-  if (existingTxn) {
-    console.log('[gusd-webhook] Transaction already processed:', referenceId)
-    return
-  }
-
-  // Create transaction record with GUSD-specific fields
   const transaction = {
     id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     referenceId,
@@ -145,26 +130,22 @@ const processGUSDTopUp = async (userId, amount, body) => {
     createdAt: new Date(),
   }
 
-  // Add transaction to history (prepend)
-  transactions.unshift(transaction)
-
-  // Update user with new balance and transaction
-  const updateData = {
-    ...currentUser,
-    balance: currentBalance + amount,
-    transactions,
-    updatedAt: new Date(),
-  }
-
-  await save('users', updateData)
-  console.log(
-    '[gusd-webhook] Top up processed successfully:',
-    referenceId,
-    'amount:',
-    amount,
-    'new balance:',
-    currentBalance + amount,
+  const result = await update(
+    'users',
+    { _id: new ObjectId(userId), 'transactions.referenceId': { $ne: referenceId } },
+    {
+      $inc: { balance: amount },
+      $push: { transactions: { $each: [transaction], $position: 0 } },
+      $set: { updatedAt: new Date() },
+    },
   )
+
+  if (result.matchedCount === 0) {
+    // Already recorded (retry/confirm) or the user doesn't exist — either way, don't credit.
+    console.log('[gusd-webhook] Skipped (already processed or user not found):', referenceId)
+  } else {
+    console.log('[gusd-webhook] Top up processed:', referenceId, 'amount:', amount)
+  }
 }
 
 // Log request headers for debugging

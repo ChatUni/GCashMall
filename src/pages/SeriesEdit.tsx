@@ -231,6 +231,16 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
             onCancel={handleDeleteCancel}
           />
         </Show>
+
+        {/* Content Moderation Rejection Modal */}
+        <Show when={seriesEditStore.moderationError}>
+          <ModerationFailModal
+            title={(t().seriesEdit as Record<string, string>).moderationFailTitle || 'Upload Rejected'}
+            message={seriesEditStore.moderationError as string}
+            cancelLabel={t().seriesEdit.cancel}
+            onCancel={() => seriesEditStoreActions.setModerationError(null)}
+          />
+        </Show>
       </div>
     </Show>
   )
@@ -529,6 +539,28 @@ const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => (
         <button class="save-modal-btn save-modal-btn-danger" onClick={props.onConfirm}>
           {props.confirmLabel}
         </button>
+        <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>
+          {props.cancelLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+interface ModerationFailModalProps {
+  title: string
+  message: string
+  cancelLabel: string
+  onCancel: () => void
+}
+
+const ModerationFailModal = (props: ModerationFailModalProps) => (
+  <div class="save-modal-overlay" onClick={props.onCancel}>
+    <div class="save-modal" onClick={(e) => e.stopPropagation()}>
+      <div class="save-modal-icon">🚫</div>
+      <h2 class="save-modal-title">{props.title}</h2>
+      <p class="save-modal-message">{props.message}</p>
+      <div class="save-modal-buttons">
         <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>
           {props.cancelLabel}
         </button>

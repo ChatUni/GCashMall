@@ -6,6 +6,7 @@
 import { createStore, reconcile } from 'solid-js/store'
 import {
   startV1Job,
+  startTranscribeBackfill,
   fetchProductionStatus,
   fetchMyProductions,
   generateStoryPrompt,
@@ -42,6 +43,7 @@ export interface StudioStage {
   key: string
   serverKeys: string[]
 }
+const IS_S1 = import.meta.env.VITE_VIDEO_STORAGE === 's1'
 export const STUDIO_STAGES: StudioStage[] = [
   { key: 'executiveProducer', serverKeys: ['executiveProducer'] },
   { key: 'characterDirector', serverKeys: ['characterDirector'] },
@@ -53,6 +55,9 @@ export const STUDIO_STAGES: StudioStage[] = [
   // shot's progress and resets between shots. Episode Renderer is the final encode.
   { key: 'renderingShots', serverKeys: ['videoGeneration'] },
   { key: 'episodeRenderer', serverKeys: ['audioGeneration', 'composition'] },
+  // s1 only: extract audio → transcribe → translate → upload subtitles. Its bar reflects
+  // the combined progress of all four tasks (job.transcribeProgress.percent).
+  ...(IS_S1 ? [{ key: 'transcribe', serverKeys: ['transcribe'] }] : []),
 ]
 
 export interface ShotVideo {
@@ -363,7 +368,17 @@ export const quickCreateV1Actions = {
       wantPublish: publish,
     })
     if (job.episodeVideo || job.status === 'done') {
-      setState({ step: 4, producing: false, resuming: false })
+      // s1 episodes produced before the Transcribe step have no subtitles yet — kick off
+      // the backfill and show the pipeline page with the Transcribe task's live progress.
+      const tr = job.progress?.calls?.find((c) => c.key === 'transcribe')
+      const needsSubtitles = IS_S1 && !!job.episodeBunnyVideoId && tr?.status !== 'done'
+      if (needsSubtitles) {
+        startTranscribeBackfill(jobId)
+        setState({ step: 3, producing: true, resuming: false })
+        pollTranscribe(jobId)
+      } else {
+        setState({ step: 4, producing: false, resuming: false })
+      }
       quickCreateV1Actions.loadSeriesEpisodes()
     } else if (job.status === 'error') {
       setState({ step: 4, producing: false, resuming: false, produceError: job.error || 'Generation failed' })
@@ -572,6 +587,28 @@ const pollProduce = async (jobId: string): Promise<void> => {
   }
 }
 
+// Poll a finished episode's subtitle backfill: the video is already done, so we only
+// watch the Transcribe step and advance to the Ready page once it finishes (or errors).
+const pollTranscribe = async (jobId: string): Promise<void> => {
+  const startedAt = Date.now()
+  const finish = (): void => setState({ producing: false, step: 4 })
+  while (state.jobId === jobId) {
+    await sleep(POLL_INTERVAL_MS)
+    if (state.jobId !== jobId) return
+    let job: ProductionJob
+    try {
+      job = await fetchProductionStatus(jobId)
+    } catch {
+      continue
+    }
+    if (state.jobId !== jobId) return
+    applyProduceProgress(job)
+    const tr = job.progress?.calls?.find((c) => c.key === 'transcribe')
+    if (tr?.status === 'done' || tr?.status === 'error') return finish()
+    if (Date.now() - startedAt > POLL_TIMEOUT_MS) return finish()
+  }
+}
+
 // ── Time + log helpers ──
 
 const nowMs = (): number => (typeof Date !== 'undefined' ? Date.now() : 0)
@@ -604,6 +641,7 @@ const startStageTicker = (): void => {
     const runningGpt = STUDIO_STAGES.find(
       (st) =>
         st.key !== 'episodeRenderer' &&
+        st.key !== 'transcribe' && // transcribe shows real per-task progress, don't animate it
         state.progress.find((c) => c.key === st.serverKeys[0])?.status === 'running',
     )
     if (runningGpt) {
@@ -662,6 +700,11 @@ const applyProduceProgress = (job: ProductionJob): void => {
       if (vg?.status === 'done' || job.episodeVideo) setState('stagePct', st.key, 100)
       else if (vg?.status === 'running' && job.videoProgress?.percent != null)
         setState('stagePct', st.key, job.videoProgress.percent)
+    } else if (st.key === 'transcribe') {
+      // Combined progress of the 4 subtitle tasks while running.
+      if (status === 'done') setState('stagePct', st.key, 100)
+      else if (status === 'running') setState('stagePct', st.key, job.transcribeProgress?.percent ?? 0)
+      else if (status === 'pending') setState('stagePct', st.key, 0)
     } else if (status === 'done') {
       setState('stagePct', st.key, 100)
     } else if (status === 'pending') {
@@ -690,6 +733,13 @@ const applyProduceProgress = (job: ProductionJob): void => {
   if (vg?.status === 'done' && comp?.status === 'running' && !job.episodeVideo && !hasKey('encoding')) {
     log.push(logNow('encoding'))
   }
+  // Transcribe step: surface each of the 4 subtitle sub-tasks as it starts.
+  const tr = calls.find((c) => c.key === 'transcribe')
+  if (tr?.status === 'running' && job.transcribeProgress?.task) {
+    const tk = `transcribe:${job.transcribeProgress.task}`
+    if (!hasKey(tk)) log.push(logNow(tk))
+  }
+  if (tr?.status === 'done' && !hasKey('subsReady')) log.push(logNow('subsReady'))
   if (log.length !== state.activityLog.length) setState({ activityLog: log })
 
   // Auto-advance the preview to the most recently COMPLETED shot — its thumbnail is
