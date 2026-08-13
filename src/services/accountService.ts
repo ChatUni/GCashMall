@@ -1,7 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser, isIOS } from '../utils/cordova'
+import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser, isIOS, isAndroid } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { purchaseIAP, isIAPAvailable, finishTransaction, setIAPReconcileHandler } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
@@ -1092,6 +1092,10 @@ export const handleAvatarUpload = async (
 // Handle top up click
 export const handleTopUpClick = (amount: number) => {
   accountStoreActions.setSelectedTopUpAmount(amount)
+  // Native store apps offer a single billing method (GUSD/Card hidden), so pre-select it.
+  accountStoreActions.setSelectedPaymentMethod(
+    isIOS() ? 'applepay' : isAndroid() ? 'googleplay' : null,
+  )
   accountStoreActions.setShowTopUpPopup(true)
 }
 
@@ -1112,6 +1116,7 @@ export const handleWithdrawClick = (amount: number, t: Record<string, unknown>) 
 const getPaymentType = (method: string): string => {
   if (method === 'creditcard') return 'Credit Card'
   if (method === 'applepay') return 'Apple Pay'
+  if (method === 'googleplay') return 'Google Play'
   return 'GUSD'
 }
 
@@ -1126,8 +1131,11 @@ export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
   const wallet = t.wallet as Record<string, string> | undefined
   
   if (state.selectedTopUpAmount && state.selectedPaymentMethod) {
-    // On iOS with Apple Pay, always use In-App Purchase flow (never Stripe)
-    if (state.selectedPaymentMethod === 'applepay' && isIOS()) {
+    // Native store billing: Apple IAP on iOS, Google Play Billing on Android (never Stripe).
+    if (
+      (state.selectedPaymentMethod === 'applepay' && isIOS()) ||
+      (state.selectedPaymentMethod === 'googleplay' && isAndroid())
+    ) {
       await handleIAPTopUp(state.selectedTopUpAmount, wallet)
       return
     }
@@ -1188,12 +1196,21 @@ const handleIAPTopUp = async (
     // transaction for a different tier being delivered.
     const referenceId = generateReferenceId()
     const purchasedAmount = iapResult.amount ?? amount
-    const verifyResult = await verifyIAPReceipt(
-      iapResult.transactionId || '',
-      iapResult.productId || '',
-      purchasedAmount,
-      referenceId,
-    )
+    // Verify with the matching store: Google Play on Android, Apple on iOS.
+    const verifyResult = iapResult.platform === 'android-playstore'
+      ? await verifyGooglePlayPurchase(
+          iapResult.productId || '',
+          iapResult.purchaseToken || '',
+          iapResult.transactionId || '',
+          purchasedAmount,
+          referenceId,
+        )
+      : await verifyIAPReceipt(
+          iapResult.transactionId || '',
+          iapResult.productId || '',
+          purchasedAmount,
+          referenceId,
+        )
 
     accountStoreActions.setTopUpLoading(false)
     closeTopUpPopup()
@@ -1214,7 +1231,25 @@ const handleIAPTopUp = async (
   }
 }
 
-// Verify IAP receipt on the server and credit the user's wallet
+// Apply a successful store-verify response to local state (token + wallet balance).
+const applyVerifiedTopUp = (
+  response: { success: boolean; data?: unknown; error?: string },
+): { success: boolean; error?: string } => {
+  if (response.success && response.data) {
+    const userData = response.data as User
+    if (userData._id) {
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) saveAuthData(token, userData)
+      accountStoreActions.setUser(userData)
+      accountStoreActions.setBalance(userData.balance || 0)
+      accountStoreActions.setTransactions(userData.transactions || [])
+    }
+    return { success: true }
+  }
+  return { success: false, error: response.error || 'Failed to verify purchase' }
+}
+
+// Verify an Apple IAP receipt on the server and credit the user's wallet.
 const verifyIAPReceipt = async (
   transactionId: string,
   productId: string,
@@ -1228,34 +1263,48 @@ const verifyIAPReceipt = async (
       amount,
       referenceId,
     })
-
-    if (response.success && response.data) {
-      // Update local user data with new balance
-      const userData = response.data as User
-      if (userData._id) {
-        const token = localStorage.getItem('gcashmall_token')
-        if (token) {
-          saveAuthData(token, userData)
-        }
-        accountStoreActions.setUser(userData)
-        accountStoreActions.setBalance(userData.balance || 0)
-        accountStoreActions.setTransactions(userData.transactions || [])
-      }
-      return { success: true }
-    }
-    return { success: false, error: response.error || 'Failed to verify purchase' }
+    return applyVerifiedTopUp(response)
   } catch (error) {
     console.error('IAP receipt verification error:', error)
     return { success: false, error: 'Failed to verify purchase' }
   }
 }
 
-// Register the handler that drains orphaned IAP transactions (e.g. re-delivered at startup)
-// by crediting them on the server. Call once on app startup before initializeIAP().
+// Verify a Google Play purchase on the server and credit the user's wallet. `orderId` is
+// Google's order id (idempotency key); `purchaseToken` is used for server-side validation
+// with the Google Play Developer API.
+const verifyGooglePlayPurchase = async (
+  productId: string,
+  purchaseToken: string,
+  orderId: string,
+  amount: number,
+  referenceId: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await apiPostWithAuth<User>('verifyGooglePlayPurchase', {
+      productId,
+      purchaseToken,
+      orderId,
+      amount,
+      referenceId,
+    })
+    return applyVerifiedTopUp(response)
+  } catch (error) {
+    console.error('Google Play verification error:', error)
+    return { success: false, error: 'Failed to verify purchase' }
+  }
+}
+
+// Register the handler that drains orphaned store transactions (e.g. re-delivered at
+// startup) by crediting them on the server. Call once on app startup before initializeIAP().
 export const registerIAPReconciliation = (): void => {
   setIAPReconcileHandler(async (productId, amount, transactionId) => {
     const referenceId = generateReferenceId()
-    const result = await verifyIAPReceipt(transactionId, productId, amount, referenceId)
+    // TODO(google-play): reconcile lacks the purchaseToken; the server verify stub still
+    // credits idempotently. Wire the token through localTransactions when hardening Play.
+    const result = isAndroid()
+      ? await verifyGooglePlayPurchase(productId, '', transactionId, amount, referenceId)
+      : await verifyIAPReceipt(transactionId, productId, amount, referenceId)
     return result.success
   })
 }

@@ -6,7 +6,7 @@ import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListIt
 import type { ProductionJob } from '../services/dataService'
 
 // Payment method types
-export type PaymentMethod = 'creditcard' | 'gusd' | 'applepay'
+export type PaymentMethod = 'creditcard' | 'gusd' | 'applepay' | 'googleplay'
 
 // Transaction types
 export type TransactionType = 'topup' | 'withdraw' | 'earning'

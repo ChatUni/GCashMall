@@ -3,7 +3,8 @@ import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
 import applePayIcon from '../assets/apple-pay-icon.svg'
-import { isIOS } from '../utils/cordova'
+import googlePlayIcon from '../assets/google-play-icon.svg'
+import { isIOS, isAndroid, isCordova } from '../utils/cordova'
 import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
@@ -1040,15 +1041,10 @@ function WalletSection() {
             <div class="payment-method-section">
               <p class="payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="payment-method-icons">
-                <Show when={isIOS()} fallback={
-                  <button
-                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
-                    onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
-                  >
-                    <img src={paymentMethodsIcon} alt="Card" class="payment-method-icon-img" width="32" height="32" />
-                    <span class="payment-method-text">{wallet().creditCard || 'Card'}</span>
-                  </button>
-                }>
+                {/* iOS: Apple IAP only. Android: Google Play Billing only. Web: Card + GUSD.
+                    Native stores require their own billing for digital goods, so GUSD/Card
+                    are hidden in the Cordova apps. */}
+                <Show when={isIOS()}>
                   <button
                     class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'applepay' ? 'selected' : ''}`}
                     onClick={() => accountStoreActions.setSelectedPaymentMethod('applepay')}
@@ -1057,14 +1053,44 @@ function WalletSection() {
                     <span class="payment-method-text">{wallet().applePay || 'Apple Pay'}</span>
                   </button>
                 </Show>
-                <button
-                  class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
-                  onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}
-                >
-                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="payment-method-icon-img gusd" />
-                  <span class="payment-method-text">{wallet().gusd || 'GUSD'}</span>
-                </button>
+                <Show when={isAndroid()}>
+                  <button
+                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'googleplay' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('googleplay')}
+                  >
+                    <img src={googlePlayIcon} alt="Google Play" class="payment-method-icon-img" width="32" height="32" />
+                    <span class="payment-method-text">{wallet().googlePlay || 'Google Play'}</span>
+                  </button>
+                </Show>
+                <Show when={!isCordova()}>
+                  <button
+                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'creditcard' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('creditcard')}
+                  >
+                    <img src={paymentMethodsIcon} alt="Card" class="payment-method-icon-img" width="32" height="32" />
+                    <span class="payment-method-text">{wallet().creditCard || 'Card'}</span>
+                  </button>
+                  <button
+                    class={`payment-method-btn ${accountStore.selectedPaymentMethod === 'gusd' ? 'selected' : ''}`}
+                    onClick={() => accountStoreActions.setSelectedPaymentMethod('gusd')}
+                  >
+                    <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="payment-method-icon-img gusd" />
+                    <span class="payment-method-text">{wallet().gusd || 'GUSD'}</span>
+                  </button>
+                </Show>
               </div>
+              <Show when={accountStore.selectedPaymentMethod === 'applepay'}>
+                <p class="payment-method-note">
+                  {wallet().applePaySurchargeNote ||
+                    'Apple Pay adds a 15% App Store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                </p>
+              </Show>
+              <Show when={accountStore.selectedPaymentMethod === 'googleplay'}>
+                <p class="payment-method-note">
+                  {wallet().googlePlaySurchargeNote ||
+                    'Google Play adds a 15% store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                </p>
+              </Show>
             </div>
             <Show when={accountStore.topUpLoading}>
               <div class="popup-loading">

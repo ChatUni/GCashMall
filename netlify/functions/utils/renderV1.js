@@ -11,21 +11,20 @@
 //   • calls.promptCompiler...shot_prompts                     → scene grouping + characters
 //   • calls.characterDesigner.character_blueprint + art_style → canonical character refs
 //
-// The burned-in SUBTITLE rule (one of the two rules shared with v0) is injected here, at
-// render time — never into the model-agnostic GPT calls 1–5.
+// Subtitles are NOT burned into the video — they're delivered as external caption tracks
+// by the transcribe step. Dialogue is still passed to the video model as audio-only (so
+// native-audio models can voice it), with an explicit instruction not to render any text.
 
 const arr = (v) => (Array.isArray(v) ? v : [])
 const str = (v) => (typeof v === 'string' ? v.trim() : '')
 const csv = (v) => arr(v).filter(Boolean).join(', ')
 
-// The burned-in subtitle instruction shared with v0 (see specs/quick create/call-7).
-const subtitleRule = (dialogueLines) => {
+// Spoken dialogue as voice-only context (no on-screen captions — subtitles are external).
+const spokenDialogue = (dialogueLines) => {
   const spoken = dialogueLines.filter(Boolean).join(' ')
-  const base =
-    'Render with burned-in subtitles: display the spoken dialogue as on-screen captions ' +
-    'at the bottom-center of the frame, in a clean, legible sans-serif font with a subtle ' +
-    'dark outline, timed to match the spoken audio.'
-  return spoken ? `${base} Dialogue: "${spoken}"` : base
+  return spoken
+    ? `Spoken dialogue (voice audio only — do NOT display any on-screen text, subtitles, or captions): "${spoken}"`
+    : ''
 }
 
 // Compose one shot's text-to-video prompt from the package + visual + audio specs.
@@ -38,7 +37,7 @@ const buildShotPrompt = (shot, vShot, artDirection, dialogueLines) => {
     str(shot.visual?.characterMotion) || str(vShot?.characterMotion),
     csv(artDirection.colorPalette) ? `Color palette: ${csv(artDirection.colorPalette)}.` : '',
     str(artDirection.lighting) ? `Lighting: ${artDirection.lighting}.` : '',
-    subtitleRule(dialogueLines),
+    spokenDialogue(dialogueLines),
   ]
   return parts.filter(Boolean).join(' ').replace(/\s{2,}/g, ' ')
 }

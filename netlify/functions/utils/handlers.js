@@ -9,6 +9,7 @@ import { sendPasswordResetEmail, sendFeedbackEmail, sendWithdrawEmail } from './
 import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
+import { verifyGooglePlayTransaction } from './googlePlay.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl } from './bunny.js'
 
@@ -3157,9 +3158,66 @@ const validateIAPAmount = (amount) => {
 }
 
 const validateIAPProductId = (productId, amount) => {
-  const expectedProductId = `org.gaia.ganime.topup_${amount}`
+  const expectedProductId = `io.ganime.app.topup_${amount}`
   if (productId !== expectedProductId) {
     throw new Error(`Product ID mismatch: expected ${expectedProductId}, got ${productId}`)
+  }
+}
+
+// Verify a Google Play Billing purchase and credit the user's wallet. Mirrors
+// verifyIAPReceipt: same product/amount validation and the same idempotent, atomic
+// crediting via the shared transaction ledger. Google's order id is the idempotency key.
+const verifyGooglePlayPurchase = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  validateGooglePlayBody(body)
+
+  try {
+    const { productId, purchaseToken, orderId, amount, referenceId } = body
+
+    validateIAPAmount(amount)
+    validateIAPProductId(productId, amount)
+
+    const currentUser = await getUserForTopUp(userId)
+
+    // Validate the purchase with Google before crediting (no-op until creds are configured).
+    await verifyGooglePlayTransaction(purchaseToken, productId)
+
+    // Idempotency key: Google's order id (fallback to the purchase token or reference id).
+    const txnKey = orderId || purchaseToken || referenceId
+    const reserved = await reserveTransaction(txnKey, userId, productId, amount)
+    if (!reserved) {
+      return { success: true, data: await buildUserResponse(currentUser) }
+    }
+
+    try {
+      return await processTopUp(currentUser, amount, 'Google Play', referenceId, txnKey)
+    } catch (creditError) {
+      await releaseTransaction(txnKey)
+      throw creditError
+    }
+  } catch (error) {
+    throw new Error(`Google Play verification failed: ${error.message}`)
+  }
+}
+
+const validateGooglePlayBody = (body) => {
+  if (!body) {
+    throw new Error('Request body is required')
+  }
+  if (!body.productId) {
+    throw new Error('Product ID is required')
+  }
+  if (body.amount === undefined || body.amount === null) {
+    throw new Error('Amount is required')
+  }
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    throw new Error('Amount must be a positive number')
+  }
+  if (!body.referenceId) {
+    throw new Error('Reference ID is required')
+  }
+  if (!body.orderId && !body.purchaseToken) {
+    throw new Error('orderId or purchaseToken is required')
   }
 }
 
@@ -3611,6 +3669,7 @@ export {
   savePipelinePrompt,
   getProductionStatus,
   getModerationStatus,
+  verifyGooglePlayPurchase,
   getSharedEpisode,
   deleteProduction,
   startNextEpisode,

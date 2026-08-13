@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 
 // App Store Server API credentials (set in Netlify env for production validation).
 // Generate the key under App Store Connect > Users and Access > Integrations > In-App Purchase.
-const APP_BUNDLE_ID = process.env.APP_BUNDLE_ID || 'org.gaia.ganime'
+const APP_BUNDLE_ID = process.env.APP_BUNDLE_ID || 'io.ganime.app'
 const KEY_ID = process.env.APPLE_IAP_KEY_ID
 const ISSUER_ID = process.env.APPLE_IAP_ISSUER_ID
 const PRIVATE_KEY = (process.env.APPLE_IAP_PRIVATE_KEY || '').replace(/\\n/g, '\n')

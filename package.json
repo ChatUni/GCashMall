@@ -4,10 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "cordova": {
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": [],
     "plugins": {
       "cordova-plugin-inappbrowser": {},
       "cordova-plugin-customurlscheme": {
@@ -62,8 +59,8 @@
     "@types/youtube": "^0.1.2",
     "baseline-browser-mapping": "^2.10.0",
     "cordova": "^13.0.0",
-    "cordova-android": "^14.0.1",
-    "cordova-ios": "^8.0.1",
+    "cordova-android": "^15.1.0",
+    "cordova-ios": "^8.1.1",
     "cordova-plugin-customurlscheme": "^5.0.2",
     "cordova-plugin-inappbrowser": "^6.0.0",
     "cordova-plugin-purchase": "^13.16.1",

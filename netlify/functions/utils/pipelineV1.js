@@ -2,9 +2,9 @@
 // `pipelinePromptsV1` collection (seeded from specs/quick create v1/call-*.md). We reuse the
 // v0 buildCallSystemPrompt (which injects the shared ARRAY RULE) and callOpenAIChatJson.
 //
-// The only injected rules shared between v0 and v1 are (1) the JSON ARRAY RULE, applied here
-// via buildCallSystemPrompt, and (2) the burned-in SUBTITLE rule, applied at render time in
-// the renderer adapter (see renderV1.js) — NOT in the model-agnostic GPT calls 1–5.
+// The JSON ARRAY RULE is injected here via buildCallSystemPrompt. Subtitles are no longer
+// burned into the video (they're delivered as external caption tracks by the transcribe
+// step); the renderer adapter (renderV1.js) only passes dialogue as voice-only context.
 
 import { get } from './db.js'
 import { buildCallSystemPrompt, callOpenAIChatJson } from './pipeline.js'

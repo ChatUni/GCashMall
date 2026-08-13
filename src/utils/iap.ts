@@ -4,7 +4,7 @@
 // Product tiers defined in App Store Connect:
 // $1, $5, $10, $20, $50, $100, $200, $500, $1000
 
-import { isCordova, isIOS } from './cordova'
+import { isCordova, isIOS, isAndroid } from './cordova'
 
 // ──────────────────────────────────────────────
 // Types for cordova-plugin-purchase (CdvPurchase)
@@ -40,6 +40,10 @@ interface CdvPurchaseTransaction {
   products: Array<{ id: string }>
   isConsumed?: boolean
   isPending?: boolean
+  // Google Play only: the purchase token needed for server-side verification with the
+  // Google Play Developer API. Undefined on Apple (which verifies via the JWS receipt).
+  purchaseId?: string
+  nativePurchase?: { purchaseToken?: string }
   finish: () => void
 }
 
@@ -61,8 +65,14 @@ interface CdvPurchaseVerifiedReceipt {
 // Product type enum matching CdvPurchase.ProductType
 const CONSUMABLE = 'consumable'
 
-// Platform enum matching CdvPurchase.Platform
+// Platform enums matching CdvPurchase.Platform. The plugin (v13) is cross-platform, so the
+// same store API drives Apple IAP on iOS and Google Play Billing on Android.
 const APPLE_APPSTORE = 'ios-appstore'
+const GOOGLE_PLAY = 'android-playstore'
+
+// The active store platform for this device (null on web / unsupported).
+const getStorePlatform = (): string | null =>
+  isIOS() ? APPLE_APPSTORE : isAndroid() ? GOOGLE_PLAY : null
 
 interface CdvPurchaseWhenChain {
   approved: (callback: (transaction: CdvPurchaseTransaction) => void) => CdvPurchaseWhenChain
@@ -105,14 +115,14 @@ declare global {
 // IAP Product Tiers
 // ──────────────────────────────────────────────
 
-// The app bundle ID from config.xml
-const APP_BUNDLE_ID = 'org.gaia.ganime'
+// The app bundle ID from config.xml (must match the Play/App Store package/bundle id)
+const APP_BUNDLE_ID = 'io.ganime.app'
 
 // Pre-defined IAP product tiers matching App Store Connect
 export const IAP_TIERS = [1, 5, 10, 20, 50, 100, 200, 500, 1000] as const
 export type IAPTierAmount = (typeof IAP_TIERS)[number]
 
-// Generate product ID from amount: e.g. "org.gaia.ganime.topup_1"
+// Generate product ID from amount: e.g. "io.ganime.app.topup_1"
 export const getProductId = (amount: number): string =>
   `${APP_BUNDLE_ID}.topup_${amount}`
 
@@ -122,12 +132,9 @@ const getAmountFromProductId = (productId: string): number => {
   return match ? parseInt(match[1], 10) : 0
 }
 
-// All IAP product definitions
-const IAP_PRODUCTS = IAP_TIERS.map((amount) => ({
-  id: getProductId(amount),
-  type: CONSUMABLE,
-  platform: APPLE_APPSTORE,
-}))
+// Product definitions to register with the active store (App Store or Google Play).
+const buildStoreProducts = (platform: string) =>
+  IAP_TIERS.map((amount) => ({ id: getProductId(amount), type: CONSUMABLE, platform }))
 
 // ──────────────────────────────────────────────
 // Store state
@@ -194,14 +201,16 @@ const reconcileStuckTransactions = (store: CdvPurchaseStore): void => {
 // ──────────────────────────────────────────────
 
 const getStore = (): CdvPurchaseStore | null => {
-  if (!isCordova() || !isIOS()) return null
+  if (!isCordova() || !getStorePlatform()) return null
   return window.CdvPurchase?.store || null
 }
 
-// Initialize the IAP store - call once on app startup (after deviceready)
+// Initialize the store - call once on app startup (after deviceready). Uses the active
+// platform: Apple IAP on iOS, Google Play Billing on Android.
 export const initializeIAP = (): void => {
   const store = getStore()
-  if (!store || storeInitialized) return
+  const platform = getStorePlatform()
+  if (!store || !platform || storeInitialized) return
 
   storeInitialized = true
 
@@ -210,16 +219,17 @@ export const initializeIAP = (): void => {
     store.verbosity = window.CdvPurchase.LogLevel.DEBUG
   }
 
-  console.log('[IAP] Registering products:', IAP_PRODUCTS.map((p) => p.id))
+  const products = buildStoreProducts(platform)
+  console.log('[IAP] Registering products:', products.map((p) => p.id), 'platform:', platform)
 
   // Register all consumable products
-  store.register(IAP_PRODUCTS)
+  store.register(products)
 
   // Set up event handlers
   setupEventHandlers(store)
 
-  // Initialize the store with Apple App Store platform
-  store.initialize([APPLE_APPSTORE])
+  // Initialize the store with the active platform
+  store.initialize([platform])
     .then(() => {
       storeReady = true
       console.log('[IAP] Store initialized successfully')
@@ -296,8 +306,9 @@ export const isIAPAvailable = (): boolean => {
 // Get product info (including localized price)
 export const getProduct = (amount: number): CdvPurchaseProduct | undefined => {
   const store = getStore()
-  if (!store) return undefined
-  return store.get(getProductId(amount), APPLE_APPSTORE)
+  const platform = getStorePlatform()
+  if (!store || !platform) return undefined
+  return store.get(getProductId(amount), platform)
 }
 
 // Get localized price string for an amount
@@ -320,16 +331,19 @@ export interface IAPPurchaseResult {
   transactionId?: string
   error?: string
   amount?: number
+  platform?: string // 'ios-appstore' | 'android-playstore'
+  purchaseToken?: string // Google Play only — for server-side verification
 }
 
-// Initiate an IAP purchase for a given amount
-// Returns a promise that resolves when the purchase is complete (approved by Apple)
-// The caller must then verify the receipt on the server and call finishTransaction()
+// Initiate a store purchase for a given amount (Apple IAP on iOS, Google Play on Android).
+// Resolves when the purchase is approved by the store. The caller must then verify it on
+// the server and call finishTransaction().
 export const purchaseIAP = (amount: number): Promise<IAPPurchaseResult> => {
   return new Promise((resolve) => {
     const store = getStore()
-    if (!store) {
-      resolve({ success: false, error: 'IAP store not available' })
+    const platform = getStorePlatform()
+    if (!store || !platform) {
+      resolve({ success: false, error: 'Store not available' })
       return
     }
 
@@ -343,7 +357,7 @@ export const purchaseIAP = (amount: number): Promise<IAPPurchaseResult> => {
       console.log(`[IAP] Product in store: ${p.id}, valid: ${p.valid}, canPurchase: ${p.canPurchase}`)
     })
 
-    const product = store.get(productId, APPLE_APPSTORE)
+    const product = store.get(productId, platform)
     console.log('[IAP] store.get result:', product ? `found (valid=${product.valid})` : 'null')
 
     if (!product) {
@@ -368,6 +382,8 @@ export const purchaseIAP = (amount: number): Promise<IAPPurchaseResult> => {
         productId: pid,
         transactionId: transaction.transactionId,
         amount: getAmountFromProductId(pid),
+        platform,
+        purchaseToken: transaction.purchaseId || transaction.nativePurchase?.purchaseToken,
       })
     }
 
