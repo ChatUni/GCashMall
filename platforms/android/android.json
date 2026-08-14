@@ -37,11 +37,11 @@
               "count": 1
             },
             {
-              "xml": "<feature name=\"InAppBillingPlugin\"><param name=\"android-package\" value=\"cc.fovea.PurchasePlugin\" /></feature>",
+              "xml": "<feature name=\"SocialSharing\"><param name=\"android-package\" value=\"nl.xservices.plugins.SocialSharing\" /></feature>",
               "count": 1
             },
             {
-              "xml": "<feature name=\"SocialSharing\"><param name=\"android-package\" value=\"nl.xservices.plugins.SocialSharing\" /></feature>",
+              "xml": "<feature name=\"InAppBillingPlugin\"><param name=\"android-package\" value=\"cc.fovea.PurchasePlugin\" /></feature>",
               "count": 1
             }
           ]
@@ -61,11 +61,11 @@
           ],
           "/*": [
             {
-              "xml": "<uses-permission android:name=\"com.android.vending.BILLING\" />",
+              "xml": "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />",
               "count": 1
             },
             {
-              "xml": "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" />",
+              "xml": "<uses-permission android:name=\"com.android.vending.BILLING\" />",
               "count": 1
             }
           ],
@@ -99,10 +99,10 @@
       "ANDROID_PATHPREFIX": "/",
       "PACKAGE_NAME": "io.ganime.app"
     },
-    "cordova-plugin-purchase": {
+    "cordova-plugin-x-socialsharing": {
       "PACKAGE_NAME": "io.ganime.app"
     },
-    "cordova-plugin-x-socialsharing": {
+    "cordova-plugin-purchase": {
       "PACKAGE_NAME": "io.ganime.app"
     }
   },
@@ -131,6 +131,14 @@
       ]
     },
     {
+      "id": "cordova-plugin-x-socialsharing.SocialSharing",
+      "file": "plugins/cordova-plugin-x-socialsharing/www/SocialSharing.js",
+      "pluginId": "cordova-plugin-x-socialsharing",
+      "clobbers": [
+        "window.plugins.socialsharing"
+      ]
+    },
+    {
       "id": "cordova-plugin-purchase.CdvPurchase",
       "file": "plugins/cordova-plugin-purchase/www/store.js",
       "pluginId": "cordova-plugin-purchase",
@@ -138,21 +146,13 @@
         "store",
         "CdvPurchase"
       ]
-    },
-    {
-      "id": "cordova-plugin-x-socialsharing.SocialSharing",
-      "file": "plugins/cordova-plugin-x-socialsharing/www/SocialSharing.js",
-      "pluginId": "cordova-plugin-x-socialsharing",
-      "clobbers": [
-        "window.plugins.socialsharing"
-      ]
     }
   ],
   "plugin_metadata": {
     "es6-promise-plugin": "4.2.2",
     "cordova-plugin-inappbrowser": "6.0.0",
     "cordova-plugin-customurlscheme": "5.0.2",
-    "cordova-plugin-purchase": "13.16.1",
-    "cordova-plugin-x-socialsharing": "6.0.4"
+    "cordova-plugin-x-socialsharing": "6.0.4",
+    "cordova-plugin-purchase": "13.16.1"
   }
 }

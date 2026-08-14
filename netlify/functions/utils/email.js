@@ -87,6 +87,50 @@ export const sendWithdrawEmail = async (account, amount, adminEmail) => {
   }
 }
 
+// Notify the user that their wallet top-up completed. Best-effort — never throws, so a
+// mail failure can't affect crediting.
+export const sendTopUpEmail = async (account, amount) => {
+  if (!account?.email) return { success: false, error: 'no recipient' }
+  try {
+    validateEmailConfig()
+    const transporter = createTransporter()
+    const info = await transporter.sendMail({
+      from: `GAnime <${process.env.GMAIL_USER}>`,
+      to: account.email,
+      subject: 'Top-up Complete - GAnime',
+      text: `Hi ${account.nickname || 'there'},\n\nYour top-up of ${Number(amount).toFixed(2)} GUSD is complete and has been added to your GAnime wallet.\n\nThank you!`,
+      html: generateTopUpEmailHtml(account.nickname, amount),
+    })
+    console.log('[sendTopUpEmail] Email sent:', info.messageId)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('[sendTopUpEmail] Failed to send email:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+const generateTopUpEmailHtml = (nickname, amount) => {
+  const name = String(nickname || 'there').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0B0B0E; color: #ffffff; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">Top-up Complete</h1>
+        </div>
+        <div style="background-color: #121214; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+          <p style="color: #E5E7EB; font-size: 15px; margin: 0 0 20px 0;">Hi ${name},</p>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Added to your wallet</p>
+          <p style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 20px 0;">${Number(amount).toFixed(2)} GUSD</p>
+          <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; margin: 0;">Your payment has been processed and the amount is now available in your GAnime wallet.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 const generateWithdrawEmailHtml = (who, amount) => {
   const safeWho = String(who).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return `

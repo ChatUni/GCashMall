@@ -35,3 +35,19 @@ plugins
 
 # iOS build output (archives, exported IPAs, xcodebuild derived data)
 build
+
+# Android signing (keep private — never commit)
+build.json
+keys/
+*.jks
+*.keystore
+
+# fastlane — Play service-account key (secret) + generated reports
+fastlane/play-service-account.json
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/*.json
+
+# App Store Connect API key
+fastlane/*.p8
+fastlane/certs/

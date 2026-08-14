@@ -131,6 +131,8 @@ interface AccountState {
   selectedPaymentMethod: PaymentMethod | null
   showCustomAmountPopup: boolean
   customAmountInput: string
+  // GUSD "processing" dialog shown after redirect while the order isn't yet final
+  gusdProcessing: { show: boolean; amount: number | null; kind: 'topup' | 'withdraw' }
   
   // Confirmation modals (shared by phone and desktop)
   showClearHistoryModal: boolean
@@ -241,6 +243,7 @@ const getInitialState = (): AccountState => ({
   withdrawing: false,
   transactions: [],
   transactionFilter: 'all',
+  gusdProcessing: { show: false, amount: null, kind: 'topup' },
   selectedPaymentMethod: null,
   showCustomAmountPopup: false,
   customAmountInput: '',
@@ -412,6 +415,8 @@ export const accountStoreActions = {
     setAccountState({ transactionFilter }),
   setSelectedPaymentMethod: (selectedPaymentMethod: PaymentMethod | null) =>
     setAccountState({ selectedPaymentMethod }),
+  setGusdProcessing: (gusdProcessing: { show: boolean; amount: number | null; kind: 'topup' | 'withdraw' }) =>
+    setAccountState({ gusdProcessing }),
   setTopUpLoading: (topUpLoading: boolean) =>
     setAccountState({ topUpLoading }),
   setShowCustomAmountPopup: (showCustomAmountPopup: boolean) =>
@@ -568,6 +573,13 @@ export const walletAmounts = isGusdTestMode ? [...GUSD_TEST_AMOUNTS, 5, 10, 20, 
 
 // iOS In-App Purchase tiers - must be a subset of the registered IAP_TIERS / App Store Connect products
 export const iapWalletAmounts = [5, 10, 20, 50]
+
+// Apple/Google take a 30% store fee. Products are priced at face value (the user pays the
+// amount shown) and the wallet is credited 30% LESS — e.g. a 10 top-up adds 7 GUSD. Must
+// match the server's netAfterStoreFee.
+export const STORE_FEE_RATE = 0.3
+export const netAfterStoreFee = (amount: number): number =>
+  Math.round((amount || 0) * (1 - STORE_FEE_RATE) * 100) / 100
 
 // Helper function to generate reference ID
 export const generateReferenceId = (): string => {

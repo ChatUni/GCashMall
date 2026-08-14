@@ -26,6 +26,7 @@ import {
   getFilteredNavItems,
   walletAmounts,
   iapWalletAmounts,
+  netAfterStoreFee,
   type AccountTab,
   type PaymentMethod,
   getCombinedTransactions,
@@ -55,6 +56,7 @@ import {
   closeTopUpPopup,
   closeWithdrawPopup,
   handleStripeCallback,
+  syncGUSDTopUps,
   clearWatchHistory,
   removeFromWatchList,
   clearFavorites,
@@ -123,6 +125,16 @@ const Account = () => {
         if (me) {
           accountStoreActions.setUser(me)
           setStoredUser(me)
+          // Reconcile any still-processing GUSD orders (top-ups or withdrawals) on load —
+          // the webhook may not have fired yet; syncGUSDTopUps queries pay_order_info and
+          // finalizes each (credit/refund as appropriate).
+          const hasPending = (me.transactions || []).some(
+            (tx) =>
+              (tx.type === 'topup' || tx.type === 'withdraw') &&
+              tx.method === 'GUSD' &&
+              tx.status === 'processing',
+          )
+          if (hasPending) syncGUSDTopUps().catch(() => {})
         }
       })
       .catch(() => {})
@@ -1081,14 +1093,18 @@ function WalletSection() {
               </div>
               <Show when={accountStore.selectedPaymentMethod === 'applepay'}>
                 <p class="payment-method-note">
-                  {wallet().applePaySurchargeNote ||
-                    'Apple Pay adds a 15% App Store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                  {(wallet().applePaySurchargeNote ||
+                    'Apple Pay includes a 30% App Store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
+                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
+                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
                 </p>
               </Show>
               <Show when={accountStore.selectedPaymentMethod === 'googleplay'}>
                 <p class="payment-method-note">
-                  {wallet().googlePlaySurchargeNote ||
-                    'Google Play adds a 15% store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                  {(wallet().googlePlaySurchargeNote ||
+                    'Google Play includes a 30% store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
+                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
+                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
                 </p>
               </Show>
             </div>
@@ -1135,6 +1151,35 @@ function WalletSection() {
             </div>
           </div>
         </div>
+      </Show>
+
+      {/* GUSD processing dialog (top-up or withdrawal) shown after redirect while pending */}
+      <Show when={accountStore.gusdProcessing.show}>
+        {(() => {
+          const p = () => accountStore.gusdProcessing
+          const isW = () => p().kind === 'withdraw'
+          const close = () => accountStoreActions.setGusdProcessing({ show: false, amount: null, kind: p().kind })
+          const amt = () => (p().amount != null ? p().amount!.toFixed(2) : '')
+          return (
+            <div class="popup-overlay" onClick={close}>
+              <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
+                <div class="popup-icon">⏳</div>
+                <h2 class="popup-title">
+                  {isW() ? (wallet().withdrawProcessingTitle || 'Withdrawal Processing') : (wallet().processingTitle || 'Payment Processing')}
+                </h2>
+                <p class="popup-message">
+                  {(isW()
+                    ? (wallet().withdrawProcessingMessage || 'Your withdrawal is being processed. {amount} GUSD will be transferred to you shortly.')
+                    : (wallet().processingMessage || 'Your payment is being processed. Once complete, {amount} GUSD will be added to your account and you will receive a confirmation email.')
+                  ).replace('{amount}', amt())}
+                </p>
+                <div class="popup-buttons">
+                  <button class="btn-confirm" onClick={close}>{wallet().gotIt || 'Got it'}</button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
       </Show>
     </div>
   )

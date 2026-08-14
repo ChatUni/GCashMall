@@ -19,6 +19,7 @@ import {
   getFilteredPhoneNavItems,
   walletAmounts,
   iapWalletAmounts,
+  netAfterStoreFee,
   type AccountTab,
   getCombinedTransactions,
   getFilteredTransactions,
@@ -618,14 +619,18 @@ const PhoneWalletSection = () => {
               </div>
               <Show when={accountStore.selectedPaymentMethod === 'applepay'}>
                 <p class="phone-payment-method-note">
-                  {wallet().applePaySurchargeNote ||
-                    'Apple Pay adds a 15% App Store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                  {(wallet().applePaySurchargeNote ||
+                    'Apple Pay includes a 30% App Store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
+                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
+                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
                 </p>
               </Show>
               <Show when={accountStore.selectedPaymentMethod === 'googleplay'}>
                 <p class="phone-payment-method-note">
-                  {wallet().googlePlaySurchargeNote ||
-                    'Google Play adds a 15% store fee — you’ll be charged 15% more than the amount added to your wallet.'}
+                  {(wallet().googlePlaySurchargeNote ||
+                    'Google Play includes a 30% store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
+                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
+                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
                 </p>
               </Show>
             </div>
@@ -658,6 +663,35 @@ const PhoneWalletSection = () => {
             </div>
           </div>
         </div>
+      </Show>
+
+      {/* GUSD processing dialog (top-up or withdrawal) shown after redirect while pending */}
+      <Show when={accountStore.gusdProcessing.show}>
+        {(() => {
+          const p = () => accountStore.gusdProcessing
+          const isW = () => p().kind === 'withdraw'
+          const close = () => accountStoreActions.setGusdProcessing({ show: false, amount: null, kind: p().kind })
+          const amt = () => (p().amount != null ? p().amount!.toFixed(2) : '')
+          return (
+            <div class="phone-popup-overlay" onClick={close}>
+              <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
+                <div class="phone-popup-icon">⏳</div>
+                <h3 class="phone-popup-title">
+                  {isW() ? (wallet().withdrawProcessingTitle || 'Withdrawal Processing') : (wallet().processingTitle || 'Payment Processing')}
+                </h3>
+                <p class="phone-popup-message">
+                  {(isW()
+                    ? (wallet().withdrawProcessingMessage || 'Your withdrawal is being processed. {amount} GUSD will be transferred to you shortly.')
+                    : (wallet().processingMessage || 'Your payment is being processed. Once complete, {amount} GUSD will be added to your account and you will receive a confirmation email.')
+                  ).replace('{amount}', amt())}
+                </p>
+                <div class="phone-popup-buttons">
+                  <button class="phone-popup-confirm" onClick={close}>{wallet().gotIt || 'Got it'}</button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
       </Show>
     </div>
   )

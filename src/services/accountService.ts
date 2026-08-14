@@ -669,29 +669,31 @@ export const completeStripeTopUp = async (sessionId: string): Promise<{ success:
   }
 }
 
-// Complete GUSD top up after redirect back from GUSD payment page
-// Calls API with order_id to retrieve the order/transaction data
-export const completeGUSDTopUp = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
+// Reconcile the user's pending GUSD top-ups (queries pay_order_info for each and finalizes).
+// Called on the payment redirect and on wallet load. Returns the refreshed user so callers
+// can inspect a specific order's status.
+export const syncGUSDTopUps = async (): Promise<{ success: boolean; user?: User; error?: string }> => {
   try {
-    const response = await apiPostWithAuth<User>('completeGUSDTopUp', {
-      orderId,
-    })
-
+    const response = await apiPostWithAuth<User>('syncGUSDTopUps', {})
     if (response.success && response.data) {
+      const user = response.data as User
       const token = localStorage.getItem('gcashmall_token')
-      if (token) {
-        saveAuthData(token, response.data)
-      }
-      accountStoreActions.initializeUserData(response.data)
-      return { success: true }
+      if (token) saveAuthData(token, user)
+      accountStoreActions.initializeUserData(user)
+      return { success: true, user }
     }
-
-    return { success: false, error: response.error || 'Failed to complete top up' }
+    return { success: false, error: response.error || 'Failed to sync top ups' }
   } catch (error) {
-    console.error('Error completing GUSD top up:', error)
-    return { success: false, error: 'Failed to complete top up' }
+    console.error('Error syncing GUSD top ups:', error)
+    return { success: false, error: 'Failed to sync top ups' }
   }
 }
+
+// True if the user has any still-processing GUSD top-up (so the wallet should reconcile).
+export const hasPendingGUSDTopUp = (): boolean =>
+  (accountStoreActions.getState().transactions || []).some(
+    (t) => t.type === 'topup' && t.method === 'GUSD' && t.status === 'processing',
+  )
 
 // Build the callback URL for the Wallet section of the Account page
 // On Cordova, use the production origin since the app origin (app://localhost)
@@ -701,34 +703,37 @@ const buildWalletCallbackUrl = (): string => {
   return `${baseUrl}/account?tab=wallet`
 }
 
-// Withdraw
+// Withdraw — reserves the funds server-side and returns a GUSD one-time withdrawal link the
+// user opens to claim it. The final result is reconciled async (webhook / pay_order_info).
 export const withdraw = async (amount: number): Promise<{ success: boolean; error?: string }> => {
   const state = accountStoreActions.getState()
-  
+
   // Check if user has sufficient balance (client-side check)
   if (amount > state.balance) {
     return { success: false, error: 'Insufficient balance' }
   }
-  
-  const referenceId = generateReferenceId()
-  
+
   accountStoreActions.setWithdrawing(true)
-  
+
   try {
-    const response = await apiPostWithAuth<User>('withdraw', { amount, referenceId })
-    
+    const response = await apiPostWithAuth<{ withdrawUrl: string; user: User }>('withdraw', {
+      amount,
+      callbackUrl: buildWalletCallbackUrl(),
+    })
+
     if (response.success && response.data) {
-      // Update user data from server response (includes new balance and transactions)
+      const { withdrawUrl, user } = response.data
+      // Balance is already deducted (reserved) — reflect it locally.
       const token = localStorage.getItem('gcashmall_token')
-      if (token) {
-        saveAuthData(token, response.data)
-      }
-      accountStoreActions.initializeUserData(response.data)
+      if (token && user) saveAuthData(token, user)
+      if (user) accountStoreActions.initializeUserData(user)
       accountStoreActions.setShowWithdrawPopup(false)
       accountStoreActions.setSelectedWithdrawAmount(null)
+      // Open the GUSD one-time withdrawal claim page.
+      if (withdrawUrl) window.location.href = withdrawUrl
       return { success: true }
     }
-    
+
     return { success: false, error: response.error || 'Failed to withdraw' }
   } catch (error) {
     console.error('Error withdrawing:', error)
@@ -1352,9 +1357,8 @@ export const handleConfirmWithdraw = async (t: Record<string, unknown>) => {
   
   if (state.selectedWithdrawAmount) {
     const result = await withdraw(state.selectedWithdrawAmount)
-    if (result.success) {
-      toastStoreActions.show(wallet?.withdrawSuccess || 'Withdrawal successful', 'success')
-    } else {
+    // On success the page navigates to the GUSD withdrawal page; only surface failures.
+    if (!result.success) {
       toastStoreActions.show(result.error || wallet?.withdrawFailed || 'Failed to withdraw', 'error')
     }
   }
@@ -1369,9 +1373,30 @@ export const handleStripeCallback = async (
   t: Record<string, unknown>,
 ) => {
   const topupStatus = searchParams.get('topup_status')
-  if (!topupStatus) return
+  const withdrawStatus = searchParams.get('withdraw_status')
+  if (!topupStatus && !withdrawStatus) return
 
   const wallet = t.wallet as Record<string, string> | undefined
+
+  // GUSD withdrawal callback — reconcile, then reflect the withdrawal's status.
+  if (withdrawStatus) {
+    const orderId = searchParams.get('order_id') || ''
+    if (withdrawStatus === 'success' && orderId) {
+      const res = await syncGUSDTopUps()
+      const txn = res.user?.transactions?.find((tx) => tx.order_id === orderId)
+      if (txn?.status === 'success') {
+        toastStoreActions.show(wallet?.withdrawSuccess || 'Withdrawal complete', 'success')
+      } else if (txn?.status === 'failed') {
+        toastStoreActions.show(wallet?.withdrawFailed || 'Withdrawal failed', 'error')
+      } else {
+        accountStoreActions.setGusdProcessing({ show: true, amount: txn?.amount ?? null, kind: 'withdraw' })
+      }
+    } else if (withdrawStatus === 'cancelled') {
+      toastStoreActions.show(wallet?.withdrawFailed || 'Withdrawal cancelled', 'error')
+    }
+    setSearchParams({ tab: 'wallet' })
+    return
+  }
 
   if (topupStatus === 'success') {
     const sessionId = searchParams.get('session_id') || ''
@@ -1386,12 +1411,17 @@ export const handleStripeCallback = async (
         toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
       }
     } else if (orderId) {
-      // GUSD callback - retrieve order/transaction data
-      const result = await completeGUSDTopUp(orderId)
-      if (result.success) {
+      // GUSD callback — payment is async, so the order may still be processing at redirect.
+      // Reconcile, then reflect the order's actual status.
+      const res = await syncGUSDTopUps()
+      const txn = res.user?.transactions?.find((tx) => tx.order_id === orderId)
+      if (txn?.status === 'success') {
         toastStoreActions.show(wallet?.topUpSuccess || 'Top up successful', 'success')
+      } else if (txn?.status === 'failed') {
+        toastStoreActions.show(wallet?.topUpFailed || 'Top up failed', 'error')
       } else {
-        toastStoreActions.show(result.error || wallet?.topUpFailed || 'Failed to top up', 'error')
+        // Still processing — tell the user it will complete shortly.
+        accountStoreActions.setGusdProcessing({ show: true, amount: txn?.amount ?? null, kind: 'topup' })
       }
     }
   } else if (topupStatus === 'cancelled') {

@@ -1,0 +1,14 @@
+# Google Play credentials for fastlane `supply` (upload_to_play_store).
+#
+# json_key_file: a Google Play service-account JSON with release permissions. Create it in
+# Play Console → Setup → API access (link a Google Cloud project, create a service account,
+# grant it access), then download the key. Point SUPPLY_JSON_KEY at it, or drop it at
+# fastlane/play-service-account.json (both are gitignored — never commit the key).
+for_platform :android do
+  json_key_file(ENV["SUPPLY_JSON_KEY"] || "fastlane/play-service-account.json")
+  package_name("io.ganime.app")
+end
+
+for_platform :ios do
+  app_identifier("io.ganime.app")
+end

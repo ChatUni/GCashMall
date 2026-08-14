@@ -10,6 +10,7 @@ import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
 import { verifyGooglePlayTransaction } from './googlePlay.js'
+import { finalizeGUSDOrder, parseGUSDOrderId } from './gusdTopup.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl } from './bunny.js'
 
@@ -2704,20 +2705,28 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     throw new Error(data.message || data.msg || `GUSD API error (${response.status}): ${responseText.substring(0, 200)}`)
   }
 
-  // GUSD looks up orders by its OWN payment id (the last path segment of pay_url), not our
-  // merchant order_id. Persist the mapping so completeGUSDTopUp can confirm the payment.
-  const gusdPaymentId = extractGusdPaymentId(data.data.pay_url)
+  // Record a PENDING top-up transaction now (payment is async). The wallet shows it as
+  // pending and reconciles it via the webhook or a pay_order_info query, which credits the
+  // balance and flips it to success/fail.
+  const { referenceId: orderRef } = parseGUSDOrderId(orderId)
+  const pendingTxn = {
+    id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    referenceId: orderRef,
+    order_id: orderId,
+    type: 'topup',
+    method: 'GUSD',
+    amount: Number(amount),
+    status: 'processing',
+    createdAt: new Date(),
+  }
   try {
-    await save('gusdOrders', {
-      orderId,
-      gusdPaymentId,
-      userId: String(userId),
-      amount: Number(amount),
-      status: 'created',
-      createdAt: new Date(),
-    })
+    await update(
+      'users',
+      { _id: new ObjectId(userId) },
+      { $push: { transactions: { $each: [pendingTxn], $position: 0 } }, $set: { updatedAt: new Date() } },
+    )
   } catch (error) {
-    console.error('[GUSD] Failed to save pending order:', error.message)
+    console.error('[GUSD] Failed to record pending transaction:', error.message)
   }
 
   return data
@@ -2880,111 +2889,41 @@ const completeStripeTopUp = async (body, authHeader) => {
   }
 }
 
-// Complete GUSD top up after redirect back from GUSD payment page
-// Retrieves the order/transaction data by order_id
-const completeGUSDTopUp = async (body, authHeader) => {
+// Reconcile the user's PENDING GUSD top-ups: query pay_order_info for each and finalize
+// (credit + complete on success, mark fail on failure). Called from the wallet on the
+// payment redirect and on wallet load, so crediting doesn't depend solely on the async
+// notify_url webhook. Idempotent — shares finalizeGUSDOrder's pending-only guard with the
+// webhook, so the two paths can never double-credit.
+const syncGUSDTopUps = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
-  validateCompleteGUSDTopUpBody(body)
-
-  try {
-    const { orderId } = body
-
-    // Parse userId from order_id and verify it matches the authenticated user
-    const { userId: orderUserId, referenceId } = parseGUSDOrderId(orderId)
-    if (!orderUserId || String(orderUserId) !== String(userId)) {
-      return { success: false, error: 'Order does not belong to this user' }
-    }
-
-    // Get current user
-    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
-    if (!users || users.length === 0) {
-      return { success: false, error: 'User not found' }
-    }
-
-    const currentUser = users[0]
-
-    // Already recorded (by the webhook or a prior confirm) → nothing to do.
-    if ((currentUser.transactions || []).find((t) => t.referenceId === referenceId)) {
-      return { success: true, data: await buildUserResponse(currentUser) }
-    }
-
-    // Not yet recorded — actively confirm the payment with GUSD instead of depending on the
-    // async webhook (which may be delayed or unreachable). Look up the pending order saved
-    // at creation to get GUSD's payment id (its lookup key) and the expected amount.
-    const pendingOrders = await get('gusdOrders', { orderId }, {}, {}, 1)
-    const pending = pendingOrders && pendingOrders[0]
-    let orderInfo
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) {
+    return { success: false, error: 'User not found' }
+  }
+  const pendings = (users[0].transactions || []).filter(
+    (t) =>
+      (t.type === 'topup' || t.type === 'withdraw') &&
+      t.method === 'GUSD' &&
+      t.status === 'processing' &&
+      t.order_id,
+  )
+  for (const t of pendings) {
     try {
-      orderInfo = await fetchGUSDOrderInfo(pending?.gusdPaymentId)
+      const info = await fetchGUSDOrderInfo(t.order_id)
+      await finalizeGUSDOrder(t.order_id, info)
     } catch (error) {
-      console.error('[completeGUSDTopUp] order info lookup failed:', error.message)
-      return { success: true, data: await buildUserResponse(currentUser) }
+      console.error('[syncGUSDTopUps] order', t.order_id, 'failed:', error.message)
     }
-    if (!isGUSDOrderPaid(orderInfo)) {
-      return { success: true, data: await buildUserResponse(currentUser) }
-    }
-
-    // Credit the paid amount reported by GUSD, falling back to the amount we recorded at
-    // creation (never trust the client).
-    const amount = parseFloat(orderInfo.price || orderInfo.amount || pending?.amount || 0)
-    if (!amount || amount <= 0) {
-      return { success: false, error: 'Paid order has an invalid amount' }
-    }
-
-    // Same transaction shape the webhook writes, so history renders identically.
-    const transaction = {
-      id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      referenceId,
-      bridge_order_id: orderInfo.bridge_order_id || null,
-      order_id: orderId,
-      gusd_user_id: orderInfo.user_id || null,
-      type: 'topup',
-      method: 'GUSD',
-      amount,
-      transactionId: '',
-      status: 'success',
-      pay_time: orderInfo.pay_time || null,
-      createdAt: new Date(),
-    }
-    // Atomic + idempotent: credit only if this referenceId isn't already recorded (by the
-    // webhook or a concurrent confirm). Shares the exact dedupe key with the webhook, so the
-    // two paths can never double-credit the same order.
-    const result = await update(
-      'users',
-      { _id: new ObjectId(userId), 'transactions.referenceId': { $ne: referenceId } },
-      {
-        $inc: { balance: amount },
-        $push: { transactions: { $each: [transaction], $position: 0 } },
-        $set: { updatedAt: new Date() },
-      },
-    )
-    if (result.matchedCount > 0) {
-      console.log('[completeGUSDTopUp] Credited via order-info confirm:', referenceId, 'amount:', amount)
-    }
-    // Return the current user (freshly read: either just credited, or already credited).
-    const updated = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
-    return { success: true, data: await buildUserResponse((updated && updated[0]) || currentUser) }
-  } catch (error) {
-    throw new Error(`Failed to complete GUSD top up: ${error.message}`)
   }
+  const fresh = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  return { success: true, data: await buildUserResponse(fresh[0]) }
 }
 
-// Extract GUSD's payment id from a pay_url (its last path segment), e.g.
-// https://paygusd.com/dashboard/payments/807df16e-... → 807df16e-...
-const extractGusdPaymentId = (payUrl) => {
-  try {
-    const parts = new URL(payUrl).pathname.split('/').filter(Boolean)
-    return parts[parts.length - 1] || ''
-  } catch {
-    return ''
-  }
-}
-
-// Query GUSD for a pay order's current status by GUSD's OWN payment id. Used by
-// completeGUSDTopUp to confirm a payment on the redirect path (so crediting doesn't rely
-// solely on the async webhook). Reuses the same signed-header auth as createGUSDPayOrder;
-// the order-info path lives on the same host as GUSD_API_URL.
-const fetchGUSDOrderInfo = async (gusdPaymentId) => {
+// Query GUSD's pay_order_info for the current status of one of OUR merchant orders. The
+// `order_id` param is the merchant order_id we passed at creation (per the API docs — not
+// GUSD's internal id). Reuses the same signed-header auth as createGUSDPayOrder. Returns the
+// `data` object ({ state, price, pay_time, ... }).
+const fetchGUSDOrderInfo = async (orderId) => {
   const appId = process.env.GUSD_APPID
   const secret = process.env.GUSD_SECRET
   const gusdApiUrl = process.env.GUSD_API_URL
@@ -2992,14 +2931,14 @@ const fetchGUSDOrderInfo = async (gusdPaymentId) => {
   if (!gusdApiUrl) {
     throw new Error('GUSD_API_URL is not configured')
   }
-  if (!gusdPaymentId) {
-    throw new Error('GUSD payment id is unknown for this order')
+  if (!orderId) {
+    throw new Error('order_id is required')
   }
 
   const nonce = generateGUSDNonce()
   const timestamp = Math.floor(Date.now() / 1000).toString()
   const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
-  const url = `${new URL(gusdApiUrl).origin}/api/v1/bridge/pay_order_info?order_id=${encodeURIComponent(gusdPaymentId)}`
+  const url = `${new URL(gusdApiUrl).origin}/api/v1/bridge/pay_order_info?order_id=${encodeURIComponent(orderId)}`
 
   const response = await fetch(url, {
     method: 'GET',
@@ -3017,38 +2956,6 @@ const fetchGUSDOrderInfo = async (gusdPaymentId) => {
     throw new Error(data.msg || data.message || `GUSD order info error (${response.status}): ${responseText.substring(0, 200)}`)
   }
   return data.data || {}
-}
-
-// GUSD marks a completed payment with state 'payment_processed' (same signal the webhook
-// checks). Accept a few common synonyms defensively since we don't have the full API docs.
-const isGUSDOrderPaid = (data) => {
-  const state = String(data?.state || data?.status || '').toLowerCase()
-  return state === 'payment_processed' || state === 'success' || state === 'paid' || data?.paid === true
-}
-
-// Parse userId and referenceId from the GUSD order_id
-// Order ID format: {referenceId}_{userId}_{timestamp}
-const parseGUSDOrderId = (orderId) => {
-  if (!orderId) return { userId: null, referenceId: null }
-
-  const parts = orderId.split('_')
-  if (parts.length < 3) return { userId: null, referenceId: null }
-
-  // referenceId is the first part, userId is the second part
-  const referenceId = parts[0]
-  const userId = parts[1]
-
-  return { userId, referenceId }
-}
-
-const validateCompleteGUSDTopUpBody = (body) => {
-  if (!body) {
-    throw new Error('Request body is required')
-  }
-
-  if (!body.orderId) {
-    throw new Error('Order ID is required')
-  }
 }
 
 const validateCompleteStripeTopUpBody = (body) => {
@@ -3092,6 +2999,12 @@ const validateTopUpBody = (body) => {
 // Valid IAP product amounts (must match App Store Connect tiers)
 const VALID_IAP_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
 
+// Apple/Google take a 30% store fee on in-app purchases. Products are priced at face value
+// (the user pays the amount shown), and we absorb the fee by crediting 30% LESS — e.g. a
+// $10 top-up adds 7 GUSD. Applies only to store purchases (not Card/GUSD).
+const STORE_FEE_RATE = 0.3
+const netAfterStoreFee = (amount) => Math.round(Number(amount) * (1 - STORE_FEE_RATE) * 100) / 100
+
 // Verify an iOS In-App Purchase receipt and credit the user's wallet
 const verifyIAPReceipt = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
@@ -3117,10 +3030,10 @@ const verifyIAPReceipt = async (body, authHeader) => {
       return { success: true, data: await buildUserResponse(currentUser) }
     }
 
-    // Process the top up (add balance and create transaction). Release the reservation on
-    // failure so the purchase can be retried rather than being permanently marked credited.
+    // Process the top up (add balance and create transaction). Credit 30% less than paid —
+    // Apple's store fee. Release the reservation on failure so it can be retried.
     try {
-      return await processTopUp(currentUser, amount, 'Apple Pay (IAP)', referenceId, transactionId)
+      return await processTopUp(currentUser, netAfterStoreFee(amount), 'Apple Pay (IAP)', referenceId, transactionId)
     } catch (creditError) {
       await releaseTransaction(transactionId)
       throw creditError
@@ -3190,7 +3103,8 @@ const verifyGooglePlayPurchase = async (body, authHeader) => {
     }
 
     try {
-      return await processTopUp(currentUser, amount, 'Google Play', referenceId, txnKey)
+      // Credit 30% less than paid — Google Play's store fee.
+      return await processTopUp(currentUser, netAfterStoreFee(amount), 'Google Play', referenceId, txnKey)
     } catch (creditError) {
       await releaseTransaction(txnKey)
       throw creditError
@@ -3248,59 +3162,130 @@ const getMaxWithdrawAmount = (balance, transactions) => {
   return Math.max(0, Number((balance - heldCredits).toFixed(2)))
 }
 
+// Create a GUSD one-time withdrawal link (30-min, single claim). Mirrors createGUSDPayOrder
+// but hits create_withdraw_order; the final result comes async via notify_url. Returns the
+// GUSD response ({ data: { withdraw_url } }).
+const createGUSDWithdrawOrder = async (amount, callbackUrl, orderId) => {
+  const appId = process.env.GUSD_APPID
+  const secret = process.env.GUSD_SECRET
+  validateGUSDConfig(appId, secret)
+
+  const gusdNotifyUrl = process.env.GUSD_NOTIFY_URL
+  if (!gusdNotifyUrl) throw new Error('GUSD_NOTIFY_URL is not configured')
+  const gusdApiUrl = process.env.GUSD_API_URL
+  if (!gusdApiUrl) throw new Error('GUSD_API_URL is not configured')
+
+  const nonce = generateGUSDNonce()
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
+
+  // Same callback-host handling as top-up (public tunnel in dev, prod domain in prod).
+  const callback = rebaseCallbackOrigin(callbackUrl, process.env.GUSD_CALLBACK_BASE_URL)
+  const notifyUrl = resolveNotifyUrl(gusdNotifyUrl, callback)
+  const sep = callback.includes('?') ? '&' : '?'
+
+  const requestBody = {
+    price: String(amount),
+    order_id: orderId,
+    desc: `Withdraw ${amount} GUSD`,
+    notify_url: notifyUrl,
+    redirect_url: `${callback}${sep}withdraw_status=success&order_id=${orderId}`,
+    failure_url: `${callback}${sep}withdraw_status=cancelled&order_id=${orderId}`,
+  }
+  console.log('[GUSD] Creating withdraw order:', JSON.stringify(requestBody))
+
+  const response = await fetch(`${new URL(gusdApiUrl).origin}/api/v1/bridge/create_withdraw_order`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      appid: String(appId),
+      nonce: String(nonce),
+      timestamp: String(timestamp),
+      signature: String(signature),
+    },
+    body: JSON.stringify(requestBody),
+  })
+  const responseText = await response.text()
+  console.log('[GUSD] withdraw order response:', response.status, responseText)
+  const data = parseGUSDResponse(responseText)
+  if (!response.ok || !data.data?.withdraw_url) {
+    throw new Error(data.message || data.msg || `GUSD withdraw error (${response.status}): ${responseText.substring(0, 200)}`)
+  }
+  return data
+}
+
+// Start a GUSD withdrawal: reserve (deduct) the funds now and record a PENDING withdraw
+// transaction, then create the one-time withdrawal link. The final result is applied async
+// (webhook / pay_order_info query): kept on success, refunded on failure. Returns the
+// withdraw_url for the client to open.
 const withdraw = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateWithdrawBody(body)
 
   try {
-    const { amount, referenceId } = body
+    const { amount, callbackUrl } = body
 
-    // Get current user
     const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
     if (!users || users.length === 0) {
       return { success: false, error: 'User not found' }
     }
-
     const currentUser = users[0]
     const currentBalance = currentUser.balance || 0
     const transactions = currentUser.transactions || []
 
-    // Check if user has sufficient balance
     if (amount > currentBalance) {
       return { success: false, error: 'Insufficient balance' }
     }
-
-    // Credits (top-ups and earnings) received within the last 30 days are held and
-    // cannot be withdrawn yet.
+    // Credits (top-ups/earnings) within the hold window aren't withdrawable yet.
     if (amount > getMaxWithdrawAmount(currentBalance, transactions)) {
       return { success: false, error: 'Amount exceeds the max withdrawable amount' }
     }
 
-    // Create transaction record
-    const transaction = {
+    const orderId = generateGUSDOrderId(userId, null)
+    const { referenceId: orderRef } = parseGUSDOrderId(orderId)
+    const pendingTxn = {
       id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      referenceId: referenceId || `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      referenceId: orderRef,
+      order_id: orderId,
       type: 'withdraw',
-      amount,
-      status: 'success',
+      method: 'GUSD',
+      amount: Number(amount),
+      status: 'processing',
       createdAt: new Date(),
     }
 
-    // Add transaction to history
-    transactions.unshift(transaction)
-
-    // Update user with new balance and transaction
-    const updateData = {
-      ...currentUser,
-      balance: currentBalance - amount,
-      transactions,
-      updatedAt: new Date(),
+    // Reserve the funds atomically (only if balance still covers it) + record the pending txn.
+    const reserve = await update(
+      'users',
+      { _id: new ObjectId(userId), balance: { $gte: amount } },
+      {
+        $inc: { balance: -amount },
+        $push: { transactions: { $each: [pendingTxn], $position: 0 } },
+        $set: { updatedAt: new Date() },
+      },
+    )
+    if (reserve.matchedCount === 0) {
+      return { success: false, error: 'Insufficient balance' }
     }
 
-    await save('users', updateData)
+    // Create the GUSD withdrawal link. If that fails, refund + mark the txn failed.
+    let withdrawUrl
+    try {
+      const gusd = await createGUSDWithdrawOrder(amount, callbackUrl, orderId)
+      withdrawUrl = gusd.data.withdraw_url
+    } catch (error) {
+      await update(
+        'users',
+        { _id: new ObjectId(userId), transactions: { $elemMatch: { order_id: orderId, status: 'processing' } } },
+        {
+          $inc: { balance: amount },
+          $set: { 'transactions.$.status': 'failed', 'transactions.$.fail_reason': 'order creation failed', updatedAt: new Date() },
+        },
+      )
+      return { success: false, error: `Failed to create withdrawal order: ${error.message}` }
+    }
 
-    // Notify the admin of the withdrawal request (account + amount). A failure here
-    // must not fail the (already completed) withdrawal, so errors are swallowed.
+    // Notify the admin (best-effort).
     try {
       await sendWithdrawEmail(
         { email: currentUser.email, nickname: currentUser.nickname, userId: String(currentUser._id) },
@@ -3311,10 +3296,8 @@ const withdraw = async (body, authHeader) => {
       console.error('[withdraw] Failed to send admin email:', error.message)
     }
 
-    return {
-      success: true,
-      data: await buildUserResponse(updateData),
-    }
+    const updated = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    return { success: true, data: { withdrawUrl, user: await buildUserResponse((updated && updated[0]) || currentUser) } }
   } catch (error) {
     throw new Error(`Failed to withdraw: ${error.message}`)
   }
@@ -3331,6 +3314,10 @@ const validateWithdrawBody = (body) => {
 
   if (typeof body.amount !== 'number' || body.amount <= 0) {
     throw new Error('Amount must be a positive number')
+  }
+
+  if (!body.callbackUrl) {
+    throw new Error('Callback URL is required')
   }
 }
 
@@ -3645,7 +3632,7 @@ export {
   addPurchase,
   topUp,
   completeStripeTopUp,
-  completeGUSDTopUp,
+  syncGUSDTopUps,
   verifyIAPReceipt,
   withdraw,
   purchaseEpisode,

@@ -1,51 +1,11 @@
-import { ObjectId } from 'mongodb'
 import crypto from 'crypto'
-import { update } from './utils/db.js'
+import { finalizeGUSDOrder } from './utils/gusdTopup.js'
 
-// Build user response without sensitive fields (same as handlers.js)
-const buildUserResponseForWebhook = (user) => ({
-  _id: user._id,
-  email: user.email,
-  nickname: user.nickname || 'Guest',
-  avatar: user.avatar || null,
-  phone: user.phone || null,
-  sex: user.sex || null,
-  dob: user.dob || null,
-  hasPassword: !!user.password,
-  allowUpload: !!user.allowUpload,
-  watchList: user.watchList || [],
-  favorites: user.favorites || [],
-  purchases: user.purchases || [],
-  balance: user.balance || 0,
-  transactions: user.transactions || [],
-})
-
-// Generate a unique reference ID
-const generateReferenceId = () =>
-  `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-
-// Parse userId and referenceId from the GUSD order_id
-// Order ID format: {referenceId}_{userId}_{timestamp}
-const parseGUSDOrderId = (orderId) => {
-  if (!orderId) return { userId: null, referenceId: null }
-
-  const parts = orderId.split('_')
-  if (parts.length < 3) return { userId: null, referenceId: null }
-
-  // referenceId is the first part, userId is the second part
-  const referenceId = parts[0]
-  const userId = parts[1]
-
-  return { userId, referenceId }
-}
-
-// Verify the GUSD webhook signature from request headers
-// Decrypts/verifies the signature using GUSD_SECRET and checks
-// that appid, nonce and timestamp in the message "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}" are valid
+// Verify the GUSD webhook signature from request headers: HMAC-SHA256 of
+// "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}" using GUSD_SECRET.
 const verifyGUSDSignature = (req) => {
   const secret = process.env.GUSD_SECRET
   const expectedAppId = process.env.GUSD_APPID
-
   if (!secret || !expectedAppId) {
     throw new Error('GUSD_SECRET or GUSD_APPID is not configured')
   }
@@ -56,99 +16,24 @@ const verifyGUSDSignature = (req) => {
   const timestamp = req.headers.get('timestamp') || ''
 
   if (!signature || !appid || !nonce || !timestamp) {
-    console.error(
-      '[gusd-webhook] Missing signature headers: signature=%s, appid=%s, nonce=%s, timestamp=%s',
-      !!signature,
-      !!appid,
-      !!nonce,
-      !!timestamp,
-    )
+    console.error('[gusd-webhook] Missing signature headers')
     return false
   }
-
-  // Verify appid matches
   if (String(appid) !== String(expectedAppId)) {
-    console.error('[gusd-webhook] appid mismatch:', appid, 'expected:', expectedAppId)
+    console.error('[gusd-webhook] appid mismatch:', appid)
     return false
   }
 
-  // Compute expected signature: HMAC-SHA256 of "appid={GUSD_APPID}&nonce={nonce}&timestamp={timestamp}"
   const message = `appid=${appid}&nonce=${nonce}&timestamp=${timestamp}`
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(message)
-    .digest('hex')
-
-  // Compare signatures (timing-safe comparison)
+  const expected = crypto.createHmac('sha256', secret).update(message).digest('hex')
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex'),
-    )
+    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))
   } catch {
-    // If buffers are different lengths, timingSafeEqual throws
     console.error('[gusd-webhook] Signature comparison failed (length mismatch)')
     return false
   }
 }
 
-// Check if the GUSD payment was successful
-const isPaymentSuccess = (body) => body && body.state === 'payment_processed'
-
-// Validate the GUSD callback body
-const validateGUSDCallbackBody = (body) => {
-  if (!body) {
-    throw new Error('Request body is required')
-  }
-
-  if (!body.order_id) {
-    throw new Error('order_id is required')
-  }
-}
-
-// Process the GUSD top up (add balance and create transaction with GUSD-specific fields).
-// Atomic + idempotent: a single conditional $inc/$push credits the wallet only if this
-// referenceId hasn't already been recorded (by a webhook retry or the redirect-path
-// confirm). This avoids the lost-update race when GUSD delivers a BURST of retried
-// webhooks concurrently — read-modify-save would clobber each other's transactions.
-const processGUSDTopUp = async (userId, amount, body) => {
-  const { referenceId: parsedReferenceId } = parseGUSDOrderId(body.order_id)
-  const referenceId = parsedReferenceId || generateReferenceId()
-
-  const transaction = {
-    id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    referenceId,
-    bridge_order_id: body.bridge_order_id || null,
-    order_id: body.order_id || null,
-    gusd_user_id: body.user_id || null,
-    type: 'topup',
-    method: 'GUSD',
-    amount,
-    transactionId: '',
-    status: 'success',
-    pay_time: body.pay_time || null,
-    createdAt: new Date(),
-  }
-
-  const result = await update(
-    'users',
-    { _id: new ObjectId(userId), 'transactions.referenceId': { $ne: referenceId } },
-    {
-      $inc: { balance: amount },
-      $push: { transactions: { $each: [transaction], $position: 0 } },
-      $set: { updatedAt: new Date() },
-    },
-  )
-
-  if (result.matchedCount === 0) {
-    // Already recorded (retry/confirm) or the user doesn't exist — either way, don't credit.
-    console.log('[gusd-webhook] Skipped (already processed or user not found):', referenceId)
-  } else {
-    console.log('[gusd-webhook] Top up processed:', referenceId, 'amount:', amount)
-  }
-}
-
-// Log request headers for debugging
 const logRequestHeaders = (req) => {
   const headers = {}
   req.headers.forEach((value, key) => {
@@ -157,61 +42,32 @@ const logRequestHeaders = (req) => {
   console.log('[gusd-webhook] Request headers:', JSON.stringify(headers))
 }
 
-// Netlify Functions v2 handler
-// GUSD server callback: state === 'payment_processed' indicates payment success
+const jsonResponse = (obj, status) =>
+  new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
+
+// Netlify Functions v2 handler. GUSD calls this (notify_url) with the order's current
+// state. We finalize the matching pending top-up: credit + complete on 'payment_processed',
+// mark fail on a failure state, no-op while still processing. finalizeGUSDOrder is idempotent
+// and shared with the pay_order_info reconciliation path, so the two can't double-credit.
 export default async (req) => {
   try {
     logRequestHeaders(req)
-
     const body = await req.json()
     console.log('[gusd-webhook] Received callback body:', JSON.stringify(body))
 
-    // Verify signature from headers - return 403 if verification fails
-    const signatureValid = verifyGUSDSignature(req)
-    if (!signatureValid) {
+    if (!verifyGUSDSignature(req)) {
       console.error('[gusd-webhook] Signature verification failed')
-      return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ error: 'Signature verification failed' }, 403)
+    }
+    if (!body || !body.order_id) {
+      throw new Error('order_id is required')
     }
 
-    validateGUSDCallbackBody(body)
-
-    // Only process if state === 'payment_processed'
-    if (!isPaymentSuccess(body)) {
-      console.log('[gusd-webhook] Payment not yet processed, state:', body.state)
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Parse userId from order_id
-    const { userId } = parseGUSDOrderId(body.order_id)
-    if (!userId) {
-      throw new Error('Could not extract userId from order_id')
-    }
-
-    // Parse amount from the callback body
-    const amount = parseFloat(body.price || body.amount || 0)
-    if (!amount || amount <= 0) {
-      throw new Error('Invalid amount in callback')
-    }
-
-    // Process the top up with GUSD-specific fields
-    await processGUSDTopUp(userId, amount, body)
-
-    // Return 200 to acknowledge receipt
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const result = await finalizeGUSDOrder(body.order_id, body)
+    console.log('[gusd-webhook] finalize result:', JSON.stringify(result))
+    return jsonResponse({ received: true }, 200)
   } catch (error) {
     console.error('[gusd-webhook] Error:', error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ error: error.message }, 400)
   }
 }

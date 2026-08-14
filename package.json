@@ -13,11 +13,11 @@
         "ANDROID_HOST": " ",
         "ANDROID_PATHPREFIX": "/"
       },
-      "cordova-plugin-purchase": {},
       "cordova-plugin-x-socialsharing": {
         "PHOTO_LIBRARY_ADD_USAGE_DESCRIPTION": "This app requires photo library access to function properly.",
         "PHOTO_LIBRARY_USAGE_DESCRIPTION": "This app requires photo library access to function properly."
-      }
+      },
+      "cordova-plugin-purchase": {}
     }
   },
   "scripts": {
@@ -38,7 +38,8 @@
     "cordova:ios:build": "npm run build:cordova && npx cordova build ios",
     "cordova:ios:build:release": "npm run build:cordova && npx cordova build ios --release",
     "cordova:ios:run": "npm run build:cordova && npx cordova run ios",
-    "cordova:ios:emulate": "npm run build:cordova && npx cordova emulate ios"
+    "cordova:ios:emulate": "npm run build:cordova && npx cordova emulate ios",
+    "cordova:android:aab": "npm run build:cordova && npx cordova build android --release"
   },
   "dependencies": {
     "@solidjs/router": "^0.15.3",
