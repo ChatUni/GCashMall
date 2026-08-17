@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: http: https: gap: wss: 'unsafe-inline' 'unsafe-eval'; media-src * blob:; img-src 'self' data: blob: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' http: https: ws: wss:;" />
+    <!-- Google tag (gtag.js) — GA4 (G-YFW2XSQK03). Loaded only on the ganime.io web domain,
+         so native (Cordova app://) and localhost dev sessions don't pollute web analytics. -->
+    <script>
+      (function () {
+        var h = location.hostname
+        if (h !== 'ganime.io' && h !== 'www.ganime.io') return
+        var s = document.createElement('script')
+        s.async = true
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-YFW2XSQK03'
+        document.head.appendChild(s)
+        window.dataLayer = window.dataLayer || []
+        function gtag() { dataLayer.push(arguments) }
+        window.gtag = gtag
+        gtag('js', new Date())
+        gtag('config', 'G-YFW2XSQK03')
+      })()
+    </script>
     <title>%VITE_APP_DISPLAY_NAME%</title>
     <!-- Default Open Graph / Facebook -->
     <meta property="og:type" content="website" />

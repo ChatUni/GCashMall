@@ -106,6 +106,7 @@ export const en = {
       creatorShare: 'Creator share %',
       episodeCost: 'Episode Cost',
       nextEpisodeCost: 'Next Episode Generation Cost',
+      welcomeCredit: 'New User Welcome Credit',
       seconds: 'secs',
       pipelinePrompts: 'AI Pipeline Prompts',
       pipelinePromptsHint: 'Edit the system prompt (in markdown) for each of the 6 AI production calls.',

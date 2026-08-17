@@ -18,6 +18,7 @@ import {
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
   NEXT_EPISODE_COST_OPTIONS,
+  WELCOME_CREDIT_OPTIONS,
 } from '../stores/systemSettingsStore'
 import type { Language } from '../i18n'
 import {
@@ -854,6 +855,20 @@ function SystemSettingsCard() {
         >
           <For each={NEXT_EPISODE_COST_OPTIONS}>
             {(cost) => <option value={cost}>{cost}</option>}
+          </For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().welcomeCredit || 'New User Welcome Credit'}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.welcomeCredit}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ welcomeCredit: Number(e.currentTarget.value) })}
+        >
+          <For each={WELCOME_CREDIT_OPTIONS}>
+            {(amt) => <option value={amt}>{amt}</option>}
           </For>
         </select>
       </div>

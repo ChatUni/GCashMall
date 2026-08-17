@@ -4,7 +4,7 @@
 
 import { ObjectId } from 'mongodb'
 import { get, update } from './db.js'
-import { sendTopUpEmail } from './email.js'
+import { sendTopUpEmail, sendWithdrawCompleteEmail } from './email.js'
 
 // Our order_id format: {referenceId}_{userId}_{timestamp}
 export const parseGUSDOrderId = (orderId) => {
@@ -77,12 +77,11 @@ export const finalizeGUSDOrder = async (orderId, info = {}) => {
     const res = await update('users', pendingFilter, updateDoc)
     if (res.matchedCount > 0) {
       console.log(`[gusd] ${pending.type} completed:`, orderId, 'amount:', amount)
-      if (!isWithdraw) {
-        // Best-effort notification — never let email failure affect crediting.
-        sendTopUpEmail({ email: user.email, nickname: user.nickname }, amount).catch((e) =>
-          console.error('[gusd] top-up email failed:', e.message),
-        )
-      }
+      // Best-effort notification — never let email failure affect the balance update.
+      const notify = isWithdraw ? sendWithdrawCompleteEmail : sendTopUpEmail
+      notify({ email: user.email, nickname: user.nickname }, amount).catch((e) =>
+        console.error(`[gusd] ${pending.type} email failed:`, e.message),
+      )
       return { finalized: 'success', amount }
     }
     return { finalized: false, alreadyDone: true }

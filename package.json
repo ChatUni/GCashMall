@@ -9,8 +9,8 @@
       "cordova-plugin-inappbrowser": {},
       "cordova-plugin-customurlscheme": {
         "URL_SCHEME": "gcashmall",
-        "ANDROID_SCHEME": " ",
-        "ANDROID_HOST": " ",
+        "ANDROID_SCHEME": "",
+        "ANDROID_HOST": "",
         "ANDROID_PATHPREFIX": "/"
       },
       "cordova-plugin-x-socialsharing": {

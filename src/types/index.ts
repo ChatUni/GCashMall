@@ -246,6 +246,7 @@ export interface SystemSettings {
   creatorShare: number // percent of episode revenue paid to the creator
   episodeCost: number // GUSD cost to unlock an episode
   nextEpisodeCost: number // GUSD cost to generate a follow-up episode
+  welcomeCredit: number // GUSD granted to a newly registered user
 }
 
 // Revenue sharing types

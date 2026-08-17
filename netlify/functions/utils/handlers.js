@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
-import { sendPasswordResetEmail, sendFeedbackEmail, sendWithdrawEmail } from './email.js'
+import { sendPasswordResetEmail, sendFeedbackEmail } from './email.js'
 import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
@@ -678,6 +678,9 @@ const emailRegister = async (body) => {
       newUser[`${oauthType}_id`] = oauthId
     }
 
+    // Grant the admin-configured welcome credit as the new user's initial balance
+    await applyWelcomeCredit(newUser)
+
     const result = await save('users', newUser)
 
     // Generate JWT token
@@ -700,6 +703,25 @@ const emailRegister = async (body) => {
     throw new Error(`Registration failed: ${error.message}`)
   }
 }
+
+// Set the new user's starting balance + a matching transaction from the admin-configured
+// welcome credit. No-op when the credit is 0. Mutates the user object in place.
+const applyWelcomeCredit = async (newUser) => {
+  const { welcomeCredit } = await readSystemSettings()
+  if (!welcomeCredit || welcomeCredit <= 0) return
+  newUser.balance = welcomeCredit
+  newUser.transactions = [buildWelcomeTransaction(welcomeCredit)]
+}
+
+const buildWelcomeTransaction = (amount) => ({
+  id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+  referenceId: generateReferenceId(),
+  type: 'topup',
+  method: 'welcome',
+  amount,
+  status: 'success',
+  createdAt: new Date(),
+})
 
 const validateEmailRegisterBody = (body) => {
   if (!body) {
@@ -3285,17 +3307,6 @@ const withdraw = async (body, authHeader) => {
       return { success: false, error: `Failed to create withdrawal order: ${error.message}` }
     }
 
-    // Notify the admin (best-effort).
-    try {
-      await sendWithdrawEmail(
-        { email: currentUser.email, nickname: currentUser.nickname, userId: String(currentUser._id) },
-        amount,
-        ADMIN_EMAIL,
-      )
-    } catch (error) {
-      console.error('[withdraw] Failed to send admin email:', error.message)
-    }
-
     const updated = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
     return { success: true, data: { withdrawUrl, user: await buildUserResponse((updated && updated[0]) || currentUser) } }
   } catch (error) {
@@ -4105,10 +4116,12 @@ const DEFAULT_SYSTEM_SETTINGS = {
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 0.1, // GUSD cost to unlock an episode
   nextEpisodeCost: 0.99, // GUSD cost to generate a follow-up episode
+  welcomeCredit: 100, // GUSD granted to a newly registered user
 }
 const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
 const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
+const WELCOME_CREDIT_OPTIONS = [0, 5, 10, 20, 50, 100]
 
 // Read the system settings (merged with defaults). Used server-side by the
 // trial/purchase/revenue logic and exposed to the client via the API.
@@ -4120,6 +4133,7 @@ const readSystemSettings = async () => {
     creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
     nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
+    welcomeCredit: saved.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
   }
 }
 
@@ -4142,6 +4156,7 @@ const saveSettings = async (body, authHeader) => {
       creatorShare: body.creatorShare,
       episodeCost: body.episodeCost,
       nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
+      welcomeCredit: body.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
       updatedAt: new Date(),
     }
 
@@ -4180,6 +4195,9 @@ const validateSystemSettingsBody = (body) => {
   }
   if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
     throw new Error('Invalid episodeCost')
+  }
+  if (body.welcomeCredit != null && !WELCOME_CREDIT_OPTIONS.includes(body.welcomeCredit)) {
+    throw new Error('Invalid welcomeCredit')
   }
 }
 

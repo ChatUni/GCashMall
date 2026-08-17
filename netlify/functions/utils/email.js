@@ -62,31 +62,6 @@ export const sendFeedbackEmail = async (feedback, adminEmail) => {
 }
 
 // Notify the admin of a withdrawal request (account + amount)
-export const sendWithdrawEmail = async (account, amount, adminEmail) => {
-  validateEmailConfig()
-
-  const transporter = createTransporter()
-
-  const who = `${account.nickname || 'User'} <${account.email || 'unknown'}>${account.userId ? ` (id: ${account.userId})` : ''}`
-
-  const mailOptions = {
-    from: `GAnime Withdrawals <${process.env.GMAIL_USER}>`,
-    to: adminEmail,
-    subject: 'New Withdrawal Request - GAnime',
-    text: `Withdrawal request\n\nAccount: ${who}\nAmount: ${amount} GUSD`,
-    html: generateWithdrawEmailHtml(who, amount),
-  }
-
-  try {
-    const info = await transporter.sendMail(mailOptions)
-    console.log('[sendWithdrawEmail] Email sent:', info.messageId)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error('[sendWithdrawEmail] Failed to send email:', error)
-    throw new Error(`Failed to send email: ${error.message}`)
-  }
-}
-
 // Notify the user that their wallet top-up completed. Best-effort — never throws, so a
 // mail failure can't affect crediting.
 export const sendTopUpEmail = async (account, amount) => {
@@ -109,6 +84,50 @@ export const sendTopUpEmail = async (account, amount) => {
   }
 }
 
+// Notify the user that their withdrawal completed. Best-effort — never throws, so a
+// mail failure can't affect the payout flow.
+export const sendWithdrawCompleteEmail = async (account, amount) => {
+  if (!account?.email) return { success: false, error: 'no recipient' }
+  try {
+    validateEmailConfig()
+    const transporter = createTransporter()
+    const info = await transporter.sendMail({
+      from: `GAnime <${process.env.GMAIL_USER}>`,
+      to: account.email,
+      subject: 'Withdrawal Complete - GAnime',
+      text: `Hi ${account.nickname || 'there'},\n\nYour withdrawal of ${Number(amount).toFixed(2)} GUSD has been processed and sent.\n\nThank you!`,
+      html: generateWithdrawCompleteEmailHtml(account.nickname, amount),
+    })
+    console.log('[sendWithdrawCompleteEmail] Email sent:', info.messageId)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('[sendWithdrawCompleteEmail] Failed to send email:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+const generateWithdrawCompleteEmailHtml = (nickname, amount) => {
+  const name = String(nickname || 'there').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0B0B0E; color: #ffffff; margin: 0; padding: 0;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">Withdrawal Complete</h1>
+        </div>
+        <div style="background-color: #121214; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+          <p style="color: #E5E7EB; font-size: 15px; margin: 0 0 20px 0;">Hi ${name},</p>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Withdrawn from your wallet</p>
+          <p style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 20px 0;">${Number(amount).toFixed(2)} GUSD</p>
+          <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; margin: 0;">Your withdrawal has been processed and the funds are on their way.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 const generateTopUpEmailHtml = (nickname, amount) => {
   const name = String(nickname || 'there').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return `
@@ -124,28 +143,6 @@ const generateTopUpEmailHtml = (nickname, amount) => {
           <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Added to your wallet</p>
           <p style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 20px 0;">${Number(amount).toFixed(2)} GUSD</p>
           <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; margin: 0;">Your payment has been processed and the amount is now available in your GAnime wallet.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `
-}
-
-const generateWithdrawEmailHtml = (who, amount) => {
-  const safeWho = String(who).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0B0B0E; color: #ffffff; margin: 0; padding: 0;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">New Withdrawal Request</h1>
-        </div>
-        <div style="background-color: #121214; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
-          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Account</p>
-          <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">${safeWho}</p>
-          <p style="color: #9CA3AF; font-size: 14px; margin: 0 0 8px 0;">Amount</p>
-          <p style="color: #3B82F6; font-size: 24px; font-weight: 700; margin: 0;">${Number(amount).toFixed(2)} GUSD</p>
         </div>
       </div>
     </body>

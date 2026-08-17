@@ -18,6 +18,7 @@ const getInitialState = (): SystemSettingsState => ({
   creatorShare: 50,
   episodeCost: 0.1,
   nextEpisodeCost: 0.99,
+  welcomeCredit: 100,
   loaded: false,
   saving: false,
 })
@@ -31,6 +32,7 @@ export const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
 export const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
 export const NEXT_EPISODE_COST_OPTIONS = [0.49, 0.99, 1.49, 1.99, 2.99]
+export const WELCOME_CREDIT_OPTIONS = [0, 5, 10, 20, 50, 100]
 
 // Preview length (seconds) for the player trial, falling back to TIME_LIMIT
 export const getPreviewLength = (): number => state.previewLength || TIME_LIMIT
@@ -54,6 +56,7 @@ export const systemSettingsStoreActions = {
       creatorShare: changes.creatorShare ?? state.creatorShare,
       episodeCost: changes.episodeCost ?? state.episodeCost,
       nextEpisodeCost: changes.nextEpisodeCost ?? state.nextEpisodeCost,
+      welcomeCredit: changes.welcomeCredit ?? state.welcomeCredit,
     }
     setState({ saving: true })
     try {

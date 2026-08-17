@@ -105,6 +105,7 @@ export const zh = {
       creatorShare: '创作者分成 %',
       episodeCost: '单集价格',
       nextEpisodeCost: '生成下一集费用',
+      welcomeCredit: '新用户欢迎积分',
       seconds: '秒',
       pipelinePrompts: 'AI 流程提示词',
       pipelinePromptsHint: '编辑 6 个 AI 制作环节的系统提示词（Markdown 格式）。',

@@ -1196,11 +1196,10 @@ const handleIAPTopUp = async (
     }
 
     // Step 2: Verify the IAP transaction on the server and credit the wallet.
-    // Use the amount derived from the actual purchased product (iapResult.amount) so the
-    // productId and amount sent to the server always agree — guards against a stale
-    // transaction for a different tier being delivered.
+    // Use the amount derived from the actual purchased product; fall back to the requested
+    // amount when the product id doesn't resolve (|| so a 0 falls back, not just null).
     const referenceId = generateReferenceId()
-    const purchasedAmount = iapResult.amount ?? amount
+    const purchasedAmount = iapResult.amount || amount
     // Verify with the matching store: Google Play on Android, Apple on iOS.
     const verifyResult = iapResult.platform === 'android-playstore'
       ? await verifyGooglePlayPurchase(
@@ -1304,6 +1303,9 @@ const verifyGooglePlayPurchase = async (
 // startup) by crediting them on the server. Call once on app startup before initializeIAP().
 export const registerIAPReconciliation = (): void => {
   setIAPReconcileHandler(async (productId, amount, transactionId) => {
+    // An orphaned transaction whose product id doesn't resolve to a known tier (amount 0)
+    // can't be credited — finish it (return true) rather than send an invalid verify.
+    if (!amount || amount <= 0) return true
     const referenceId = generateReferenceId()
     // TODO(google-play): reconcile lacks the purchaseToken; the server verify stub still
     // credits idempotently. Wire the token through localTransactions when hardening Play.
