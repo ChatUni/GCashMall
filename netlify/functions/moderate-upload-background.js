@@ -42,6 +42,7 @@ export const handler = async (event) => {
               status: 'rejected',
               reason: 'moderation_error',
               error: String(error.message || error),
+              phase: 'done',
               stage: 'done',
               progress: 100,
               updatedAt: new Date(),

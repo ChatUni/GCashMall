@@ -275,6 +275,9 @@ const moderateUploadedVideo = async (
         ),
       )
     }
+    // Still processing → re-invoke the poll-first moderation step so it advances (checks Bunny
+    // encoding readiness, then claims the transcribe/moderate work once ready). Fire-and-forget.
+    startUploadModeration(videoId).catch(() => {})
     seriesEditStoreActions.updateUploadProgress({ message: `${checking} ${status.progress || 0}%` })
   }
   throw new Error(t.moderationTimeout || 'Content check timed out. Please try again.')

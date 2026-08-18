@@ -18,7 +18,6 @@ import { transcribeEpisode } from './transcribe.js'
 import { moderateText, moderateImages } from './moderation.js'
 import { extractFrameAt, probeDuration } from './ffmpeg.js'
 import {
-  waitForBunnyReady,
   bunnyHlsUrl,
   bunnyReferer,
   getBunnyVideo,
@@ -87,79 +86,111 @@ const moderateFramesInBatches = async (videoId, src, referer, timestamps, onProg
 // subtitles still run.
 const moderationEnabled = () => process.env.MODERATION_ENABLED !== 'false'
 
+// Poll-first, re-entrant moderation "advance" step. Instead of one background job that blocks
+// idle-polling Bunny's encoder, this runs one step and returns: it checks Bunny readiness ONCE
+// and exits if still encoding, so no function ever sits idle. The client's status poll and a
+// scheduled reconciler re-invoke it until Bunny is ready; then exactly one invocation claims
+// the work (atomic phase flip) and runs transcribe + moderation.
+//
+// Phases: awaiting_encode → working → done.
 export const runUploadModeration = async (videoId, userId) => {
   if (!videoId) throw new Error('videoId is required')
   const log = (m) => console.log(`[moderate ${videoId}] ${m}`)
+  const off = !moderationEnabled()
 
   const reject = async (reason, categories) => {
     log(`REJECTED: ${reason} [${(categories || []).join(', ')}]`)
     await deleteBunnyVideo(videoId).catch((e) => console.error('delete after reject failed:', e.message))
-    await setMod(videoId, { status: 'rejected', reason, categories, stage: 'done', progress: 100 })
+    await setMod(videoId, { status: 'rejected', reason, categories, phase: 'done', stage: 'done', progress: 100 })
     return { status: 'rejected', reason, categories }
   }
 
-  await setMod(videoId, {
-    videoId,
-    userId: userId || null,
-    status: 'processing',
-    stage: 'transcribe',
-    progress: 5,
-    reason: '',
-    categories: [],
-    createdAt: new Date(),
-  })
+  // First invocation: create the tracking record. `status` is the client's gate —
+  // moderation-off approves instantly (subtitles still generated below); moderation-on stays
+  // 'processing' until the verdict.
+  let doc = await getModeration(videoId)
+  if (!doc) {
+    await setMod(videoId, {
+      videoId,
+      userId: userId || null,
+      status: off ? 'approved' : 'processing',
+      phase: 'awaiting_encode',
+      stage: off ? 'done' : 'encoding',
+      progress: off ? 100 : 5,
+      reason: off ? 'moderation_disabled' : '',
+      categories: [],
+      createdAt: new Date(),
+    })
+    doc = { phase: 'awaiting_encode' }
+  }
+  if (doc.phase === 'working' || doc.phase === 'done') return { phase: doc.phase }
 
-  await waitForBunnyReady(videoId).catch(() => {})
+  // Check Bunny readiness ONCE (status 4 = Finished, 5/6 = error). Still encoding → exit; a
+  // later client poll or the scheduled reconciler re-invokes this. No idle loop.
+  const info = await getBunnyVideo(videoId).catch(() => null)
+  if (info?.status !== 4) {
+    if (info?.status === 5 || info?.status === 6) {
+      log(`bunny encode failed (status ${info.status})`)
+      await setMod(videoId, off
+        ? { phase: 'done' }
+        : { status: 'rejected', reason: 'encode_failed', phase: 'done', stage: 'done', progress: 100 })
+    }
+    return { waiting: true }
+  }
+
+  // Bunny is ready → atomically claim the work so only one invocation transcribes/moderates.
+  const claim = await update(
+    'videoModeration',
+    { videoId, phase: 'awaiting_encode' },
+    { $set: { phase: 'working', updatedAt: new Date() } },
+  )
+  if (!claim.matchedCount) return { working: true }
+
   const src = bunnyHlsUrl(videoId)
   const referer = bunnyReferer()
 
-  // 1. Transcribe (also uploads subtitle tracks to the video). Transcription failure is
-  //    non-fatal — we still moderate the frames — but leaves no transcript to check.
+  // Transcribe (also uploads subtitle tracks). Best-effort — a failure leaves no transcript.
   let transcript = ''
   try {
     log('transcribe')
-    const r = await transcribeEpisode({
-      videoPath: src,
-      videoId,
-      referer,
-      onProgress: (p) => setMod(videoId, { progress: 5 + Math.round((p / 100) * 30) }),
-    })
+    if (!off) await setMod(videoId, { stage: 'transcribe', progress: 25 })
+    const r = await transcribeEpisode({ videoPath: src, videoId, referer })
     transcript = r.text || ''
   } catch (e) {
     console.error(`[moderate ${videoId}] transcribe failed:`, e.message)
   }
 
-  // 2–4. Content moderation (text + frames). Skipped entirely when MODERATION_ENABLED=false.
-  if (moderationEnabled()) {
-    // 2. Moderate the transcript text.
-    log('moderate text')
-    await setMod(videoId, { stage: 'moderateText', progress: 40 })
-    const textResult = await moderateText(transcript)
-    if (textResult.flagged) return reject('harmful_text', textResult.categories)
-
-    // 3 + 4. Extract frames at random 5–15s intervals and moderate them in batches.
-    log('moderate frames')
-    await setMod(videoId, { stage: 'moderateFrames', progress: 45 })
-    const info = await getBunnyVideo(videoId).catch(() => null)
-    let duration = Number(info?.length) || 0
-    if (!duration) duration = await probeDuration({ videoPath: src }).catch(() => 0)
-    const timestamps = frameTimestamps(duration)
-    const flaggedCats = await moderateFramesInBatches(
-      videoId,
-      src,
-      referer,
-      timestamps,
-      (done, total) =>
-        setMod(videoId, { progress: Math.min(95, 45 + Math.round((done / Math.max(1, total)) * 50)) }),
-    )
-    if (flaggedCats) return reject('harmful_frame', flaggedCats)
-  } else {
-    log('moderation disabled (MODERATION_ENABLED=false) — auto-approving')
+  // Moderation off → subtitles are done; the upload was already approved above.
+  if (off) {
+    await setMod(videoId, { phase: 'done' })
+    log('APPROVED (moderation off)')
+    return { status: 'approved' }
   }
 
-  // Passed every check (or moderation disabled).
+  // Moderate the transcript text.
+  log('moderate text')
+  await setMod(videoId, { stage: 'moderateText', progress: 55 })
+  const textResult = await moderateText(transcript)
+  if (textResult.flagged) return reject('harmful_text', textResult.categories)
+
+  // Extract frames at random 5–15s intervals and moderate them in batches.
+  log('moderate frames')
+  await setMod(videoId, { stage: 'moderateFrames', progress: 65 })
+  let duration = Number(info?.length) || 0
+  if (!duration) duration = await probeDuration({ videoPath: src }).catch(() => 0)
+  const timestamps = frameTimestamps(duration)
+  const flaggedCats = await moderateFramesInBatches(
+    videoId,
+    src,
+    referer,
+    timestamps,
+    (done, total) =>
+      setMod(videoId, { progress: Math.min(95, 65 + Math.round((done / Math.max(1, total)) * 30)) }),
+  )
+  if (flaggedCats) return reject('harmful_frame', flaggedCats)
+
   log('APPROVED')
-  await setMod(videoId, { status: 'approved', stage: 'done', progress: 100 })
+  await setMod(videoId, { status: 'approved', phase: 'done', stage: 'done', progress: 100 })
   return { status: 'approved' }
 }
 
