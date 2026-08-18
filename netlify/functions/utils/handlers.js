@@ -13,6 +13,15 @@ import { verifyGooglePlayTransaction } from './googlePlay.js'
 import { finalizeGUSDOrder, parseGUSDOrderId } from './gusdTopup.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl } from './bunny.js'
+import { triggerBackground } from './trigger.js'
+import {
+  getChatModel,
+  chatTuning,
+  MODEL_DEFAULTS,
+  CHAT_MODEL_OPTIONS,
+  IMAGE_MODEL_OPTIONS,
+  SEEDANCE_MODEL_OPTIONS,
+} from './modelConfig.js'
 
 // Configure Stripe
 const stripe = process.env.STRIPE_PRIVATE_KEY
@@ -218,10 +227,16 @@ const getGenres = async (params) => {
   try {
     const genres = await get('genre', {}, {}, { name: 1 })
     // Return genres with only _id and name (no legacy id field)
-    const cleanGenres = genres.map((genre) => ({
+    let cleanGenres = genres.map((genre) => ({
       _id: genre._id,
       name: genre.name,
     }))
+    // used=true → only surface genres referenced by a series that actually has episodes,
+    // so clicking a genre on the Genre page can never land on an empty list.
+    if (params && (params.used === 'true' || params.used === true)) {
+      const usedIds = await getUsedGenreIds()
+      cleanGenres = cleanGenres.filter((genre) => usedIds.has(String(genre._id)))
+    }
     return {
       success: true,
       data: cleanGenres,
@@ -229,6 +244,23 @@ const getGenres = async (params) => {
   } catch (error) {
     throw new Error(`Failed to get genres: ${error.message}`)
   }
+}
+
+// The set of genre id strings referenced by at least one series that has episodes.
+const getUsedGenreIds = async () => {
+  // $slice: 1 keeps the payload tiny — we only need to know an episode exists.
+  const series = await get('series', {}, { genre: 1, episodes: { $slice: 1 } }, {})
+  const ids = new Set()
+  for (const s of series) {
+    if (!Array.isArray(s.episodes) || s.episodes.length === 0) continue
+    for (const g of s.genre || []) {
+      // Legacy entries are plain objects { _id/id, name }; modern ones are ObjectId (or
+      // string) — String() gives the hex id for both, matching genreMap keys.
+      const id = g && typeof g === 'object' && g.name ? g._id || g.id : g
+      if (id != null) ids.add(String(id))
+    }
+  }
+  return ids
 }
 
 const saveSeries = async (body, authHeader) => {
@@ -3666,6 +3698,7 @@ export {
   getPipelinePrompts,
   savePipelinePrompt,
   getProductionStatus,
+  advanceProduction,
   getModerationStatus,
   verifyGooglePlayPurchase,
   getSharedEpisode,
@@ -4117,6 +4150,9 @@ const DEFAULT_SYSTEM_SETTINGS = {
   episodeCost: 0.1, // GUSD cost to unlock an episode
   nextEpisodeCost: 0.99, // GUSD cost to generate a follow-up episode
   welcomeCredit: 100, // GUSD granted to a newly registered user
+  chatModel: MODEL_DEFAULTS.chatModel, // OpenAI text/story model
+  imageModel: MODEL_DEFAULTS.imageModel, // OpenAI image model
+  seedanceModel: MODEL_DEFAULTS.seedanceModel, // Seedance video model
 }
 const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
@@ -4134,6 +4170,9 @@ const readSystemSettings = async () => {
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
     nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
     welcomeCredit: saved.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
+    chatModel: saved.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
+    imageModel: saved.imageModel || DEFAULT_SYSTEM_SETTINGS.imageModel,
+    seedanceModel: saved.seedanceModel || DEFAULT_SYSTEM_SETTINGS.seedanceModel,
   }
 }
 
@@ -4157,6 +4196,9 @@ const saveSettings = async (body, authHeader) => {
       episodeCost: body.episodeCost,
       nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
       welcomeCredit: body.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
+      chatModel: body.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
+      imageModel: body.imageModel || DEFAULT_SYSTEM_SETTINGS.imageModel,
+      seedanceModel: body.seedanceModel || DEFAULT_SYSTEM_SETTINGS.seedanceModel,
       updatedAt: new Date(),
     }
 
@@ -4195,6 +4237,15 @@ const validateSystemSettingsBody = (body) => {
   }
   if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
     throw new Error('Invalid episodeCost')
+  }
+  if (body.chatModel != null && !CHAT_MODEL_OPTIONS.includes(body.chatModel)) {
+    throw new Error('Invalid chatModel')
+  }
+  if (body.imageModel != null && !IMAGE_MODEL_OPTIONS.includes(body.imageModel)) {
+    throw new Error('Invalid imageModel')
+  }
+  if (body.seedanceModel != null && !SEEDANCE_MODEL_OPTIONS.includes(body.seedanceModel)) {
+    throw new Error('Invalid seedanceModel')
   }
   if (body.welcomeCredit != null && !WELCOME_CREDIT_OPTIONS.includes(body.welcomeCredit)) {
     throw new Error('Invalid welcomeCredit')
@@ -4279,6 +4330,7 @@ const validateExtractStoryBody = (body) => {
 
 // PDF: gpt-4o reads the file natively via the Responses API (base64 data URL)
 const extractStoryFromPdf = async (dataUrl, filename) => {
+  const model = await getChatModel()
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
@@ -4286,7 +4338,7 @@ const extractStoryFromPdf = async (dataUrl, filename) => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+      model,
       input: [
         {
           role: 'user',
@@ -4313,6 +4365,7 @@ const extractStoryFromDocx = async (dataUrl) => {
   const rawText = (result.value || '').trim()
   if (!rawText) return ''
 
+  const model = await getChatModel()
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -4320,7 +4373,7 @@ const extractStoryFromDocx = async (dataUrl) => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+      model,
       messages: [
         { role: 'system', content: EXTRACT_STORY_INSTRUCTION },
         { role: 'user', content: rawText },
@@ -4347,6 +4400,7 @@ const generateStoryPrompt = async (body) => {
       ? `Expand this idea into a full anime story premise:\n\n${idea}`
       : 'Create a completely original, surprising anime story premise.'
 
+    const model = await getChatModel()
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -4354,12 +4408,12 @@ const generateStoryPrompt = async (body) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+        model,
         messages: [
           { role: 'system', content: STORY_PROMPT_INSTRUCTION },
           { role: 'user', content: userMessage },
         ],
-        temperature: 0.9,
+        ...chatTuning(model, 0.9),
         response_format: { type: 'json_object' },
       }),
     })
@@ -4408,6 +4462,7 @@ const suggestDescription = async (body) => {
     .join('\n')
 
   try {
+    const model = await getChatModel()
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -4415,7 +4470,7 @@ const suggestDescription = async (body) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+        model,
         messages: [
           { role: 'system', content: system },
           {
@@ -4423,7 +4478,7 @@ const suggestDescription = async (body) => {
             content: `Write a ${isEpisode ? 'episode' : 'series'} description.\n\n${ctx}`,
           },
         ],
-        temperature: 0.9,
+        ...chatTuning(model, 0.9),
       }),
     })
     if (!res.ok) {
@@ -4553,6 +4608,18 @@ const getProductionStatus = async (params, authHeader) => {
   } catch (error) {
     throw new Error(`Failed to get production status: ${error.message}`)
   }
+}
+
+// Drive one step of a production's async video render (poll-first pipeline). Fired by the
+// client alongside its progress poll while shots render. Hands off to a background function
+// (which bundles ffmpeg for frame extraction) rather than running inline — this keeps the
+// heavy render deps out of the main `api` bundle. A doc-level advisory lock in
+// advanceVideoGeneration makes overlapping triggers cheap no-ops.
+const advanceProduction = async (body, authHeader) => {
+  await validateAuth(authHeader)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+  await triggerBackground('pipeline-video-advance-background', body.jobId, authHeader)
+  return { success: true, data: { triggered: true } }
 }
 
 // Status of an uploaded video's content-moderation job (transcribe + text/frame checks).

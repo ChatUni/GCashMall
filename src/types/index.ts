@@ -247,6 +247,9 @@ export interface SystemSettings {
   episodeCost: number // GUSD cost to unlock an episode
   nextEpisodeCost: number // GUSD cost to generate a follow-up episode
   welcomeCredit: number // GUSD granted to a newly registered user
+  chatModel: string // OpenAI text/story model
+  imageModel: string // OpenAI image model
+  seedanceModel: string // Seedance video model
 }
 
 // Revenue sharing types

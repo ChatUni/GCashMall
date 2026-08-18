@@ -10,12 +10,14 @@
 // whichever one authenticates.
 
 import { createHash } from 'node:crypto'
+import { getSeedanceModel } from './modelConfig.js'
 
 // Netlify env vars are often pasted with surrounding quotes or a trailing newline;
 // those would be sent literally in the request and rejected, so sanitize them.
 const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
 
-const MODEL = clean(process.env.SEEDANCE_MODEL) || 'doubao-seedance-1-0-pro-250528'
+// The model comes from the admin settings (see modelConfig), NOT from SEEDANCE_MODEL — the
+// env var is ignored. Only the API key + base region still come from env.
 const KEY = clean(process.env.SEEDANCE_API_KEY)
 
 // Safe key fingerprint — length, first/last chars, and a short hash so the exact key
@@ -28,14 +30,15 @@ const keyFingerprint = () => {
 
 // One-time config log on cold start so the function logs explain any auth failure
 console.log(
-  `[seedance] config — key: [${keyFingerprint()}], model: ${MODEL}, base: ${
+  `[seedance] config — key: [${keyFingerprint()}], base: ${
     clean(process.env.SEEDANCE_BASE_URL) || '(auto-detect)'
   }`,
 )
 
-// Seedance 2.0 renders synchronized audio in the same pass, so no separate TTS/mux
-// step is needed — only the shots need stitching.
-export const modelHasNativeAudio = () => /seedance-2/i.test(MODEL)
+// Seedance 2.x renders synchronized audio in the same pass, so no separate TTS/mux step is
+// needed — only the shots need stitching. Re-exported from modelConfig (async: reads the
+// admin-selected model).
+export { modelHasNativeAudio } from './modelConfig.js'
 
 // Known ARK video-generation bases; the configured one (if any) is tried first.
 const KNOWN_BASES = [
@@ -95,6 +98,7 @@ const buildContent = (req, { firstFrameUrl, referenceImages } = {}) => {
 // the shot from a start image (frame chaining); referenceImages anchor character identity.
 export const createVideoTask = async (req, { firstFrameUrl, referenceImages } = {}) => {
   if (!KEY) throw new Error('SEEDANCE_API_KEY is not configured')
+  const MODEL = await getSeedanceModel()
   const bases = resolvedBase ? [resolvedBase] : candidateBases()
   let lastAuthError = ''
 
@@ -140,7 +144,7 @@ export const getVideoTask = async (taskId, base) => {
   return res.json()
 }
 
-const extractVideoUrl = (task) =>
+export const extractVideoUrl = (task) =>
   task.content?.video_url ||
   task.content?.video_urls?.[0] ||
   task.video_url ||
@@ -148,7 +152,7 @@ const extractVideoUrl = (task) =>
   ''
 
 // Use the API's own progress if it reports one (normalized to 0–100), else undefined
-const apiProgress = (task) => {
+export const apiProgress = (task) => {
   const cand = [task.progress, task.percent, task.content?.progress, task.data?.progress].find(
     (x) => typeof x === 'number',
   )

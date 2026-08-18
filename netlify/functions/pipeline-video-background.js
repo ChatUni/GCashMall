@@ -5,7 +5,7 @@
 
 import jwt from 'jsonwebtoken'
 import { get, update } from './utils/db.js'
-import { runVideoGeneration } from './utils/videoJob.js'
+import { runVideoGeneration, submitVideoGeneration } from './utils/videoJob.js'
 import { triggerBackground } from './utils/trigger.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
@@ -26,6 +26,15 @@ export const handler = async (event) => {
 
     const authHeader = event.headers?.authorization || event.headers?.Authorization
     const userId = getUserId(authHeader)
+
+    if (process.env.SEEDANCE_ASYNC === 'true') {
+      // Async path: create the Seedance tasks and exit immediately. advanceVideoGeneration
+      // (driven by the client poll + the scheduled reconciler) processes completions and
+      // triggers the audio/composition job itself when every shot is terminal — so this
+      // function no longer idles while Seedance renders.
+      await submitVideoGeneration(jobId, userId)
+      return { statusCode: 200 }
+    }
 
     await runVideoGeneration(jobId, userId)
 

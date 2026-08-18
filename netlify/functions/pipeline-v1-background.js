@@ -104,6 +104,7 @@ const runProduce = async (jobId, userId, body) => {
   const reusedBible = docs?.[0]?.callsV1?.characterDirector
   const episodeBrief = (proposal?.seasonRoadmap || [])[episode - 1] || {}
 
+  const nativeAudio = await modelHasNativeAudio()
   const progress = {
     calls: [
       { key: 'executiveProducer', status: 'done' },
@@ -113,7 +114,7 @@ const runProduce = async (jobId, userId, body) => {
       { key: 'audioDirector', status: 'pending' },
       { key: 'episodeProducer', status: 'pending' },
       { key: 'videoGeneration', status: 'pending' },
-      ...(modelHasNativeAudio() ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
+      ...(nativeAudio ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
       { key: 'composition', status: 'pending' },
       // s1 only: subtitles are generated + attached to the Bunny video after composition.
       ...(isS1() ? [{ key: 'transcribe', status: 'pending' }] : []),

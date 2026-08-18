@@ -494,10 +494,14 @@ const PhoneWalletSection = () => {
           <span>{accountStore.balance.toFixed(2)}</span>
         </div>
       </div>
-      <div class="phone-wallet-tabs">
-        <button class={`phone-wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('topup')}>{wallet().topUp}</button>
-        <button class={`phone-wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('withdraw')}>{wallet().withdraw}</button>
-      </div>
+      {/* Wallet tabs hidden on native (iOS/Android): withdraw is removed there, so the
+          wallet stays pinned to top-up (which routes through Apple/Google IAP). */}
+      <Show when={!isCordova()}>
+        <div class="phone-wallet-tabs">
+          <button class={`phone-wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('topup')}>{wallet().topUp}</button>
+          <button class={`phone-wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`} onClick={() => accountStoreActions.setWalletTab('withdraw')}>{wallet().withdraw}</button>
+        </div>
+      </Show>
       <div class="phone-amount-section">
         <div class="phone-amount-header">
           <h3 class="phone-wallet-title">{accountStore.walletTab === 'topup' ? (wallet().selectTopUpAmount || 'Select Top Up Amount') : (wallet().selectWithdrawAmount || 'Select Withdrawal Amount')}</h3>

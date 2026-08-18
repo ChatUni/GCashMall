@@ -19,16 +19,25 @@ const arr = (v) => (Array.isArray(v) ? v : [])
 const str = (v) => (typeof v === 'string' ? v.trim() : '')
 const csv = (v) => arr(v).filter(Boolean).join(', ')
 
-// Spoken dialogue as voice-only context (no on-screen captions — subtitles are external).
-const spokenDialogue = (dialogueLines) => {
-  const spoken = dialogueLines.filter(Boolean).join(' ')
-  return spoken
-    ? `Spoken dialogue (voice audio only — do NOT display any on-screen text, subtitles, or captions): "${spoken}"`
-    : ''
-}
+// Spoken dialogue for Seedance 2.0. The model lip-syncs any quoted line that follows a
+// speech verb + speaker anchor ("Kai says: ..."), so attribute every line to its character.
+// Deliberately NO "burned-in"/"do not display" wording: without an explicit subtitle
+// instruction Seedance renders no on-screen text anyway, and the old negative phrasing
+// suppressed the spoken audio entirely (leaving the video with no dialogue). Visible
+// subtitles are added afterwards as external caption tracks (Whisper-transcribed on Bunny).
+const spokenDialogue = (dialogue) =>
+  arr(dialogue)
+    .map((d) => {
+      const line = str(d?.line)
+      if (!line) return ''
+      const who = str(d?.character)
+      return who ? `${who} says: "${line}"` : `A character says: "${line}"`
+    })
+    .filter(Boolean)
+    .join(' ')
 
 // Compose one shot's text-to-video prompt from the package + visual + audio specs.
-const buildShotPrompt = (shot, vShot, artDirection, dialogueLines) => {
+const buildShotPrompt = (shot, vShot, artDirection, dialogue) => {
   const style = str(artDirection.style)
   const parts = [
     style ? `${style} anime style.` : 'Cinematic anime style.',
@@ -37,7 +46,7 @@ const buildShotPrompt = (shot, vShot, artDirection, dialogueLines) => {
     str(shot.visual?.characterMotion) || str(vShot?.characterMotion),
     csv(artDirection.colorPalette) ? `Color palette: ${csv(artDirection.colorPalette)}.` : '',
     str(artDirection.lighting) ? `Lighting: ${artDirection.lighting}.` : '',
-    spokenDialogue(dialogueLines),
+    spokenDialogue(dialogue),
   ]
   return parts.filter(Boolean).join(' ').replace(/\s{2,}/g, ' ')
 }
@@ -85,17 +94,15 @@ export const buildV1RenderStructures = (callsV1, proposal) => {
     const n = typeof shot.shot === 'number' ? shot.shot : idx + 1
     const shotId = `shot-${n}`
     const vShot = vShotByNum.get(shot.shot)
-    const dialogueLines = arr(shot.audio?.dialogue).map((d) => str(d?.line))
+    const dialogue = arr(shot.audio?.dialogue)
     const location = str(shot.location) || str(vShot?.location) || ''
-    const characters = arr(shot.audio?.dialogue)
-      .map((d) => str(d?.character))
-      .filter(Boolean)
+    const characters = dialogue.map((d) => str(d?.character)).filter(Boolean)
 
     provider_requests.push({
       shot_id: shotId,
       shot_number: n,
       scene_id: location ? `loc:${location.toLowerCase()}` : '',
-      prompt: buildShotPrompt(shot, vShot, artDirection, dialogueLines),
+      prompt: buildShotPrompt(shot, vShot, artDirection, dialogue),
       duration_seconds: shot.durationSeconds || shot.expectedDurationSeconds || 7,
       aspect_ratio: '16:9',
       resolution: '480p',

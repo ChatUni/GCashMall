@@ -106,13 +106,14 @@ const runEpisode = async (jobId, userId, body) => {
   const seriesTitle = body.ideaTitle || call1?.series_blueprint?.title || 'Untitled Series'
   const cover = providedEpisodes[0]?.cover || ''
 
+  const nativeAudio = await modelHasNativeAudio()
   const progress = {
     // The 7 LLM calls, plus the video-generation and audio/composition steps
     calls: [
       ...PIPELINE_CALL_KEYS.map((key, i) => ({ key, status: i === 0 ? 'done' : 'pending' })),
       { key: 'videoGeneration', status: 'pending' },
       // Seedance 2.0 already includes audio, so there's no separate audio step
-      ...(modelHasNativeAudio() ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
+      ...(nativeAudio ? [] : [{ key: 'audioGeneration', status: 'pending' }]),
       { key: 'composition', status: 'pending' },
     ],
     coverStatus: 'done',

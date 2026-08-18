@@ -10,7 +10,9 @@ import type { Series, Genre } from '../types'
 // ======================
 
 export const fetchGenres = async () => {
-  const result = await apiGet<Genre[]>('genres')
+  // used=true → only genres backed by a series with episodes, so no genre in the
+  // sidebar can produce an empty results list when clicked.
+  const result = await apiGet<Genre[]>('genres', { used: 'true' })
   if (result.success && result.data) {
     genreStoreActions.setGenres(result.data)
   }

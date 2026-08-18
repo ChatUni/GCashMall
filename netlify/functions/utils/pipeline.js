@@ -4,6 +4,7 @@
 
 import { get } from './db.js'
 import { generateImage } from './openaiImage.js'
+import { getChatModel, chatTuning } from './modelConfig.js'
 
 // Order of the 6 pipeline calls
 export const PIPELINE_CALL_KEYS = [
@@ -18,6 +19,7 @@ export const PIPELINE_CALL_KEYS = [
 
 // Call OpenAI chat and parse the response as a JSON object (json_object mode)
 export const callOpenAIChatJson = async (systemPrompt, userContent) => {
+  const model = await getChatModel()
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -25,12 +27,12 @@ export const callOpenAIChatJson = async (systemPrompt, userContent) => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
-      temperature: 0.8,
+      ...chatTuning(model, 0.8),
       response_format: { type: 'json_object' },
     }),
   })

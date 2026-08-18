@@ -13,12 +13,25 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import jwt from 'jsonwebtoken'
 import { get, update } from './db.js'
-import { generateVideo } from './seedance.js'
+import {
+  generateVideo,
+  createVideoTask,
+  getVideoTask,
+  extractVideoUrl,
+  apiProgress,
+} from './seedance.js'
 import { extractLastFrame, extractCoverFrame, extractFrameAt, probeDuration } from './ffmpeg.js'
 import { uploadImage } from './cloudinaryUtil.js'
 import { ensureCharacterRefs, refImagesForShot } from './characterRefs.js'
 import { isS1, createBunnyVideo, fetchBunnyVideoFromUrl } from './bunny.js'
+import { triggerBackground } from './trigger.js'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
+// Mint a short-lived token for the job's own user so a system-driven advance (e.g. the
+// scheduled reconciler, which has no request auth) can still hand off to the audio job.
+const systemAuthHeader = (userId) => `Bearer ${jwt.sign({ id: String(userId) }, JWT_SECRET, { expiresIn: '1h' })}`
 
 const updateJob = (jobId, fields) =>
   update('productions', { jobId }, { $set: { ...fields, updatedAt: new Date() } })
@@ -250,6 +263,315 @@ export const runVideoGeneration = async (jobId, userId) => {
   // runs next and is what finalizes the production as 'done'.
   progress.calls[vIdx].status = 'done'
   await updateJob(jobId, { progress, videos: results, percent: percentOf(progress) })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Async (poll-first) rendering — replaces the blocking runVideoGeneration above when
+// SEEDANCE_ASYNC=true. submit() creates the Seedance tasks and returns immediately;
+// advance() (driven by the client poll + a scheduled reconciler) processes completions
+// and submits chained shots, so no function ever idles while Seedance works.
+// The per-shot task state lives on videos[] (which also feeds the audio/compose step);
+// `render.phase` gates the whole phase.
+
+const terminalCount = (videos) =>
+  videos.filter((v) => v.status === 'rendered' || v.status === 'failed').length
+const renderedPct = (videos) =>
+  Math.round(videos.reduce((a, v) => a + (v.pct || 0), 0) / (videos.length || 1))
+
+// Provider requests + prompt-compiler maps + scene key (same grouping as runVideoGeneration).
+const buildShotContext = (doc) => {
+  const requests = [
+    ...(doc.calls?.renderingEngine?.rendering_plan?.provider_requests || []),
+  ].sort((a, b) => (a.shot_number ?? 0) - (b.shot_number ?? 0))
+  const shotPrompts =
+    doc.calls?.promptCompiler?.universal_production_prompt_package?.shot_prompts || []
+  const sceneById = new Map(shotPrompts.map((s) => [s.shot_id, s.scene_id]))
+  const locationById = new Map(shotPrompts.map((s) => [s.shot_id, s.location]))
+  const charsById = new Map(shotPrompts.map((s) => [s.shot_id, s.characters]))
+  const reqById = new Map(requests.map((r) => [r.shot_id, r]))
+  const sceneKeyOf = (req) => {
+    const scene = req.scene_id ?? sceneById.get(req.shot_id)
+    if (scene !== undefined && scene !== null && String(scene).trim() !== '') {
+      return `s:${String(scene).trim().toLowerCase()}`
+    }
+    const loc = (locationById.get(req.shot_id) || '').trim().toLowerCase()
+    return loc ? `l:${loc}` : ''
+  }
+  return { requests, reqById, charsById, sceneKeyOf }
+}
+
+// Submit the next not-yet-started shot of a scene, once its predecessor has resolved.
+// Seeds with the previous shot's last frame (chaining) or, for a scene opener / after a
+// failed predecessor, with the character reference images. Persists just that element.
+const submitNextInScene = async (jobId, videos, sceneKey, reqById, charsById, charRefs, chain) => {
+  const scene = videos
+    .filter((v) => v.sceneKey === sceneKey)
+    .sort((a, b) => a.posInScene - b.posInScene)
+  const next = scene.find((v) => v.status === 'pending')
+  if (!next) return
+  const prev = scene.find((v) => v.posInScene === next.posInScene - 1)
+  // Chain not ready — wait until the previous shot in the scene finishes (or fails).
+  if (prev && prev.status !== 'rendered' && prev.status !== 'failed') return
+
+  const firstFrameUrl =
+    chain && prev && prev.status === 'rendered' ? prev.lastFrameUrl || undefined : undefined
+  const referenceImages = firstFrameUrl
+    ? undefined
+    : refImagesForShot(charsById.get(next.shot_id), charRefs)
+  try {
+    const { taskId, base } = await createVideoTask(reqById.get(next.shot_id), {
+      firstFrameUrl,
+      referenceImages,
+    })
+    Object.assign(next, { status: 'submitted', taskId, base, submittedAt: new Date(), pct: 6, error: '' })
+  } catch (error) {
+    Object.assign(next, { status: 'failed', error: String(error.message || error), pct: 100 })
+  }
+  await update(
+    'productions',
+    { jobId, 'videos.shot_id': next.shot_id },
+    { $set: { 'videos.$': next, updatedAt: new Date() } },
+  )
+}
+
+// Create the Seedance tasks and return immediately — no polling. Builds videos[] as the
+// state machine and submits each scene's opening shot.
+export const submitVideoGeneration = async (jobId, userId) => {
+  const docs = await get('productions', { jobId }, {}, {}, 1)
+  if (!docs || docs.length === 0) throw new Error('production not found')
+  const doc = docs[0]
+  if (userId && String(doc.userId) !== String(userId)) {
+    throw new Error('not authorized for this production')
+  }
+
+  const progress = doc.progress || { calls: [], coverStatus: 'done' }
+  let vIdx = (progress.calls || []).findIndex((c) => c.key === 'videoGeneration')
+  if (vIdx < 0) {
+    progress.calls = [...(progress.calls || []), { key: 'videoGeneration', status: 'pending' }]
+    vIdx = progress.calls.length - 1
+  }
+  progress.calls[vIdx].status = 'running'
+
+  const { requests, reqById, charsById, sceneKeyOf } = buildShotContext(doc)
+  const chain = frameChainEnabled()
+  const scenes = chain ? groupIntoScenes(requests, sceneKeyOf) : requests.map((r) => [r])
+  const charRefs = await ensureCharacterRefs(doc, (f) => updateJob(jobId, f))
+  const kept = new Map((doc.videos || []).filter((v) => v && v.url).map((v) => [v.shot_id, v]))
+
+  const videos = []
+  scenes.forEach((scene, si) =>
+    scene.forEach((req, pos) => {
+      const k = kept.get(req.shot_id)
+      videos.push({
+        shot_id: req.shot_id,
+        shot_number: req.shot_number ?? null,
+        sceneKey: `s${si}`,
+        posInScene: pos,
+        status: k ? 'rendered' : 'pending',
+        pct: k ? 100 : 0,
+        ...(k
+          ? { url: k.url, coverUrl: k.coverUrl, lastFrameUrl: k.lastFrameUrl, bunnyVideoId: k.bunnyVideoId }
+          : {}),
+      })
+    }),
+  )
+  const total = videos.length
+
+  // Nothing to render → straight to composition.
+  if (total === 0) {
+    progress.calls[vIdx].status = 'done'
+    await updateJob(jobId, {
+      status: 'running',
+      progress,
+      percent: percentOf(progress),
+      render: { phase: 'composing', total: 0 },
+      videos,
+      videoProgress: { percent: 100, done: 0, total: 0 },
+    })
+    await triggerBackground('pipeline-audio-background', jobId, systemAuthHeader(doc.userId))
+    return
+  }
+
+  await updateJob(jobId, {
+    status: 'running',
+    progress,
+    percent: percentOf(progress),
+    render: { phase: 'rendering', total },
+    videos,
+    videoProgress: { percent: renderedPct(videos), done: terminalCount(videos), total },
+  })
+
+  // Fire off each scene's opening (or first still-pending) shot.
+  for (const sk of [...new Set(videos.map((v) => v.sceneKey))]) {
+    await submitNextInScene(jobId, videos, sk, reqById, charsById, charRefs, chain)
+  }
+  await updateJob(jobId, {
+    videos,
+    videoProgress: { percent: renderedPct(videos), done: terminalCount(videos), total },
+  })
+}
+
+// Drive the render forward one step: poll submitted tasks, process at most one completion
+// (frame extraction + Bunny is capped per call to stay under the sync-function limit),
+// submit chained follow-ups, and hand off to composition when everything is terminal.
+// Idempotent — safe to call concurrently from the client poll and the scheduled reconciler.
+export const advanceVideoGeneration = async (jobId, userId, authHeader) => {
+  const head = await get('productions', { jobId }, { userId: 1, render: 1 }, {}, 1)
+  if (!head || head.length === 0) return { phase: 'unknown' }
+  if (userId && String(head[0].userId) !== String(userId)) {
+    throw new Error('not authorized for this production')
+  }
+  if (head[0].render?.phase !== 'rendering') return { phase: head[0].render?.phase || 'unknown' }
+
+  // Advisory lock: exactly one advance runs at a time across the client trigger + the
+  // scheduled reconciler. Overlapping triggers become cheap no-ops. A stale lock (crashed
+  // owner) is reclaimed after LOCK_MS.
+  const LOCK_MS = 45 * 1000
+  const lock = await update(
+    'productions',
+    {
+      jobId,
+      'render.phase': 'rendering',
+      $or: [
+        { 'render.lockedAt': null },
+        { 'render.lockedAt': { $lt: new Date(Date.now() - LOCK_MS) } },
+      ],
+    },
+    { $set: { 'render.lockedAt': new Date() } },
+  )
+  if (lock.matchedCount === 0) return { phase: 'rendering', locked: true }
+
+  try {
+    return await runAdvanceStep(jobId, authHeader)
+  } finally {
+    await update('productions', { jobId }, { $set: { 'render.lockedAt': null } }).catch(() => {})
+  }
+}
+
+// One advance step, run while holding the advisory lock (see advanceVideoGeneration).
+const runAdvanceStep = async (jobId, authHeader) => {
+  const docs = await get('productions', { jobId }, {}, {}, 1)
+  const doc = docs[0]
+  const render = doc.render
+  const { reqById, charsById } = buildShotContext(doc)
+  const charRefs = await ensureCharacterRefs(doc, (f) => updateJob(jobId, f)) // cached → fast
+  const chain = frameChainEnabled()
+  const videos = doc.videos || []
+  const total = videos.length
+
+  // Recover crashed ticks: a 'processing' shot older than the stale window → reset it to
+  // 'submitted' (in memory AND in the DB, so the claim below can re-acquire it). Safe here
+  // because we hold the advisory lock, so no other advance is mid-processing this shot.
+  const STALE_MS = 60 * 1000
+  for (const v of videos) {
+    if (v.status === 'processing' && v.claimedAt && Date.now() - new Date(v.claimedAt).getTime() > STALE_MS) {
+      v.status = 'submitted'
+      await update(
+        'productions',
+        { jobId, 'videos.shot_id': v.shot_id },
+        { $set: { 'videos.$.status': 'submitted' } },
+      )
+    }
+  }
+
+  const isLastInScene = (v) =>
+    !videos.some((x) => x.sceneKey === v.sceneKey && x.posInScene === v.posInScene + 1)
+
+  let heavyDone = false // cap frame-extraction/Bunny to one shot per call (10s fn limit)
+  for (const shot of videos.filter((v) => v.status === 'submitted')) {
+    let task
+    try {
+      task = await getVideoTask(shot.taskId, shot.base)
+    } catch {
+      continue // transient — retry next tick
+    }
+    const st = String(task.status || '').toLowerCase()
+
+    if (st === 'succeeded' || st === 'success' || st === 'completed') {
+      if (heavyDone) continue // process remaining completions on the next tick
+      const url = extractVideoUrl(task)
+      if (!url) continue
+      // Atomically claim this completion so overlapping ticks can't double-process it.
+      const claim = await update(
+        'productions',
+        { jobId, videos: { $elemMatch: { shot_id: shot.shot_id, status: 'submitted' } } },
+        { $set: { 'videos.$.status': 'processing', 'videos.$.claimedAt': new Date() } },
+      )
+      if (claim.matchedCount === 0) continue // another tick won it
+      heavyDone = true
+
+      Object.assign(shot, { status: 'rendered', url, pct: 100, renderedAt: new Date() })
+      const needLast = chain && !isLastInScene(shot)
+      const frames = await captureFrames(url, shot.shot_id, { cover: !shot.coverUrl, last: needLast })
+      if (frames.coverUrl) shot.coverUrl = frames.coverUrl
+      if (frames.lastUrl) shot.lastFrameUrl = frames.lastUrl
+      if (isS1() && !shot.bunnyVideoId) {
+        try {
+          const bvid = await createBunnyVideo(`${jobId}-${shot.shot_id}`)
+          await fetchBunnyVideoFromUrl(bvid, url)
+          shot.bunnyVideoId = bvid
+        } catch (error) {
+          console.error(`Bunny shot upload ${shot.shot_id} failed:`, error.message)
+        }
+      }
+      await update(
+        'productions',
+        { jobId, 'videos.shot_id': shot.shot_id },
+        { $set: { 'videos.$': shot, updatedAt: new Date() } },
+      )
+      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain)
+    } else if (st === 'failed' || st === 'error' || st === 'cancelled' || st === 'canceled') {
+      Object.assign(shot, {
+        status: 'failed',
+        error: String(task.error?.message || 'seedance failed'),
+        pct: 100,
+      })
+      await update(
+        'productions',
+        { jobId, 'videos.shot_id': shot.shot_id },
+        { $set: { 'videos.$': shot, updatedAt: new Date() } },
+      )
+      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain)
+    } else {
+      const p = apiProgress(task)
+      if (typeof p === 'number' && p !== shot.pct) {
+        shot.pct = p
+        await update(
+          'productions',
+          { jobId, videos: { $elemMatch: { shot_id: shot.shot_id, status: 'submitted' } } },
+          { $set: { 'videos.$.pct': p } },
+        )
+      }
+    }
+  }
+
+  await updateJob(jobId, {
+    videoProgress: { percent: renderedPct(videos), done: terminalCount(videos), total },
+  })
+
+  // Finalize when every shot is terminal. The rendering→composing transition is atomic,
+  // so exactly one caller hands off to the audio/composition job.
+  const allTerminal = videos.every((v) => v.status === 'rendered' || v.status === 'failed')
+  if (allTerminal && total > 0) {
+    const claimFinal = await update(
+      'productions',
+      { jobId, 'render.phase': 'rendering' },
+      { $set: { 'render.phase': 'composing', updatedAt: new Date() } },
+    )
+    if (claimFinal.matchedCount > 0) {
+      const progress = doc.progress || { calls: [] }
+      const vc = (progress.calls || []).find((c) => c.key === 'videoGeneration')
+      if (vc) vc.status = 'done'
+      await updateJob(jobId, { progress, percent: percentOf(progress) })
+      await triggerBackground(
+        'pipeline-audio-background',
+        jobId,
+        authHeader || systemAuthHeader(doc.userId),
+      )
+    }
+    return { phase: 'composing', done: terminalCount(videos), total }
+  }
+  return { phase: 'rendering', done: terminalCount(videos), total }
 }
 
 // Backfill missing shot cover thumbnails for an already-generated production (older

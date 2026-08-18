@@ -1,8 +1,12 @@
-// Generate an image with OpenAI (gpt-image-1) and store it in Cloudinary; return the URL.
-// Shared by episode-cover generation and character reference-sheet generation.
+// Generate an image with OpenAI and store it in Cloudinary; return the URL. Shared by
+// episode-cover generation and character reference-sheet generation. The model comes from
+// the admin settings (default gpt-image-1-mini — ~80% cheaper than the deprecated gpt-image-1,
+// which retires 2026-10-23); the OPENAI_IMAGE_MODEL env var is ignored.
 import { uploadImage } from './cloudinaryUtil.js'
+import { getImageModel } from './modelConfig.js'
 
 export const generateImage = async (prompt, folder = 'GCash/quick create/images') => {
+  const model = await getImageModel()
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -10,7 +14,7 @@ export const generateImage = async (prompt, folder = 'GCash/quick create/images'
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1',
+      model,
       prompt,
       size: '1024x1024',
       n: 1,

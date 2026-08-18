@@ -19,6 +19,9 @@ import {
   EPISODE_COST_OPTIONS,
   NEXT_EPISODE_COST_OPTIONS,
   WELCOME_CREDIT_OPTIONS,
+  CHAT_MODEL_OPTIONS,
+  IMAGE_MODEL_OPTIONS,
+  SEEDANCE_MODEL_OPTIONS,
 } from '../stores/systemSettingsStore'
 import type { Language } from '../i18n'
 import {
@@ -872,6 +875,42 @@ function SystemSettingsCard() {
           </For>
         </select>
       </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().chatModel || 'Chat Model'}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.chatModel}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ chatModel: e.currentTarget.value })}
+        >
+          <For each={CHAT_MODEL_OPTIONS}>{(m) => <option value={m}>{m}</option>}</For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().imageModel || 'Image Model'}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.imageModel}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ imageModel: e.currentTarget.value })}
+        >
+          <For each={IMAGE_MODEL_OPTIONS}>{(m) => <option value={m}>{m}</option>}</For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().seedanceModel || 'Video Model (Seedance)'}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.seedanceModel}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ seedanceModel: e.currentTarget.value })}
+        >
+          <For each={SEEDANCE_MODEL_OPTIONS}>{(m) => <option value={m}>{m}</option>}</For>
+        </select>
+      </div>
     </div>
   )
 }
@@ -905,21 +944,24 @@ function WalletSection() {
         </div>
       </div>
 
-      {/* Wallet Tabs */}
-      <div class="wallet-tabs">
-        <button
-          class={`wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`}
-          onClick={() => accountStoreActions.setWalletTab('topup')}
-        >
-          {wallet().topUp}
-        </button>
-        <button
-          class={`wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`}
-          onClick={() => accountStoreActions.setWalletTab('withdraw')}
-        >
-          {wallet().withdraw || 'Withdraw'}
-        </button>
-      </div>
+      {/* Wallet Tabs — hidden on native (iOS/Android): withdraw is removed there, so the
+          wallet stays pinned to top-up (which routes through Apple/Google IAP). */}
+      <Show when={!isCordova()}>
+        <div class="wallet-tabs">
+          <button
+            class={`wallet-tab ${accountStore.walletTab === 'topup' ? 'active' : ''}`}
+            onClick={() => accountStoreActions.setWalletTab('topup')}
+          >
+            {wallet().topUp}
+          </button>
+          <button
+            class={`wallet-tab ${accountStore.walletTab === 'withdraw' ? 'active' : ''}`}
+            onClick={() => accountStoreActions.setWalletTab('withdraw')}
+          >
+            {wallet().withdraw || 'Withdraw'}
+          </button>
+        </div>
+      </Show>
 
       {/* Amount Selection Section */}
       <div class="section-card amount-section">

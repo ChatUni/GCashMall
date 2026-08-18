@@ -10,6 +10,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { extractAudioTrack } from './ffmpeg.js'
 import { uploadBunnyCaption } from './bunny.js'
+import { getChatModel, chatTuning } from './modelConfig.js'
 
 // The languages we produce subtitles for. `whisper` is how Whisper names the language
 // (used to detect which language the audio is already in, so we don't re-translate it).
@@ -58,6 +59,7 @@ const segmentsToSrt = (segments) =>
 const translateSegments = async (segments, targetLabel) => {
   if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured')
   const numbered = segments.map((s, i) => ({ i, text: s.text }))
+  const model = await getChatModel()
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -65,8 +67,8 @@ const translateSegments = async (segments, targetLabel) => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o',
-      temperature: 0.2,
+      model,
+      ...chatTuning(model, 0.2),
       response_format: { type: 'json_object' },
       messages: [
         {

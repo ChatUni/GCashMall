@@ -8,6 +8,7 @@ import {
   startV1Job,
   startTranscribeBackfill,
   fetchProductionStatus,
+  advanceProduction,
   fetchMyProductions,
   generateStoryPrompt,
   type V1Proposal,
@@ -548,6 +549,7 @@ const pollEdit = async (jobId: string, reqId: string): Promise<void> => {
 // Poll the production job through Calls 2–6 + rendering until the episode video is ready.
 const pollProduce = async (jobId: string): Promise<void> => {
   const startedAt = Date.now()
+  let advancing = false // one client-driven advance in flight at a time
   while (state.jobId === jobId) {
     await sleep(POLL_INTERVAL_MS)
     if (state.jobId !== jobId) return
@@ -560,6 +562,19 @@ const pollProduce = async (jobId: string): Promise<void> => {
     if (state.jobId !== jobId) return
 
     applyProduceProgress(job)
+
+    // Poll-first async render: while shots are rendering, drive the pipeline forward
+    // (process completed Seedance tasks, submit chained follow-ups). No-op server-side in
+    // any other phase, so it's safe to fire on every tick. The scheduled reconciler is the
+    // backstop if the tab is closed.
+    if (job.render?.phase === 'rendering' && !advancing) {
+      advancing = true
+      advanceProduction(jobId)
+        .catch(() => {})
+        .finally(() => {
+          advancing = false
+        })
+    }
 
     if (job.episodeVideo) {
       stopStageTicker()

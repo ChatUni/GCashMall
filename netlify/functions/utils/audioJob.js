@@ -123,7 +123,7 @@ export const runAudioComposition = async (jobId, userId) => {
   }
   // Seedance 2.0 shots already carry synchronized audio — skip the audio-generation
   // step entirely and only stitch the shots.
-  const nativeAudio = modelHasNativeAudio()
+  const nativeAudio = await modelHasNativeAudio()
   const agIdx = nativeAudio ? -1 : ensureStep('audioGeneration')
   const cIdx = ensureStep('composition')
 

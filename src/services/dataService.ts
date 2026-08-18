@@ -482,6 +482,7 @@ export interface ProductionJob {
     coverStatus: string
   }
   videoProgress?: { done: number; total: number; percent?: number }
+  render?: { phase?: 'rendering' | 'composing' | 'done' | 'error'; total?: number } // async render state
   transcribeProgress?: { percent: number; task: string } // s1 subtitle step (0-100)
   transcribeError?: string
   calls?: Record<string, Record<string, unknown>>
@@ -691,6 +692,18 @@ export const fetchProductionStatus = async (jobId: string): Promise<ProductionJo
   const result = await apiGetWithAuth<ProductionJob>('productionStatus', { jobId })
   if (result.success && result.data) return result.data
   throw new Error(result.error || 'Failed to check generation status')
+}
+
+// Drive one step of the async (poll-first) video render. Fired alongside the progress poll
+// while the job is in the 'rendering' phase; a no-op server-side otherwise. Best-effort.
+export const advanceProduction = async (
+  jobId: string,
+): Promise<{ phase?: string; done?: number; total?: number } | null> => {
+  const result = await apiPostWithAuth<{ phase?: string; done?: number; total?: number }>(
+    'advanceProduction',
+    { jobId },
+  )
+  return result.success ? result.data || null : null
 }
 
 // Charge for + unlock generation of episode N from a production. Idempotent (free retry
