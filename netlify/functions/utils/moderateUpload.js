@@ -82,6 +82,11 @@ const moderateFramesInBatches = async (videoId, src, referer, timestamps, onProg
   }
 }
 
+// Content moderation is on by default; set MODERATION_ENABLED=false in the env to turn it
+// off. When off, uploads are auto-approved (no OpenAI text/frame checks) — transcription /
+// subtitles still run.
+const moderationEnabled = () => process.env.MODERATION_ENABLED !== 'false'
+
 export const runUploadModeration = async (videoId, userId) => {
   if (!videoId) throw new Error('videoId is required')
   const log = (m) => console.log(`[moderate ${videoId}] ${m}`)
@@ -124,30 +129,35 @@ export const runUploadModeration = async (videoId, userId) => {
     console.error(`[moderate ${videoId}] transcribe failed:`, e.message)
   }
 
-  // 2. Moderate the transcript text.
-  log('moderate text')
-  await setMod(videoId, { stage: 'moderateText', progress: 40 })
-  const textResult = await moderateText(transcript)
-  if (textResult.flagged) return reject('harmful_text', textResult.categories)
+  // 2–4. Content moderation (text + frames). Skipped entirely when MODERATION_ENABLED=false.
+  if (moderationEnabled()) {
+    // 2. Moderate the transcript text.
+    log('moderate text')
+    await setMod(videoId, { stage: 'moderateText', progress: 40 })
+    const textResult = await moderateText(transcript)
+    if (textResult.flagged) return reject('harmful_text', textResult.categories)
 
-  // 3 + 4. Extract frames at random 5–15s intervals and moderate them in batches.
-  log('moderate frames')
-  await setMod(videoId, { stage: 'moderateFrames', progress: 45 })
-  const info = await getBunnyVideo(videoId).catch(() => null)
-  let duration = Number(info?.length) || 0
-  if (!duration) duration = await probeDuration({ videoPath: src }).catch(() => 0)
-  const timestamps = frameTimestamps(duration)
-  const flaggedCats = await moderateFramesInBatches(
-    videoId,
-    src,
-    referer,
-    timestamps,
-    (done, total) =>
-      setMod(videoId, { progress: Math.min(95, 45 + Math.round((done / Math.max(1, total)) * 50)) }),
-  )
-  if (flaggedCats) return reject('harmful_frame', flaggedCats)
+    // 3 + 4. Extract frames at random 5–15s intervals and moderate them in batches.
+    log('moderate frames')
+    await setMod(videoId, { stage: 'moderateFrames', progress: 45 })
+    const info = await getBunnyVideo(videoId).catch(() => null)
+    let duration = Number(info?.length) || 0
+    if (!duration) duration = await probeDuration({ videoPath: src }).catch(() => 0)
+    const timestamps = frameTimestamps(duration)
+    const flaggedCats = await moderateFramesInBatches(
+      videoId,
+      src,
+      referer,
+      timestamps,
+      (done, total) =>
+        setMod(videoId, { progress: Math.min(95, 45 + Math.round((done / Math.max(1, total)) * 50)) }),
+    )
+    if (flaggedCats) return reject('harmful_frame', flaggedCats)
+  } else {
+    log('moderation disabled (MODERATION_ENABLED=false) — auto-approving')
+  }
 
-  // Passed every check.
+  // Passed every check (or moderation disabled).
   log('APPROVED')
   await setMod(videoId, { status: 'approved', stage: 'done', progress: 100 })
   return { status: 'approved' }
