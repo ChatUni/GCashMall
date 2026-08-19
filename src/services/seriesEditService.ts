@@ -44,7 +44,7 @@ export const fetchSeries = async (seriesId: string) => {
         genreIds: series.genre ? series.genre.map((g: Genre) => g._id) : [],
         cover: series.cover,
         episodes: episodes,
-        shelved: series.shelved !== undefined ? series.shelved : true,
+        shelved: series.shelved !== undefined ? series.shelved : false,
       })
       seriesEditStoreActions.setOriginalCover(series.cover)
       seriesEditStoreActions.setOriginalEpisodes(episodes.map((ep) => ({ ...ep })))

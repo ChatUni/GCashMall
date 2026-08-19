@@ -198,7 +198,8 @@ const populateSeriesGenres = async (seriesList) => {
 }
 
 const buildSeriesFilter = (params) => {
-  const filter = {}
+  // Shelved series are hidden from public listings (genre page, search).
+  const filter = { shelved: { $ne: true } }
 
   if (params.genreId) {
     // Support both old format (object with id) and new format (just _id)
@@ -248,8 +249,10 @@ const getGenres = async (params) => {
 
 // The set of genre id strings referenced by at least one series that has episodes.
 const getUsedGenreIds = async () => {
+  // Only genres used by a non-shelved series with episodes (so the sidebar never lists a
+  // genre whose only series are shelved/empty and would click through to nothing).
   // $slice: 1 keeps the payload tiny — we only need to know an episode exists.
-  const series = await get('series', {}, { genre: 1, episodes: { $slice: 1 } }, {})
+  const series = await get('series', { shelved: { $ne: true } }, { genre: 1, episodes: { $slice: 1 } }, {})
   const ids = new Set()
   for (const s of series) {
     if (!Array.isArray(s.episodes) || s.episodes.length === 0) continue
@@ -394,8 +397,8 @@ const shuffleArray = (array) => {
 
 const getFeaturedSeries = async (params) => {
   try {
-    // Get all series and pick a random one as featured
-    const allSeries = await get('series', {}, {}, {})
+    // Get all series and pick a random one as featured (exclude shelved)
+    const allSeries = await get('series', { shelved: { $ne: true } }, {}, {})
     
     if (!allSeries || allSeries.length === 0) {
       return {
@@ -444,7 +447,7 @@ const getVideoFeed = async (params) => {
     const page = parseInt(params.page) || 1
     const limit = parseInt(params.limit) || 5
     const skip = (page - 1) * limit
-    const filter = seriesWithVideoFilter()
+    const filter = { ...seriesWithVideoFilter(), shelved: { $ne: true } }
     const series = await get('series', filter, {}, { createdAt: -1 }, limit, skip)
     const populatedSeries = await populateSeriesGenres(series)
     return {
@@ -476,7 +479,7 @@ const getSeriesIdsSortedByLikes = async (limit) => {
 
 const getSeriesByIds = async (seriesIds) => {
   if (seriesIds.length === 0) return []
-  return await get('series', { _id: { $in: seriesIds.map((id) => new ObjectId(id)) } })
+  return await get('series', { _id: { $in: seriesIds.map((id) => new ObjectId(id)) }, shelved: { $ne: true } })
 }
 
 const orderSeriesByIds = (series, seriesIds) => {
@@ -491,7 +494,7 @@ const backfillWithRandomSeries = async (existingSeries, targetCount) => {
   const excludeIds = existingSeries.map((s) => s._id)
   const randomSeries = await get(
     'series',
-    { _id: { $nin: excludeIds } },
+    { _id: { $nin: excludeIds }, shelved: { $ne: true } },
     {},
     {},
     remaining * 2,
@@ -502,8 +505,8 @@ const backfillWithRandomSeries = async (existingSeries, targetCount) => {
 
 const getNewReleases = async (params) => {
   try {
-    // Get series and randomize the order
-    const series = await get('series', {}, {}, {}, 20)
+    // Get series and randomize the order (exclude shelved)
+    const series = await get('series', { shelved: { $ne: true } }, {}, {}, 20)
     const shuffledSeries = shuffleArray(series).slice(0, 10)
     const populatedSeries = await populateSeriesGenres(shuffledSeries)
     return {

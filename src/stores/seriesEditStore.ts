@@ -51,7 +51,7 @@ const initialFormData: SeriesFormData = {
   genreIds: [],
   cover: '',
   episodes: [],
-  shelved: true,
+  shelved: false,
 }
 
 const getInitialState = (): SeriesEditState => ({
