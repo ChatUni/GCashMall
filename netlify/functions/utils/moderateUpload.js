@@ -18,6 +18,7 @@ import { transcribeEpisode } from './transcribe.js'
 import { moderateText, moderateImages } from './moderation.js'
 import { extractFrameAt, probeDuration } from './ffmpeg.js'
 import {
+  waitForBunnyReady,
   bunnyHlsUrl,
   bunnyReferer,
   getBunnyVideo,
@@ -86,17 +87,17 @@ const moderateFramesInBatches = async (videoId, src, referer, timestamps, onProg
 // subtitles still run.
 const moderationEnabled = () => process.env.MODERATION_ENABLED !== 'false'
 
-// Poll-first, re-entrant moderation "advance" step. Instead of one background job that blocks
-// idle-polling Bunny's encoder, this runs one step and returns: it checks Bunny readiness ONCE
-// and exits if still encoding, so no function ever sits idle. The client's status poll and a
-// scheduled reconciler re-invoke it until Bunny is ready; then exactly one invocation claims
-// the work (atomic phase flip) and runs transcribe + moderation.
-//
+// Upload moderation, without a blocking idle-poll on Bunny's encoder. Two shapes:
+//   • Moderation OFF — approve the upload instantly (client's gate), then transcribe subtitles
+//     in THIS same background invocation. Self-contained, so it does NOT depend on the
+//     scheduled reconciler firing. Idempotent via an atomic 'working' claim.
+//   • Moderation ON — poll-first, re-entrant: each call checks Bunny readiness once and exits
+//     if still encoding; the client's status poll re-invokes it until ready, then one
+//     invocation claims the work and runs transcribe + moderation.
 // Phases: awaiting_encode → working → done.
 export const runUploadModeration = async (videoId, userId) => {
   if (!videoId) throw new Error('videoId is required')
   const log = (m) => console.log(`[moderate ${videoId}] ${m}`)
-  const off = !moderationEnabled()
 
   const reject = async (reason, categories) => {
     log(`REJECTED: ${reason} [${(categories || []).join(', ')}]`)
@@ -105,19 +106,54 @@ export const runUploadModeration = async (videoId, userId) => {
     return { status: 'rejected', reason, categories }
   }
 
-  // First invocation: create the tracking record. `status` is the client's gate —
-  // moderation-off approves instantly (subtitles still generated below); moderation-on stays
-  // 'processing' until the verdict.
+  // ── Moderation OFF: approve instantly + generate subtitles here (no scheduler dependency) ──
+  if (!moderationEnabled()) {
+    const existing = await getModeration(videoId)
+    if (existing && (existing.phase === 'working' || existing.phase === 'done')) {
+      return { phase: existing.phase }
+    }
+    if (!existing) {
+      await setMod(videoId, {
+        videoId,
+        userId: userId || null,
+        status: 'approved',
+        phase: 'awaiting_encode',
+        stage: 'done',
+        progress: 100,
+        reason: 'moderation_disabled',
+        categories: [],
+        createdAt: new Date(),
+      })
+    }
+    // Atomic claim so repeated client triggers don't double-transcribe.
+    const claim = await update(
+      'videoModeration',
+      { videoId, phase: 'awaiting_encode' },
+      { $set: { phase: 'working', updatedAt: new Date() } },
+    )
+    if (!claim.matchedCount) return { working: true }
+    log('moderation off — approved; generating subtitles')
+    try {
+      await waitForBunnyReady(videoId)
+      await transcribeEpisode({ videoPath: bunnyHlsUrl(videoId), videoId, referer: bunnyReferer() })
+    } catch (e) {
+      console.error(`[moderate ${videoId}] subtitle transcription failed:`, e.message)
+    }
+    await setMod(videoId, { phase: 'done' })
+    return { status: 'approved' }
+  }
+
+  // ── Moderation ON: poll-first, re-entrant, client-driven ──
   let doc = await getModeration(videoId)
   if (!doc) {
     await setMod(videoId, {
       videoId,
       userId: userId || null,
-      status: off ? 'approved' : 'processing',
+      status: 'processing',
       phase: 'awaiting_encode',
-      stage: off ? 'done' : 'encoding',
-      progress: off ? 100 : 5,
-      reason: off ? 'moderation_disabled' : '',
+      stage: 'encoding',
+      progress: 5,
+      reason: '',
       categories: [],
       createdAt: new Date(),
     })
@@ -125,15 +161,13 @@ export const runUploadModeration = async (videoId, userId) => {
   }
   if (doc.phase === 'working' || doc.phase === 'done') return { phase: doc.phase }
 
-  // Check Bunny readiness ONCE (status 4 = Finished, 5/6 = error). Still encoding → exit; a
-  // later client poll or the scheduled reconciler re-invokes this. No idle loop.
+  // Check Bunny readiness ONCE (4 = Finished, 5/6 = error). Still encoding → exit; the client's
+  // status poll re-invokes this. No idle loop.
   const info = await getBunnyVideo(videoId).catch(() => null)
   if (info?.status !== 4) {
     if (info?.status === 5 || info?.status === 6) {
       log(`bunny encode failed (status ${info.status})`)
-      await setMod(videoId, off
-        ? { phase: 'done' }
-        : { status: 'rejected', reason: 'encode_failed', phase: 'done', stage: 'done', progress: 100 })
+      await setMod(videoId, { status: 'rejected', reason: 'encode_failed', phase: 'done', stage: 'done', progress: 100 })
     }
     return { waiting: true }
   }
@@ -153,18 +187,11 @@ export const runUploadModeration = async (videoId, userId) => {
   let transcript = ''
   try {
     log('transcribe')
-    if (!off) await setMod(videoId, { stage: 'transcribe', progress: 25 })
+    await setMod(videoId, { stage: 'transcribe', progress: 25 })
     const r = await transcribeEpisode({ videoPath: src, videoId, referer })
     transcript = r.text || ''
   } catch (e) {
     console.error(`[moderate ${videoId}] transcribe failed:`, e.message)
-  }
-
-  // Moderation off → subtitles are done; the upload was already approved above.
-  if (off) {
-    await setMod(videoId, { phase: 'done' })
-    log('APPROVED (moderation off)')
-    return { status: 'approved' }
   }
 
   // Moderate the transcript text.

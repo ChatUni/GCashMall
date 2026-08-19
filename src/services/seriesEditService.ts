@@ -256,8 +256,12 @@ const moderateUploadedVideo = async (
   await startUploadModeration(videoId)
 
   const start = Date.now()
+  // Poll soon at first (so an instant approval — e.g. moderation off — clears in ~1s instead
+  // of the full 4s interval), then back off to 4s while real checks run.
+  let delay = 1000
   while (Date.now() - start < MODERATION_TIMEOUT_MS) {
-    await new Promise((r) => setTimeout(r, 4000))
+    await new Promise((r) => setTimeout(r, delay))
+    delay = Math.min(4000, delay + 1000)
     let status
     try {
       status = await fetchModerationStatus(videoId)
