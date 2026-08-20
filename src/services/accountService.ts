@@ -689,6 +689,23 @@ export const syncGUSDTopUps = async (): Promise<{ success: boolean; user?: User;
   }
 }
 
+// The user cancelled the GUSD payment (backed out). Drop the pending top-up so it doesn't
+// linger in the history. Refreshes the store with the updated user.
+export const cancelGUSDTopUp = async (orderId: string): Promise<void> => {
+  if (!orderId) return
+  try {
+    const response = await apiPostWithAuth<User>('cancelGUSDTopUp', { orderId })
+    if (response.success && response.data) {
+      const user = response.data as User
+      const token = localStorage.getItem('gcashmall_token')
+      if (token) saveAuthData(token, user)
+      accountStoreActions.initializeUserData(user)
+    }
+  } catch (error) {
+    console.error('Error cancelling GUSD top up:', error)
+  }
+}
+
 // True if the user has any still-processing GUSD top-up (so the wallet should reconcile).
 export const hasPendingGUSDTopUp = (): boolean =>
   (accountStoreActions.getState().transactions || []).some(
@@ -913,6 +930,15 @@ export const initializeAccountPage = async (
   if (updatedState.isLoggedIn && !updatedState.userDataFetched) {
     accountStoreActions.setUserDataFetched(true)
     await fetchAccountUserData()
+    // Reconcile any still-processing GUSD orders on load — covers the user backing out of the
+    // pay page (browser back, no cancel redirect). syncGUSDTopUps queries pay_order_info and
+    // removes abandoned/cancelled top-ups, finalizes paid ones. Runs for desktop AND phone.
+    const txns = accountStoreActions.getState().transactions || []
+    const hasPendingGusd = txns.some(
+      (tx) =>
+        (tx.type === 'topup' || tx.type === 'withdraw') && tx.method === 'GUSD' && tx.status === 'processing',
+    )
+    if (hasPendingGusd) syncGUSDTopUps().catch(() => {})
   }
   
   // Fetch my purchases when logged in (only once)
@@ -1427,6 +1453,10 @@ export const handleStripeCallback = async (
       }
     }
   } else if (topupStatus === 'cancelled') {
+    // Remove the pending top-up transaction created up front, so a cancelled payment doesn't
+    // linger as "Processing" in the history.
+    const orderId = searchParams.get('order_id') || ''
+    if (orderId) await cancelGUSDTopUp(orderId)
     toastStoreActions.show(wallet?.topUpFailed || 'Top up cancelled', 'error')
   }
 

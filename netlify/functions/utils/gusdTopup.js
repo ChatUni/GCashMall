@@ -45,8 +45,8 @@ export const finalizeGUSDOrder = async (orderId, info = {}) => {
   const { userId } = parseGUSDOrderId(orderId)
   if (!userId) return { finalized: false, reason: 'bad_order_id' }
 
+  const state = String(info.state || '').toLowerCase()
   const outcome = gusdOutcome(info.state)
-  if (outcome === 'pending') return { finalized: false, pending: true }
 
   const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
   if (!users || users.length === 0) return { finalized: false, reason: 'user_not_found' }
@@ -64,6 +64,24 @@ export const finalizeGUSDOrder = async (orderId, info = {}) => {
     _id: new ObjectId(userId),
     transactions: { $elemMatch: { order_id: orderId, status: 'processing' } },
   }
+
+  // A top-up the user never funded → REMOVE it so it doesn't linger in the history. This is
+  // what fixes the "click back without paying" case: the order stays in `create` because the
+  // user backed out before submitting payment (or `canceled` if explicitly cancelled). We only
+  // reconcile from the wallet after the user returned from the pay page, so a `created` order is
+  // abandoned. `await_funds`/`funds_received`+ mean a charge is in progress → kept (see below),
+  // so a paid top-up is never dropped; withdrawals are always recorded.
+  if (!isWithdraw && ['create', 'created', 'canceled'].includes(state)) {
+    await update('users', pendingFilter, {
+      $pull: { transactions: { order_id: orderId, status: 'processing' } },
+      $set: { updatedAt: new Date() },
+    })
+    console.log(`[gusd] top-up abandoned/cancelled (${state}) — removed:`, orderId)
+    return { finalized: 'removed' }
+  }
+
+  // Still in progress (funds received / submitted / in review) → leave it processing.
+  if (outcome === 'pending') return { finalized: false, pending: true }
 
   if (outcome === 'success') {
     const set = {
@@ -87,7 +105,8 @@ export const finalizeGUSDOrder = async (orderId, info = {}) => {
     return { finalized: false, alreadyDone: true }
   }
 
-  // outcome === 'fail' — refund a failed withdrawal (the amount was reserved at creation).
+  // outcome === 'fail' (error / returned / refunded / …). Refund a failed withdrawal (the
+  // amount was reserved at creation); a failed top-up just records 'failed'.
   const failSet = {
     'transactions.$.status': 'failed',
     'transactions.$.fail_reason': String(info.fail_reason || 'payment failed'),

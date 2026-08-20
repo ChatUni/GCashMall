@@ -2671,6 +2671,9 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
   const session = await stripe.checkout.sessions.create({
     payment_method_types: paymentMethodTypes,
     mode: 'payment',
+    // Force USD-only: disable Stripe Adaptive Pricing (which otherwise localizes the price to
+    // the buyer's currency, e.g. CAD). Per-session flag, independent of the Dashboard toggle.
+    adaptive_pricing: { enabled: false },
     line_items: [
       {
         price_data: {
@@ -2972,6 +2975,26 @@ const syncGUSDTopUps = async (body, authHeader) => {
       console.error('[syncGUSDTopUps] order', t.order_id, 'failed:', error.message)
     }
   }
+  const fresh = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  return { success: true, data: await buildUserResponse(fresh[0]) }
+}
+
+// The user backed out of the GUSD hosted pay page (redirected to failure_url). Drop the
+// pending top-up transaction we created up front so a cancelled top-up doesn't linger in the
+// history. Guarded to status 'processing' — if a webhook already credited it ('success'), or a
+// reconcile marked it 'failed', it's left untouched (never remove a paid/settled top-up).
+const cancelGUSDTopUp = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  const orderId = body?.orderId
+  if (!orderId) throw new Error('orderId is required')
+  await update(
+    'users',
+    { _id: new ObjectId(userId) },
+    {
+      $pull: { transactions: { order_id: orderId, type: 'topup', status: 'processing' } },
+      $set: { updatedAt: new Date() },
+    },
+  )
   const fresh = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
   return { success: true, data: await buildUserResponse(fresh[0]) }
 }
@@ -3679,6 +3702,7 @@ export {
   topUp,
   completeStripeTopUp,
   syncGUSDTopUps,
+  cancelGUSDTopUp,
   verifyIAPReceipt,
   withdraw,
   purchaseEpisode,
