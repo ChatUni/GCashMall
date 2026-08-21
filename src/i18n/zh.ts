@@ -856,6 +856,7 @@ export const zh = {
       savedCloudSub: '第 1 集准备好后我们会通知你。',
       exitStudio: '退出工作室',
       stayWatch: '留下观看',
+      finalizing: '正在完成你的剧集……准备就绪后本页会自动打开。',
       stages: {
         executiveProducer: { name: '执行制片人', desc: '规划故事、世界与剧集。' },
         characterDirector: { name: '角色导演', desc: '设计主要角色与档案。' },

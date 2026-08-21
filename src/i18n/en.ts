@@ -857,6 +857,7 @@ export const en = {
       savedCloudSub: "You'll be notified when Episode 1 is ready.",
       exitStudio: 'Exit Studio',
       stayWatch: 'Stay and Watch',
+      finalizing: 'Finalizing your episode… this page will open it automatically when it’s ready.',
       stages: {
         executiveProducer: { name: 'Executive Producer', desc: 'Planning the story, world, and episode.' },
         characterDirector: { name: 'Character Director', desc: 'Designing main characters and profiles.' },

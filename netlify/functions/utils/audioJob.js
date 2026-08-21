@@ -112,6 +112,33 @@ export const runAudioComposition = async (jobId, userId) => {
     throw new Error('not authorized for this production')
   }
 
+  // Idempotency / anti-duplicate guard. Composition is normally fired once (by the video
+  // job's rendering→composing hand-off), but the client's poll re-triggers it as a backstop
+  // if that single invocation was lost or crashed (see recoverStalledComposition). Claim the
+  // slot atomically: bail if the episode is already produced, or if another composition
+  // claimed it within the stale window (longer than any real composition run) so a retrigger
+  // can't spawn a duplicate Bunny upload alongside a still-running one.
+  const COMPOSE_CLAIM_STALE_MS = 8 * 60 * 1000
+  if (doc.episodeVideo) return
+  const claim = await update(
+    'productions',
+    {
+      jobId,
+      $or: [{ episodeVideo: null }, { episodeVideo: '' }, { episodeVideo: { $exists: false } }],
+      $and: [
+        {
+          $or: [
+            { 'render.composeRunAt': null },
+            { 'render.composeRunAt': { $exists: false } },
+            { 'render.composeRunAt': { $lt: new Date(Date.now() - COMPOSE_CLAIM_STALE_MS) } },
+          ],
+        },
+      ],
+    },
+    { $set: { 'render.composeRunAt': new Date() } },
+  )
+  if (claim.matchedCount === 0) return // another composition is in progress (or already done)
+
   const progress = doc.progress || { calls: [] }
   const ensureStep = (key) => {
     let i = (progress.calls || []).findIndex((c) => c.key === key)
@@ -257,11 +284,27 @@ export const runAudioComposition = async (jobId, userId) => {
           episodeVideo = bunnyEmbedUrl(episodeBunnyVideoId)
           // Composition (stitch + upload) is complete; Bunny now encodes in the background.
           progress.calls[cIdx].status = 'done'
-          await updateJob(jobId, { progress, episodeBunnyVideoId, percent: percentOf(progress) })
-          // While Bunny encodes, transcribe the episode and attach subtitle tracks.
-          await runTranscribe({ jobId, epPath, videoId: episodeBunnyVideoId, progress, ensureStep })
-          // Make sure the episode is actually playable before we reveal it.
+          // Make sure the episode is actually playable, then REVEAL it immediately: persist
+          // episodeVideo + status:'done' + render.phase:'done' now so the studio advances to
+          // the Ready page. Subtitle transcription is the slow tail — running it *before* the
+          // reveal is what left the studio stuck on "Processing video…" whenever it stalled or
+          // the background function timed out. It now runs *after* the reveal, best-effort; if
+          // it doesn't finish, openProduction backfills subtitles the next time the episode is
+          // opened, and the episode is already watchable in the meantime.
           await waitForBunnyReady(episodeBunnyVideoId).catch(() => {})
+          const revealCover = doc.cover || videos.find((v) => v.coverUrl)?.coverUrl || ''
+          await updateJob(jobId, {
+            progress,
+            episodeVideo,
+            episodeBunnyVideoId,
+            cover: revealCover,
+            status: 'done',
+            percent: percentOf(progress),
+            'render.phase': 'done',
+          })
+          await runTranscribe({ jobId, epPath, videoId: episodeBunnyVideoId, progress, ensureStep }).catch(
+            (e) => console.error('transcribe failed (post-reveal, subtitles will backfill):', e.message),
+          )
         } else {
           episodeVideo = await uploadVideo(epPath)
         }

@@ -220,6 +220,18 @@
 .qcv1-error.sm {
   font-size: 12.5px;
 }
+.qcv1-finalizing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent, #a855f7) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #a855f7) 30%, transparent);
+  border-radius: 10px;
+}
 .qcv1-loading {
   display: flex;
   flex-direction: column;

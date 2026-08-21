@@ -411,17 +411,63 @@ export const submitVideoGeneration = async (jobId, userId) => {
   })
 }
 
+// Re-trigger a stalled audio/composition job. The rendering→composing hand-off fires the
+// composition background function exactly once; this is the recovery path if that single
+// trigger is lost or the function dies before persisting the episode video. Guarded by an
+// atomic stale-timestamp claim so overlapping client polls can't spawn duplicate composition
+// jobs (runAudioComposition has its own claim as a second line of defence). The stale window
+// is longer than any real composition run, so a slow-but-alive composition is never disturbed.
+const COMPOSE_RETRY_STALE_MS = 8 * 60 * 1000
+const recoverStalledComposition = async (jobId, head, authHeader) => {
+  if (head.episodeVideo) return { phase: 'done' }
+  const claim = await update(
+    'productions',
+    {
+      jobId,
+      'render.phase': 'composing',
+      $and: [
+        { $or: [{ episodeVideo: null }, { episodeVideo: '' }, { episodeVideo: { $exists: false } }] },
+        {
+          $or: [
+            { 'render.composeAt': null },
+            { 'render.composeAt': { $exists: false } },
+            { 'render.composeAt': { $lt: new Date(Date.now() - COMPOSE_RETRY_STALE_MS) } },
+          ],
+        },
+      ],
+    },
+    { $set: { 'render.composeAt': new Date() } },
+  )
+  if (claim.matchedCount === 0) return { phase: 'composing' } // fresh attempt in flight
+  await triggerBackground(
+    'pipeline-audio-background',
+    jobId,
+    authHeader || systemAuthHeader(head.userId),
+  )
+  return { phase: 'composing', retriggered: true }
+}
+
 // Drive the render forward one step: poll submitted tasks, process at most one completion
 // (frame extraction + Bunny is capped per call to stay under the sync-function limit),
 // submit chained follow-ups, and hand off to composition when everything is terminal.
 // Idempotent — safe to call concurrently from the client poll and the scheduled reconciler.
 export const advanceVideoGeneration = async (jobId, userId, authHeader) => {
-  const head = await get('productions', { jobId }, { userId: 1, render: 1 }, {}, 1)
+  const head = await get('productions', { jobId }, { userId: 1, render: 1, episodeVideo: 1 }, {}, 1)
   if (!head || head.length === 0) return { phase: 'unknown' }
   if (userId && String(head[0].userId) !== String(userId)) {
     throw new Error('not authorized for this production')
   }
-  if (head[0].render?.phase !== 'rendering') return { phase: head[0].render?.phase || 'unknown' }
+  if (head[0].render?.phase !== 'rendering') {
+    // Composition-phase backstop. Once the shots are all rendered we hand off to the audio/
+    // composition background job with a single fire-and-forget trigger. If that invocation is
+    // lost or the function crashes/times out, nothing else retries it and the studio hangs on
+    // "Processing video…" forever. Re-fire it (with an idempotency guard) when the previous
+    // attempt has gone stale and no episode video has landed.
+    if (head[0].render?.phase === 'composing') {
+      return await recoverStalledComposition(jobId, head[0], authHeader)
+    }
+    return { phase: head[0].render?.phase || 'unknown' }
+  }
 
   // Advisory lock: exactly one advance runs at a time across the client trigger + the
   // scheduled reconciler. Overlapping triggers become cheap no-ops. A stale lock (crashed
@@ -556,7 +602,7 @@ const runAdvanceStep = async (jobId, authHeader) => {
     const claimFinal = await update(
       'productions',
       { jobId, 'render.phase': 'rendering' },
-      { $set: { 'render.phase': 'composing', updatedAt: new Date() } },
+      { $set: { 'render.phase': 'composing', 'render.composeAt': new Date(), updatedAt: new Date() } },
     )
     if (claimFinal.matchedCount > 0) {
       const progress = doc.progress || { calls: [] }

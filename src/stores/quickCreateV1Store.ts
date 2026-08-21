@@ -564,10 +564,11 @@ const pollProduce = async (jobId: string): Promise<void> => {
     applyProduceProgress(job)
 
     // Poll-first async render: while shots are rendering, drive the pipeline forward
-    // (process completed Seedance tasks, submit chained follow-ups). No-op server-side in
-    // any other phase, so it's safe to fire on every tick. The scheduled reconciler is the
-    // backstop if the tab is closed.
-    if (job.render?.phase === 'rendering' && !advancing) {
+    // (process completed Seedance tasks, submit chained follow-ups). During 'composing' the
+    // same advance becomes the recovery path for a stalled/lost composition trigger (server
+    // re-fires it only once its previous attempt goes stale). No-op server-side in any other
+    // phase, so it's safe to fire on every tick.
+    if ((job.render?.phase === 'rendering' || job.render?.phase === 'composing') && !advancing) {
       advancing = true
       advanceProduction(jobId)
         .catch(() => {})

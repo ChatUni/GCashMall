@@ -842,6 +842,13 @@ const Page3Studio = () => {
         <p class="qcv1-error">{s.produceError}</p>
       </Show>
 
+      {/* Finalizing banner — shown once every shot has rendered but the stitched episode
+          isn't ready yet (audio/composition + encode). Reassures the user the studio will
+          advance on its own, so step 3 doesn't look frozen. */}
+      <Show when={s.producing && !s.episodeVideo && s.videoTotal > 0 && s.videoDone >= s.videoTotal}>
+        <p class="qcv1-finalizing">⏳ {st().finalizing}</p>
+      </Show>
+
       {/* Bottom bar */}
       <div class="qcv1-bottombar">
         <button class="qcv1-btn ghost" onClick={() => actions.goToStep(2)}>
@@ -852,10 +859,16 @@ const Page3Studio = () => {
         </div>
         <div class="qcv1-bottombar-right">
           <button class="qcv1-btn ghost" onClick={() => navigate('/')}>
-            ⊟ {st().exitStudio}
+            🚪 {st().exitStudio}
           </button>
-          <button class="qcv1-btn primary" onClick={() => toastStoreActions.show(st().stayWatch, 'info')}>
-            ▭ {st().stayWatch}
+          {/* Enabled only once the episode video is ready; it then opens the Ready page (the
+              studio also auto-advances there on its own). Disabled while still producing. */}
+          <button
+            class="qcv1-btn primary"
+            disabled={!s.episodeVideo}
+            onClick={() => actions.goToStep(4)}
+          >
+            ▶ {st().stayWatch}
           </button>
         </div>
       </div>
@@ -1050,7 +1063,7 @@ const Page4Ready = () => {
               </div>
               <div class="qcv1-ep-meta">
                 <span>🕐 0:30</span>
-                <span>▭ 480p</span>
+                <span>📺 480p</span>
                 <span>📅 {today()}</span>
               </div>
               <p class="qcv1-ep-summary">{ep1()?.summary || ''}</p>
