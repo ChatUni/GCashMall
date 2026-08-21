@@ -31,6 +31,7 @@ import { getPreviewLength } from '../../stores/systemSettingsStore'
 import { isIOS } from '../../utils/cordova'
 import {
   getIframeUrl,
+  getEpisodeThumbnailUrl,
   formatLikeCount,
   getShareUrl,
   getShareText,
@@ -437,10 +438,9 @@ const PhonePlayer = () => {
                       >
                         <img
                           src={
-                            episode.thumbnail
-                              || (episode.videoId
-                                ? `https://vz-918d4e7e-1fb.b-cdn.net/${episode.videoId}/thumbnail.jpg`
-                                : playerStore.series?.cover || '/placeholder.jpg')
+                            getEpisodeThumbnailUrl(episode, false)
+                              || playerStore.series?.cover
+                              || '/placeholder.jpg'
                           }
                           alt={`Episode ${episode.episodeNumber}`}
                           class="phone-episode-thumb-img"

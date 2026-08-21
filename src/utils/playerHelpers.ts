@@ -3,6 +3,7 @@
 
 import type { Episode } from '../types'
 import { isCordova, PRODUCTION_ORIGIN, openSystemBrowser, getSocialSharing } from './cordova'
+import { getApiBaseUrl } from './api'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
 
@@ -18,13 +19,22 @@ export const formatTime = (seconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+// URL for a Bunny Stream asset (thumbnail/preview) for a given video id. The Stream library has
+// hotlink protection ("Block direct URL file access"), which the Cordova app can't satisfy — it
+// runs on a custom scheme (app://localhost) that WebKit won't send as a Referer, so direct CDN
+// requests 403. In the app we therefore route through our /bunny-thumb proxy, which adds a valid
+// Referer server-side. On the web the browser sends the site Referer, so we hit the CDN directly.
+export const getBunnyAssetUrl = (videoId: string, file: string): string => {
+  if (isCordova()) return `${getApiBaseUrl()}/.netlify/functions/bunny-thumb?v=${videoId}&file=${file}`
+  return `https://vz-918d4e7e-1fb.b-cdn.net/${videoId}/${file}`
+}
+
 export const getEpisodeThumbnailUrl = (episode: Episode, isHovered: boolean): string => {
-  const baseUrl = 'https://vz-918d4e7e-1fb.b-cdn.net'
   // Hover shows Bunny's animated preview when available.
-  if (isHovered && episode.videoId) return `${baseUrl}/${episode.videoId}/preview.webp`
+  if (isHovered && episode.videoId) return getBunnyAssetUrl(episode.videoId, 'preview.webp')
   // A custom thumbnail (e.g. chosen at publish time) wins over Bunny's auto-generated one.
   if (episode.thumbnail) return episode.thumbnail
-  if (episode.videoId) return `${baseUrl}/${episode.videoId}/thumbnail.jpg`
+  if (episode.videoId) return getBunnyAssetUrl(episode.videoId, 'thumbnail.jpg')
   return ''
 }
 

@@ -2671,9 +2671,6 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
   const session = await stripe.checkout.sessions.create({
     payment_method_types: paymentMethodTypes,
     mode: 'payment',
-    // Force USD-only: disable Stripe Adaptive Pricing (which otherwise localizes the price to
-    // the buyer's currency, e.g. CAD). Per-session flag, independent of the Dashboard toggle.
-    adaptive_pricing: { enabled: false },
     line_items: [
       {
         price_data: {
