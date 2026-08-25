@@ -1,6 +1,7 @@
 import { createEffect, Show } from 'solid-js'
 import { useNavigate, useLocation } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../utils/config'
+import { BRAND_LOGO } from '../utils/brand'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
 import { startFreshQuickCreate } from '../services/quickCreateNav'
@@ -54,19 +55,11 @@ const TopBar = () => {
         <div class="top-bar-content">
           <div class="top-bar-left">
             <img
-              src={
-                currentTheme() === 'light'
-                  ? 'https://res.cloudinary.com/daqc8bim3/image/upload/e_negate/v1764702233/logo.png'
-                  : 'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png'
-              }
-              alt="App Logo"
+              src={BRAND_LOGO}
+              alt={APP_DISPLAY_NAME}
               class="app-logo"
               onClick={handleLogoClick}
             />
-            <span class="app-name" onClick={handleLogoClick}>
-              {APP_DISPLAY_NAME}
-            </span>
-
             {/* Genre Icon - Shown on tablet/mobile when nav-links are hidden */}
             <div
               class={`icon-button genre-icon ${isActiveRoute('/genre') ? 'active' : ''}`}

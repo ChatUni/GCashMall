@@ -1,5 +1,6 @@
 import PhoneLayout from '../../layouts/PhoneLayout'
 import { APP_DISPLAY_NAME } from '../../utils/config'
+import { BRAND_MARK } from '../../utils/brand'
 import { t } from '../../stores/languageStore'
 import './PhoneAbout.css'
 
@@ -11,7 +12,7 @@ const PhoneAbout = () => {
       <div class="phone-about">
         <div class="phone-about-logo">
           <img
-            src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png"
+            src={BRAND_MARK}
             alt={APP_DISPLAY_NAME}
           />
         </div>

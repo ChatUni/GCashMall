@@ -14,6 +14,7 @@
   }
   .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 96px; }
   h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; color: #fff; }
+  .org { color: #D1D5DB; font-size: 15px; margin: 0 0 2px; }
   .updated { color: #9CA3AF; font-size: 14px; margin: 0 0 32px; }
   h2 { font-size: 20px; color: #fff; margin: 36px 0 10px; }
   h3 { font-size: 16px; color: #fff; margin: 22px 0 6px; }
@@ -21,146 +22,401 @@
   a { color: #3B82F6; }
   ul { padding-left: 22px; }
   li { margin: 5px 0; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14.5px; }
+  /* Wide tables scroll inside their own box rather than forcing the page sideways. */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 460px; }
+  .table-scroll table.cols4 { min-width: 720px; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #23262E; vertical-align: top; }
-  th { color: #fff; }
+  th { color: #fff; white-space: nowrap; }
   .muted { color: #9CA3AF; font-size: 14px; }
   hr { border: none; border-top: 1px solid #23262E; margin: 32px 0; }
-  code { background: #16181D; padding: 1px 6px; border-radius: 4px; font-size: 14px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: August 18, 2026</p>
+  <p class="org">Fresh Road Studio Inc.</p>
+  <p class="updated">Last updated: August 23, 2026</p>
 
-  <p>This Privacy Policy explains how <strong>Ganime</strong> (“Ganime”, “we”, “us”, or “our”),
-  operated by <strong>FreshRoad Inc.</strong>, collects, uses, and shares information when you use
-  the Ganime mobile app and website at <a href="https://ganime.io">ganime.io</a> (the “Service”).
-  Ganime lets you watch AI-generated anime series and create your own animated episodes.</p>
+  <p>Ganime (“Ganime,” “we,” “us,” or “our”) is operated by Fresh Road Studio Inc. This Privacy
+  Policy explains how we collect, use, disclose, retain, and protect personal information when you
+  use the Ganime mobile application, the website at <a href="https://ganime.io">ganime.io</a>, and
+  related services (collectively, the “Service”).</p>
 
-  <p>By using the Service, you agree to the practices described in this policy. If you do not agree,
-  please do not use the Service.</p>
+  <p>Ganime allows users to discover and watch AI-generated anime series and to create, upload,
+  publish, and monetize animated stories and episodes.</p>
 
-  <h2>1. Information We Collect</h2>
+  <p>This Privacy Policy is a notice of our privacy practices. Where applicable law requires consent
+  for a particular activity, we will request that consent separately.</p>
 
-  <h3>Information you provide</h3>
+  <h2>1. Scope</h2>
+  <p>This Privacy Policy applies to personal information processed through the Service. It does not
+  apply to third-party websites, applications, or services that are governed by their own privacy
+  policies.</p>
+  <p>Fresh Road Studio Inc. is the controller of personal information described in this Privacy
+  Policy, except where another entity is identified as the controller at the point of collection.</p>
+
+  <h2>2. Information We Collect</h2>
+  <p>The information we collect depends on how you use the Service and which features are available
+  in your region.</p>
+
+  <h3>A. Information you provide</h3>
   <ul>
-    <li><strong>Account information</strong> — when you sign up with email/password or a third-party
-      login (e.g. Google), we receive your email address and may receive your name and profile
-      picture. A default display name and avatar are assigned if none is provided.</li>
-    <li><strong>Content you create or upload</strong> — the story ideas and prompts you enter, and
-      any videos, series, episodes, titles, descriptions, and images you generate, upload, or
-      publish through the Service.</li>
-    <li><strong>Payment and wallet activity</strong> — records of top-ups, withdrawals, purchases,
-      and your in-app GUSD balance. Card payments are processed by our payment provider; in-app
-      purchases are processed by Apple or Google. We do not receive or store your full card number.</li>
-    <li><strong>Communications</strong> — messages, feedback, or support requests you send us.</li>
+    <li><strong>Account and profile information.</strong> Your email address, password or
+      authentication credentials, display name, username, profile picture, age or date-of-birth
+      information if requested, and information received through a third-party sign-in provider such
+      as Google or Apple. If you do not provide a display name or avatar, the Service may assign
+      default values.</li>
+    <li><strong>Prompts and creator content.</strong> Story ideas, prompts, scripts, character
+      descriptions, reference materials, images, audio, video, titles, descriptions, series,
+      episodes, and other content that you create, upload, generate, save, or publish.</li>
+    <li><strong>Community activity.</strong> Comments, likes, follows, favorites, reports, messages,
+      and other interactions with creators, viewers, and content, if these features are
+      available.</li>
+    <li><strong>Payment and transaction information.</strong> Purchase history, subscriptions,
+      in-app purchases, top-ups, withdrawals, creator earnings, revenue shares, payout status,
+      transaction identifiers, and GUSD balance and activity. Payment providers generally collect
+      payment-card or bank details directly, and we do not receive or store complete payment-card
+      numbers.</li>
+    <li><strong>Identity, wallet, and payout information.</strong> If needed to provide GUSD, wallet,
+      withdrawal, creator-payout, tax, fraud-prevention, sanctions-screening, or legally required
+      compliance features, we or our providers may collect legal name, address, date of birth,
+      government-issued identification, tax information, bank or payout account details, wallet
+      addresses, and verification results.</li>
+    <li><strong>Communications.</strong> Information contained in support requests, feedback,
+      surveys, complaints, appeals, and other communications with us.</li>
   </ul>
 
-  <h3>Information collected automatically</h3>
+  <h3>B. Information collected automatically</h3>
   <ul>
-    <li><strong>Usage and analytics data</strong> — how you interact with the Service (pages/screens
-      viewed, features used, sessions), collected via Google Analytics on our website.</li>
-    <li><strong>Device and log data</strong> — device type, operating system, app version, general
-      location inferred from IP address, and diagnostic/log information.</li>
-    <li><strong>Local storage</strong> — we store a login token and preferences on your device to
-      keep you signed in and remember your settings.</li>
+    <li><strong>Usage information.</strong> Pages and screens viewed, searches, watch history,
+      content interactions, features used, session activity, referral information, and the dates and
+      times of access.</li>
+    <li><strong>Device and log information.</strong> IP address, browser type, device type,
+      operating system, app version, language, device and application identifiers, crash data,
+      diagnostic information, and security logs.</li>
+    <li><strong>Approximate location.</strong> Country, state, region, or city inferred from an IP
+      address. We do not collect precise device location unless we provide a feature that requires it
+      and give you appropriate notice and choice.</li>
+    <li><strong>Cookies and similar technologies.</strong> Cookies, local storage, software
+      development kits, pixels, and similar technologies used to keep you signed in, remember
+      preferences, measure use, maintain security, and improve performance.</li>
+    <li><strong>Push-notification information.</strong> A device push token and related preferences
+      if you enable notifications.</li>
   </ul>
 
-  <h2>2. How We Use Information</h2>
+  <h3>C. Information from other sources</h3>
+  <p>We may receive information from authentication providers, app stores, payment and payout
+  providers, wallet and identity-verification providers, analytics and fraud-prevention services,
+  other users who interact with or report content, and public sources where permitted by law.</p>
+
+  <h3>D. Sensitive information and information about other people</h3>
+  <p>The Service is not designed for users to submit highly sensitive personal information in prompts
+  or content unless it is specifically requested for a supported feature. Please do not include
+  government identification numbers, financial credentials, health information, or other confidential
+  personal information in a prompt or upload unless necessary for a feature that clearly requests
+  it.</p>
+  <p>If you upload an image, voice recording, video, or other information about another person, you
+  are responsible for having the rights and permissions needed to provide that material to the
+  Service. Ganime does not use facial or voice information to uniquely identify or authenticate a
+  person unless we provide separate notice and obtain any consent required by law.</p>
+
+  <h2>3. How We Use Information</h2>
+  <p>We use personal information to:</p>
   <ul>
-    <li>Provide, operate, and maintain the Service, including your account and wallet.</li>
-    <li>Generate anime content from your prompts and produce, host, and stream your episodes.</li>
-    <li>Process payments, top-ups, withdrawals, and unlock purchases.</li>
-    <li>Moderate uploaded and generated content for safety and to enforce our terms.</li>
-    <li>Communicate with you about your account, transactions, and support requests.</li>
-    <li>Analyze and improve the Service, and develop new features.</li>
-    <li>Detect, prevent, and address fraud, abuse, and security issues.</li>
-    <li>Comply with legal obligations.</li>
+    <li>Create, authenticate, maintain, and secure accounts.</li>
+    <li>Provide, operate, personalize, and maintain the Service.</li>
+    <li>Process prompts and generate stories, characters, images, audio, video, and animated
+      episodes.</li>
+    <li>Save, host, encode, deliver, recommend, and stream content.</li>
+    <li>Process subscriptions, purchases, top-ups, GUSD transactions, withdrawals, creator earnings,
+      refunds, and payouts.</li>
+    <li>Verify identity, prevent fraud, perform sanctions or compliance screening, and satisfy
+      financial or tax requirements when applicable.</li>
+    <li>Moderate uploaded and generated content; investigate reports; enforce our Terms of Service
+      and community rules; and provide appeal mechanisms.</li>
+    <li>Provide customer support and respond to questions, requests, and complaints.</li>
+    <li>Send transactional communications such as receipts, security alerts, password resets, service
+      notices, and payout updates.</li>
+    <li>Send product news or promotional communications where permitted. You may unsubscribe from
+      promotional email, but you may still receive necessary account and transactional messages.</li>
+    <li>Measure usage, troubleshoot problems, improve performance, understand audience interests, and
+      develop new features.</li>
+    <li>Protect users, Ganime, Fresh Road Studio Inc., our providers, and the public from fraud,
+      abuse, security threats, illegal activity, and harm.</li>
+    <li>Comply with law, regulatory requirements, legal process, and enforceable governmental
+      requests; establish or defend legal claims; and enforce our agreements.</li>
   </ul>
+  <p>We may create aggregated or de-identified information that cannot reasonably be linked to you
+  and use it for analytics, research, business planning, and service improvement. We will not attempt
+  to re-identify information that applicable law requires us to maintain in de-identified form.</p>
 
-  <h2>3. AI Processing of Your Content</h2>
-  <p>To generate and moderate content, the prompts you enter and the media you upload or generate are
-  processed by third-party artificial-intelligence providers on our behalf (for example, to write
-  stories, design characters, synthesize video and audio, transcribe speech, and screen content for
-  safety). This processing is necessary to provide the core features of the Service.</p>
-
-  <h2>4. Service Providers</h2>
-  <p>We share information with third-party service providers who process it on our behalf, only as
-  needed to provide the Service. These may include:</p>
-  <table>
-    <tr><th>Provider</th><th>Purpose</th></tr>
-    <tr><td>OpenAI</td><td>Story/text generation, image generation, speech transcription, content moderation</td></tr>
-    <tr><td>Volcengine / BytePlus (Seedance)</td><td>AI video generation</td></tr>
-    <tr><td>Bunny.net</td><td>Video hosting, encoding, and content delivery</td></tr>
-    <tr><td>Cloudinary</td><td>Image and media storage/processing</td></tr>
-    <tr><td>MongoDB Atlas</td><td>Database hosting</td></tr>
-    <tr><td>Netlify</td><td>Website and application hosting</td></tr>
-    <tr><td>Stripe</td><td>Card payment processing</td></tr>
-    <tr><td>Apple &amp; Google</td><td>App distribution and in-app purchases</td></tr>
-    <tr><td>Google</td><td>Sign-in (OAuth) and website analytics</td></tr>
-    <tr><td>Email delivery provider</td><td>Transactional emails (receipts, password resets)</td></tr>
-  </table>
-  <p class="muted">These providers may process data in countries other than your own. We do not sell
-  your personal information.</p>
-
-  <h2>5. How We Share Information</h2>
+  <h2>4. AI Processing of Content</h2>
+  <p>Ganime uses artificial-intelligence technologies to provide its core features. Prompts,
+  instructions, uploaded media, generated content, and associated technical information may be sent
+  to AI service providers to perform functions such as:</p>
   <ul>
-    <li><strong>With service providers</strong>, as described above.</li>
-    <li><strong>Public content</strong> — content you choose to publish (e.g. a series or shared
-      episode) may be visible to other users.</li>
-    <li><strong>Legal reasons</strong> — to comply with law, regulation, legal process, or
-      enforceable governmental request, or to protect the rights, safety, and property of Ganime,
-      our users, or the public.</li>
-    <li><strong>Business transfers</strong> — in connection with a merger, acquisition, or sale of
-      assets, subject to this policy.</li>
+    <li>Story and dialogue generation.</li>
+    <li>Character and image generation.</li>
+    <li>Video and animation generation.</li>
+    <li>Voice, music, sound, and speech processing.</li>
+    <li>Speech transcription and translation.</li>
+    <li>Content classification, safety screening, and moderation.</li>
   </ul>
+  <p>AI providers may temporarily retain content and related technical data to provide their
+  services, maintain security, detect abuse, and comply with law. Retention varies by provider,
+  feature, and technical configuration.</p>
+  <p>Unless we provide separate notice and obtain your permission where required, Ganime does not use
+  your private prompts or private uploads to train general-purpose AI models, and we do not authorize
+  our AI service providers to use that private content to train general-purpose models for their own
+  benefit. Published content may be used to operate, promote, moderate, and improve the Ganime
+  Service as described in our Terms of Service, but it will not be used for model training beyond
+  those terms without additional notice or permission where required.</p>
+  <p>AI systems and automated moderation tools may make mistakes. Where the Service provides a
+  content-moderation appeal process, you may request review of an affected decision.</p>
 
-  <h2>6. Data Retention</h2>
-  <p>We retain your information for as long as your account is active or as needed to provide the
-  Service, comply with our legal obligations, resolve disputes, and enforce our agreements. You may
-  request deletion of your account and associated personal information as described below.</p>
+  <h2>5. Public Content and Community Features</h2>
+  <p>Your drafts are not public unless you choose to publish or share them through a public or shared
+  feature. When you publish content, your display name, profile picture, series, episodes,
+  descriptions, and related community activity may be visible to other users and may be shared
+  outside the Service.</p>
+  <p>Public content may be indexed by search engines or copied, downloaded, recorded, or reshared by
+  other people. If you later delete or unpublish content, we will take reasonable steps to remove it
+  from active Ganime surfaces, but copies controlled by other people, search engines, caches, or
+  third-party services may remain.</p>
 
-  <h2>7. Your Rights and Choices</h2>
+  <h2>6. Payments, GUSD, Wallets, and Creator Earnings</h2>
+  <p>Payments may be processed by Stripe, Apple, Google, or other authorized providers. Those
+  providers process payment information under their own privacy notices. Ganime receives information
+  necessary to confirm and administer a transaction, such as a transaction identifier, purchase
+  status, amount, currency, subscription status, or limited billing information.</p>
+  <p>If Ganime offers GUSD, wallet, withdrawal, or creator-payout functionality, personal information
+  may be shared with the financial-infrastructure, wallet, payment, identity-verification, banking,
+  tax, fraud-prevention, sanctions-screening, or payout providers needed to complete the requested
+  service and comply with law.</p>
+  <p>If a GUSD or wallet transaction is recorded on a public blockchain, the wallet address,
+  transaction identifier, amount, time, and related blockchain information may be publicly visible
+  and permanently recorded. Ganime generally cannot edit or delete information recorded on a public
+  blockchain.</p>
+
+  <h2>7. Cookies, Analytics, and Similar Technologies</h2>
+  <p>We use necessary cookies and local storage to authenticate users, keep accounts secure, maintain
+  sessions, remember settings, and provide requested features. On our website, Google Analytics may
+  use cookies and process usage, device, browser, online identifier, and IP-derived approximate
+  location information to measure traffic and improve the Service.</p>
+  <p>We configure Google Analytics for analytics and Service improvement, not targeted advertising.
+  Where required, we obtain consent before using non-essential analytics. You may manage available
+  choices through our cookie controls or browser settings. Disabling necessary storage may prevent
+  portions of the Service from functioning correctly.</p>
+
+  <h2>8. How We Disclose Information</h2>
+  <p>We may disclose personal information as follows:</p>
+
+  <h3>Service providers</h3>
+  <p>We use providers to perform services on our behalf. Depending on the features used, these may
+  include:</p>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Provider or category</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>OpenAI</td><td>Story and text generation, image generation, speech processing, and content moderation</td></tr>
+        <tr><td>Volcengine / BytePlus, including Seedance</td><td>AI video generation</td></tr>
+        <tr><td>Bunny.net</td><td>Video hosting, encoding, and content delivery</td></tr>
+        <tr><td>Cloudinary</td><td>Image and media storage and processing</td></tr>
+        <tr><td>MongoDB Atlas</td><td>Database hosting</td></tr>
+        <tr><td>Netlify</td><td>Website and application hosting</td></tr>
+        <tr><td>Stripe</td><td>Card payment processing and related payment services</td></tr>
+        <tr><td>Apple and Google</td><td>App distribution, in-app purchases, authentication, and platform services</td></tr>
+        <tr><td>Google Analytics</td><td>Website analytics</td></tr>
+        <tr><td>Email delivery providers</td><td>Receipts, password resets, security notices, and other transactional email</td></tr>
+        <tr><td>Financial, wallet, identity-verification, tax, fraud-prevention, and payout providers</td><td>GUSD, wallet, withdrawal, compliance, and creator-payment services, if offered</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>We require service providers to protect personal information and process it only for contracted
+  purposes, subject to applicable law and our agreements with them.</p>
+
+  <h3>At your direction or with your consent</h3>
+  <p>We disclose information when you direct us to do so, publish content, connect a third-party
+  service, participate in a promotion, or otherwise provide consent.</p>
+
+  <h3>Legal, safety, and enforcement purposes</h3>
+  <p>We may disclose information when we reasonably believe it is necessary to comply with law,
+  regulation, legal process, or an enforceable governmental request; investigate fraud, abuse,
+  security incidents, or illegal activity; enforce our agreements; or protect the rights, property,
+  and safety of Ganime, Fresh Road Studio Inc., users, providers, or the public.</p>
+
+  <h3>Corporate transactions</h3>
+  <p>We may disclose information in connection with a financing, merger, acquisition, reorganization,
+  bankruptcy, sale of assets, or similar corporate transaction. Any successor will be subject to this
+  Privacy Policy or will provide notice of materially different practices as required by law.</p>
+
+  <h2>9. Sale, Sharing, and Targeted Advertising</h2>
+  <p>Ganime does not sell personal information, share it for cross-context behavioral advertising, or
+  process it for targeted advertising, as those terms are defined under applicable U.S. state privacy
+  laws.</p>
+  <p>Our use of Google Analytics is limited to measurement and Service improvement and does not
+  change these commitments. These statements apply to all users, including users under 16. If our
+  practices change, we will update this Privacy Policy and provide legally required choices before
+  engaging in the new activity.</p>
+
+  <h2>10. Data Retention and Account Deletion</h2>
+  <p>We retain personal information only for as long as reasonably necessary for the purposes
+  described in this Privacy Policy, including providing the Service, maintaining security, complying
+  with financial and legal obligations, resolving disputes, and enforcing agreements.</p>
+  <p>Our intended retention schedule is:</p>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Information</th><th>General retention period</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Account and profile information</td><td>While the account is active; generally deleted or de-identified within 30 days after a completed account-deletion request, subject to exceptions below</td></tr>
+        <tr><td>Private prompts, drafts, uploads, and generated content</td><td>Until you delete them or close your account; residual backup copies may remain for up to 90 days</td></tr>
+        <tr><td>Published content</td><td>Until you delete or unpublish it; residual backups and caches may remain for up to 90 days, while copies controlled by third parties may persist</td></tr>
+        <tr><td>AI-provider processing copies</td><td>For the period needed to provide the requested function and for any limited security, safety, abuse-prevention, or legal retention permitted under our provider agreements</td></tr>
+        <tr><td>Purchases, GUSD transactions, withdrawals, payouts, identity verification, and tax records</td><td>Generally seven years, or longer if required by financial, tax, anti-fraud, sanctions, accounting, or other law</td></tr>
+        <tr><td>Support requests and disputes</td><td>Generally three years after the matter is closed, or longer when needed for an active dispute or legal obligation</td></tr>
+        <tr><td>Analytics information</td><td>Generally up to 14 months in identifiable or pseudonymous form; aggregated or de-identified statistics may be retained longer</td></tr>
+        <tr><td>Security and diagnostic logs</td><td>Generally up to 24 months, unless needed longer to investigate an incident, prevent abuse, or comply with law</td></tr>
+        <tr><td>Backups</td><td>Generally overwritten or deleted within 90 days after deletion from active systems</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>You may initiate account deletion through Settings → Account → Delete Account or through
+  Ganime’s external account-deletion page. You may also contact us at
+  <a href="mailto:support@ganime.io">support@ganime.io</a>.</p>
+  <p>When an account is deleted, we delete or de-identify associated personal information unless
+  retention is necessary for legal compliance, financial recordkeeping, fraud prevention, security,
+  dispute resolution, enforcement, protection of other users, or another purpose permitted by law.
+  Account deletion does not delete public blockchain records or copies controlled by other people or
+  unaffiliated services.</p>
+
+  <h2>11. Security</h2>
+  <p>We use reasonable administrative, technical, and organizational safeguards designed to protect
+  personal information. These safeguards include encrypted network connections, access controls,
+  monitoring, and secure password handling. Where Ganime stores passwords, they are stored using
+  one-way cryptographic hashing rather than in readable form.</p>
+  <p>No transmission or storage system is completely secure, and we cannot guarantee absolute
+  security. You are responsible for maintaining the confidentiality of your account credentials and
+  notifying us if you suspect unauthorized access.</p>
+
+  <h2>12. Your Rights and Choices</h2>
+  <p>Depending on where you live, you may have the right to:</p>
   <ul>
-    <li>Access, update, or correct your account information in the app.</li>
-    <li>Request a copy or deletion of your personal information, or ask us to restrict its use.</li>
-    <li>Withdraw consent where processing is based on consent.</li>
-    <li>Opt out of non-essential analytics via your device or browser settings.</li>
+    <li>Know whether we process your personal information and access the information we maintain
+      about you.</li>
+    <li>Obtain a portable copy of certain personal information.</li>
+    <li>Correct inaccurate personal information.</li>
+    <li>Delete personal information, subject to legal exceptions.</li>
+    <li>Restrict or object to certain processing.</li>
+    <li>Withdraw consent where processing is based on consent, without affecting prior lawful
+      processing.</li>
+    <li>Opt out of targeted advertising, the sale or sharing of personal information, or certain
+      profiling, where applicable.</li>
+    <li>Limit certain uses or disclosures of sensitive personal information, where applicable.</li>
+    <li>Appeal our decision regarding a privacy request, where applicable.</li>
+    <li>Exercise privacy rights without unlawful discrimination or retaliation.</li>
+    <li>Authorize an agent to submit a request where permitted by law.</li>
   </ul>
-  <p>To exercise these rights, contact us using the details below. We will respond in accordance with
-  applicable law.</p>
+  <p>You can update certain information and preferences through your account settings. To submit
+  another privacy request, contact <a href="mailto:support@ganime.io">support@ganime.io</a> or use
+  the privacy-request form made available through the Service. We may verify your identity before
+  completing a request and may request information necessary to confirm an authorized agent’s
+  authority.</p>
+  <p>We will respond within the time required by applicable law. Some rights are subject to
+  exceptions, and certain information may be retained when legally permitted or required. If we deny
+  a request, we will provide an explanation and appeal instructions when required.</p>
+  <p>You may opt out of promotional email by using the unsubscribe link in the message. You can
+  manage push notifications through the Service or your device settings.</p>
 
-  <h2>8. Security</h2>
-  <p>We use reasonable technical and organizational measures to protect your information, including
-  encrypted connections and hashed passwords. No method of transmission or storage is completely
-  secure, so we cannot guarantee absolute security.</p>
+  <h2>13. Additional Information for California and Other U.S. State Residents</h2>
+  <p>Applicable U.S. state privacy laws may require additional disclosures concerning categories of
+  personal information. Depending on the features used, Ganime may collect the following
+  categories:</p>
+  <div class="table-scroll">
+    <table class="cols4">
+      <thead>
+        <tr><th>Category</th><th>Examples</th><th>Sources</th><th>Purposes and recipients</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Identifiers</td><td>Name, email, username, IP address, device identifiers, account identifiers</td><td>You, devices, authentication providers</td><td>Account operation, security, support; disclosed to hosting, authentication, security, and support providers</td></tr>
+        <tr><td>Customer records and commercial information</td><td>Purchases, subscriptions, GUSD activity, creator earnings, withdrawals, transaction history</td><td>You, app stores, payment and financial providers</td><td>Transactions, accounting, fraud prevention, compliance; disclosed to payment, financial, accounting, and compliance providers</td></tr>
+        <tr><td>Internet or electronic activity</td><td>Searches, views, watch history, interactions, session and diagnostic data</td><td>Your use of the Service and integrated technologies</td><td>Service operation, analytics, recommendations, security; disclosed to hosting, analytics, content-delivery, and security providers</td></tr>
+        <tr><td>Audio, visual, and creative content</td><td>Images, video, audio, voice, prompts, scripts, characters, episodes</td><td>You and Service-generated outputs</td><td>AI generation, hosting, publishing, moderation; disclosed to AI, media, hosting, and moderation providers</td></tr>
+        <tr><td>Approximate geolocation</td><td>Location inferred from IP address</td><td>Devices and network connections</td><td>Localization, security, fraud prevention; disclosed to hosting, analytics, and security providers</td></tr>
+        <tr><td>Inferences and preferences</td><td>Content interests and recommendations derived from activity</td><td>Service activity</td><td>Personalization and recommendations; disclosed to providers supporting those functions</td></tr>
+        <tr><td>Sensitive personal information</td><td>Account credentials; financial account, wallet, government ID, or identity-verification information when required</td><td>You and payment, wallet, or verification providers</td><td>Authentication, payments, payouts, fraud prevention, and legal compliance; disclosed only to providers supporting those purposes and authorized recipients</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Ganime uses and discloses sensitive personal information only for purposes reasonably necessary
+  to provide requested services, maintain security, prevent fraud, and comply with law. We do not use
+  sensitive personal information to infer characteristics about users for unrelated purposes.</p>
+  <p>As described in Section 9, we do not sell personal information or share it for cross-context
+  behavioral advertising. We disclose the categories above to service providers and contractors for
+  the business purposes described in this Privacy Policy.</p>
+  <p>California residents may have rights to know, access, correct, delete, and obtain information
+  about our collection and disclosure practices; to opt out of sale or sharing where applicable; to
+  limit certain uses of sensitive personal information; and to receive equal treatment. Residents of
+  other states may have similar rights, including portability, opt-out, and appeal rights.
+  Instructions for exercising these rights appear in Section 12.</p>
 
-  <h2>9. Children’s Privacy</h2>
-  <p>The Service is not directed to children under 13 (or the minimum age required in your country),
-  and we do not knowingly collect personal information from them. If you believe a child has provided
-  us personal information, please contact us and we will take steps to delete it.</p>
+  <h2>14. Additional Information for the EEA, United Kingdom, and Switzerland</h2>
+  <p>If European data-protection law applies, we rely on the following legal bases:</p>
+  <ul>
+    <li><strong>Contract.</strong> To create and maintain your account, generate and deliver
+      requested content, process transactions, and provide other requested Service features.</li>
+    <li><strong>Legitimate interests.</strong> To secure and improve the Service, prevent fraud and
+      abuse, understand performance, provide customer support, enforce our agreements, and protect
+      users, provided those interests are not overridden by your rights and interests.</li>
+    <li><strong>Consent.</strong> For non-essential analytics, marketing, or other activities where
+      consent is required. You may withdraw consent at any time.</li>
+    <li><strong>Legal obligations.</strong> To maintain required records, respond to lawful requests,
+      perform legally required financial or identity checks, and comply with applicable law.</li>
+  </ul>
+  <p>You may have rights of access, correction, deletion, restriction, portability, objection, and
+  withdrawal of consent. You may also lodge a complaint with the data-protection authority in the
+  country where you live, work, or believe a violation occurred.</p>
 
-  <h2>10. International Users</h2>
-  <p>We operate the Service globally and may process and store information in countries other than
-  where you live, which may have different data-protection laws. By using the Service, you consent to
-  such transfers.</p>
+  <h2>15. Children’s Privacy</h2>
+  <p>Ganime is not directed to children under 13, and users must also meet any higher minimum age
+  required to use the Service in their country. We do not knowingly collect personal information from
+  children who are not permitted to use the Service.</p>
+  <p>If we learn that we collected personal information from a child who is not permitted to use the
+  Service without legally required parental authorization, we will take reasonable steps to delete
+  it. A parent or guardian who believes a child provided personal information may contact
+  <a href="mailto:support@ganime.io">support@ganime.io</a>.</p>
+  <p>If Ganime later offers a child-directed experience, it will be governed by additional notice,
+  consent, and parental-control procedures appropriate to that experience.</p>
 
-  <h2>11. Changes to This Policy</h2>
-  <p>We may update this Privacy Policy from time to time. We will post the updated version here and
-  revise the “Last updated” date above. Material changes may be communicated through the Service.</p>
+  <h2>16. International Data Transfers</h2>
+  <p>Ganime operates globally. Personal information may be processed and stored in the United States
+  and other countries where we and our providers operate. These countries may have data-protection
+  laws that differ from those where you live.</p>
+  <p>Where required, we use legally recognized safeguards for international transfers, such as
+  adequacy decisions, contractual protections, and Standard Contractual Clauses. You may contact us
+  for information about safeguards applicable to your personal information.</p>
 
-  <h2>12. Contact Us</h2>
-  <p>If you have questions about this Privacy Policy or your information, contact us at:</p>
+  <h2>17. Changes to This Privacy Policy</h2>
+  <p>We may update this Privacy Policy to reflect changes to the Service, our practices, providers,
+  or applicable law. We will post the revised policy and update the “Last updated” date. If changes
+  are material, we will provide additional notice through the Service, email, or another appropriate
+  method. We will obtain consent before applying a change where required by law.</p>
+
+  <h2>18. Contact Us</h2>
+  <p>For privacy questions, requests, or complaints, contact:</p>
   <p>
-    FreshRoad Inc. (Ganime)<br />
+    Fresh Road Studio Inc. (Ganime)<br />
     Email: <a href="mailto:support@ganime.io">support@ganime.io</a><br />
-    Web: <a href="https://ganime.io/contact">ganime.io/contact</a>
+    Web: <a href="https://ganime.io/contact">ganime.io/contact</a><br />
+    Mail: 530 Lawrence Expressway #511, Sunnyvale, CA 94085
   </p>
 
   <hr />
-  <p class="muted">© 2026 FreshRoad Inc. All rights reserved.</p>
+  <p class="muted">© 2026 Fresh Road Studio Inc. All rights reserved.</p>
 </div>
 </body>
 </html>

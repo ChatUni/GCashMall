@@ -52,6 +52,12 @@ export const isCordova = (): boolean => {
 export const getWebOrigin = (): string =>
   isCordova() ? PRODUCTION_ORIGIN : window.location.origin
 
+// Static legal pages live in public/ and are served by the website, not by the SPA router.
+// In Cordova the app origin is app://localhost, so they must be addressed on the public site.
+export const PRIVACY_POLICY_PAGE = 'privacy.html'
+
+export const legalPageUrl = (page: string): string => `${getWebOrigin()}/${page}`
+
 // Pages that must stay reachable while the site is in coming-soon mode, because a user
 // arrives on them from a link we sent them (e.g. the password-reset email) rather than by
 // browsing the site.

@@ -10,6 +10,7 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
+import { BRAND_MARK } from '../../utils/brand'
 import { t } from '../../stores/languageStore'
 import { languageStore, languageStoreActions } from '../../stores/languageStore'
 import type { Language } from '../../i18n'
@@ -1047,7 +1048,7 @@ const PhoneAboutSection = () => {
   return (
     <div class="phone-about-section">
       <div class="phone-about-hero">
-        <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={`${APP_DISPLAY_NAME} Logo`} class="phone-about-logo" />
+        <img src={BRAND_MARK} alt={`${APP_DISPLAY_NAME} Logo`} class="phone-about-logo" />
         <h1 class="phone-about-title">{APP_DISPLAY_NAME}</h1>
         <p class="phone-about-tagline">{about().tagline || 'Your premium destination for streaming entertainment'}</p>
       </div>
