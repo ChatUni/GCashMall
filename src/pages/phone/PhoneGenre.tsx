@@ -8,7 +8,7 @@ import {
   fetchGenres,
   fetchSeriesByGenre,
   navigateToGenre,
-  syncActiveGenreFromUrl,
+  syncGenreFromUrl,
 } from '../../services/genreService'
 import './PhoneGenre.css'
 
@@ -154,9 +154,12 @@ const PhoneGenre = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  // Sync active genre from URL
+  // Sync active genre + search term from URL
   createEffect(() => {
-    syncActiveGenreFromUrl(searchParams.category as string | undefined)
+    syncGenreFromUrl(
+      searchParams.category as string | undefined,
+      searchParams.search as string | undefined,
+    )
   })
 
   // Fetch genres on first render
@@ -166,6 +169,7 @@ const PhoneGenre = () => {
   createEffect(() => {
     genreStore.activeGenre
     genreStore.genres
+    genreStore.searchQuery
     fetchSeriesByGenre()
   })
 

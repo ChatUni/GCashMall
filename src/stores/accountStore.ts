@@ -332,22 +332,25 @@ export const accountStoreActions = {
     setAccountState({ revenueFetched }),
   
   // Profile form
-  setProfileForm: (profileForm: ProfileFormState) => 
-    setAccountState({ profileForm }),
+  // profileForm and originalProfile are compared field-by-field to decide whether Save is
+  // enabled, so they must never be the same object — storing one into the other would make
+  // every later edit change both and leave Save permanently disabled. Always copy.
+  setProfileForm: (profileForm: ProfileFormState) =>
+    setAccountState({ profileForm: { ...profileForm } }),
   updateProfileField: <K extends keyof ProfileFormState>(field: K, value: ProfileFormState[K]) =>
     setAccountState('profileForm', { [field]: value } as Partial<ProfileFormState>),
-  setProfileErrors: (profileErrors: ProfileErrorsState) => 
+  setProfileErrors: (profileErrors: ProfileErrorsState) =>
     setAccountState({ profileErrors }),
   updateProfileError: <K extends keyof ProfileErrorsState>(field: K, value: string) =>
     setAccountState('profileErrors', { [field]: value } as Partial<ProfileErrorsState>),
   setProfileSaving: (profileSaving: boolean) =>
     setAccountState({ profileSaving }),
-  setOriginalProfile: (originalProfile: ProfileFormState) => 
-    setAccountState({ originalProfile }),
+  setOriginalProfile: (originalProfile: ProfileFormState) =>
+    setAccountState({ originalProfile: { ...originalProfile } }),
   resetProfileForm: () =>
     setAccountState((prev) => ({
       ...prev,
-      profileForm: prev.originalProfile,
+      profileForm: { ...prev.originalProfile },
       profileErrors: initialProfileErrors,
     })),
   

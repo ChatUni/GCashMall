@@ -264,6 +264,8 @@ export const zh = {
     allGenres: '全部',
     edit: '编辑',
     resultsCount: '{count} 个结果',
+    searchResults: '“{query}”的搜索结果',
+    clearSearch: '清除搜索',
   },
   seriesEdit: {
     name: '名称',

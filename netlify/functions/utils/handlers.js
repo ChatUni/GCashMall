@@ -1307,8 +1307,9 @@ const resetPassword = async (body) => {
       }
       await save('users', updateData)
       
-      // Build reset URL
-      const baseUrl = process.env.VITE_LOCALHOST
+      // Build reset URL — send the user back to the site they asked from (deploy preview,
+      // localhost, ganime.io), not to one fixed host.
+      const baseUrl = resolveResetBaseUrl(body.origin)
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email.toLowerCase())}`
       
       // Send password reset email
@@ -1421,6 +1422,44 @@ const validateResetPasswordBody = (body) => {
   if (!isValidEmail(body.email)) {
     throw new Error('Invalid email address')
   }
+}
+
+// Hosts the reset link may point at. The link is mailed out, so an origin the caller made
+// up would turn our own email into a phishing link — only ever echo back an origin we
+// recognise, and fall back to the configured site otherwise.
+// process.env.URL / DEPLOY_PRIME_URL are set by Netlify (site URL + deploy-preview URL);
+// RESET_ALLOWED_ORIGINS is an optional comma-separated list for any extra host.
+const resetOriginAllowList = () =>
+  [
+    process.env.VITE_PROD_SERVER,
+    process.env.VITE_LOCALHOST,
+    process.env.URL,
+    process.env.DEPLOY_URL,
+    process.env.DEPLOY_PRIME_URL,
+    ...String(process.env.RESET_ALLOWED_ORIGINS || '').split(','),
+  ]
+    .map((url) => normalizeOrigin(url))
+    .filter(Boolean)
+
+const normalizeOrigin = (url) => {
+  if (!url) return ''
+  try {
+    return new URL(String(url).trim()).origin
+  } catch {
+    return ''
+  }
+}
+
+const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+
+const resolveResetBaseUrl = (requestedOrigin) => {
+  const fallback =
+    normalizeOrigin(process.env.VITE_PROD_SERVER) || normalizeOrigin(process.env.VITE_LOCALHOST)
+  const origin = normalizeOrigin(requestedOrigin)
+  if (!origin) return fallback
+  if (isLocalOrigin(origin) || resetOriginAllowList().includes(origin)) return origin
+  console.warn('[resetPassword] Ignoring unrecognised origin:', requestedOrigin)
+  return fallback
 }
 
 // Add to watch list
@@ -2696,6 +2735,22 @@ const createStripeCheckoutSession = async (amount, callbackUrl, userId, referenc
   return session.url
 }
 
+// Call the GUSD provider. A transport-level failure surfaces from undici as a bare
+// "fetch failed", which reaches the user as "Failed to top up: fetch failed" and says
+// nothing about what actually went wrong (DNS, refused connection, TLS, timeout — the
+// provider is reachable from some networks and not others). Unwrap error.cause so the
+// real reason is in the function log and in the message.
+const fetchGUSD = async (url, options) => {
+  try {
+    return await fetch(url, options)
+  } catch (error) {
+    const cause = error.cause || {}
+    const detail = [cause.code, cause.message].filter(Boolean).join(' ') || error.message
+    console.error('[GUSD] Request to %s failed: %s', url, detail, error)
+    throw new Error(`could not reach the GUSD payment service (${detail})`)
+  }
+}
+
 // Create GUSD pay order via external API
 const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
   const appId = process.env.GUSD_APPID
@@ -2738,20 +2793,17 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
   console.log('[GUSD] Creating pay order:', JSON.stringify(requestBody))
   console.log('[GUSD] Headers: appid=%s, nonce=%s, timestamp=%s', appId, nonce, timestamp)
 
-  const response = await fetch(
-    gusdApiUrl,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        appid: String(appId),
-        nonce: String(nonce),
-        timestamp: String(timestamp),
-        signature: String(signature),
-      },
-      body: JSON.stringify(requestBody),
+  const response = await fetchGUSD(gusdApiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      appid: String(appId),
+      nonce: String(nonce),
+      timestamp: String(timestamp),
+      signature: String(signature),
     },
-  )
+    body: JSON.stringify(requestBody),
+  })
 
   const responseText = await response.text()
   console.log('[GUSD] Response status:', response.status, 'body:', responseText)
@@ -3017,7 +3069,7 @@ const fetchGUSDOrderInfo = async (orderId) => {
   const signature = computeGUSDSignature(appId, nonce, timestamp, secret)
   const url = `${new URL(gusdApiUrl).origin}/api/v1/bridge/pay_order_info?order_id=${encodeURIComponent(orderId)}`
 
-  const response = await fetch(url, {
+  const response = await fetchGUSD(url, {
     method: 'GET',
     headers: {
       appid: String(appId),
@@ -3271,7 +3323,7 @@ const createGUSDWithdrawOrder = async (amount, callbackUrl, orderId) => {
   }
   console.log('[GUSD] Creating withdraw order:', JSON.stringify(requestBody))
 
-  const response = await fetch(`${new URL(gusdApiUrl).origin}/api/v1/bridge/create_withdraw_order`, {
+  const response = await fetchGUSD(`${new URL(gusdApiUrl).origin}/api/v1/bridge/create_withdraw_order`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

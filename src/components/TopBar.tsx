@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../utils/config'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
-import { quickCreateStoreActions } from '../stores/quickCreateStore'
+import { startFreshQuickCreate } from '../services/quickCreateNav'
 import { currentTheme, themeStoreActions } from '../stores/themeStore'
 import { topBarStore, topBarStoreActions } from '../stores/topBarStore'
 import { syncAuthState } from '../services/topBarService'
@@ -32,10 +32,7 @@ const TopBar = () => {
   const handleNavClick = (path: string) => navigate(path)
 
   // The "Create" link always starts a fresh Quick Create (never resumes the last one)
-  const handleCreateClick = () => {
-    quickCreateStoreActions.reset()
-    navigate('/quick-create')
-  }
+  const handleCreateClick = () => startFreshQuickCreate(navigate)
 
   const handleAccountClick = () => {
     if (topBarStore.isLoggedIn) {

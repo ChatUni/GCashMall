@@ -513,7 +513,7 @@ export interface ProductionJob {
   // Quick Create V1 fields
   v?: number
   proposal?: V1Proposal | null
-  editResult?: { id: string; status: string }
+  editResult?: { id: string; status: string; error?: string }
   callsV1?: {
     episodeDirector?: { episodePlan?: { shots?: Array<Record<string, unknown>> } }
     [k: string]: unknown

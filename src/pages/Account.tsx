@@ -87,7 +87,7 @@ import {
   type ProductionJob,
 } from '../services/dataService'
 import { isLoggedIn, setStoredUser } from '../utils/api'
-import { quickCreateStoreActions } from '../stores/quickCreateStore'
+import { startFreshQuickCreate } from '../services/quickCreateNav'
 // Default Quick Create cover (Cloudinary — same asset set as the v1 page)
 const defaultIdeaCover =
   'https://res.cloudinary.com/daqc8bim3/image/upload/GCash/quick%20create%20v1/banner-hero.webp'
@@ -470,7 +470,7 @@ function WatchHistorySection() {
           title={watchHistory().emptyTitle}
           subtext={watchHistory().emptySubtext}
           buttonText={watchHistory().exploreButton}
-          onButtonClick={() => navigate('/series')}
+          onButtonClick={() => navigate('/genre')}
         />
       }>
         <div class="content-grid">
@@ -548,7 +548,7 @@ function FavoritesSection() {
           title={favorites().emptyTitle}
           subtext={favorites().emptySubtext}
           buttonText={favorites().exploreButton}
-          onButtonClick={() => navigate('/series')}
+          onButtonClick={() => navigate('/genre')}
         />
       }>
         <div class="content-grid">
@@ -1265,7 +1265,7 @@ function MyPurchasesSection() {
             title={myPurchases().emptyTitle || 'No purchases yet'}
             subtext={myPurchases().emptySubtext || 'Browse series and purchase episodes to watch'}
             buttonText={myPurchases().exploreButton || 'Explore Series'}
-            onButtonClick={() => navigate('/series')}
+            onButtonClick={() => navigate('/genre')}
           />
         }>
           <div class="purchases-list">
@@ -1540,11 +1540,7 @@ function MySeriesSection() {
               <Show when={activeSubTab() === 'quickCreate'}>
                 <button
                   class="btn-primary create-own-btn"
-                  onClick={() => {
-                    // Always start a fresh story (never resume the last generation)
-                    quickCreateStoreActions.reset()
-                    navigate('/quick-create')
-                  }}
+                  onClick={() => startFreshQuickCreate(navigate)}
                 >
                   ✨ {mySeries().createOwn || 'Create your own'}
                 </button>
@@ -1597,10 +1593,7 @@ function MySeriesSection() {
                 title={mySeries().quickCreateEmptyTitle || 'No creations yet'}
                 subtext={mySeries().quickCreateEmptySubtext || 'Turn your idea into an anime series in minutes'}
                 buttonText={mySeries().createOwn || 'Create your own'}
-                onButtonClick={() => {
-                  quickCreateStoreActions.reset()
-                  navigate('/quick-create')
-                }}
+                onButtonClick={() => startFreshQuickCreate(navigate)}
               />
             }>
               <div class="content-grid">

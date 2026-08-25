@@ -5,6 +5,7 @@ import { deviceStore } from './stores/deviceStore'
 import { setAuthErrorHandler } from './utils/api'
 import { loginModalStoreActions } from './stores'
 import { topBarStoreActions } from './stores/topBarStore'
+import { isQuickCreateV1 } from './services/quickCreateNav'
 import ComingSoon from './pages/ComingSoon'
 
 // Desktop Pages
@@ -67,9 +68,7 @@ const routes = (
     {/* Quick Create wizard — VITE_QUICK_CREATE_VERSION selects v0 (default) or v1 */}
     <Route
       path="/quick-create"
-      component={
-        import.meta.env.VITE_QUICK_CREATE_VERSION === 'v1' ? QuickCreateV1 : QuickCreate
-      }
+      component={isQuickCreateV1 ? QuickCreateV1 : QuickCreate}
     />
     <Route path="/creator-program" component={CreatorProgram} />
 

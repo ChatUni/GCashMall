@@ -3,6 +3,7 @@ import { useNavigate } from '@solidjs/router'
 import { t } from '../../stores/languageStore'
 import { topBarStore, topBarStoreActions } from '../../stores/topBarStore'
 import { fetchSuggestions } from '../../services/topBarService'
+import { buildSearchUrl } from '../../services/genreService'
 import type { SearchSuggestion } from '../../types'
 
 const SearchBar = () => {
@@ -25,12 +26,12 @@ const SearchBar = () => {
   const handleSearch = () => {
     const query = topBarStore.searchQuery.trim()
     if (!query) return
-    navigate(`/series?search=${encodeURIComponent(query)}`)
+    navigate(buildSearchUrl(query))
     topBarStoreActions.setShowSuggestions(false)
   }
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
-    navigate(`/series/${suggestion.seriesId}`)
+    navigate(`/player/${suggestion.seriesId}`)
     topBarStoreActions.setShowSuggestions(false)
     topBarStoreActions.setSearchQuery('')
   }

@@ -8,7 +8,7 @@ import {
   saveAuthData,
   apiPost,
 } from '../utils/api'
-import { isCordova, openOAuthSystemBrowser, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
+import { isCordova, openOAuthSystemBrowser, getWebOrigin, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
 import { loginModalStore } from '../stores'
 import type { OAuthType, ResetPasswordResponse, User } from '../types'
 import './LoginModal.css'
@@ -160,7 +160,7 @@ const LoginModal = (props: LoginModalProps) => {
     setResetMessage('')
 
     try {
-      const response = await apiPost<ResetPasswordResponse>('resetPassword', { email: email() })
+      const response = await apiPost<ResetPasswordResponse>('resetPassword', { email: email(), origin: getWebOrigin() })
 
       if (response.success) {
         setResetMessage(

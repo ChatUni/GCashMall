@@ -15,6 +15,8 @@ interface GenreState {
   series: Series[]
   loading: boolean
   activeGenre: string
+  // Free-text search from the TopBar; the Genre page doubles as the search-results page.
+  searchQuery: string
   showMobileDropdown: boolean
   showFilterModal: boolean
 }
@@ -24,6 +26,7 @@ const getInitialState = (): GenreState => ({
   series: [],
   loading: true,
   activeGenre: 'all',
+  searchQuery: '',
   showMobileDropdown: false,
   showFilterModal: false,
 })
@@ -36,9 +39,12 @@ export const genreStore = genreState
 // Derived state
 // ======================
 
-export const activeGenreName = createMemo((): string =>
-  genreState.activeGenre === 'all' ? t().series.allGenres : genreState.activeGenre,
-)
+export const activeGenreName = createMemo((): string => {
+  if (genreState.searchQuery) {
+    return t().series.searchResults.replace('{query}', genreState.searchQuery)
+  }
+  return genreState.activeGenre === 'all' ? t().series.allGenres : genreState.activeGenre
+})
 
 export const seriesCount = createMemo((): string =>
   t().series.resultsCount.replace('{count}', String(genreState.series.length)),
@@ -53,6 +59,7 @@ export const genreStoreActions = {
   setSeries: (series: Series[]) => setGenreState({ series }),
   setLoading: (loading: boolean) => setGenreState({ loading }),
   setActiveGenre: (activeGenre: string) => setGenreState({ activeGenre }),
+  setSearchQuery: (searchQuery: string) => setGenreState({ searchQuery }),
   setShowMobileDropdown: (show: boolean) => setGenreState({ showMobileDropdown: show }),
   toggleMobileDropdown: () =>
     setGenreState('showMobileDropdown', (prev) => !prev),

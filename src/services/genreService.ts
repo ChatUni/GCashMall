@@ -21,10 +21,11 @@ export const fetchGenres = async () => {
 export const fetchSeriesByGenre = async () => {
   const currentGenre = genreStore.activeGenre
   const currentGenres = genreStore.genres
+  const currentSearch = genreStore.searchQuery
 
   genreStoreActions.setLoading(true)
 
-  const params = buildSeriesParams(currentGenre, currentGenres)
+  const params = buildSeriesParams(currentGenre, currentGenres, currentSearch)
   const result = await apiGet<Series[]>('series', params)
 
   if (result.success && result.data) {
@@ -38,6 +39,8 @@ export const fetchSeriesByGenre = async () => {
 // Navigation helpers
 // ======================
 
+// Picking a genre also leaves any search-results view (the two filters are alternatives,
+// not cumulative), so the search term is dropped from the URL.
 export const navigateToGenre = (
   genreName: string,
   navigate: (path: string) => void,
@@ -51,8 +54,16 @@ export const navigateToGenre = (
   genreStoreActions.setShowFilterModal(false)
 }
 
-export const syncActiveGenreFromUrl = (category: string | undefined) => {
+// The Genre page is also the search-results page: /genre?search=<query>.
+export const buildSearchUrl = (query: string): string =>
+  `/genre?search=${encodeURIComponent(query)}`
+
+export const syncGenreFromUrl = (
+  category: string | undefined,
+  search: string | undefined,
+) => {
   genreStoreActions.setActiveGenre(category || 'all')
+  genreStoreActions.setSearchQuery((search || '').trim())
 }
 
 // ======================
@@ -62,13 +73,16 @@ export const syncActiveGenreFromUrl = (category: string | undefined) => {
 const buildSeriesParams = (
   activeGenre: string,
   genres: Genre[],
+  search: string,
 ): Record<string, string | number> | undefined => {
-  if (activeGenre === 'all') return undefined
+  const params: Record<string, string | number> = {}
 
-  const matchingGenre = genres.find((g) => g.name === activeGenre)
-  if (matchingGenre) {
-    return { genreId: matchingGenre._id }
+  if (search) params.search = search
+
+  if (activeGenre !== 'all') {
+    const matchingGenre = genres.find((g) => g.name === activeGenre)
+    if (matchingGenre) params.genreId = matchingGenre._id
   }
 
-  return undefined
+  return Object.keys(params).length > 0 ? params : undefined
 }

@@ -457,7 +457,7 @@ const EpisodeMetadata = () => {
   const navigate = useNavigate()
   const isFavorited = () => checkSeriesFavorited(useParams().id)
   const isPurchased = () => isCurrentEpisodePurchased()
-  const handleTagClick = (tag: string) => navigate(`/series?genre=${encodeURIComponent(tag)}`)
+  const handleTagClick = (tag: string) => navigate(`/genre?category=${encodeURIComponent(tag)}`)
 
   return (
     <div class="episode-metadata">

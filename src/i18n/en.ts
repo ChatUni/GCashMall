@@ -265,6 +265,8 @@ export const en = {
     allGenres: 'All',
     edit: 'Edit',
     resultsCount: '{count} results',
+    searchResults: 'Results for "{query}"',
+    clearSearch: 'Clear search',
   },
   seriesEdit: {
     name: 'Name',
@@ -379,7 +381,7 @@ export const en = {
     submit: 'Login',
     createAccount: 'Create an Account',
     close: 'Close',
-    forgetPassword: 'Forget password?',
+    forgetPassword: 'Forgot password?',
     orContinueWith: 'Or continue with',
     noAccount: "Don't have an account?",
     signUp: 'Sign up',

@@ -8,7 +8,7 @@ import {
   fetchGenres,
   fetchSeriesByGenre,
   navigateToGenre,
-  syncActiveGenreFromUrl,
+  syncGenreFromUrl,
 } from '../services/genreService'
 import './Genre.css'
 
@@ -71,9 +71,12 @@ const GenrePage = () => {
   const navigate = useNavigate()
   let dropdownRef: HTMLDivElement | undefined
 
-  // Sync active genre from URL
+  // Sync active genre + search term from URL
   createEffect(() => {
-    syncActiveGenreFromUrl(searchParams.category as string | undefined)
+    syncGenreFromUrl(
+      searchParams.category as string | undefined,
+      searchParams.search as string | undefined,
+    )
   })
 
   // Fetch genres on mount
@@ -86,6 +89,7 @@ const GenrePage = () => {
     // Track reactive dependencies
     genreStore.activeGenre
     genreStore.genres
+    genreStore.searchQuery
     fetchSeriesByGenre()
   })
 

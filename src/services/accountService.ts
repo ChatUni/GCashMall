@@ -1,7 +1,7 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { isCordova, MOBILE_OAUTH_REDIRECT, PRODUCTION_ORIGIN, openStripeInAppBrowser, isIOS, isAndroid } from '../utils/cordova'
+import { isCordova, MOBILE_OAUTH_REDIRECT, getWebOrigin, openStripeInAppBrowser, isIOS, isAndroid } from '../utils/cordova'
 import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
 import { purchaseIAP, isIAPAvailable, finishTransaction, setIAPReconcileHandler } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
@@ -350,7 +350,8 @@ export const resetPassword = async (email: string, t: Record<string, string>): P
   }
 
   try {
-    const response = await apiPost<ResetPasswordResponse>('resetPassword', { email })
+    // Send the origin the user is actually on so the emailed link comes back to this site.
+    const response = await apiPost<ResetPasswordResponse>('resetPassword', { email, origin: getWebOrigin() })
 
     if (response.success && response.data) {
       return { success: true, message: response.data.message }
@@ -716,8 +717,7 @@ export const hasPendingGUSDTopUp = (): boolean =>
 // On Cordova, use the production origin since the app origin (app://localhost)
 // is not a valid HTTP URL that Stripe can redirect to.
 const buildWalletCallbackUrl = (): string => {
-  const baseUrl = isCordova() ? PRODUCTION_ORIGIN : window.location.origin
-  return `${baseUrl}/account?tab=wallet`
+  return `${getWebOrigin()}/account?tab=wallet`
 }
 
 // Withdraw — reserves the funds server-side and returns a GUSD one-time withdrawal link the

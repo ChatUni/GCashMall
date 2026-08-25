@@ -535,6 +535,11 @@ const pollEdit = async (jobId: string, reqId: string): Promise<void> => {
       })
       return
     }
+    // This edit failed but the production is fine — keep the current proposal on screen.
+    if (job.editResult?.id === reqId && job.editResult.status === 'error') {
+      setState({ aiEditing: false, aiEditError: job.editResult.error || 'AI edit failed' })
+      return
+    }
     if (job.status === 'error') {
       setState({ aiEditing: false, aiEditError: job.error || 'AI edit failed' })
       return

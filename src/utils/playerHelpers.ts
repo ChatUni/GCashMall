@@ -2,7 +2,7 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import type { Episode } from '../types'
-import { isCordova, PRODUCTION_ORIGIN, openSystemBrowser, getSocialSharing } from './cordova'
+import { isCordova, PRODUCTION_ORIGIN, getWebOrigin, openSystemBrowser, getSocialSharing } from './cordova'
 import { getApiBaseUrl } from './api'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
@@ -82,8 +82,7 @@ export const getShareUrl = (): string => {
 // Public, shareable URL for a series' player page. In Cordova the app origin is
 // app://localhost (not shareable), so fall back to the public site origin.
 export const getPlayerShareUrl = (seriesId: string): string => {
-  const origin = isCordova() ? PRODUCTION_ORIGIN : window.location.origin
-  return `${origin}/player/${seriesId}`
+  return `${getWebOrigin()}/player/${seriesId}`
 }
 
 export const getShareText = (seriesName: string, episodeNumber?: number): string => {

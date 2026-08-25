@@ -69,8 +69,31 @@ const EDIT_SYSTEM_PROMPT =
   'changing ONLY the sections the instruction affects and preserving everything else exactly ' +
   'as-is (same field values, same wording where untouched). Keep the SAME JSON schema and keep ' +
   'every array fully populated — never drop characters, episodes, or notes that already exist. ' +
-  'Return the COMPLETE updated proposal as a single JSON object. Return ONLY valid JSON, no ' +
-  'markdown, no commentary.'
+  'Return the COMPLETE updated proposal as a single JSON object: the proposal object ITSELF is ' +
+  'the top-level JSON object, with the same top-level keys as the input proposal (project, ' +
+  'creativeDirection, seasonOverview, mainCharacters, seasonRoadmap, …). Do NOT nest it under a ' +
+  'wrapper key such as "updatedProposal", "currentProposal", "proposal" or "result". Return ONLY ' +
+  'valid JSON, no markdown, no commentary.'
+
+// A proposal is only usable by Page 2 if it still carries the sections that page reads.
+// Anything else would render as an empty form.
+const PROPOSAL_KEYS = ['project', 'creativeDirection', 'seasonOverview', 'mainCharacters', 'seasonRoadmap']
+
+const looksLikeProposal = (o) =>
+  !!o && typeof o === 'object' && !Array.isArray(o) && PROPOSAL_KEYS.some((k) => k in o)
+
+// The model is asked for the bare proposal, but with the input handed to it as
+// `{ currentProposal, instruction }` it will sometimes answer with the proposal nested under
+// a wrapper key instead ({updatedProposal: {...}}, {proposal: {...}}, …). Taking that object
+// at face value wipes every field on Page 2, so look one level down before giving up.
+const unwrapProposal = (result) => {
+  if (looksLikeProposal(result)) return result
+  if (result && typeof result === 'object') {
+    const nested = Object.values(result).find(looksLikeProposal)
+    if (nested) return nested
+  }
+  return null
+}
 
 const runEdit = async (jobId, userId, body) => {
   const docs = await get('productions', { jobId }, {}, {}, 1)
@@ -81,14 +104,29 @@ const runEdit = async (jobId, userId, body) => {
   const instruction = body.instruction || ''
   await updateJob(jobId, { editResult: { id: body.reqId || '', status: 'running' } })
 
-  const updated = await callOpenAIChatJson(
+  const result = await callOpenAIChatJson(
     EDIT_SYSTEM_PROMPT,
     JSON.stringify({ currentProposal: proposal, instruction }),
   )
+  const updated = unwrapProposal(result)
+  // Never overwrite a good proposal with an unusable answer — fail just this edit and leave
+  // the creator's current proposal on screen so they can retry or reword the instruction.
+  // The failure is recorded on editResult, not on the job, so the next edit starts clean.
+  if (!updated) {
+    console.error('[v1 edit] Unusable proposal from model, keys:', Object.keys(result || {}))
+    await updateJob(jobId, {
+      editResult: {
+        id: body.reqId || '',
+        status: 'error',
+        error: 'The AI edit returned an unexpected result. Please try again.',
+      },
+    })
+    return
+  }
   await updateJob(jobId, {
     proposal: updated,
-    ideaTitle: updated?.project?.title || docs[0].ideaTitle,
-    title: updated?.project?.title || docs[0].title,
+    ideaTitle: updated.project?.title || docs[0].ideaTitle,
+    title: updated.project?.title || docs[0].title,
     editResult: { id: body.reqId || '', status: 'done' },
   })
 }

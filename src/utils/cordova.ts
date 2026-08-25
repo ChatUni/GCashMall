@@ -46,12 +46,25 @@ export const isCordova = (): boolean => {
   return typeof window !== 'undefined' && !!window.cordova
 }
 
+// The http(s) origin to use when a URL has to survive outside the app (OAuth redirects,
+// payment callbacks, share links, password-reset links). Cordova's own origin is
+// app://localhost, which no external service can redirect back to.
+export const getWebOrigin = (): string =>
+  isCordova() ? PRODUCTION_ORIGIN : window.location.origin
+
+// Pages that must stay reachable while the site is in coming-soon mode, because a user
+// arrives on them from a link we sent them (e.g. the password-reset email) rather than by
+// browsing the site.
+const COMING_SOON_EXEMPT_PATHS = ['/reset-password']
+
 // Show the "Coming soon..." splash in the browser (not Cordova) on the live
 // ganime.io domain when VITE_COMING_SOON=1. Client-side only — APIs are unaffected.
 export const shouldShowComingSoon = (): boolean => {
   if (isCordova()) return false
   if (import.meta.env.VITE_COMING_SOON !== '1') return false
-  const host = typeof window !== 'undefined' ? window.location.hostname : ''
+  if (typeof window === 'undefined') return false
+  if (COMING_SOON_EXEMPT_PATHS.includes(window.location.pathname)) return false
+  const host = window.location.hostname
   return host === 'ganime.io' || host === 'www.ganime.io'
 }
 
