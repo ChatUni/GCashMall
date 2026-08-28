@@ -153,7 +153,7 @@ export const en = {
       earning: 'Earning',
       quickCreate: 'Quick Create',
       maxWithdraw: 'Max Withdraw',
-      withdrawHoldNote: 'Transactions within 30 days are not available for withdraw.',
+      withdrawHoldNote: 'Transactions within 30 days are not available for withdraw. The welcome bonus cannot be withdrawn.',
       withdrawDescription: 'Select an amount to withdraw from your wallet',
       selectWithdrawAmount: 'Select Withdrawal Amount',
       confirmWithdraw: 'Confirm Withdrawal',

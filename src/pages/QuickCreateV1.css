@@ -20,6 +20,14 @@
   --grad2: linear-gradient(135deg, #a855f7, #6366f1);
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 
+  /* Edit-mode field surface. Deliberately its own token rather than --bg2: in the light
+     theme --bg2 and --card are both #ffffff, so an edit field was indistinguishable from
+     the card it sits on. Tinted toward the app's purple so "editable" reads at a glance. */
+  --edit-bg: #2e2255;
+  --edit-bg-focus: #382a68;
+  --edit-border: #55428c;
+  --edit-ring: rgba(168, 85, 247, 0.25);
+
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
@@ -37,6 +45,11 @@
   --muted: #63637a;
   --faint: #9494a8;
   --shadow: 0 10px 30px rgba(80, 60, 140, 0.1);
+
+  --edit-bg: #f6f1ff;
+  --edit-bg-focus: #efe6ff;
+  --edit-border: #dccdf8;
+  --edit-ring: rgba(168, 85, 247, 0.16);
 }
 
 .qcv1-content {
@@ -519,13 +532,24 @@
   background: var(--bg2);
   border-color: var(--purple);
 }
-.qcv1-inline-input.strong {
+.qcv1-inline-input.strong,
+.qcv1-inline-area.strong {
   font-size: 22px;
   font-weight: 700;
+}
+/* Key Moments edits as one line per moment, but reads as a bulleted list whose hanging
+   indent makes its text column 18px narrower. Without the matching indent the two wrap
+   differently and the row jumps — visibly so on a phone, where 18px is a real fraction
+   of the column. */
+.qcv1-inline-area.km {
+  padding-left: 27px;
 }
 .qcv1-inline-area {
   resize: vertical;
   line-height: 1.5;
+  /* Height is driven by autoGrow (QuickCreateV1.tsx). Hiding overflow stops a scrollbar
+     flashing in during the measure, which would itself change the width and wrap. */
+  overflow: hidden;
 }
 .qcv1-genre-tags {
   display: flex;
@@ -573,6 +597,10 @@
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
 }
+/* Cells are auto-height textareas while editing; centring them would stagger the row. */
+.qcv1-char-trow.editing {
+  align-items: start;
+}
 .qcv1-cell {
   background: transparent;
   border: 1px solid transparent;
@@ -580,9 +608,13 @@
   padding: 7px 9px;
   color: var(--text);
   font-size: 13.5px;
+  line-height: 1.5;
   font-family: inherit;
   width: 100%;
   box-sizing: border-box;
+  resize: vertical;
+  overflow: hidden;
+  display: block;
 }
 .qcv1-cell.strong {
   font-weight: 600;
@@ -671,11 +703,15 @@
   padding-left: 20px;
 }
 .qcv1-km-list {
-  margin: 6px 0 0;
-  padding-left: 18px;
+  /* Key Moments reads as a bulleted list but edits as one-line-per-moment in a textarea,
+     so this has to carry the same type metrics and box as .qcv1-inline-area or the row
+     jumps on edit. Left padding is the textarea's 9px plus 18px of bullet indent. */
+  margin: 0;
+  padding: 7px 9px 7px 27px;
+  border: 1px solid transparent;
   color: var(--text);
-  font-size: 13.5px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.5;
 }
 /* Read-mode values + per-section edit controls */
 .qcv1-val {
@@ -684,6 +720,9 @@
   color: var(--text);
   line-height: 1.5;
   white-space: pre-wrap;
+  /* Mirrors .qcv1-inline-area's transparent border so the read-only row and the textarea
+     that replaces it occupy exactly the same height. */
+  border: 1px solid transparent;
 }
 .qcv1-val.strong {
   font-size: 22px;
@@ -698,9 +737,11 @@
 .qcv1-cell-val {
   padding: 7px 9px;
   font-size: 13.5px;
+  line-height: 1.5;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  /* Match .qcv1-cell's box model (see .qcv1-val). */
+  border: 1px solid transparent;
 }
 .qcv1-cell-val.strong {
   font-weight: 600;
@@ -716,8 +757,25 @@
 .qcv1-inline-input.bordered,
 .qcv1-inline-area.bordered,
 .qcv1-cell.bordered {
-  background: var(--bg2);
-  border-color: var(--border2);
+  background: var(--edit-bg);
+  border-color: var(--edit-border);
+}
+/* Source order matters here: these repeat .bordered's specificity, and the generic
+   :focus rule further up loses to it — without these an edit field showed no focus at all. */
+.qcv1-inline-input.bordered:hover,
+.qcv1-inline-area.bordered:hover,
+.qcv1-cell.bordered:hover {
+  background: var(--edit-bg);
+  border-color: var(--purple2);
+}
+.qcv1-inline-input.bordered:focus,
+.qcv1-inline-area.bordered:focus,
+.qcv1-cell.bordered:focus {
+  background: var(--edit-bg-focus);
+  border-color: var(--purple);
+  /* box-shadow, not outline/border-width — it must not change the box height and undo
+     the read-to-edit height match. */
+  box-shadow: 0 0 0 3px var(--edit-ring);
 }
 .qcv1-row-edit {
   background: transparent;

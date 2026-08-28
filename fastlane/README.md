@@ -92,6 +92,30 @@ Upload the already-built IPA to TestFlight (no rebuild)
 
 Verify the App Store Connect API key can authenticate
 
+### ios select_build
+
+```sh
+[bundle exec] fastlane ios select_build
+```
+
+Select an uploaded build for the App Store version (no review submission)
+
+### ios metadata_show
+
+```sh
+[bundle exec] fastlane ios metadata_show
+```
+
+Show the App Store listing's privacy-policy URL per locale (read-only)
+
+### ios metadata
+
+```sh
+[bundle exec] fastlane ios metadata
+```
+
+Push the privacy-policy URL to the App Store listing (metadata only, no binary)
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

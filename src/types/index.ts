@@ -73,7 +73,7 @@ export interface EarningSource {
   episodeNumber: number
   episodeTitle?: string
 }
-export type TransactionMethod = 'Credit Card' | 'GUSD'
+export type TransactionMethod = 'Credit Card' | 'GUSD' | 'Apple Pay' | 'Google Play' | 'welcome'
 
 export interface Transaction {
   id: string

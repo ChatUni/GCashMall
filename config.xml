@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.ganime.app" version="1.0.0" ios-CFBundleVersion="14" android-versionCode="10003" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="io.ganime.app" version="1.0.0" ios-CFBundleVersion="15" android-versionCode="10003" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>GAnime</name>
-    <description>GCashMall - Online Store App</description>
-    <author email="support@gcashmall.com" href="https://gcashmall.com">GCashMall Team</author>
+    <description>Watch AI-generated anime series, and create, publish, and monetize your own animated stories.</description>
+    <author email="support@ganime.io" href="https://ganime.io">Fresh Road Studio Inc.</author>
     <content src="index.html" />
     <access origin="*" />
     <allow-intent href="http://*/*" />

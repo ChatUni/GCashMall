@@ -655,17 +655,45 @@ export const getFilteredTransactions = (
 export const WITHDRAW_HOLD_DAYS = 30
 
 // Max withdrawable amount = current balance minus credits received in the last 30 days.
+// Max withdrawable amount. MUST mirror getMaxWithdrawAmount in
+// netlify/functions/utils/handlers.js, which enforces the same cap server-side — this copy
+// only drives what the wallet shows.
+//
+// Two things are excluded from the balance:
+//   • credits received inside the hold window (not settled long enough to withdraw), and
+//   • the welcome bonus, which is never withdrawable at any age.
+//
+// The bonus is treated as SPENT FIRST. Without that, a creator who spent their bonus on
+// episodes and later topped up with real money could never withdraw that real money,
+// because we'd keep deducting the full bonus forever.
+//
+// Spending is derived by conservation rather than tallied: episode purchases are stored
+// outside `transactions`, so summing debits directly would miss them. Everything ever
+// credited that is no longer in the balance — and wasn't withdrawn — has been spent.
+// Failed withdrawals are refunded, so only settled/in-flight ones hold the balance down.
 export const getMaxWithdrawAmount = (balance: number, transactions: Transaction[]): number => {
+  const txns = transactions || []
   const cutoff = Date.now() - WITHDRAW_HOLD_DAYS * 24 * 60 * 60 * 1000
-  const heldCredits = (transactions || [])
-    .filter(
-      (t) =>
-        (t.type === 'topup' || t.type === 'earning') &&
-        t.status === 'success' &&
-        new Date(t.createdAt).getTime() >= cutoff,
-    )
-    .reduce((sum, t) => sum + t.amount, 0)
-  return Math.max(0, Number((balance - heldCredits).toFixed(2)))
+  const sum = (list: Transaction[]) => list.reduce((total, t) => total + (Number(t.amount) || 0), 0)
+
+  const credits = txns.filter(
+    (t) => (t.type === 'topup' || t.type === 'earning') && t.status === 'success',
+  )
+  const withdrawn = sum(
+    txns.filter(
+      (t) => t.type === 'withdraw' && (t.status === 'success' || t.status === 'processing'),
+    ),
+  )
+
+  const welcomeTotal = sum(credits.filter((t) => t.method === 'welcome'))
+  const spent = Math.max(0, sum(credits) - balance - withdrawn)
+  const bonusRemaining = Math.max(0, welcomeTotal - spent)
+
+  const heldCredits = sum(
+    credits.filter((t) => t.method !== 'welcome' && new Date(t.createdAt).getTime() >= cutoff),
+  )
+
+  return Math.max(0, Number((balance - bonusRemaining - heldCredits).toFixed(2)))
 }
 
 // Format date for display (used in transaction history)

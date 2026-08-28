@@ -236,4 +236,94 @@ platform :ios do
     ios_api_key
     UI.success("App Store Connect API key OK")
   end
+
+  # --- App Store listing metadata ---------------------------------------------
+  # NOTE: the App Store product-page ICON is not settable here (or anywhere via the API).
+  # Since iOS 11 Apple derives it from the 1024x1024 marketing icon inside the uploaded
+  # build; deliver's :app_icon option is inert, flagged "Removed after the migration to
+  # the new App Store Connect API in June 2020". Ship a build to change the icon.
+
+  PRIVACY_POLICY_URL = "https://ganime.io/privacy.html"
+
+  # Attach an already-uploaded build to the App Store version.
+  #
+  # This is the step that is easy to miss: `upload_to_testflight` puts a build in
+  # TestFlight but does NOT select it for the App Store version, so the version (and the
+  # icon ASC shows for the app) keeps pointing at whatever build was selected before.
+  # deliver only calls select_build from its submit-for-review path, which would also
+  # submit the app — so do it directly here instead.
+  #
+  #   bundle exec fastlane ios select_build              # newest build
+  #   bundle exec fastlane ios select_build build:15     # a specific one
+  #
+  # Does NOT submit for review; the version stays in Prepare for Submission.
+  desc "Select an uploaded build for the App Store version (no review submission)"
+  lane :select_build do |options|
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: ios_api_key)
+    app = Spaceship::ConnectAPI::App.find(IOS_APP_IDENTIFIER)
+    platform = Spaceship::ConnectAPI::Platform::IOS
+
+    version = app.get_edit_app_store_version(platform: platform)
+    UI.user_error!("No editable App Store version (nothing in Prepare for Submission)") unless version
+
+    builds = Spaceship::ConnectAPI::Build.all(app_id: app.id, sort: "-uploadedDate", limit: 20)
+    wanted = options[:build]&.to_s
+    build = wanted ? builds.find { |b| b.version.to_s == wanted } : builds.first
+    UI.user_error!("Build #{wanted || '(latest)'} not found") unless build
+    UI.user_error!("Build #{build.version} is still #{build.processing_state} — wait for VALID") unless build.processing_state == "VALID"
+
+    current = (version.build rescue nil)
+    UI.important("Version #{version.version_string}: build #{current&.version || 'NONE'} -> #{build.version}")
+    version.select_build(build_id: build.id)
+    UI.success("Selected build #{build.version} for #{version.version_string}")
+  end
+
+  desc "Show the App Store listing's privacy-policy URL per locale (read-only)"
+  # Run this before :metadata to see what would change.
+  lane :metadata_show do
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: ios_api_key)
+    app = Spaceship::ConnectAPI::App.find(IOS_APP_IDENTIFIER)
+    UI.user_error!("App #{IOS_APP_IDENTIFIER} not found") unless app
+
+    info = app.fetch_edit_app_info || app.fetch_live_app_info
+    info.get_app_info_localizations.each do |loc|
+      UI.important("#{loc.locale}  privacy_policy_url = #{loc.privacy_policy_url.inspect}")
+    end
+    UI.message("Target value: #{PRIVACY_POLICY_URL}")
+  end
+
+  # Push the privacy-policy URL to every locale the listing already has.
+  #
+  # Only keys passed here are written: deliver skips any option that is nil
+  # (`next unless current` in upload_metadata.rb), so the description, keywords,
+  # screenshots and everything else are left untouched. Binary and screenshot
+  # uploads are skipped outright, and nothing is submitted for review.
+  #
+  # Runs interactively by default — deliver renders an HTML summary and waits for
+  # confirmation. Pass force:true to skip that prompt in CI.
+  desc "Push the privacy-policy URL to the App Store listing (metadata only, no binary)"
+  lane :metadata do |options|
+    api_key = ios_api_key
+
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+    app = Spaceship::ConnectAPI::App.find(IOS_APP_IDENTIFIER)
+    info = app.fetch_edit_app_info || app.fetch_live_app_info
+    locales = info.get_app_info_localizations.map(&:locale)
+    UI.important("Setting privacy_policy_url on: #{locales.join(', ')}")
+
+    deliver(
+      api_key: api_key,
+      app_identifier: IOS_APP_IDENTIFIER,
+      privacy_url: locales.to_h { |l| [l, PRIVACY_POLICY_URL] },
+      # everything below keeps this to a metadata-only, non-destructive change
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      sync_screenshots: false,
+      skip_app_version_update: true,
+      submit_for_review: false,
+      automatic_release: false,
+      run_precheck_before_submit: false,
+      force: options[:force] == true || options[:force] == "true",
+    )
+  end
 end

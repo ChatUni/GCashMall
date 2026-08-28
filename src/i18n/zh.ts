@@ -152,7 +152,7 @@ export const zh = {
       earning: '收入',
       quickCreate: '快速创作',
       maxWithdraw: '最大可提现',
-      withdrawHoldNote: '30 天内的交易暂不可提现。',
+      withdrawHoldNote: '30 天内的交易暂不可提现。新用户奖励金不可提现。',
       withdrawDescription: '选择要从钱包提取的金额',
       selectWithdrawAmount: '选择提现金额',
       confirmWithdraw: '确认提现',

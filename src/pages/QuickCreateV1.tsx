@@ -3,7 +3,7 @@
 // VITE_QUICK_CREATE_VERSION=v1 (App.tsx). Uses the app's standard TopBar; all state
 // lives in quickCreateV1Store (Rule #7).
 
-import { Show, For, Switch, Match, createMemo, createSignal, onMount } from 'solid-js'
+import { Show, For, Switch, Match, createMemo, createSignal, onMount, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
@@ -216,6 +216,52 @@ const Page1Idea = () => {
 // ══════════════════════════════════════ Page 2 ══════════════════════════════════════
 
 // A read-mode label/value row on Page 2.
+// Size a textarea to exactly fit its content, so entering edit mode doesn't jump the row
+// height. A fixed `rows` can't do this — three rows is too tall for a one-line logline and
+// far too short for a long summary — so measure the content instead and keep it in sync as
+// the user types. Used as `ref={autoGrow}`.
+//
+// scrollHeight covers content + padding but NOT the border, and these controls are
+// border-box, so the border has to be added back or every field lands 2px short.
+// scrollHeight covers content + padding but NOT the border, and these controls are
+// border-box, so the border has to be added back or the field lands 2px short.
+const contentHeight = (el: HTMLTextAreaElement) => {
+  const cs = getComputedStyle(el)
+  return el.scrollHeight + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+}
+
+// Size a group of textareas to the tallest one's content. Reset every height first, then
+// measure, then apply — interleaving the three would let an already-resized cell influence
+// the next measurement.
+const fitGroup = (cells: HTMLTextAreaElement[]) => {
+  if (!cells.length) return
+  cells.forEach((c) => (c.style.height = 'auto'))
+  const tallest = Math.max(...cells.map(contentHeight))
+  cells.forEach((c) => (c.style.height = `${tallest}px`))
+}
+
+const attachAutoGrow = (el: HTMLTextAreaElement, group: () => HTMLTextAreaElement[]) => {
+  const fit = () => fitGroup(group())
+  el.addEventListener('input', fit)
+  onCleanup(() => el.removeEventListener('input', fit))
+  // Measure once the element is actually in the document (a ref fires before insertion,
+  // where scrollHeight is still 0). onMount lands before paint, so there is no flash.
+  onMount(fit)
+}
+
+// A standalone field: sized to exactly fit its own content, so entering edit mode doesn't
+// jump the row height. A fixed `rows` can't do that — three rows is too tall for a one-line
+// logline and far too short for a long summary.
+const autoGrow = (el: HTMLTextAreaElement) => attachAutoGrow(el, () => [el])
+
+// A character-row cell. The four cells are one record, so sizing each to its own content
+// leaves the row ragged — grow them together to the tallest instead.
+const autoGrowRow = (el: HTMLTextAreaElement) =>
+  attachAutoGrow(el, () => {
+    const row = el.closest('.qcv1-char-trow')
+    return row ? Array.from(row.querySelectorAll('textarea')) : [el]
+  })
+
 const readRow = (label: string, value: string, strong = false) => (
   <div class="qcv1-row">
     <span class="qcv1-row-label">{label}</span>
@@ -392,7 +438,7 @@ const Page2Proposal = () => {
               >
                 <div class="qcv1-row">
                   <span class="qcv1-row-label">{p2().seriesTitle}</span>
-                  <input class="qcv1-inline-input strong bordered" value={sd.title} onInput={(e) => setSd('title', e.currentTarget.value)} />
+                  <textarea ref={autoGrow} rows={1} class="qcv1-inline-area strong bordered" value={sd.title} onInput={(e) => setSd('title', e.currentTarget.value)} />
                 </div>
                 <div class="qcv1-row">
                   <span class="qcv1-row-label">{p2().genre}</span>
@@ -404,11 +450,11 @@ const Page2Proposal = () => {
                 </div>
                 <div class="qcv1-row">
                   <span class="qcv1-row-label">{p2().logline}</span>
-                  <textarea class="qcv1-inline-area bordered" rows={3} value={sd.logline} onInput={(e) => setSd('logline', e.currentTarget.value)} />
+                  <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered" value={sd.logline} onInput={(e) => setSd('logline', e.currentTarget.value)} />
                 </div>
                 <div class="qcv1-row">
                   <span class="qcv1-row-label">{p2().storySummary}</span>
-                  <textarea class="qcv1-inline-area bordered" rows={3} value={sd.summary} onInput={(e) => setSd('summary', e.currentTarget.value)} />
+                  <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered" value={sd.summary} onInput={(e) => setSd('summary', e.currentTarget.value)} />
                 </div>
               </Show>
             </section>
@@ -446,10 +492,10 @@ const Page2Proposal = () => {
                       }
                     >
                       <div class="qcv1-char-trow editing">
-                        <input class="qcv1-cell bordered strong" value={ccd.name} onInput={(e) => setCcd('name', e.currentTarget.value)} />
-                        <input class="qcv1-cell bordered" value={ccd.role} onInput={(e) => setCcd('role', e.currentTarget.value)} />
-                        <input class="qcv1-cell bordered" value={ccd.personality} onInput={(e) => setCcd('personality', e.currentTarget.value)} />
-                        <input class="qcv1-cell bordered" value={ccd.background} onInput={(e) => setCcd('background', e.currentTarget.value)} />
+                        <textarea ref={autoGrowRow} rows={1} class="qcv1-cell bordered strong" value={ccd.name} onInput={(e) => setCcd('name', e.currentTarget.value)} />
+                        <textarea ref={autoGrowRow} rows={1} class="qcv1-cell bordered" value={ccd.role} onInput={(e) => setCcd('role', e.currentTarget.value)} />
+                        <textarea ref={autoGrowRow} rows={1} class="qcv1-cell bordered" value={ccd.personality} onInput={(e) => setCcd('personality', e.currentTarget.value)} />
+                        <textarea ref={autoGrowRow} rows={1} class="qcv1-cell bordered" value={ccd.background} onInput={(e) => setCcd('background', e.currentTarget.value)} />
                         <div class="qcv1-row-edit-actions">
                           <button class="qcv1-mini save" onClick={() => saveChar(i())}>
                             {p2().save}
@@ -536,19 +582,19 @@ const Page2Proposal = () => {
                       </div>
                       <div class="qcv1-row">
                         <span class="qcv1-row-label">{p2().epSummary}</span>
-                        <textarea class="qcv1-inline-area bordered" rows={3} value={ed.summary} onInput={(e) => setEd('summary', e.currentTarget.value)} />
+                        <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered" value={ed.summary} onInput={(e) => setEd('summary', e.currentTarget.value)} />
                       </div>
                       <div class="qcv1-row">
                         <span class="qcv1-row-label">{p2().keyMoments}</span>
-                        <textarea class="qcv1-inline-area bordered" rows={4} value={ed.keyMoments} onInput={(e) => setEd('keyMoments', e.currentTarget.value)} />
+                        <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered km" value={ed.keyMoments} onInput={(e) => setEd('keyMoments', e.currentTarget.value)} />
                       </div>
                       <div class="qcv1-row">
                         <span class="qcv1-row-label">{p2().goal}</span>
-                        <input class="qcv1-inline-input bordered" value={ed.goal} onInput={(e) => setEd('goal', e.currentTarget.value)} />
+                        <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered" value={ed.goal} onInput={(e) => setEd('goal', e.currentTarget.value)} />
                       </div>
                       <div class="qcv1-row">
                         <span class="qcv1-row-label">{p2().ending}</span>
-                        <textarea class="qcv1-inline-area bordered" rows={2} value={ed.ending} onInput={(e) => setEd('ending', e.currentTarget.value)} />
+                        <textarea ref={autoGrow} rows={1} class="qcv1-inline-area bordered" value={ed.ending} onInput={(e) => setEd('ending', e.currentTarget.value)} />
                       </div>
                     </Show>
                   </div>
