@@ -242,7 +242,7 @@ export interface SearchSuggestion {
 
 // Admin-configurable global app settings
 export interface SystemSettings {
-  previewLength: number // seconds of free preview before purchase is required
+  freeEpisodes: number // episodes at the start of every series that need no purchase
   creatorShare: number // percent of episode revenue paid to the creator
   episodeCost: number // GUSD cost to unlock an episode
   nextEpisodeCost: number // GUSD cost to generate a follow-up episode

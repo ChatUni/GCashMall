@@ -8,7 +8,7 @@ The Phone Player page provides a mobile-optimized video playback experience with
 
 This page shares core functionality with the [desktop Player page](../../pages/player.md). The following sections are identical and are not repeated here:
 - **Video Playing Restriction** - Time limit (3 seconds) for unpurchased episodes
-- **Trial Viewing System** - Trial logic, state tracking, "Preview Length" system setting, fallback to TIME_LIMIT
+- **Free Episodes** - the first N episodes of a series play in full; later ones are locked (padlock on the thumbnail, lock wall in place of the player, tap opens the purchase dialog). "Free Episodes" system setting, fallback to DEFAULT_FREE_EPISODES
 - **Episode Purchase System** - Purchase price ("Episode Cost" system setting, GUSD), purchase flow, purchased episode storage
 - **Purchase State Synchronization** - Backend persistence, frontend store updates
 - **Purchase Check Logic** - Matching by seriesId AND (episodeId OR episodeNumber)

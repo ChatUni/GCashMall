@@ -518,3 +518,26 @@
     transform: translateY(0);
   }
 }
+
+/* ── Locked episodes ─────────────────────────────────────────────────────────
+   Replaces the old n-second preview: a locked episode shows the lock wall instead
+   of playing. */
+.phone-locked-sub {
+  font-size: 13px;
+  color: #d1d5db;
+  max-width: 300px;
+  text-align: center;
+}
+.phone-episode-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.phone-episode-thumbnail.locked .phone-episode-thumb-img {
+  filter: brightness(0.55);
+}

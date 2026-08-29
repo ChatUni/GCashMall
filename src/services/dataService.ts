@@ -858,7 +858,7 @@ export const submitFeedback = async (
 // ── System Settings ──
 
 const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
-  previewLength: 3,
+  freeEpisodes: 5,
   creatorShare: 50,
   episodeCost: 0.1,
   nextEpisodeCost: 0.99,

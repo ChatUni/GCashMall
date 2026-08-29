@@ -1,12 +1,12 @@
 // System settings store - admin-configurable global app settings
-// Shared by the Account settings page (admin editing) and the Player (preview length).
+// Shared by the Account settings page (admin editing) and the Player (free-episode gate).
 
 import { createStore } from 'solid-js/store'
 import type { SystemSettings } from '../types'
 import { fetchSystemSettings, saveSystemSettings } from '../services/dataService'
 
-// Default trial/preview length in seconds, used as a fallback before settings load
-export const TIME_LIMIT = 3
+// Episodes free at the start of every series, used as a fallback before settings load
+export const DEFAULT_FREE_EPISODES = 5
 
 interface SystemSettingsState extends SystemSettings {
   loaded: boolean
@@ -14,7 +14,7 @@ interface SystemSettingsState extends SystemSettings {
 }
 
 const getInitialState = (): SystemSettingsState => ({
-  previewLength: TIME_LIMIT,
+  freeEpisodes: DEFAULT_FREE_EPISODES,
   creatorShare: 50,
   episodeCost: 0.1,
   nextEpisodeCost: 0.99,
@@ -31,7 +31,7 @@ const [state, setState] = createStore<SystemSettingsState>(getInitialState())
 export const systemSettingsStore = state
 
 // Selectable options (must match the backend's allowed values and the spec)
-export const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
+export const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
 export const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
 export const NEXT_EPISODE_COST_OPTIONS = [0.49, 0.99, 1.49, 1.99, 2.99]
@@ -45,8 +45,14 @@ export const SEEDANCE_MODEL_OPTIONS = [
   'doubao-seedance-1-0-pro-250528',
 ]
 
-// Preview length (seconds) for the player trial, falling back to TIME_LIMIT
-export const getPreviewLength = (): number => state.previewLength || TIME_LIMIT
+// How many episodes are free at the start of every series
+export const getFreeEpisodeCount = (): number => state.freeEpisodes ?? DEFAULT_FREE_EPISODES
+
+// An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
+// old n-second preview: locked episodes don't play at all, free ones play in full.
+// Mirrored server-side by isEpisodeFree in netlify/functions/utils/handlers.js.
+export const isEpisodeFree = (episodeNumber: number): boolean =>
+  episodeNumber <= getFreeEpisodeCount()
 // GUSD cost to generate a follow-up episode
 export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 0.99
 
@@ -63,7 +69,7 @@ export const systemSettingsStoreActions = {
   // Admin only - save a single changed setting (merged with current values)
   save: async (changes: Partial<SystemSettings>) => {
     const next: SystemSettings = {
-      previewLength: changes.previewLength ?? state.previewLength,
+      freeEpisodes: changes.freeEpisodes ?? state.freeEpisodes,
       creatorShare: changes.creatorShare ?? state.creatorShare,
       episodeCost: changes.episodeCost ?? state.episodeCost,
       nextEpisodeCost: changes.nextEpisodeCost ?? state.nextEpisodeCost,

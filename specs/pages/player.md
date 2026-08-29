@@ -111,9 +111,11 @@ The page uses React Router params:
 
 ### Video Playing Restriction
 
-- Time Limit (TL) = 3 seconds
-- if user is not logged in, or if the logged in user hasn't purchased the current episode, only the first TL seconds can be played, when the video play reaches TL, or if the user tries to play/jump pass TL, stop playing and show the purchase dialog
-- in order to capture time updates from a Bunny Stream iframe, use the Bunny Stream Playback Control API
+- Free Episodes (FE) = "Free Episodes" system setting, default 5
+- the first FE episodes of every series are free to everyone, logged in or not, and play in full
+- every episode after that is locked: it does not play at all, and the player shows a lock wall with an unlock call to action instead of loading the video
+- an episode is unlocked when it is free, when the logged-in user has purchased it, or when the user is the series creator
+- there is no timed preview of a locked episode
 
 ## Purchase Dialog
 
@@ -366,37 +368,36 @@ Two sections identical to Home page:
 - **Padding Top**: 80px
 - **Click**: Navigate to `/genre`
 
-## Trial Viewing System
+## Free Episodes
 
 ### Overview
-Users can watch the first few seconds of any episode for free (configurable, default 3 seconds). After the trial period ends, they must purchase the episode to continue watching.
+The first N episodes of every series are free and play in full; the rest are locked until
+purchased. This replaces the previous timed-preview ("trial") system — a locked episode is
+never played, not even briefly.
 
 ### Configuration
-- **Constant**: `TIME_LIMIT` in `src/stores/playerStore.ts`
-- **Default Value**: 3 seconds
-- **Location**: Both the markdown spec and the code constant should be updated together when changing this value
+- **Setting**: "Free Episodes" system setting (Admin -> Settings), default 5
+- **Options**: 0, 1, 3, 5, 10 (0 means every episode must be purchased)
+- **Server default**: `DEFAULT_SYSTEM_SETTINGS.freeEpisodes` in `netlify/functions/utils/handlers.js`
+- **Client fallback**: `DEFAULT_FREE_EPISODES` in `src/stores/systemSettingsStore.ts`
 
-### Trial Logic
-- **Trial Duration**: "Preview Length" system setting, fallback to TIME_LIMIT
-- **Trigger**: Video playback reaches the time limit for unpurchased episodes
-- **Behavior**:
-  - Video pauses automatically at the time limit
-  - Purchase popup appears
-  - User can either purchase or close the popup
-  - If closed without purchase, video remains paused at the time limit
+### Unlock Logic
+An episode is unlocked when any of these holds:
+- its episode number is <= the "Free Episodes" setting
+- the logged-in user has purchased it
+- the logged-in user is the series creator
 
-### Trial State Tracking
-- Track current playback time
-- Check if episode is purchased before applying trial limit
-- Purchased episodes have no time limit
+`isEpisodeFree` exists on both the client (systemSettingsStore) and the server (handlers.js)
+and must stay in agreement. The server also refuses to charge for a free episode, so a stale
+client cannot take money for one.
 
-### Trial Ended Notification
-- **Position**: Top of video player
-- **Background**: rgba(0, 0, 0, 0.8)
-- **Padding**: 12px 20px
-- **Border Radius**: 8px
-- **Message**: "Trial ended. Unlock to continue watching."
-- **Animation**: fadeIn 0.3s
+### Locked Episode Behaviour
+- **Thumbnail**: dimmed, with a padlock badge
+- **Click on a locked thumbnail**: opens the purchase dialog; it does not navigate to the player
+- **Player**: if the current episode is locked, a lock wall is shown in place of the video —
+  blurred episode still, padlock, "Episode locked", "The first {n} episodes are free…", and
+  an "Unlock episode" button
+- **Guest**: clicking unlock opens the login dialog first
 
 ## Episode Purchase System
 
@@ -405,7 +406,7 @@ Users can watch the first few seconds of any episode for free (configurable, def
 - **Payment Method**: Deduct from user's wallet balance
 
 ### Purchase Flow
-1. User clicks unlock button OR trial period ends
+1. User clicks the unlock button, or clicks a locked episode thumbnail
 2. Purchase popup appears showing:
    - Episode information
    - Price ("Episode Cost" system setting)

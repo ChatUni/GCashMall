@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show, For, untrack } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Show, For } from 'solid-js'
 import { useParams, useSearchParams, useNavigate } from '@solidjs/router'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import PhoneSeriesCarousel from '../../components/phone/PhoneSeriesCarousel'
@@ -21,14 +21,14 @@ import {
   playerPageStoreActions,
   checkSeriesFavorited,
   isCurrentEpisodePurchased,
+  isCurrentEpisodeUnlocked,
+  checkEpisodeUnlocked,
   getFilteredEpisodes,
   getEpisodeRangeOptions,
   checkEpisodePurchased,
-  initializePlayerJsWithTrialLimit,
-  updatePlayerJsPurchaseStatus,
 } from '../../stores/playerStore'
-import { getPreviewLength } from '../../stores/systemSettingsStore'
 import { isIOS } from '../../utils/cordova'
+import { getFreeEpisodeCount } from '../../stores/systemSettingsStore'
 import {
   getIframeUrl,
   getEpisodeThumbnailUrl,
@@ -41,8 +41,17 @@ import {
   shareWhatsApp,
   shareReddit,
 } from '../../utils/playerHelpers'
-import type { User } from '../../types'
+import type { User, Episode } from '../../types'
 import './PhonePlayer.css'
+
+// Padlock glyph for locked episodes.
+const PhoneLockIcon = (props: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={props.size ?? 18} height={props.size ?? 18} fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+)
 
 const PhonePlayer = () => {
   const params = useParams()
@@ -53,8 +62,9 @@ const PhonePlayer = () => {
   let descriptionRef: HTMLParagraphElement | undefined
 
   const [iframeLoaded, setIframeLoaded] = createSignal(false)
-  // iOS only: true once the free preview has been spent for the current episode.
-  const [previewConsumed, setPreviewConsumed] = createSignal(false)
+  void iframeLoaded
+  // Free (first N of the series), bought, or the creator's own — anything else never plays.
+  const isUnlocked = () => isCurrentEpisodeUnlocked()
 
   // Initialize data
   createEffect(() => {
@@ -112,73 +122,26 @@ const PhonePlayer = () => {
     const videoId = playerStore.currentEpisode?.videoId
     void videoId
     setIframeLoaded(false)
-    setPreviewConsumed(false)
   })
+
+  // Tapping a locked episode selects it (so the URL, the lock wall and the purchase
+  // dialog all refer to the same episode) and opens the purchase dialog straight away.
+  const onEpisodeClick = (episode: Episode) => {
+    playerPageStoreActions.handleEpisodeClick(episode, navigate)
+    if (!checkEpisodeUnlocked(episode._id, episode.episodeNumber)) {
+      playerPageStoreActions.handleUnlockClick()
+    }
+  }
 
   const handleIframeLoad = () => {
     setIframeLoaded(true)
   }
 
-  // Initialize Player.js with trial limit enforcement
-  // Note: Use untrack for isPurchased() so this effect only re-runs on video/iframe changes.
-  // Purchase status updates are handled separately by updatePlayerJsPurchaseStatus below.
-  createEffect(() => {
-    const currentVideoId = playerStore.currentEpisode?.videoId
-    const loaded = iframeLoaded()
-
-    if (!currentVideoId || !loaded) return
-
-    const purchased = untrack(() => isPurchased())
-    const iframeRefObj = { current: iframeRef || null }
-    const cleanup = initializePlayerJsWithTrialLimit(
-      iframeRefObj,
-      currentVideoId,
-      purchased,
-      playerPageStoreActions.handleTimeLimitReached,
-    )
-
-    onCleanup(() => {
-      if (cleanup) cleanup()
-    })
-  })
-
-  createEffect(() => {
-    const currentVideoId = playerStore.currentEpisode?.videoId
-    const purchased = isPurchased()
-    const loaded = iframeLoaded()
-
-    if (!loaded) return
-    updatePlayerJsPurchaseStatus(currentVideoId, purchased)
-  })
-
-  // iOS fallback for the preview time limit.
-  // Under the app:// WKWebView origin the Player.js <-> Bunny iframe postMessage bridge
-  // is unreliable, so its 'timeupdate' enforcement never fires. Enforce the limit with a
-  // wall-clock timer and stop playback by reloading the iframe with autoplay disabled —
-  // the one form of control that doesn't depend on the bridge.
-  createEffect(() => {
-    if (!isIOS()) return
-    const episode = playerStore.currentEpisode
-    const purchased = isPurchased()
-    if (!episode?.videoId || purchased) return
-
-    const videoId = episode.videoId
-    const timer = setTimeout(() => {
-      if (untrack(isPurchased)) return
-      if (iframeRef) iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, videoId, false)
-      setPreviewConsumed(true)
-      playerPageStoreActions.handleTimeLimitReached()
-    }, getPreviewLength() * 1000)
-
-    onCleanup(() => clearTimeout(timer))
-  })
-
   // iOS: resume playback after purchase by reloading the iframe that the fallback stopped.
   createEffect(() => {
     if (!isIOS()) return
     const episode = playerStore.currentEpisode
-    const purchased = isPurchased()
-    if (purchased && episode?.videoId && iframeRef && iframeRef.src.includes('autoplay=false')) {
+    if (isUnlocked() && episode?.videoId && iframeRef && iframeRef.src.includes('autoplay=false')) {
       iframeRef.src = getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, episode.videoId, true)
     }
   })
@@ -242,15 +205,14 @@ const PhonePlayer = () => {
                   allowfullscreen
                   onLoad={handleIframeLoad}
                 />
-                {/* iOS: once the preview is spent, block the iframe's native replay and
-                    reopen the purchase dialog instead. */}
-                <Show when={isIOS() && !isPurchased() && previewConsumed()}>
+                {/* A locked episode never plays — there is no preview to spend. */}
+                <Show when={!isUnlocked()}>
                   <div class="phone-preview-lock" onClick={playerPageStoreActions.handleUnlockClick}>
-                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <span>{t().player.unlockMessage}</span>
+                    <PhoneLockIcon size={40} />
+                    <span>{t().player.lockedTitle}</span>
+                    <span class="phone-locked-sub">
+                      {t().player.lockedSubtitle.replace('{n}', String(getFreeEpisodeCount()))}
+                    </span>
                   </div>
                 </Show>
               </Show>
@@ -433,8 +395,8 @@ const PhonePlayer = () => {
                           playerStore.currentEpisode?.episodeNumber === episode.episodeNumber
                             ? 'active'
                             : ''
-                        }`}
-                        onClick={() => playerPageStoreActions.handleEpisodeClick(episode, navigate)}
+                        } ${checkEpisodeUnlocked(episode._id, episode.episodeNumber) ? '' : 'locked'}`}
+                        onClick={() => onEpisodeClick(episode)}
                       >
                         <img
                           src={
@@ -456,6 +418,11 @@ const PhonePlayer = () => {
                         </span>
                         <Show when={checkEpisodePurchased(episode._id, episode.episodeNumber)}>
                           <span class="phone-episode-ribbon" />
+                        </Show>
+                        <Show when={!checkEpisodeUnlocked(episode._id, episode.episodeNumber)}>
+                          <span class="phone-episode-lock">
+                            <PhoneLockIcon size={18} />
+                          </span>
                         </Show>
                       </div>
                     )}

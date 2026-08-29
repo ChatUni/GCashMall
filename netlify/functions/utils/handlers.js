@@ -3482,8 +3482,18 @@ const purchaseEpisode = async (body, authHeader) => {
 
     const currentUser = users[0]
 
-    // Episode cost and creator revenue share come from the admin-configured system settings
-    const { episodeCost, creatorShare } = await readSystemSettings()
+    // Episode cost, revenue share and the free-episode count all come from the
+    // admin-configured system settings.
+    const { episodeCost, creatorShare, freeEpisodes } = await readSystemSettings()
+
+    // A free episode needs no purchase — never take money for one, even if a stale client
+    // asks. Reported as success so the caller just unlocks and plays.
+    if (isEpisodeFree(episodeNumber, freeEpisodes)) {
+      return {
+        success: true,
+        data: { free: true, balance: currentUser.balance || 0, episodeNumber: parseInt(episodeNumber) },
+      }
+    }
 
     // Check if user has enough balance
     const balance = currentUser.balance || 0
@@ -4248,7 +4258,7 @@ const validateViewsParams = (data) => {
 // Global app settings stored as a singleton document in the 'settings' collection.
 const SYSTEM_SETTINGS_KEY = 'system'
 const DEFAULT_SYSTEM_SETTINGS = {
-  previewLength: 3, // seconds of free preview before purchase is required
+  freeEpisodes: 5, // episodes at the start of every series that need no purchase
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 0.1, // GUSD cost to unlock an episode
   nextEpisodeCost: 0.99, // GUSD cost to generate a follow-up episode
@@ -4257,18 +4267,23 @@ const DEFAULT_SYSTEM_SETTINGS = {
   imageModel: MODEL_DEFAULTS.imageModel, // OpenAI image model
   seedanceModel: MODEL_DEFAULTS.seedanceModel, // Seedance video model
 }
-const PREVIEW_LENGTH_OPTIONS = [3, 5, 10, 20, 30]
+const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
 const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
 const WELCOME_CREDIT_OPTIONS = [0, 5, 10, 20, 50, 100]
 
+// An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
+// old n-second preview: locked episodes are not playable at all, free ones play in full.
+// Mirrored client-side in systemSettingsStore.isEpisodeFree.
+const isEpisodeFree = (episodeNumber, freeEpisodes) => Number(episodeNumber) <= Number(freeEpisodes || 0)
+
 // Read the system settings (merged with defaults). Used server-side by the
-// trial/purchase/revenue logic and exposed to the client via the API.
+// purchase/revenue logic and exposed to the client via the API.
 const readSystemSettings = async () => {
   const docs = await get('settings', { key: SYSTEM_SETTINGS_KEY }, {}, {}, 1)
   const saved = docs && docs.length > 0 ? docs[0] : {}
   return {
-    previewLength: saved.previewLength ?? DEFAULT_SYSTEM_SETTINGS.previewLength,
+    freeEpisodes: saved.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
     creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
     nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
@@ -4294,7 +4309,7 @@ const saveSettings = async (body, authHeader) => {
   try {
     const fields = {
       key: SYSTEM_SETTINGS_KEY,
-      previewLength: body.previewLength,
+      freeEpisodes: body.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
       creatorShare: body.creatorShare,
       episodeCost: body.episodeCost,
       nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
@@ -4332,8 +4347,8 @@ const validateSystemSettingsBody = (body) => {
   if (!body) {
     throw new Error('Request body is required')
   }
-  if (!PREVIEW_LENGTH_OPTIONS.includes(body.previewLength)) {
-    throw new Error('Invalid previewLength')
+  if (body.freeEpisodes != null && !FREE_EPISODES_OPTIONS.includes(body.freeEpisodes)) {
+    throw new Error('Invalid freeEpisodes')
   }
   if (!CREATOR_SHARE_OPTIONS.includes(body.creatorShare)) {
     throw new Error('Invalid creatorShare')

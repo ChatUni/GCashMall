@@ -224,7 +224,7 @@ Section card with form fields:
 #### System Settings Section (Admin only)
 | Setting | Control Type | Options | Default |
 |---------|--------------|---------|---------|
-| Preview Length | Select | 3 secs, 5 secs, 10 secs, 20 secs, 30 secs | 3 secs
+| Free Episodes | Select | 0, 1, 3, 5, 10 | 5
 | Creator share % | Select | 25%, 30%, 40%, 50%, 60%, 75% | 50%
 | Episode Cost | Select | 0.1, 0.2, 0.3, 0.5, 0.75, 1 | 0.1
 

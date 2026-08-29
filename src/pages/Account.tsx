@@ -14,7 +14,7 @@ import { languageStore, languageStoreActions } from '../stores/languageStore'
 import {
   systemSettingsStore,
   systemSettingsStoreActions,
-  PREVIEW_LENGTH_OPTIONS,
+  FREE_EPISODES_OPTIONS,
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
   NEXT_EPISODE_COST_OPTIONS,
@@ -805,15 +805,15 @@ function SystemSettingsCard() {
       <h3 class="card-title">{settings().systemSettings}</h3>
 
       <div class="setting-row">
-        <label class="setting-label">{settings().previewLength}</label>
+        <label class="setting-label">{settings().freeEpisodes}</label>
         <select
           class="setting-control"
-          value={systemSettingsStore.previewLength}
+          value={systemSettingsStore.freeEpisodes}
           disabled={systemSettingsStore.saving}
-          onChange={(e) => systemSettingsStoreActions.save({ previewLength: Number(e.currentTarget.value) })}
+          onChange={(e) => systemSettingsStoreActions.save({ freeEpisodes: Number(e.currentTarget.value) })}
         >
-          <For each={PREVIEW_LENGTH_OPTIONS}>
-            {(secs) => <option value={secs}>{secs} {settings().seconds}</option>}
+          <For each={FREE_EPISODES_OPTIONS}>
+            {(n) => <option value={n}>{n}</option>}
           </For>
         </select>
       </div>
