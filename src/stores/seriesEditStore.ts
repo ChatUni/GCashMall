@@ -2,7 +2,7 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { Genre } from '../types'
+import type { Genre, ModerationStatus } from '../types'
 
 export interface EpisodeFormData {
   id?: string
@@ -13,6 +13,11 @@ export interface EpisodeFormData {
   videoFile?: File | null
   isNew?: boolean
   isDeleted?: boolean
+  // Review state, so the uploader can see what still needs work. Read-only in the form.
+  moderationStatus?: ModerationStatus
+  moderationReason?: string
+  // True when this episode has an edit already waiting for review.
+  hasPendingEdit?: boolean
 }
 
 export interface SeriesFormData {

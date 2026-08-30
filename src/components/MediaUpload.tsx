@@ -12,8 +12,9 @@ const MAX_VIDEO_BYTES = 200 * 1024 * 1024
 
 const se = () => t().seriesEdit as unknown as Record<string, string>
 
-// Returns an error message if the file violates the limits, else null
-const validateMediaFile = (file: File, mode: MediaMode): Promise<string | null> => {
+// Returns an error message if the file violates the limits, else null.
+// Exported so other upload entry points (e.g. Replace Video) apply the same limits.
+export const validateMediaFile = (file: File, mode: MediaMode): Promise<string | null> => {
   if (mode === 'video') {
     return Promise.resolve(file.size > MAX_VIDEO_BYTES ? se().videoTooLarge : null)
   }

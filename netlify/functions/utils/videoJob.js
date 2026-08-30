@@ -27,11 +27,11 @@ import { uploadImage } from './cloudinaryUtil.js'
 import { ensureCharacterRefs, refImagesForShot } from './characterRefs.js'
 import { isS1, createBunnyVideo, fetchBunnyVideoFromUrl } from './bunny.js'
 import { triggerBackground } from './trigger.js'
+import { getJwtSecret } from './jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 // Mint a short-lived token for the job's own user so a system-driven advance (e.g. the
 // scheduled reconciler, which has no request auth) can still hand off to the audio job.
-const systemAuthHeader = (userId) => `Bearer ${jwt.sign({ id: String(userId) }, JWT_SECRET, { expiresIn: '1h' })}`
+const systemAuthHeader = (userId) => `Bearer ${jwt.sign({ id: String(userId) }, getJwtSecret(), { expiresIn: '1h' })}`
 
 const updateJob = (jobId, fields) =>
   update('productions', { jobId }, { $set: { ...fields, updatedAt: new Date() } })

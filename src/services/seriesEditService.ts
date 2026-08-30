@@ -1,7 +1,7 @@
 // SeriesEdit service - business logic extracted from SeriesEdit page
 // Following Rule #7: React components should be pure - separate business logic from components
 
-import { apiGet, apiPostWithAuth } from '../utils/api'
+import { apiGet, apiGetWithAuth, apiPostWithAuth } from '../utils/api'
 import { seriesEditStoreActions, type EpisodeFormData, createNewEpisode } from '../stores/seriesEditStore'
 import { toastStoreActions } from '../stores'
 import type { Series, Genre, Episode } from '../types'
@@ -33,7 +33,9 @@ export const fetchGenres = async () => {
 export const fetchSeries = async (seriesId: string) => {
   seriesEditStoreActions.setLoading(true)
   try {
-    const result = await apiGet<Series>('series', { id: seriesId })
+    // Must be the owner read: the public one hides episodes awaiting moderation, and
+    // saving a form built from it would delete them (an absent episode means "removed").
+    const result = await apiGetWithAuth<Series>('seriesForEdit', { id: seriesId })
     if (result.success && result.data) {
       const series = result.data
       const episodes = mapEpisodesToFormData(series.episodes || [])
@@ -71,6 +73,9 @@ const mapEpisodesToFormData = (episodes: Episode[]): EpisodeFormData[] => {
     videoFile: null,
     isNew: false,
     isDeleted: false,
+    moderationStatus: ep.moderation?.status,
+    moderationReason: ep.moderation?.reason || '',
+    hasPendingEdit: !!ep.moderation?.pending,
   }))
 }
 

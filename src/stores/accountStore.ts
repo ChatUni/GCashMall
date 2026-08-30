@@ -2,7 +2,8 @@
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
 import { createStore } from 'solid-js/store'
-import type { FavoriteItem, PurchaseItem, Series, User, RevenueData, WatchListItem, EarningSource } from '../types'
+import { isFlagOn } from '../utils/env'
+import type { FavoriteItem, ModerationSeries, PurchaseItem, Series, User, RevenueData, WatchListItem, EarningSource } from '../types'
 import type { ProductionJob } from '../services/dataService'
 
 // Payment method types
@@ -38,7 +39,7 @@ export interface CombinedTransaction {
   source?: EarningSource
 }
 
-export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'about' | 'contact'
+export type AccountTab = 'overview' | 'watchHistory' | 'favorites' | 'settings' | 'wallet' | 'myPurchases' | 'mySeries' | 'moderation' | 'about' | 'contact'
 export type TransactionFilter = 'all' | 'topup' | 'withdraw' | 'purchase'
 
 export interface ProfileFormState {
@@ -87,6 +88,11 @@ interface AccountState {
   
   // My Series
   mySeries: Series[]
+  // The uploader's own moderation status for every series they own, keyed lookup below.
+  myModeration: ModerationSeries[]
+  myModerationFetched: boolean
+  // seriesId whose review-status detail modal is open ('' = closed).
+  reviewStatusSeriesId: string
   mySeriesLoading: boolean
   myProductions: ProductionJob[] // Quick Create productions (in-progress + done)
   editingSeries: Series | null
@@ -207,6 +213,9 @@ const getInitialState = (): AccountState => ({
   
   // My Series
   mySeries: [],
+  myModeration: [],
+  myModerationFetched: false,
+  reviewStatusSeriesId: '',
   mySeriesLoading: false,
   myProductions: [],
   editingSeries: null,
@@ -304,6 +313,11 @@ export const accountStoreActions = {
     setAccountState({ myPurchasesLoading }),
   
   // My Series
+  setMyModeration: (myModeration: ModerationSeries[]) =>
+    setAccountState({ myModeration, myModerationFetched: true }),
+  openReviewStatus: (reviewStatusSeriesId: string) =>
+    setAccountState({ reviewStatusSeriesId }),
+  closeReviewStatus: () => setAccountState({ reviewStatusSeriesId: '' }),
   setMySeries: (mySeries: Series[]) =>
     setAccountState({ mySeries }),
   setMySeriesLoading: (mySeriesLoading: boolean) =>
@@ -540,6 +554,7 @@ export const navItems: { key: AccountTab; icon: string }[] = [
   { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
   { key: 'wallet', icon: '💰' },
+  { key: 'moderation', icon: '🛡️' },
   { key: 'settings', icon: '⚙️' },
 ]
 
@@ -551,6 +566,7 @@ export const phoneNavItems: { key: AccountTab; icon: string }[] = [
   { key: 'myPurchases', icon: '🛒' },
   { key: 'mySeries', icon: '🎬' },
   { key: 'wallet', icon: '💰' },
+  { key: 'moderation', icon: '🛡️' },
   { key: 'settings', icon: '⚙️' },
   { key: 'about', icon: 'ℹ️' },
   { key: 'contact', icon: '✉️' },
@@ -561,16 +577,19 @@ export const phoneNavItems: { key: AccountTab; icon: string }[] = [
 const canSeeMySeries = () => true
 
 // Derived nav items filtered by user permissions
-export const getFilteredNavItems = () =>
-  navItems.filter((item) => item.key !== 'mySeries' || canSeeMySeries())
+// Moderation is the admin review queue — hidden from everyone else.
+const canSeeTab = (key: AccountTab) =>
+  (key !== 'mySeries' || canSeeMySeries()) &&
+  (key !== 'moderation' || !!accountState.user?.isAdmin)
 
-export const getFilteredPhoneNavItems = () =>
-  phoneNavItems.filter((item) => item.key !== 'mySeries' || canSeeMySeries())
+export const getFilteredNavItems = () => navItems.filter((item) => canSeeTab(item.key))
+
+export const getFilteredPhoneNavItems = () => phoneNavItems.filter((item) => canSeeTab(item.key))
 
 // GUSD test mode (VITE_GUSD_TEST_MODE=true): expose tiny amounts so top-up/withdraw can be
 // exercised end-to-end for a few cents. GUSD is the web payment path, so these are added to
 // the standard amounts only — never to the iOS IAP tiers below.
-export const isGusdTestMode = import.meta.env.VITE_GUSD_TEST_MODE === 'true'
+export const isGusdTestMode = isFlagOn(import.meta.env.VITE_GUSD_TEST_MODE)
 const GUSD_TEST_AMOUNTS = [0.1, 0.2, 0.5, 1]
 export const walletAmounts = isGusdTestMode ? [...GUSD_TEST_AMOUNTS, 5, 10, 20, 50] : [5, 10, 20, 50]
 
@@ -720,6 +739,29 @@ export const getStatusClass = (status: string): string => {
     default:
       return ''
   }
+}
+
+// The uploader's review status for one series, or undefined if it has none yet
+// (a Quick Create production that hasn't been published still has no series document).
+export const moderationForSeries = (seriesId?: string): ModerationSeries | undefined =>
+  seriesId ? accountState.myModeration.find((m) => m._id === String(seriesId)) : undefined
+
+// One line for a card badge: what the uploader most needs to know about this series.
+// Rejections outrank everything — that is the state that needs their action.
+export const reviewSummary = (
+  mod?: ModerationSeries,
+): { status: 'approved' | 'pending' | 'rejected'; count: number } | undefined => {
+  if (!mod) return undefined
+  const episodes = mod.episodes || []
+  const rejected =
+    (mod.moderation.status === 'rejected' ? 1 : 0) +
+    episodes.filter((e) => e.moderation.status === 'rejected').length
+  if (rejected > 0) return { status: 'rejected', count: rejected }
+  const pending =
+    (mod.moderation.status === 'pending' ? 1 : 0) +
+    episodes.filter((e) => e.moderation.status === 'pending').length
+  if (pending > 0) return { status: 'pending', count: pending }
+  return { status: 'approved', count: 0 }
 }
 
 // Check if profile form has changes

@@ -30,7 +30,7 @@ export const updateOgMeta = (
   url?: string,
 ): void => {
   const siteName =
-    import.meta.env.VITE_APP_DISPLAY_NAME || document.title || 'GAnime'
+    import.meta.env.VITE_APP_DISPLAY_NAME || document.title || 'Ganime'
   const pageUrl = url || window.location.href
   const truncatedDesc = description ? description.substring(0, 200) : ''
 
@@ -54,7 +54,7 @@ export const updateOgMeta = (
 
 export const resetOgMeta = (): void => {
   const siteName =
-    import.meta.env.VITE_APP_DISPLAY_NAME || 'GAnime'
+    import.meta.env.VITE_APP_DISPLAY_NAME || 'Ganime'
   document.title = siteName
 
   setMetaTag('og:type', 'website')

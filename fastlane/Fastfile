@@ -197,7 +197,7 @@ platform :ios do
       destination: "generic/platform=iOS",
       export_method: "app-store",
       output_directory: IOS_OUTPUT_DIR,
-      output_name: "GAnime.ipa",
+      output_name: "Ganime.ipa",
       clean: true,
       export_options: {
         method: "app-store",
@@ -225,7 +225,7 @@ platform :ios do
     upload_to_testflight(
       api_key: ios_api_key,
       app_identifier: IOS_APP_IDENTIFIER,
-      ipa: File.expand_path("../build/ios-appstore/GAnime.ipa", __dir__),
+      ipa: File.expand_path("../build/ios-appstore/Ganime.ipa", __dir__),
       skip_waiting_for_build_processing: true,
       skip_submission: true,
     )

@@ -5,12 +5,12 @@
 // function so the ffmpeg dependency stays out of the main `api` bundle.
 import jwt from 'jsonwebtoken'
 import { advanceVideoGeneration } from './utils/videoJob.js'
+import { getJwtSecret } from './utils/jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getUserId = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) throw new Error('Authentication required')
-  return jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id
+  return jwt.verify(authHeader.replace('Bearer ', ''), getJwtSecret()).id
 }
 
 export const handler = async (event) => {

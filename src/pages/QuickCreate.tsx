@@ -10,7 +10,7 @@ import {
   fetchProductionStatus,
   publishQuickCreateEpisode,
   fetchGenres,
-  fetchSeries,
+  fetchSeriesForEdit,
   suggestDescription,
   startCoverGen,
   uploadCoverImage,
@@ -982,7 +982,7 @@ const Step7Ready = () => {
   onMount(() => {
     const sid = production()?.seriesId
     if (!sid) return
-    fetchSeries(sid)
+    fetchSeriesForEdit(sid)
       .then((series) => {
         if (series?.cover) setPubSeriesCover(series.cover)
         const ep = (series?.episodes || []).find((e) => e.episodeNumber === 1)
@@ -1250,7 +1250,7 @@ export const PublishEpisode = (
     // Edit mode: already published → seed the form from the actual series, not the production
     const sid = production()?.seriesId
     if (sid) {
-      fetchSeries(sid)
+      fetchSeriesForEdit(sid)
         .then((series) => {
           if (!series) return
           if (series.name) setSeriesName(series.name)

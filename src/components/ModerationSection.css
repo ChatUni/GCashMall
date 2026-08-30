@@ -1,0 +1,412 @@
+/* Admin manual-moderation queue (Account → Moderation). */
+
+.moderation-section .mod-error {
+  color: #ef4444;
+  font-size: 14px;
+}
+.mod-loading,
+.mod-empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--c-text-muted);
+}
+.mod-empty-state {
+  font-size: 16px;
+}
+
+/* ── Uploader group ── */
+.mod-group {
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--c-surface);
+}
+.mod-group-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-text);
+  text-align: left;
+}
+.mod-group-head:hover {
+  background: var(--c-surface3);
+}
+.mod-avatar {
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--c-surface3);
+}
+.mod-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mod-group-who {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.mod-group-name {
+  font-weight: 600;
+}
+.mod-group-email {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+.mod-group-count {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.mod-chevron {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease;
+  color: var(--c-text-muted);
+}
+.mod-chevron.open {
+  transform: rotate(180deg);
+}
+.mod-group-body {
+  padding: 0 16px 16px;
+}
+
+/* ── Series card ── */
+.mod-series {
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+  background: var(--c-surface2);
+}
+.mod-series-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--c-text);
+  text-align: left;
+  cursor: pointer;
+}
+.mod-series.open .mod-series-head {
+  margin-bottom: 14px;
+}
+/* Fully approved: nothing left to decide. Tinted green and sorted to the bottom of the
+   uploader's list so the queue reads top-down as "still needs you" then "done". */
+.mod-series.done > .mod-series-head {
+  background: rgba(34, 197, 94, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: -8px -10px 0;
+}
+.mod-series.done.open > .mod-series-head {
+  margin-bottom: 6px;
+}
+.mod-series.done > .mod-series-head:hover {
+  background: rgba(34, 197, 94, 0.18);
+}
+.mod-series.done {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.mod-series-waiting {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  white-space: nowrap;
+}
+.mod-series-cover {
+  width: 64px;
+  height: 96px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.mod-series-headings {
+  min-width: 0;
+  flex: 1;
+}
+.mod-series-name {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+.mod-series-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mod-live-note {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+/* ── Blocks / fields ── */
+.mod-block {
+  border-top: 1px solid var(--c-border);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+.mod-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.mod-block-head .mod-block-title {
+  margin-bottom: 0;
+}
+/* Bulk approve — outlined rather than solid green, so it reads as the broader action
+   without competing with the per-item Approve buttons below it. */
+.mod-btn.approve-all {
+  flex: none;
+  background: transparent;
+  border-color: #22c55e;
+  color: #22c55e;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+.mod-btn.approve-all:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.mod-block-title {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-muted);
+  margin-bottom: 10px;
+}
+.mod-field {
+  margin-bottom: 10px;
+}
+.mod-field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  margin-bottom: 3px;
+}
+.mod-field-value {
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Live vs proposed, shown together so the admin can see exactly what changed. */
+.mod-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.mod-diff-side {
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--c-border);
+}
+.mod-diff-side.old {
+  opacity: 0.72;
+}
+.mod-diff-side.new {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+.mod-diff-tag {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-muted);
+  margin-bottom: 3px;
+}
+
+/* ── Episodes ── */
+.mod-episode {
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.mod-episode.rejected {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.mod-episode-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.mod-episode-no {
+  font-weight: 600;
+  font-size: 14px;
+}
+.mod-video {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  margin-bottom: 10px;
+}
+.mod-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ── Status pills / tags ── */
+.mod-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mod-pill.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+.mod-pill.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.mod-pill.rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.mod-tag-edit {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a855f7;
+}
+.mod-reason {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+.mod-empty {
+  font-size: 13px;
+  color: var(--c-text-muted);
+}
+
+/* ── Actions ── */
+.mod-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.mod-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface3);
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mod-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mod-btn.primary {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.mod-btn.danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.mod-btn.ghost {
+  background: transparent;
+}
+
+.mod-confirm {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.07);
+  border-radius: 10px;
+}
+.mod-confirm-msg {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mod-confirm-note {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+}
+.mod-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mod-reject {
+  margin-top: 10px;
+}
+.mod-reject-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.mod-reject-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .mod-diff {
+    grid-template-columns: 1fr;
+  }
+}

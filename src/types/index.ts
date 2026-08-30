@@ -58,6 +58,8 @@ export interface Episode {
   videoId?: string
   duration: number
   episodeNumber: number
+  // Present only on owner/admin reads (seriesForEdit, mySeries); the public read strips it.
+  moderation?: ModerationState<ModerationEpisodePending>
 }
 
 export type OAuthType = 'google'
@@ -278,4 +280,61 @@ export interface RevenueData {
   totalCreatorShare: number
   pendingPayout: number
   paidOut: number
+}
+
+// ── Manual moderation (admin review queue) ──
+
+export type ModerationStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ModerationState<TPending> {
+  status: ModerationStatus
+  reason: string
+  reviewedAt: string | Date | null
+  // The uploader's proposed replacement, held back from the public until approved.
+  pending: TPending | null
+}
+
+export interface ModerationEpisodePending {
+  title?: string
+  description?: string
+  thumbnail?: string
+  videoId?: string
+}
+
+export interface ModerationSeriesPending {
+  name?: string
+  description?: string
+  cover?: string
+  tags?: string[]
+}
+
+export interface ModerationEpisode {
+  episodeNumber: number
+  title: string
+  description: string
+  thumbnail: string
+  videoId: string
+  isLive: boolean
+  moderation: ModerationState<ModerationEpisodePending>
+}
+
+export interface ModerationSeries {
+  _id: string
+  name: string
+  description: string
+  cover: string
+  tags: string[]
+  shelved: boolean
+  moderation: ModerationState<ModerationSeriesPending>
+  // Highest episode number currently public (the unbroken approved run from episode 1).
+  liveThrough: number
+  episodes: ModerationEpisode[]
+}
+
+export interface ModerationGroup {
+  uploaderId: string
+  uploaderName: string
+  uploaderEmail: string
+  uploaderAvatar: string
+  series: ModerationSeries[]
 }

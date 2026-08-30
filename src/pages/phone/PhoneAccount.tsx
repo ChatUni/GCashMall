@@ -8,6 +8,7 @@ import googlePlayIcon from '../../assets/google-play-icon.svg'
 import { isIOS, isAndroid, isCordova } from '../../utils/cordova'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
+import ModerationSection from '../../components/ModerationSection'
 import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
@@ -110,6 +111,8 @@ const PhoneAccount = () => {
     settings: PhoneSettingsSection,
     wallet: PhoneWalletSection,
     myPurchases: PhoneMyPurchasesSection,
+    // Admin review queue — the desktop section is responsive, so it is reused as-is.
+    moderation: ModerationSection,
     mySeries: PhoneMySeriesSection,
     about: PhoneAboutSection,
     contact: PhoneContactContent,

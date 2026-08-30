@@ -5,10 +5,10 @@
 // steps. runUploadModeration is idempotent + bounded, so this is safe alongside client polls.
 import { get, update } from './utils/db.js'
 import jwt from 'jsonwebtoken'
+import { getJwtSecret } from './utils/jwt.js'
 
 export const config = { schedule: '* * * * *' } // every minute
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 const STALE_MS = 8 * 60 * 1000 // a 'working' step older than this is treated as crashed
 
 export const handler = async () => {
@@ -33,7 +33,7 @@ export const handler = async () => {
       if (d.phase === 'working' && d.updatedAt && Date.now() - new Date(d.updatedAt).getTime() > STALE_MS) {
         await update('videoModeration', { videoId: d.videoId }, { $set: { phase: 'awaiting_encode' } })
       }
-      const token = jwt.sign({ id: String(d.userId || '') }, JWT_SECRET, { expiresIn: '1h' })
+      const token = jwt.sign({ id: String(d.userId || '') }, getJwtSecret(), { expiresIn: '1h' })
       try {
         await fetch(`${base}/.netlify/functions/moderate-upload-background`, {
           method: 'POST',

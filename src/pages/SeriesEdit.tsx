@@ -11,6 +11,7 @@ import {
   seriesEditStoreActions,
   getActiveEpisodes,
   isAddEpisodeDisabled,
+  type EpisodeFormData,
 } from '../stores/seriesEditStore'
 import {
   initializeSeriesEdit,
@@ -331,14 +332,6 @@ const CoverField = (props: CoverFieldProps) => (
   </div>
 )
 
-interface EpisodeFormData {
-  id?: string
-  episodeNumber: number
-  title: string
-  videoId: string
-  videoPreview?: string
-}
-
 interface EpisodeListFieldProps {
   episodes: EpisodeFormData[]
   onTitleChange: (index: number, title: string) => void
@@ -361,6 +354,9 @@ const EpisodeListField = (props: EpisodeListFieldProps) => (
             title={episode.title}
             videoId={episode.videoId}
             videoPreview={episode.videoPreview}
+            moderationStatus={episode.moderationStatus}
+            moderationReason={episode.moderationReason}
+            hasPendingEdit={episode.hasPendingEdit}
             onTitleChange={(title) => props.onTitleChange(index(), title)}
             onVideoChange={(file, previewUrl) => props.onVideoChange(index(), file, previewUrl)}
             onDelete={() => props.onDelete(index())}

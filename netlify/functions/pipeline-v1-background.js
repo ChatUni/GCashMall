@@ -17,14 +17,14 @@ import { buildV1RenderStructures } from './utils/renderV1.js'
 import { triggerBackground } from './utils/trigger.js'
 import { modelHasNativeAudio } from './utils/seedance.js'
 import { isS1 } from './utils/bunny.js'
+import { getJwtSecret } from './utils/jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getUserId = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Authentication required')
   }
-  return jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id
+  return jwt.verify(authHeader.replace('Bearer ', ''), getJwtSecret()).id
 }
 
 const updateJob = (jobId, fields) =>

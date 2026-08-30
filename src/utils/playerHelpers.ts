@@ -94,7 +94,7 @@ export const getShareText = (seriesName: string, episodeNumber?: number): string
 
 export const openShareWindow = (url: string): void => {
   // Cordova: open in the system browser (Safari / native app) so the user can
-  // return to GAnime via the app switcher. window.open('_blank') is hijacked by
+  // return to Ganime via the app switcher. window.open('_blank') is hijacked by
   // cordova-plugin-inappbrowser into an embedded WebView that traps the user on
   // the share page (no working back button). Web keeps the sized popup window.
   if (isCordova()) return openSystemBrowser(url)

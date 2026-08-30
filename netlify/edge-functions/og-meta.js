@@ -136,7 +136,7 @@ export default async (request, context) => {
     })
   }
 
-  const siteName = Deno.env.get('VITE_APP_DISPLAY_NAME') || 'GAnime'
+  const siteName = Deno.env.get('VITE_APP_DISPLAY_NAME') || 'Ganime'
   const og = buildOgTags(series, url.toString(), siteName)
   const modifiedHtml = injectOgMeta(html, og)
 

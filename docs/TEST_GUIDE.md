@@ -1,4 +1,4 @@
-# GAnime — Feature Test Guide
+# Ganime — Feature Test Guide
 
 End-to-end **manual** test scenarios for every feature, across **Web**, **iOS** (Cordova / TestFlight), and **Android**. Use as a pre-release regression checklist. Run the cases tagged for the platform you're testing; note the env/settings state; log actual vs expected.
 

@@ -5,7 +5,12 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Stripe from 'stripe'
-import { sendPasswordResetEmail, sendFeedbackEmail } from './email.js'
+import {
+  sendPasswordResetEmail,
+  sendFeedbackEmail,
+  sendModerationApprovedEmail,
+  sendModerationRejectedEmail,
+} from './email.js'
 import mammoth from 'mammoth'
 import { containsProfanity } from './profanity.js'
 import { verifyAppleTransaction } from './appleIAP.js'
@@ -14,6 +19,7 @@ import { finalizeGUSDOrder, parseGUSDOrderId } from './gusdTopup.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl } from './bunny.js'
 import { triggerBackground } from './trigger.js'
+import { getJwtSecret } from './jwt.js'
 import {
   getChatModel,
   chatTuning,
@@ -41,7 +47,6 @@ const BUNNY_API_KEY = process.env.BUNNY_API_KEY
 // CDN pull-zone host for direct asset URLs (thumbnails). Prefer the env var; the fallback
 // must match the CURRENT library (VITE_BUNNY_LIBRARY_ID) or URLs hit "domain not configured".
 const BUNNY_PULL_ZONE = (process.env.BUNNY_PULL_ZONE || 'vz-918d4e7e-1fb.b-cdn.net').replace(/^["']|["']$/g, '')
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getTodos = async (params) => {
   validateGetTodosParams(params)
@@ -161,8 +166,40 @@ const getSeriesById = async (id) => {
   }
 }
 
-// Populate genre objects from _id array
-const populateSeriesGenres = async (seriesList) => {
+// The uploader's (or an admin's) full view of one series, including episodes still awaiting
+// review. The public `series` read strips those — and loading the edit form from it would
+// not merely hide pending episodes, it would DELETE them on the next save, because
+// saveSeries treats an episode missing from the payload as a deletion.
+const getSeriesForEdit = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!params || !params.id) {
+    return { success: false, error: 'Series id is required' }
+  }
+  try {
+    const docs = await get('series', { _id: new ObjectId(params.id) }, {}, {}, 1)
+    if (!docs || docs.length === 0) return { success: false, error: 'Series not found' }
+    const series = docs[0]
+
+    const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+    const isAdmin = !!(users && users.length > 0 && users[0].isAdmin)
+    if (!isAdmin && String(series.uploaderId) !== String(userId)) {
+      return { success: false, error: 'You are not authorized to edit this series' }
+    }
+
+    const populated = await populateSeriesGenres([series], { publicOnly: false })
+    return { success: true, data: populated[0] }
+  } catch (error) {
+    throw new Error(`Failed to get series for edit: ${error.message}`)
+  }
+}
+
+// Populate genre objects from _id array.
+//
+// `publicOnly` (the default) also strips the series down to what a viewer may see: only
+// approved episodes, in an unbroken run from episode 1, and never a pending edit. The
+// uploader's own views (My Series) and the admin review queue pass false so creators can
+// still see their unreviewed work.
+const populateSeriesGenres = async (seriesList, { publicOnly = true } = {}) => {
   if (!seriesList || seriesList.length === 0) return []
   
   // Get all genres once
@@ -190,10 +227,24 @@ const populateSeriesGenres = async (seriesList) => {
         .filter(Boolean)
     }
     
-    return {
+    const shaped = {
       ...series,
       genre: populatedGenre,
     }
+    // Owner/admin view: normalise so every episode reports a status. Documents written
+    // before manual moderation existed have no record, and an absent status renders as no
+    // badge at all — the uploader would see nothing rather than "Pending Review".
+    if (!publicOnly) {
+      return {
+        ...shaped,
+        moderation: moderationOf(series),
+        episodes: (series.episodes || []).map((ep) => ({ ...ep, moderation: moderationOf(ep) })),
+      }
+    }
+    const { moderation, shelvedByUploader, ...visible } = shaped
+    void moderation
+    void shelvedByUploader
+    return { ...visible, episodes: publicEpisodes(series) }
   })
 }
 
@@ -273,6 +324,7 @@ const saveSeries = async (body, authHeader) => {
 
   try {
     // If editing existing series, verify the logged in user is the uploader
+    let existing = null
     if (body._id) {
       const existingSeries = await get('series', { _id: new ObjectId(body._id) }, {}, {}, 1)
       if (!existingSeries || existingSeries.length === 0) {
@@ -281,6 +333,7 @@ const saveSeries = async (body, authHeader) => {
       if (String(existingSeries[0].uploaderId) !== String(userId)) {
         return { success: false, error: 'You are not authorized to edit this series' }
       }
+      existing = existingSeries[0]
       // Convert _id to ObjectId
       body._id = new ObjectId(body._id)
     } else {
@@ -289,13 +342,13 @@ const saveSeries = async (body, authHeader) => {
       body.createdAt = new Date()
     }
     body.updatedAt = new Date()
-    
+
     // Convert genre array to ObjectIds
     if (Array.isArray(body.genre)) {
       body.genre = body.genre.map((genreId) => new ObjectId(genreId))
     }
-    
-    const result = await save('series', body)
+
+    const result = await save('series', stageSeriesForReview(body, existing))
     return {
       success: true,
       data: result,
@@ -303,6 +356,71 @@ const saveSeries = async (body, authHeader) => {
   } catch (error) {
     throw new Error(`Failed to save series: ${error.message}`)
   }
+}
+
+// Route an uploader's save through moderation.
+//
+// New series  → everything starts pending and shelved; nothing is public until reviewed.
+// Edited series → the LIVE fields are restored and the submitted values are parked in
+//   `moderation.pending`. That is what keeps the old version public while the new one waits.
+//   An edit that changes nothing reviewable leaves the existing approval alone.
+const stageSeriesForReview = (body, existing) => {
+  if (!existing) {
+    return {
+      ...body,
+      shelvedByUploader: false,
+      shelved: true,
+      moderation: newModeration(MODERATION_PENDING),
+      episodes: (body.episodes || []).map((ep) => ({
+        ...ep,
+        moderation: newModeration(MODERATION_PENDING),
+      })),
+    }
+  }
+
+  const proposed = pickFields(body, SERIES_REVIEW_FIELDS)
+  const seriesChanged = hasReviewableChange(existing, proposed, SERIES_REVIEW_FIELDS)
+  const keepLive = hasLiveVersion(moderationOf(existing))
+  const staged = {
+    ...body,
+    // Roll the reviewed fields back to what the public currently sees — but only when
+    // there IS something public; otherwise the uploader's edit applies directly.
+    ...(keepLive && seriesChanged ? pickFields(existing, SERIES_REVIEW_FIELDS) : {}),
+    shelvedByUploader: !!existing.shelvedByUploader,
+    moderation: seriesChanged
+      ? hasLiveVersion(moderationOf(existing))
+        ? newModeration(MODERATION_PENDING, proposed)
+        : { ...moderationOf(existing), status: MODERATION_PENDING, pending: null, reason: '' }
+      : moderationOf(existing),
+    episodes: stageEpisodesForReview(body.episodes || [], existing.episodes || []),
+  }
+  return { ...staged, shelved: computeShelved(staged) }
+}
+
+const stageEpisodesForReview = (submitted, existing) => {
+  const byNumber = new Map(existing.map((ep) => [Number(ep.episodeNumber), ep]))
+  return submitted.map((ep) => {
+    const current = byNumber.get(Number(ep.episodeNumber))
+    // A brand-new episode has no live version to protect — it is simply pending.
+    if (!current) return { ...ep, moderation: newModeration(MODERATION_PENDING) }
+
+    const mod = moderationOf(current)
+    const proposed = pickFields(ep, EPISODE_REVIEW_FIELDS)
+    if (!hasReviewableChange(current, proposed, EPISODE_REVIEW_FIELDS)) {
+      return { ...current, ...ep, ...pickFields(current, EPISODE_REVIEW_FIELDS), moderation: mod }
+    }
+    // Nothing public to protect → take the edit straight onto the episode, still pending.
+    if (!hasLiveVersion(mod)) {
+      return { ...current, ...ep, moderation: { ...mod, status: MODERATION_PENDING, pending: null, reason: '' } }
+    }
+    return {
+      ...current,
+      ...ep,
+      // Keep serving the approved version while the edit is in the queue.
+      ...pickFields(current, EPISODE_REVIEW_FIELDS),
+      moderation: newModeration(MODERATION_PENDING, proposed),
+    }
+  })
 }
 
 const validateSaveSeriesBody = (body) => {
@@ -567,15 +685,12 @@ const getEpisodes = async (params) => {
     
     const series = seriesResult.data
     
-    // If series has episodes array, return it
+    // Only episodes an admin has approved, in an unbroken run from episode 1, and always
+    // the approved version — a pending edit stays invisible until it is reviewed.
     if (series.episodes && series.episodes.length > 0) {
-      // Sort episodes by episodeNumber
-      const sortedEpisodes = [...series.episodes].sort(
-        (a, b) => a.episodeNumber - b.episodeNumber,
-      )
       return {
         success: true,
-        data: sortedEpisodes,
+        data: publicEpisodes(series),
       }
     }
     
@@ -993,7 +1108,7 @@ const isValidPassword = (password) => {
 }
 
 const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
 // Update user profile
@@ -1058,7 +1173,7 @@ const validateAuth = async (authHeader) => {
   const token = authHeader.replace('Bearer ', '')
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, getJwtSecret())
     return decoded.id
   } catch (error) {
     throw new Error('Invalid or expired token')
@@ -2172,15 +2287,18 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
     const ep = series.episodes.find((e) => e.episodeNumber === episode)
     let created = false
     if (ep) {
-      ep.title = episodeTitle
-      if (body.episodeDescription !== undefined) ep.description = body.episodeDescription
-      if (body.thumbnail) {
-        ep.thumbnail = body.thumbnail
-        if (ep.videoId) {
-          await setBunnyThumbnail(ep.videoId, body.thumbnail).catch((e) =>
-            console.error('setBunnyThumbnail failed:', e.message),
-          )
-        }
+      // Editing an existing episode goes through moderation like any other edit: if it has
+      // an approved version the public keeps seeing that while the change is reviewed;
+      // if it was never approved the change applies directly and stays in the queue.
+      const submitted = { title: episodeTitle }
+      if (body.episodeDescription !== undefined) submitted.description = body.episodeDescription
+      if (body.thumbnail) submitted.thumbnail = body.thumbnail
+      const idx = series.episodes.indexOf(ep)
+      series.episodes[idx] = stageEpisodesForReview([{ ...ep, ...submitted }], series.episodes)[0]
+      if (body.thumbnail && ep.videoId) {
+        await setBunnyThumbnail(ep.videoId, body.thumbnail).catch((e) =>
+          console.error('setBunnyThumbnail failed:', e.message),
+        )
       }
     } else {
       const videoId = await getEpisodeVideoId()
@@ -2190,11 +2308,14 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
         description: body.episodeDescription || '',
         thumbnail: body.thumbnail || body.cover || '',
         videoId,
+        // New episode → waits for an admin, exactly like a manual upload.
+        moderation: newModeration(MODERATION_PENDING),
       })
       series.episodes.sort((a, b) => (a.episodeNumber || 0) - (b.episodeNumber || 0))
       created = true
     }
     series.updatedAt = new Date()
+    series.shelved = computeShelved(series)
     await save('series', series)
     await update(
       'productions',
@@ -2221,7 +2342,10 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
     genre: genreIds,
     uploaderId: new ObjectId(userId),
     quickCreate: true, // published from Quick Create — shown in the Published tab, not Uploaded
-    shelved: false,
+    // Nothing is public until an admin reviews it — see the manual moderation section.
+    shelvedByUploader: false,
+    shelved: true,
+    moderation: newModeration(MODERATION_PENDING),
     episodes: [
       {
         episodeNumber: episode,
@@ -2229,6 +2353,7 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
         description: body.episodeDescription || '',
         thumbnail: body.thumbnail || body.cover || '',
         videoId,
+        moderation: newModeration(MODERATION_PENDING),
       },
     ],
     createdAt: new Date(),
@@ -2320,7 +2445,8 @@ const getMySeries = async (params, authHeader) => {
       {},
       { createdAt: -1 },
     )
-    const populatedSeries = await populateSeriesGenres(series)
+    // The uploader sees their own unreviewed work, so no public filtering here.
+    const populatedSeries = await populateSeriesGenres(series, { publicOnly: false })
 
     return {
       success: true,
@@ -2353,18 +2479,20 @@ const shelveSeries = async (body, authHeader) => {
       return { success: false, error: 'You are not authorized to modify this series' }
     }
 
-    // Toggle the shelved status
-    const newShelvedStatus = !series.shelved
+    // Toggle the uploader's own hide switch. Whether the series is actually public is
+    // derived from that plus its moderation state — an unapproved series stays shelved
+    // however this is toggled.
+    const staged = { ...series, shelvedByUploader: !series.shelvedByUploader }
     const updateData = {
-      ...series,
-      shelved: newShelvedStatus,
+      ...staged,
+      shelved: computeShelved(staged),
       updatedAt: new Date(),
     }
 
     await save('series', updateData)
 
     // Populate genre for response
-    const populatedSeries = await populateSeriesGenres([updateData])
+    const populatedSeries = await populateSeriesGenres([updateData], { publicOnly: false })
 
     return {
       success: true,
@@ -3740,6 +3868,14 @@ const validateAddCommentBody = (body) => {
 }
 
 export {
+  approveAll,
+  getSeriesForEdit,
+  getModerationQueue,
+  getMyModeration,
+  approveSeries,
+  rejectSeries,
+  approveEpisode,
+  rejectEpisode,
   getTodos,
   saveTodo,
   deleteTodo,
@@ -4252,6 +4388,388 @@ const validateViewsParams = (data) => {
     throw new Error('seriesId is required')
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Manual moderation
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// Every series and every episode carries a `moderation` record. Nothing an uploader
+// creates is public until an admin approves it.
+//
+//   moderation = {
+//     status: 'pending' | 'approved' | 'rejected',
+//     reason, reviewedAt, reviewedBy,
+//     pending: null | { …proposed field values… }
+//   }
+//
+// EDITS KEEP BOTH VERSIONS. The live fields on the document stay exactly as they were
+// (and stay public); the proposed values sit in `moderation.pending` and are invisible to
+// everyone but the admin. Approving copies pending over the live fields and clears it, so
+// the public never sees an unreviewed edit and the creator never loses their live version
+// while waiting.
+//
+// EPISODES GO LIVE IN ORDER. Approving episode 3 does not publish it while 1 or 2 are
+// still pending — see approvedThrough.
+
+const MODERATION_PENDING = 'pending'
+const MODERATION_APPROVED = 'approved'
+const MODERATION_REJECTED = 'rejected'
+
+const newModeration = (status = MODERATION_PENDING, pending = null) => ({
+  status,
+  reason: '',
+  reviewedAt: null,
+  reviewedBy: null,
+  pending,
+})
+
+const moderationOf = (doc) => doc?.moderation || newModeration()
+
+// The longest unbroken run of approved episodes starting at episode 1. Episodes above this
+// stay hidden even once approved, so a series never shows a gap.
+const approvedThrough = (episodes) => {
+  const statusByNumber = new Map(
+    (episodes || []).map((ep) => [Number(ep.episodeNumber), moderationOf(ep).status]),
+  )
+  let n = 0
+  while (statusByNumber.get(n + 1) === MODERATION_APPROVED) n += 1
+  return n
+}
+
+// A series is publicly visible once its details are approved AND at least one episode is
+// live. `shelvedByUploader` is the creator's own hide switch and always wins.
+const isSeriesPublishable = (series) =>
+  moderationOf(series).status === MODERATION_APPROVED && approvedThrough(series.episodes) >= 1
+
+const computeShelved = (series) => !!series.shelvedByUploader || !isSeriesPublishable(series)
+
+// Episodes the public may see: approved, in an unbroken run from episode 1. Pending edits
+// are stripped, so viewers keep seeing the last approved version of an episode.
+const publicEpisodes = (series) => {
+  const limit = approvedThrough(series?.episodes)
+  return (series?.episodes || [])
+    .filter((ep) => Number(ep.episodeNumber) <= limit)
+    .map((ep) => {
+      const { moderation, ...live } = ep
+      void moderation
+      return live
+    })
+    .sort((a, b) => a.episodeNumber - b.episodeNumber)
+}
+
+// Fields an admin reviews on the series itself.
+const SERIES_REVIEW_FIELDS = ['name', 'description', 'cover', 'tags', 'genre']
+const EPISODE_REVIEW_FIELDS = ['title', 'description', 'thumbnail', 'videoId']
+
+const pickFields = (source, fields) =>
+  fields.reduce((acc, f) => (source[f] !== undefined ? { ...acc, [f]: source[f] } : acc), {})
+
+// Is there an approved version of this item that the public is currently seeing?
+//   • approved            → yes, the live fields are the approved ones
+//   • pending WITH pending→ yes, it was approved once and an edit is already parked
+//   • pending, no pending → no, it has never been approved
+//   • rejected, no pending→ no, it was rejected before it ever went live
+// Only the "yes" cases need the two-version dance; the others are edited in place, because
+// there is nothing public to protect and parking would just hide the real content from the
+// reviewer behind a placeholder.
+const hasLiveVersion = (mod) => mod.status === MODERATION_APPROVED || !!mod.pending
+
+// Has anything the admin reviews actually changed? Avoids sending an untouched series back
+// into the queue every time an uploader saves.
+const hasReviewableChange = (current, next, fields) =>
+  fields.some((f) => next[f] !== undefined && JSON.stringify(next[f]) !== JSON.stringify(current[f]))
+
+
+// ── Moderation queue + review actions (admin only) ──
+
+// Anything an admin still has to look at: series details awaiting review, or any episode
+// awaiting review. Rejected items stay out of the queue until the uploader resubmits.
+const needsSeriesReview = (series) => moderationOf(series).status === MODERATION_PENDING
+const needsEpisodeReview = (ep) => moderationOf(ep).status === MODERATION_PENDING
+const needsAnyReview = (series) =>
+  needsSeriesReview(series) || (series.episodes || []).some(needsEpisodeReview)
+
+// The whole review queue, grouped by uploader so an admin can work through one creator at
+// a time. Includes rejected items too, so the admin can see what they turned down.
+const getModerationQueue = async (params, authHeader) => {
+  await requireAdmin(authHeader)
+  try {
+    const all = await get('series', {}, {}, { updatedAt: -1 })
+    const relevant = all.filter(
+      (s) => needsAnyReview(s) || moderationOf(s).status === MODERATION_REJECTED ||
+        (s.episodes || []).some((ep) => moderationOf(ep).status === MODERATION_REJECTED),
+    )
+    if (relevant.length === 0) return { success: true, data: [] }
+
+    const uploaderIds = [...new Set(relevant.map((s) => String(s.uploaderId)).filter(Boolean))]
+    const uploaders = await get('users', {
+      _id: { $in: uploaderIds.map((id) => new ObjectId(id)) },
+    })
+    const byId = new Map(uploaders.map((u) => [String(u._id), u]))
+
+    const groups = uploaderIds.map((id) => {
+      const user = byId.get(id)
+      return {
+        uploaderId: id,
+        uploaderName: user?.nickname || 'Unknown',
+        uploaderEmail: user?.email || '',
+        uploaderAvatar: user?.avatar || '',
+        series: relevant
+          .filter((s) => String(s.uploaderId) === id)
+          .map((s) => shapeQueueSeries(s)),
+      }
+    })
+    // Busiest uploaders first — that's where an admin's time goes furthest.
+    groups.sort((a, b) => b.series.length - a.series.length)
+    return { success: true, data: groups }
+  } catch (error) {
+    throw new Error(`Failed to get moderation queue: ${error.message}`)
+  }
+}
+
+// One series as the review UI needs it: current values, the proposed edit (if any), and
+// per-episode state including which episodes are actually live.
+const shapeQueueSeries = (series) => {
+  const mod = moderationOf(series)
+  const liveThrough = approvedThrough(series.episodes)
+  return {
+    _id: String(series._id),
+    name: series.name,
+    description: series.description || '',
+    cover: series.cover || '',
+    tags: series.tags || [],
+    shelved: !!series.shelved,
+    moderation: {
+      status: mod.status,
+      reason: mod.reason || '',
+      reviewedAt: mod.reviewedAt,
+      // What the uploader wants to change the series details to, if anything.
+      pending: mod.pending || null,
+    },
+    liveThrough,
+    episodes: (series.episodes || [])
+      .slice()
+      .sort((a, b) => a.episodeNumber - b.episodeNumber)
+      .map((ep) => {
+        const em = moderationOf(ep)
+        return {
+          episodeNumber: ep.episodeNumber,
+          title: ep.title || '',
+          description: ep.description || '',
+          thumbnail: ep.thumbnail || '',
+          videoId: ep.videoId || '',
+          isLive: Number(ep.episodeNumber) <= liveThrough,
+          moderation: {
+            status: em.status,
+            reason: em.reason || '',
+            reviewedAt: em.reviewedAt,
+            pending: em.pending || null,
+          },
+        }
+      }),
+  }
+}
+
+// The uploader's own view of where their work stands. Same shape the admin queue uses, so
+// the client renders one status model everywhere — but scoped to the caller's own series,
+// and it returns ALL of them so a card can show "approved" as readily as "changes needed".
+const getMyModeration = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  try {
+    const series = await get('series', { uploaderId: new ObjectId(userId) }, {}, { updatedAt: -1 })
+    return { success: true, data: series.map(shapeQueueSeries) }
+  } catch (error) {
+    throw new Error(`Failed to get moderation status: ${error.message}`)
+  }
+}
+
+const loadSeriesForReview = async (seriesId) => {
+  const docs = await get('series', { _id: new ObjectId(seriesId) }, {}, {}, 1)
+  if (!docs || docs.length === 0) throw new Error('Series not found')
+  return docs[0]
+}
+
+const loadUploader = async (uploaderId) => {
+  if (!uploaderId) return null
+  const users = await get('users', { _id: new ObjectId(String(uploaderId)) }, {}, {}, 1)
+  return users && users.length > 0 ? users[0] : null
+}
+
+// Persist a reviewed series and keep `shelved` in step with what is now approved.
+const saveReviewedSeries = async (series) => {
+  const next = { ...series, shelved: computeShelved(series), updatedAt: new Date() }
+  await save('series', next)
+  return next
+}
+
+// Notification is best-effort: a mail outage must never fail or undo a review.
+const notifyUploader = (uploader, send, details) => {
+  if (!uploader?.email) return
+  send({ email: uploader.email, nickname: uploader.nickname }, details).catch((e) =>
+    console.error('[moderation] notification failed:', e.message),
+  )
+}
+
+const approveSeries = async (body, authHeader) => {
+  const adminId = await requireAdmin(authHeader)
+  if (!body?.seriesId) throw new Error('seriesId is required')
+
+  try {
+    const series = await loadSeriesForReview(body.seriesId)
+    const mod = moderationOf(series)
+
+    // Approving an edit is what promotes the proposed values over the live ones.
+    const applied = mod.pending ? { ...series, ...mod.pending } : series
+    const reviewed = {
+      ...applied,
+      moderation: {
+        ...newModeration(MODERATION_APPROVED),
+        reviewedAt: new Date(),
+        reviewedBy: new ObjectId(adminId),
+      },
+    }
+    const saved = await saveReviewedSeries(reviewed)
+
+    notifyUploader(await loadUploader(series.uploaderId), sendModerationApprovedEmail, {
+      seriesName: saved.name,
+      note: saved.shelved
+        ? 'It will appear publicly as soon as its first episode is approved.'
+        : '',
+    })
+    return { success: true, data: shapeQueueSeries(saved) }
+  } catch (error) {
+    throw new Error(`Failed to approve series: ${error.message}`)
+  }
+}
+
+const rejectSeries = async (body, authHeader) => {
+  const adminId = await requireAdmin(authHeader)
+  if (!body?.seriesId) throw new Error('seriesId is required')
+  const reason = String(body.reason || '').trim()
+  if (!reason) throw new Error('A rejection reason is required')
+
+  try {
+    const series = await loadSeriesForReview(body.seriesId)
+    // The proposed edit is kept so the uploader can see and fix what was rejected.
+    const reviewed = {
+      ...series,
+      moderation: {
+        ...moderationOf(series),
+        status: MODERATION_REJECTED,
+        reason,
+        reviewedAt: new Date(),
+        reviewedBy: new ObjectId(adminId),
+      },
+    }
+    const saved = await saveReviewedSeries(reviewed)
+
+    notifyUploader(await loadUploader(series.uploaderId), sendModerationRejectedEmail, {
+      seriesName: series.name,
+      reason,
+    })
+    return { success: true, data: shapeQueueSeries(saved) }
+  } catch (error) {
+    throw new Error(`Failed to reject series: ${error.message}`)
+  }
+}
+
+// Approve the series and every episode still awaiting a decision, in one write.
+//
+// Deliberately NOT a client-side loop over approveSeries/approveEpisode: that would be N+1
+// round trips, could leave the series half-approved if one failed, and — worst — would mail
+// the uploader once per item. This sends a single summary instead.
+const approveAll = async (body, authHeader) => {
+  const adminId = await requireAdmin(authHeader)
+  if (!body || !body.seriesId) throw new Error('seriesId is required')
+
+  try {
+    const series = await loadSeriesForReview(body.seriesId)
+    const reviewedAt = new Date()
+    const reviewedBy = new ObjectId(adminId)
+    const approve = () => ({ ...newModeration(MODERATION_APPROVED), reviewedAt, reviewedBy })
+
+    const seriesMod = moderationOf(series)
+    const seriesWasPending = seriesMod.status !== MODERATION_APPROVED
+    // Approving applies whatever edit was parked, exactly as the single-item path does.
+    const applied = seriesMod.pending ? { ...series, ...seriesMod.pending } : series
+
+    let episodesApproved = 0
+    const episodes = (series.episodes || []).map((ep) => {
+      const mod = moderationOf(ep)
+      if (mod.status === MODERATION_APPROVED) return ep
+      episodesApproved += 1
+      return { ...ep, ...(mod.pending || {}), moderation: approve() }
+    })
+
+    const saved = await saveReviewedSeries({ ...applied, moderation: approve(), episodes })
+
+    notifyUploader(await loadUploader(series.uploaderId), sendModerationApprovedEmail, {
+      seriesName: saved.name,
+      episodeCount: episodesApproved,
+      note: saved.shelved
+        ? 'It is still hidden because you have shelved it — unshelve it to make it public.'
+        : '',
+    })
+    return {
+      success: true,
+      data: shapeQueueSeries(saved),
+      approved: { series: seriesWasPending, episodes: episodesApproved },
+    }
+  } catch (error) {
+    throw new Error(`Failed to approve series and episodes: ${error.message}`)
+  }
+}
+
+const reviewEpisode = async (body, authHeader, status) => {
+  const adminId = await requireAdmin(authHeader)
+  if (!body?.seriesId) throw new Error('seriesId is required')
+  const episodeNumber = Number(body.episodeNumber)
+  if (!episodeNumber) throw new Error('episodeNumber is required')
+  const reason = String(body.reason || '').trim()
+  if (status === MODERATION_REJECTED && !reason) throw new Error('A rejection reason is required')
+
+  const series = await loadSeriesForReview(body.seriesId)
+  const episodes = series.episodes || []
+  const idx = episodes.findIndex((ep) => Number(ep.episodeNumber) === episodeNumber)
+  if (idx < 0) throw new Error('Episode not found')
+
+  const current = episodes[idx]
+  const mod = moderationOf(current)
+  const applied =
+    status === MODERATION_APPROVED && mod.pending ? { ...current, ...mod.pending } : current
+
+  const nextEpisodes = episodes.slice()
+  nextEpisodes[idx] = {
+    ...applied,
+    moderation:
+      status === MODERATION_APPROVED
+        ? { ...newModeration(MODERATION_APPROVED), reviewedAt: new Date(), reviewedBy: new ObjectId(adminId) }
+        : { ...mod, status, reason, reviewedAt: new Date(), reviewedBy: new ObjectId(adminId) },
+  }
+
+  const saved = await saveReviewedSeries({ ...series, episodes: nextEpisodes })
+  const nowLive = Number(episodeNumber) <= approvedThrough(nextEpisodes)
+
+  notifyUploader(
+    await loadUploader(series.uploaderId),
+    status === MODERATION_APPROVED ? sendModerationApprovedEmail : sendModerationRejectedEmail,
+    {
+      seriesName: series.name,
+      episodeNumber,
+      reason,
+      // Approved-but-waiting is a real state: earlier episodes are still unreviewed.
+      note:
+        status === MODERATION_APPROVED && !nowLive
+          ? 'It will go live once the earlier episodes in this series are approved too.'
+          : '',
+    },
+  )
+  return { success: true, data: shapeQueueSeries(saved) }
+}
+
+const approveEpisode = (body, authHeader) => reviewEpisode(body, authHeader, MODERATION_APPROVED)
+const rejectEpisode = (body, authHeader) => reviewEpisode(body, authHeader, MODERATION_REJECTED)
 
 // ── System Settings (Admin only to change, public to read) ──
 

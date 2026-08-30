@@ -6,14 +6,14 @@
 import jwt from 'jsonwebtoken'
 import { update } from './utils/db.js'
 import { generateImage } from './utils/openaiImage.js'
+import { getJwtSecret } from './utils/jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getUserId = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Authentication required')
   }
-  return jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id
+  return jwt.verify(authHeader.replace('Bearer ', ''), getJwtSecret()).id
 }
 
 const buildPrompt = ({ name, description, genres, artStyle }) =>

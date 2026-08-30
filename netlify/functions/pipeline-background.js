@@ -16,14 +16,14 @@ import { PIPELINE_CALL_KEYS, runOneCall } from './utils/pipeline.js'
 import { runVideoGeneration } from './utils/videoJob.js'
 import { triggerBackground } from './utils/trigger.js'
 import { modelHasNativeAudio } from './utils/seedance.js'
+import { getJwtSecret } from './utils/jwt.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gcashmall-secret-key'
 
 const getUserId = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Authentication required')
   }
-  return jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id
+  return jwt.verify(authHeader.replace('Bearer ', ''), getJwtSecret()).id
 }
 
 const updateJob = (jobId, fields) =>

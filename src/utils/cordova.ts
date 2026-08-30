@@ -1,3 +1,5 @@
+import { isFlagOn } from './env'
+
 // Production site URL used as OAuth redirect in Cordova
 // (Cordova's window.location.origin is app://localhost which Google rejects)
 export const PRODUCTION_ORIGIN = import.meta.env.VITE_PROD_SERVER as string
@@ -64,10 +66,11 @@ export const legalPageUrl = (page: string): string => `${getWebOrigin()}/${page}
 const COMING_SOON_EXEMPT_PATHS = ['/reset-password']
 
 // Show the "Coming soon..." splash in the browser (not Cordova) on the live
-// ganime.io domain when VITE_COMING_SOON=1. Client-side only — APIs are unaffected.
+// ganime.io domain when VITE_COMING_SOON is on (1/true/yes). Client-side only — APIs are
+// unaffected.
 export const shouldShowComingSoon = (): boolean => {
   if (isCordova()) return false
-  if (import.meta.env.VITE_COMING_SOON !== '1') return false
+  if (!isFlagOn(import.meta.env.VITE_COMING_SOON)) return false
   if (typeof window === 'undefined') return false
   if (COMING_SOON_EXEMPT_PATHS.includes(window.location.pathname)) return false
   const host = window.location.hostname

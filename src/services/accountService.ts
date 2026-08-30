@@ -9,7 +9,7 @@ import { toastStoreActions } from '../stores'
 import { playerPageStoreActions } from '../stores/playerStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import { fetchMyProductions } from './dataService'
-import type { User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
+import type { ModerationSeries, User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (
@@ -803,6 +803,18 @@ export const fetchMyPurchases = async (): Promise<{ success: boolean; error?: st
 }
 
 // Fetch my series list
+// The uploader's own review status for every series they own. Drives the badges and the
+// review-status modal in My Series — without it a creator gets a rejection email and has no
+// way to see why inside the app.
+export const fetchMyModeration = async (): Promise<{ success: boolean; error?: string }> => {
+  const response = await apiGetWithAuth<ModerationSeries[]>('myModeration')
+  if (response.success && response.data) {
+    accountStoreActions.setMyModeration(response.data)
+    return { success: true }
+  }
+  return { success: false, error: response.error || 'Failed to fetch review status' }
+}
+
 export const fetchMySeries = async (): Promise<{ success: boolean; error?: string }> => {
   accountStoreActions.setMySeriesLoading(true)
 
@@ -952,7 +964,7 @@ export const initializeAccountPage = async (
   const stateAfterPurchases = accountStoreActions.getState()
   if (stateAfterPurchases.isLoggedIn && !stateAfterPurchases.mySeriesFetched) {
     accountStoreActions.setMySeriesFetched(true)
-    await fetchMySeries()
+    await Promise.all([fetchMySeries(), fetchMyModeration()])
   }
 
   // Fetch Quick Create productions (drives the My Series nav + Quick Create group)
@@ -1053,7 +1065,7 @@ export const handleLoginSuccess = async (user: User) => {
   // Fetch my purchases and my series
   await fetchMyPurchases()
   accountStoreActions.setMyPurchasesFetched(true)
-  await fetchMySeries()
+  await Promise.all([fetchMySeries(), fetchMyModeration()])
   accountStoreActions.setMySeriesFetched(true)
   // Hide the modal after loading is complete
   accountStoreActions.setShowLoginModal(false)
@@ -1694,6 +1706,7 @@ export const handleSaveComplete = () => {
   setEditingSeries(null)
   // Refresh the series list
   fetchMySeries()
+  fetchMyModeration()
 }
 
 // ===== Status Text Helpers =====

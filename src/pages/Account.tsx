@@ -6,6 +6,8 @@ import applePayIcon from '../assets/apple-pay-icon.svg'
 import googlePlayIcon from '../assets/google-play-icon.svg'
 import { isIOS, isAndroid, isCordova } from '../utils/cordova'
 import TopBar from '../components/TopBar'
+import ModerationSection from '../components/ModerationSection'
+import { ReviewStatusBadge, ReviewStatusModal } from '../components/ReviewStatus'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
 import { SeriesEditContent } from './SeriesEdit'
@@ -103,6 +105,7 @@ const tabComponents: Record<string, Component> = {
   wallet: WalletSection,
   myPurchases: MyPurchasesSection,
   mySeries: MySeriesSection,
+  moderation: ModerationSection,
 }
 
 const Account = () => {
@@ -1403,6 +1406,7 @@ function ProductionCard(props: {
         <Show when={props.production.status !== 'done' && !isProposal()}>
           <div class="production-card-badge">{percent()}%</div>
         </Show>
+        <ReviewStatusBadge seriesId={props.production.seriesId} />
         <Show when={(props.episodeCount || 1) > 1}>
           <div class="production-card-eps">
             {props.episodeCount} {props.translations.episodesLabel || 'episodes'}
@@ -1713,6 +1717,9 @@ function MySeriesSection() {
             </div>
           </Show>
 
+          {/* Why a series isn't public yet — status + the admin's rejection reason. */}
+          <ReviewStatusModal />
+
           {/* Shelve Confirmation Modal */}
           <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
             <ShelveConfirmationModal
@@ -1944,6 +1951,7 @@ const MySeriesCard = (props: MySeriesCardProps) => {
         <Show when={props.series.shelved}>
           <span class="shelved-badge">{props.translations.shelved || 'Shelved'}</span>
         </Show>
+        <ReviewStatusBadge seriesId={props.series._id} />
         <Show when={showActions()}>
           <div class="series-action-icons">
             <button

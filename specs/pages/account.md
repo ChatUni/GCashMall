@@ -53,6 +53,7 @@ The Account page is a comprehensive user profile and settings management interfa
 | myPurchases | 🛒 | My Purchases |
 | mySeries | 🎬 | My Series |
 | wallet | 💰 | Wallet |
+| moderation | 🛡️ | Moderation | admin only — see [moderation.md](./moderation.md) |
 | settings | ⚙️ | Settings |
 
 ### Navigation Styling

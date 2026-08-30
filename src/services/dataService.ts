@@ -194,9 +194,11 @@ export const fetchSeriesList = async (params?: { genre?: string; search?: string
   return data.success && data.data ? data.data : []
 }
 
-// Single series
-export const fetchSeries = async (seriesId: string) => {
-  const result = await apiGet<Series>('series', { id: seriesId })
+// A single series as its OWNER sees it — including episodes still awaiting moderation.
+// The public `series` read strips those, which would hide an uploader's own just-published
+// episode from them (episode 1 is always pending immediately after publishing).
+export const fetchSeriesForEdit = async (seriesId: string) => {
+  const result = await apiGetWithAuth<Series>('seriesForEdit', { id: seriesId })
   return result.success && result.data ? result.data : null
 }
 
