@@ -593,15 +593,16 @@ export const isGusdTestMode = isFlagOn(import.meta.env.VITE_GUSD_TEST_MODE)
 const GUSD_TEST_AMOUNTS = [0.1, 0.2, 0.5, 1]
 export const walletAmounts = isGusdTestMode ? [...GUSD_TEST_AMOUNTS, 5, 10, 20, 50] : [5, 10, 20, 50]
 
+// Withdrawal tiers are CREDITS, not dollars: the wallet is denominated in credits and the
+// payout is toUsd(credits). 500 credits pays out $5.
+export const withdrawAmounts = isGusdTestMode
+  ? [10, 20, 50, 100, 500, 1000, 2000, 5000]
+  : [500, 1000, 2000, 5000]
+
 // iOS In-App Purchase tiers - must be a subset of the registered IAP_TIERS / App Store Connect products
 export const iapWalletAmounts = [5, 10, 20, 50]
 
 // Apple/Google take a 30% store fee. Products are priced at face value (the user pays the
-// amount shown) and the wallet is credited 30% LESS — e.g. a 10 top-up adds 7 GUSD. Must
-// match the server's netAfterStoreFee.
-export const STORE_FEE_RATE = 0.3
-export const netAfterStoreFee = (amount: number): number =>
-  Math.round((amount || 0) * (1 - STORE_FEE_RATE) * 100) / 100
 
 // Helper function to generate reference ID
 export const generateReferenceId = (): string => {
@@ -712,7 +713,7 @@ export const getMaxWithdrawAmount = (balance: number, transactions: Transaction[
     credits.filter((t) => t.method !== 'welcome' && new Date(t.createdAt).getTime() >= cutoff),
   )
 
-  return Math.max(0, Number((balance - bonusRemaining - heldCredits).toFixed(2)))
+  return Math.max(0, Math.floor(balance - bonusRemaining - heldCredits))
 }
 
 // Format date for display (used in transaction history)

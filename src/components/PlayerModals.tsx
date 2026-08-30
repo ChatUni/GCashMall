@@ -2,6 +2,7 @@ import { Show } from 'solid-js'
 import { systemSettingsStore } from '../stores/systemSettingsStore'
 import { toastStore } from '../stores'
 import './PlayerModals.css'
+import { formatCredits } from '../utils/credits'
 
 // Purchase Popup Modal
 interface PurchasePopupProps {
@@ -21,6 +22,15 @@ interface PurchasePopupProps {
   }
 }
 
+// "EP 06" plus its title — but Quick Create names episodes "EP 06" by default, so appending
+// the title unconditionally renders "EP 06 EP 06".
+const episodeLabel = (episodeNumber: number, title?: string): string => {
+  const label = `EP ${episodeNumber.toString().padStart(2, '0')}`
+  const name = (title || '').trim()
+  if (!name || name.toLowerCase() === label.toLowerCase()) return label
+  return `${label} ${name}`
+}
+
 export const PurchasePopup = (props: PurchasePopupProps) => (
   <div class="popup-overlay" onClick={props.onCancel}>
     <div class="popup-modal purchase-modal" onClick={(e) => e.stopPropagation()}>
@@ -29,10 +39,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
       <p class="popup-message">{props.t.unlockMessage}</p>
       <div class="popup-episode-info">
         <span class="popup-series-name">{props.seriesName}</span>
-        <span class="popup-episode-name">
-          EP {props.episodeNumber.toString().padStart(2, '0')}
-          {props.episodeTitle ? ` ${props.episodeTitle}` : ''}
-        </span>
+        <span class="popup-episode-name">{episodeLabel(props.episodeNumber, props.episodeTitle)}</span>
       </div>
       <div class="popup-price">
         <img
@@ -40,7 +47,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
           alt="GUSD"
           class="popup-price-logo"
         />
-        <span>{systemSettingsStore.episodeCost.toFixed(2)}</span>
+        <span>{formatCredits(systemSettingsStore.episodeCost)}</span>
       </div>
       <div class="popup-balance">
         {props.t.yourBalance}:
@@ -49,7 +56,7 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
           alt="GUSD"
           class="popup-balance-logo"
         />
-        <span>{props.userBalance.toFixed(2)}</span>
+        <span>{formatCredits(props.userBalance)}</span>
       </div>
       <div class="popup-buttons">
         <button class="btn-confirm" onClick={props.onConfirm} disabled={props.isPurchasing}>

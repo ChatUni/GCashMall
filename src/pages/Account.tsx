@@ -5,6 +5,7 @@ import paymentMethodsIcon from '../assets/payment-methods2.svg'
 import applePayIcon from '../assets/apple-pay-icon.svg'
 import googlePlayIcon from '../assets/google-play-icon.svg'
 import { isIOS, isAndroid, isCordova } from '../utils/cordova'
+import { toUsd, formatCredits, creditsForTopUp } from '../utils/credits'
 import TopBar from '../components/TopBar'
 import ModerationSection from '../components/ModerationSection'
 import { ReviewStatusBadge, ReviewStatusModal } from '../components/ReviewStatus'
@@ -31,8 +32,8 @@ import {
   accountStoreActions,
   getFilteredNavItems,
   walletAmounts,
+  withdrawAmounts,
   iapWalletAmounts,
-  netAfterStoreFee,
   type AccountTab,
   type PaymentMethod,
   getCombinedTransactions,
@@ -942,7 +943,7 @@ function WalletSection() {
           <span class="balance-label">{wallet().currentBalance}</span>
           <div class="balance-amount">
             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="gcash-logo" />
-            <span>{accountStore.balance.toFixed(2)}</span>
+            <span>{formatCredits(accountStore.balance)}</span>
           </div>
         </div>
       </div>
@@ -987,7 +988,7 @@ function WalletSection() {
         <Show when={accountStore.walletTab === 'withdraw'}>
           <div class="max-withdraw">
             <span class="max-withdraw-value">
-              {wallet().maxWithdraw || 'Max Withdraw'}: {maxWithdraw().toFixed(2)}
+              {wallet().maxWithdraw || 'Max Withdraw'}: {formatCredits(maxWithdraw())}
             </span>
             <span class="max-withdraw-note">
               {wallet().withdrawHoldNote || 'Transactions within 30 days are not available for withdraw.'}
@@ -1001,17 +1002,39 @@ function WalletSection() {
           }
         </p>
         <div class="amount-grid">
-          <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
-            {(amount) => (
-              <button
-                class={`amount-button ${accountStore.walletTab === 'withdraw' && amount > maxWithdraw() ? 'disabled' : ''}`}
-                onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)}
-                disabled={accountStore.walletTab === 'withdraw' && amount > maxWithdraw()}
-              >
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="amount-logo" />
-                <span class="amount-value">{amount}</span>
-              </button>
-            )}
+          <For
+            each={
+              accountStore.walletTab === 'withdraw'
+                ? withdrawAmounts
+                : isIOS()
+                  ? iapWalletAmounts
+                  : walletAmounts
+            }
+          >
+            {(amount) => {
+              // Top-up tiers are priced in USD; withdrawal tiers are already credits.
+              // Store purchases grant 30% fewer credits, so show what actually lands.
+              const credits = () =>
+                accountStore.walletTab === 'withdraw'
+                  ? amount
+                  : creditsForTopUp(amount, isIOS() || isAndroid())
+              const usd = () => (accountStore.walletTab === 'withdraw' ? toUsd(amount) : amount)
+              const blocked = () =>
+                accountStore.walletTab === 'withdraw' && credits() > maxWithdraw()
+              return (
+                <button
+                  class={`amount-button ${blocked() ? 'disabled' : ''}`}
+                  onClick={() =>
+                    accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)
+                  }
+                  disabled={blocked()}
+                >
+                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="amount-logo" />
+                  <span class="amount-value">{formatCredits(credits())}</span>
+                  <span class="amount-usd">${usd()}</span>
+                </button>
+              )
+            }}
           </For>
         </div>
       </div>
@@ -1107,9 +1130,12 @@ function WalletSection() {
             <h2 class="popup-title">{wallet().confirmTopUp}</h2>
             <p class="popup-message">{wallet().addToWallet}</p>
             <div class="popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-amount-logo" />
-              <span>{accountStore.selectedTopUpAmount}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="popup-amount-logo" />
+              <span>{formatCredits(creditsForTopUp(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}</span>
             </div>
+            <p class="popup-usd">
+              {wallet().payAmountUsd.replace('{usd}', `$${(accountStore.selectedTopUpAmount ?? 0).toFixed(2)}`)}
+            </p>
             <div class="payment-method-section">
               <p class="payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="payment-method-icons">
@@ -1151,22 +1177,6 @@ function WalletSection() {
                   </button>
                 </Show>
               </div>
-              <Show when={accountStore.selectedPaymentMethod === 'applepay'}>
-                <p class="payment-method-note">
-                  {(wallet().applePaySurchargeNote ||
-                    'Apple Pay includes a 30% App Store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
-                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
-                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
-                </p>
-              </Show>
-              <Show when={accountStore.selectedPaymentMethod === 'googleplay'}>
-                <p class="payment-method-note">
-                  {(wallet().googlePlaySurchargeNote ||
-                    'Google Play includes a 30% store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
-                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
-                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
-                </p>
-              </Show>
             </div>
             <Show when={accountStore.topUpLoading}>
               <div class="popup-loading">
@@ -1194,9 +1204,12 @@ function WalletSection() {
             <h2 class="popup-title">{wallet().confirmWithdraw || 'Confirm Withdraw'}</h2>
             <p class="popup-message">{wallet().withdrawFromWallet || 'Withdraw from your wallet'}</p>
             <div class="popup-amount withdraw-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="popup-amount-logo" />
-              <span>{accountStore.selectedWithdrawAmount!.toFixed(2)}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="popup-amount-logo" />
+              <span>{formatCredits(accountStore.selectedWithdrawAmount!)}</span>
             </div>
+            <p class="popup-usd">
+              {wallet().receiveAmountUsd.replace('{usd}', `$${toUsd(accountStore.selectedWithdrawAmount!).toFixed(2)}`)}
+            </p>
             <div class="popup-buttons">
               <button
                 class="btn-withdraw-confirm"
@@ -1219,7 +1232,7 @@ function WalletSection() {
           const p = () => accountStore.gusdProcessing
           const isW = () => p().kind === 'withdraw'
           const close = () => accountStoreActions.setGusdProcessing({ show: false, amount: null, kind: p().kind })
-          const amt = () => (p().amount != null ? p().amount!.toFixed(2) : '')
+          const amt = () => (p().amount != null ? formatCredits(p().amount!) : '')
           return (
             <div class="popup-overlay" onClick={close}>
               <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
@@ -1797,7 +1810,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
               <span class="revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
-                {accountStore.revenueData!.totalRevenue.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.totalRevenue)}
               </span>
             </div>
           </div>
@@ -1807,7 +1820,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
               <span class="revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="revenue-card-value highlight">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
-                {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.totalCreatorShare)}
               </span>
             </div>
           </div>
@@ -1817,7 +1830,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
               <span class="revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
-                {accountStore.revenueData!.pendingPayout.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.pendingPayout)}
               </span>
             </div>
           </div>
@@ -1827,7 +1840,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
               <span class="revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
-                {accountStore.revenueData!.paidOut.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.paidOut)}
               </span>
             </div>
           </div>
@@ -1860,7 +1873,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
                             <span class="revenue-stat-label">{props.translations.creatorShare || 'Creator Share'}:</span>
                             <span class="revenue-stat-value highlight">
                               <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-stat-logo" />
-                              {seriesRevenue.creatorShare.toFixed(2)}
+                              {formatCredits(seriesRevenue.creatorShare)}
                             </span>
                           </span>
                         </div>
@@ -1897,11 +1910,11 @@ const RevenueSection = (props: RevenueSectionProps) => {
                                   <td class="sales-cell">{episode.totalSales} {props.translations.sales || 'sales'}</td>
                                   <td class="revenue-cell">
                                     <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-table-logo" />
-                                    {episode.totalRevenue.toFixed(2)}
+                                    {formatCredits(episode.totalRevenue)}
                                   </td>
                                   <td class="share-cell highlight">
                                     <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-table-logo" />
-                                    {episode.creatorShare.toFixed(2)}
+                                    {formatCredits(episode.creatorShare)}
                                   </td>
                                 </tr>
                               )}

@@ -862,8 +862,8 @@ export const submitFeedback = async (
 const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   freeEpisodes: 5,
   creatorShare: 50,
-  episodeCost: 0.1,
-  nextEpisodeCost: 0.99,
+  episodeCost: 10,
+  nextEpisodeCost: 99,
 }
 
 export const fetchSystemSettings = async (): Promise<SystemSettings> => {

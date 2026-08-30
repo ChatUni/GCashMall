@@ -13,6 +13,7 @@ import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
 import { t } from '../../stores/languageStore'
+import { toUsd, formatCredits, creditsForTopUp } from '../../utils/credits'
 import { languageStore, languageStoreActions } from '../../stores/languageStore'
 import type { Language } from '../../i18n'
 import {
@@ -20,8 +21,8 @@ import {
   accountStoreActions,
   getFilteredPhoneNavItems,
   walletAmounts,
+  withdrawAmounts,
   iapWalletAmounts,
-  netAfterStoreFee,
   type AccountTab,
   getCombinedTransactions,
   getFilteredTransactions,
@@ -495,7 +496,7 @@ const PhoneWalletSection = () => {
         <span class="phone-balance-label">{wallet().currentBalance}</span>
         <div class="phone-balance-amount">
           <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-balance-logo" />
-          <span>{accountStore.balance.toFixed(2)}</span>
+          <span>{formatCredits(accountStore.balance)}</span>
         </div>
       </div>
       {/* Wallet tabs hidden on native (iOS/Android): withdraw is removed there, so the
@@ -513,12 +514,12 @@ const PhoneWalletSection = () => {
         </div>
         <Show when={accountStore.walletTab === 'withdraw'}>
           <div class="phone-max-withdraw">
-            <span class="phone-max-withdraw-value">{wallet().maxWithdraw || 'Max Withdraw'}: {maxWithdraw().toFixed(2)}</span>
+            <span class="phone-max-withdraw-value">{wallet().maxWithdraw || 'Max Withdraw'}: {formatCredits(maxWithdraw())}</span>
             <span class="phone-max-withdraw-note">{wallet().withdrawHoldNote || 'Transactions within 30 days are not available for withdraw.'}</span>
           </div>
         </Show>
         <div class="phone-wallet-amounts">
-          <For each={isIOS() ? iapWalletAmounts : walletAmounts}>
+          <For each={accountStore.walletTab === 'withdraw' ? withdrawAmounts : isIOS() ? iapWalletAmounts : walletAmounts}>
             {(amount) => (
               <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > maxWithdraw() ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > maxWithdraw()}>
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-amount-logo" />
@@ -583,9 +584,12 @@ const PhoneWalletSection = () => {
             <h3 class="phone-popup-title">{wallet().confirmTopUp || 'Confirm Top Up'}</h3>
             <p class="phone-popup-message">{wallet().topUpMessage || 'Add to your wallet'}</p>
             <div class="phone-popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-amount-logo" />
-              <span>{accountStore.selectedTopUpAmount}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="phone-popup-amount-logo" />
+              <span>{formatCredits(creditsForTopUp(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}</span>
             </div>
+            <p class="phone-popup-usd">
+              {wallet().payAmountUsd.replace('{usd}', `$${(accountStore.selectedTopUpAmount ?? 0).toFixed(2)}`)}
+            </p>
             <div class="phone-payment-method-section">
               <p class="phone-payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>
               <div class="phone-payment-method-icons">
@@ -625,22 +629,6 @@ const PhoneWalletSection = () => {
                   </button>
                 </Show>
               </div>
-              <Show when={accountStore.selectedPaymentMethod === 'applepay'}>
-                <p class="phone-payment-method-note">
-                  {(wallet().applePaySurchargeNote ||
-                    'Apple Pay includes a 30% App Store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
-                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
-                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
-                </p>
-              </Show>
-              <Show when={accountStore.selectedPaymentMethod === 'googleplay'}>
-                <p class="phone-payment-method-note">
-                  {(wallet().googlePlaySurchargeNote ||
-                    'Google Play includes a 30% store fee. You pay {amount}, and {net} GUSD is added to your wallet.')
-                    .replace('{amount}', String(accountStore.selectedTopUpAmount ?? ''))
-                    .replace('{net}', netAfterStoreFee(accountStore.selectedTopUpAmount ?? 0).toFixed(2))}
-                </p>
-              </Show>
             </div>
             <Show when={accountStore.topUpLoading}>
               <div class="phone-popup-loading">
@@ -662,9 +650,12 @@ const PhoneWalletSection = () => {
             <h3 class="phone-popup-title">{wallet().confirmWithdraw || 'Confirm Withdrawal'}</h3>
             <p class="phone-popup-message">{wallet().withdrawMessage || 'Withdraw from your wallet'}</p>
             <div class="phone-popup-amount">
-              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-popup-amount-logo" />
-              <span>{accountStore.selectedWithdrawAmount}</span>
+              <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="phone-popup-amount-logo" />
+              <span>{formatCredits(accountStore.selectedWithdrawAmount!)}</span>
             </div>
+            <p class="phone-popup-usd">
+              {wallet().receiveAmountUsd.replace('{usd}', `$${toUsd(accountStore.selectedWithdrawAmount!).toFixed(2)}`)}
+            </p>
             <div class="phone-popup-buttons">
               <button class="phone-popup-confirm" onClick={onConfirmWithdraw} disabled={accountStore.withdrawing}>{accountStore.withdrawing ? '...' : (wallet().confirm || 'Confirm')}</button>
               <button class="phone-popup-cancel" onClick={closeWithdrawPopup} disabled={accountStore.withdrawing}>{wallet().cancel || 'Cancel'}</button>
@@ -679,7 +670,7 @@ const PhoneWalletSection = () => {
           const p = () => accountStore.gusdProcessing
           const isW = () => p().kind === 'withdraw'
           const close = () => accountStoreActions.setGusdProcessing({ show: false, amount: null, kind: p().kind })
-          const amt = () => (p().amount != null ? p().amount!.toFixed(2) : '')
+          const amt = () => (p().amount != null ? formatCredits(p().amount!) : '')
           return (
             <div class="phone-popup-overlay" onClick={close}>
               <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
@@ -930,7 +921,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
               <span class="phone-revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="phone-revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
-                {accountStore.revenueData!.totalRevenue.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.totalRevenue)}
               </span>
             </div>
           </div>
@@ -940,7 +931,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
               <span class="phone-revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="phone-revenue-card-value highlight">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
-                {accountStore.revenueData!.totalCreatorShare.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.totalCreatorShare)}
               </span>
             </div>
           </div>
@@ -950,7 +941,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
               <span class="phone-revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="phone-revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
-                {accountStore.revenueData!.pendingPayout.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.pendingPayout)}
               </span>
             </div>
           </div>
@@ -960,7 +951,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
               <span class="phone-revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="phone-revenue-card-value">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
-                {accountStore.revenueData!.paidOut.toFixed(2)}
+                {formatCredits(accountStore.revenueData!.paidOut)}
               </span>
             </div>
           </div>
@@ -990,7 +981,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                           </span>
                           <span class="phone-revenue-stat highlight">
                             <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-stat-logo" />
-                            {seriesRevenue.creatorShare.toFixed(2)}
+                            {formatCredits(seriesRevenue.creatorShare)}
                           </span>
                         </div>
                       </div>
@@ -1013,7 +1004,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                                 <span class="phone-revenue-episode-sales">{episode.totalSales} {props.translations.sales || 'sales'}</span>
                                 <span class="phone-revenue-episode-share highlight">
                                   <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-episode-logo" />
-                                  {episode.creatorShare.toFixed(2)}
+                                  {formatCredits(episode.creatorShare)}
                                 </span>
                               </div>
                             </div>

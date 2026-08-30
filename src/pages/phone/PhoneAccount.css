@@ -1752,3 +1752,11 @@
   text-align: center;
   padding: 24px;
 }
+
+/* Cash value behind the credits figure in the top-up / withdraw confirmations. */
+.phone-popup-usd {
+  margin: -4px 0 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--c-text-muted);
+}

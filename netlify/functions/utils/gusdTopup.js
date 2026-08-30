@@ -4,6 +4,7 @@
 
 import { ObjectId } from 'mongodb'
 import { get, update } from './db.js'
+import { toCredits } from './credits.js'
 import { sendTopUpEmail, sendWithdrawCompleteEmail } from './email.js'
 
 // Our order_id format: {referenceId}_{userId}_{timestamp}
@@ -56,7 +57,9 @@ export const finalizeGUSDOrder = async (orderId, info = {}) => {
     (t) => t.order_id === orderId && t.status === 'processing',
   )
   if (!pending) return { finalized: false, alreadyDone: true }
-  const amount = Number(pending.amount) || parseFloat(info.price || 0)
+  // The pending row is already in credits. The provider's `info.price` is USD, so the
+  // fallback has to be converted or a top-up would credit 1 credit per dollar.
+  const amount = Number(pending.amount) || toCredits(info.price)
   const isWithdraw = pending.type === 'withdraw'
 
   // Only match while still processing — this is the idempotency guard.

@@ -20,6 +20,7 @@ import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
+import { toCredits, toUsd, creditsForTopUp } from './credits.js'
 import {
   getChatModel,
   chatTuning,
@@ -2952,7 +2953,8 @@ const createGUSDPayOrder = async (amount, callbackUrl, userId, referenceId) => {
     order_id: orderId,
     type: 'topup',
     method: 'GUSD',
-    amount: Number(amount),
+    // `amount` here is the USD the provider will charge; the wallet row is credits.
+    amount: creditsForTopUp(amount),
     status: 'processing',
     createdAt: new Date(),
   }
@@ -3032,7 +3034,14 @@ const generateReferenceId = () => {
 }
 
 // Process the top up (add balance and create transaction)
-const processTopUp = async (currentUser, amount, method, referenceId, transactionId = '') => {
+// `amount` is the USD the provider charged. Credits come from the tier table (larger tiers
+// carry a bonus), and a store purchase grants 30% fewer. Every top-up path routes through
+// here — Stripe, card, Apple IAP, Google Play — so the rate is decided in exactly one place
+// and never trusted from the client.
+const processTopUp = async (
+  currentUser, amount, method, referenceId, transactionId = '', viaStore = false,
+) => {
+  const credits = creditsForTopUp(amount, viaStore)
   const currentBalance = currentUser.balance || 0
   const transactions = currentUser.transactions || []
 
@@ -3042,7 +3051,7 @@ const processTopUp = async (currentUser, amount, method, referenceId, transactio
     referenceId: referenceId || generateReferenceId(),
     type: 'topup',
     method: method,
-    amount,
+    amount: credits,
     transactionId: transactionId || '',
     status: 'success',
     createdAt: new Date(),
@@ -3054,7 +3063,7 @@ const processTopUp = async (currentUser, amount, method, referenceId, transactio
   // Update user with new balance and transaction
   const updateData = {
     ...currentUser,
-    balance: currentBalance + amount,
+    balance: currentBalance + credits,
     transactions,
     updatedAt: new Date(),
   }
@@ -3259,8 +3268,6 @@ const VALID_IAP_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
 // Apple/Google take a 30% store fee on in-app purchases. Products are priced at face value
 // (the user pays the amount shown), and we absorb the fee by crediting 30% LESS — e.g. a
 // $10 top-up adds 7 GUSD. Applies only to store purchases (not Card/GUSD).
-const STORE_FEE_RATE = 0.3
-const netAfterStoreFee = (amount) => Math.round(Number(amount) * (1 - STORE_FEE_RATE) * 100) / 100
 
 // Verify an iOS In-App Purchase receipt and credit the user's wallet
 const verifyIAPReceipt = async (body, authHeader) => {
@@ -3290,7 +3297,7 @@ const verifyIAPReceipt = async (body, authHeader) => {
     // Process the top up (add balance and create transaction). Credit 30% less than paid —
     // Apple's store fee. Release the reservation on failure so it can be retried.
     try {
-      return await processTopUp(currentUser, netAfterStoreFee(amount), 'Apple Pay (IAP)', referenceId, transactionId)
+      return await processTopUp(currentUser, amount, 'Apple Pay (IAP)', referenceId, transactionId, true)
     } catch (creditError) {
       await releaseTransaction(transactionId)
       throw creditError
@@ -3361,7 +3368,7 @@ const verifyGooglePlayPurchase = async (body, authHeader) => {
 
     try {
       // Credit 30% less than paid — Google Play's store fee.
-      return await processTopUp(currentUser, netAfterStoreFee(amount), 'Google Play', referenceId, txnKey)
+      return await processTopUp(currentUser, amount, 'Google Play', referenceId, txnKey, true)
     } catch (creditError) {
       await releaseTransaction(txnKey)
       throw creditError
@@ -3525,6 +3532,12 @@ const withdraw = async (body, authHeader) => {
       return { success: false, error: 'Amount exceeds the max withdrawable amount' }
     }
 
+    // The wallet is credits; the payment provider is paid in USD.
+    const payoutUsd = toUsd(amount)
+    if (payoutUsd <= 0) {
+      return { success: false, error: 'Amount is below the minimum withdrawal' }
+    }
+
     const orderId = generateGUSDOrderId(userId, null)
     const { referenceId: orderRef } = parseGUSDOrderId(orderId)
     const pendingTxn = {
@@ -3555,7 +3568,7 @@ const withdraw = async (body, authHeader) => {
     // Create the GUSD withdrawal link. If that fails, refund + mark the txn failed.
     let withdrawUrl
     try {
-      const gusd = await createGUSDWithdrawOrder(amount, callbackUrl, orderId)
+      const gusd = await createGUSDWithdrawOrder(payoutUsd, callbackUrl, orderId)
       withdrawUrl = gusd.data.withdraw_url
     } catch (error) {
       await update(
@@ -4778,17 +4791,17 @@ const SYSTEM_SETTINGS_KEY = 'system'
 const DEFAULT_SYSTEM_SETTINGS = {
   freeEpisodes: 5, // episodes at the start of every series that need no purchase
   creatorShare: 50, // percent of episode revenue paid to the creator
-  episodeCost: 0.1, // GUSD cost to unlock an episode
-  nextEpisodeCost: 0.99, // GUSD cost to generate a follow-up episode
-  welcomeCredit: 100, // GUSD granted to a newly registered user
+  episodeCost: 10, // credits to unlock an episode (100 credits = 1 USD)
+  nextEpisodeCost: 99, // credits to generate a follow-up episode
+  welcomeCredit: 10000, // credits granted to a newly registered user
   chatModel: MODEL_DEFAULTS.chatModel, // OpenAI text/story model
   imageModel: MODEL_DEFAULTS.imageModel, // OpenAI image model
   seedanceModel: MODEL_DEFAULTS.seedanceModel, // Seedance video model
 }
 const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
-const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
-const WELCOME_CREDIT_OPTIONS = [0, 5, 10, 20, 50, 100]
+const EPISODE_COST_OPTIONS = [10, 20, 30, 50, 75, 100]
+const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 
 // An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
 // old n-second preview: locked episodes are not playable at all, free ones play in full.

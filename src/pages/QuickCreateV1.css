@@ -1506,6 +1506,12 @@
   width: 100%;
 }
 
+/* Regenerate sits directly under the Publish card rather than inside one — it is an action
+   on the whole episode, not another card in the list. */
+.qcv1-regen-btn {
+  margin-top: -4px;
+}
+
 /* ── Toast ── */
 .qcv1-toast {
   position: fixed;

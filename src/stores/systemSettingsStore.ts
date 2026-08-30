@@ -16,9 +16,9 @@ interface SystemSettingsState extends SystemSettings {
 const getInitialState = (): SystemSettingsState => ({
   freeEpisodes: DEFAULT_FREE_EPISODES,
   creatorShare: 50,
-  episodeCost: 0.1,
-  nextEpisodeCost: 0.99,
-  welcomeCredit: 100,
+  episodeCost: 10,
+  nextEpisodeCost: 99,
+  welcomeCredit: 10000,
   chatModel: 'gpt-5-mini',
   imageModel: 'gpt-image-1-mini',
   seedanceModel: 'doubao-seedance-2-0-mini-260615',
@@ -33,9 +33,9 @@ export const systemSettingsStore = state
 // Selectable options (must match the backend's allowed values and the spec)
 export const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
-export const EPISODE_COST_OPTIONS = [0.1, 0.2, 0.3, 0.5, 0.75, 1]
-export const NEXT_EPISODE_COST_OPTIONS = [0.49, 0.99, 1.49, 1.99, 2.99]
-export const WELCOME_CREDIT_OPTIONS = [0, 5, 10, 20, 50, 100]
+export const EPISODE_COST_OPTIONS = [10, 20, 30, 50, 75, 100]
+export const NEXT_EPISODE_COST_OPTIONS = [49, 99, 149, 199, 299]
+export const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 // Model options (must match the server's modelConfig option lists)
 export const CHAT_MODEL_OPTIONS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini', 'gpt-4o']
 export const IMAGE_MODEL_OPTIONS = ['gpt-image-1-mini', 'gpt-image-1']
@@ -54,7 +54,7 @@ export const getFreeEpisodeCount = (): number => state.freeEpisodes ?? DEFAULT_F
 export const isEpisodeFree = (episodeNumber: number): boolean =>
   episodeNumber <= getFreeEpisodeCount()
 // GUSD cost to generate a follow-up episode
-export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 0.99
+export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 99
 
 export const systemSettingsStoreActions = {
   load: async () => {

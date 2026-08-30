@@ -2830,3 +2830,19 @@
   overflow-y: auto;
   padding: 2px;
 }
+/* Credits are the wallet unit; the dollar figure sits underneath so a user still knows
+   what they pay (top-up) or receive (withdrawal). */
+.amount-usd {
+  display: block;
+  font-size: 11px;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+
+/* The cash value behind a credits figure, in the top-up / withdraw confirmations. */
+.popup-usd {
+  margin: -6px 0 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--c-text-muted);
+}

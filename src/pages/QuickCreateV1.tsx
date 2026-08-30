@@ -32,6 +32,7 @@ import {
   STUDIO_STAGES,
 } from '../stores/quickCreateV1Store'
 import './QuickCreateV1.css'
+import { formatCredits } from '../utils/credits'
 
 const tv = () => t().quickCreateV1
 
@@ -1175,7 +1176,7 @@ const Page4Ready = () => {
                       <button class="qcv1-btn ghost sm full qcv1-next-btn" onClick={() => setNextEp(ep)}>
                         <span>{r().createEpisode} {ep.episode} →</span>
                         <span class="qcv1-next-price">
-                          <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {cost().toFixed(2)}
+                          <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {formatCredits(cost())}
                         </span>
                       </button>
                     </div>
@@ -1201,6 +1202,17 @@ const Page4Ready = () => {
             btn={r().publishBtn.replace('{n}', String(s.episodeNumber))}
             onClick={publish}
           />
+          {/* Back to the proposal to edit it and produce the episode again. Only offered
+              when a proposal is actually loaded — an old production without one would land
+              on Page 2's loading state with nothing to show. */}
+          <Show when={s.proposal}>
+            <button
+              class="qcv1-btn primary qcv1-action-btn qcv1-regen-btn"
+              onClick={() => actions.goToStep(2)}
+            >
+              {r().regenerate}
+            </button>
+          </Show>
         </div>
       </div>
 
@@ -1264,13 +1276,13 @@ const Page4Ready = () => {
                 {r().generateCostPre} {nextEp()!.episode} {r().generateCostMid}
               </span>
               <span class="qcv1-modal-price">
-                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> <b>{cost().toFixed(2)}</b>
+                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> <b>{formatCredits(cost())}</b>
               </span>
             </div>
             <div class="qcv1-modal-balance">
               <span>{r().yourBalance}</span>
               <span class={`qcv1-modal-bal ${canAfford() ? '' : 'low'}`}>
-                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {balance().toFixed(2)}
+                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {formatCredits(balance())}
               </span>
             </div>
             <Show when={!canAfford()}>

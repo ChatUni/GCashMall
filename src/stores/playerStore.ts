@@ -97,8 +97,8 @@ const basePlayerStoreActions = {
 
 // Constants
 export const HIDE_FAVORITE_MODAL_KEY = 'hideFavoriteModal'
-export const EPISODE_PRICE = 0.1
-export const EPISODE_COST = 1
+export const EPISODE_PRICE = 10 // credits
+export const EPISODE_COST = 100 // credits
 
 // Module-level tracking variables
 let currentLoadedSeriesId: string | null = null
