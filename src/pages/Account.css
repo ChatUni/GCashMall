@@ -2846,3 +2846,11 @@
   font-size: 13px;
   color: var(--c-text-muted);
 }
+
+/* Native only: the same tier grants fewer credits in-app because of store billing. */
+.amount-web-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--c-text-muted);
+  text-align: center;
+}

@@ -1037,6 +1037,11 @@ function WalletSection() {
             }}
           </For>
         </div>
+        {/* Native only: store billing takes 30%, so the same tier grants fewer credits in
+            the app than on the web. Shown on the top-up tab only. */}
+        <Show when={isCordova() && accountStore.walletTab === 'topup'}>
+          <p class="amount-web-note">{wallet().webMoreCredits}</p>
+        </Show>
       </div>
 
       {/* Transaction History Section */}
@@ -1106,7 +1111,7 @@ function WalletSection() {
                       </td>
                       <td class="transaction-amount">
                         <span class={transaction.type === 'topup' || transaction.type === 'earning' ? 'amount-positive' : transaction.type === 'purchase' ? 'amount-purchase' : 'amount-negative'}>
-                          {transaction.type === 'topup' || transaction.type === 'earning' ? '+' : '-'}{transaction.amount.toFixed(2)}
+                          {transaction.type === 'topup' || transaction.type === 'earning' ? '+' : '-'}{formatCredits(transaction.amount)}
                         </span>
                       </td>
                       <td class={`transaction-status ${getStatusClass(transaction.status)}`}>

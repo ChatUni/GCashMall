@@ -201,6 +201,7 @@ export const en = {
       gusd: 'GUSD',
       payAmountUsd: 'You pay {usd}',
       receiveAmountUsd: 'You receive {usd}',
+      webMoreCredits: 'Credit amounts vary by platform.',
       creditsLabel: 'Credits',
       creditsRate: '100 credits = 1 USD',
       confirm: 'Confirm',

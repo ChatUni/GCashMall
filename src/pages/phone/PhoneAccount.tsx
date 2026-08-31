@@ -520,14 +520,35 @@ const PhoneWalletSection = () => {
         </Show>
         <div class="phone-wallet-amounts">
           <For each={accountStore.walletTab === 'withdraw' ? withdrawAmounts : isIOS() ? iapWalletAmounts : walletAmounts}>
-            {(amount) => (
-              <button class={`phone-amount-btn ${accountStore.walletTab === 'withdraw' && amount > maxWithdraw() ? 'disabled' : ''}`} onClick={() => accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)} disabled={accountStore.walletTab === 'withdraw' && amount > maxWithdraw()}>
-                <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-amount-logo" />
-                <span>{amount}</span>
-              </button>
-            )}
+            {(amount) => {
+              const credits = () =>
+                accountStore.walletTab === 'withdraw'
+                  ? amount
+                  : creditsForTopUp(amount, isIOS() || isAndroid())
+              const usd = () => (accountStore.walletTab === 'withdraw' ? toUsd(amount) : amount)
+              const blocked = () =>
+                accountStore.walletTab === 'withdraw' && credits() > maxWithdraw()
+              return (
+                <button
+                  class={`phone-amount-btn ${blocked() ? 'disabled' : ''}`}
+                  onClick={() =>
+                    accountStore.walletTab === 'topup' ? onTopUpClick(amount) : onWithdrawClick(amount)
+                  }
+                  disabled={blocked()}
+                >
+                  <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="phone-amount-logo" />
+                  <span>{formatCredits(credits())}</span>
+                  <span class="phone-amount-usd">${usd()}</span>
+                </button>
+              )
+            }}
           </For>
         </div>
+        {/* Native only: store billing takes 30%, so the same tier grants fewer credits in
+            the app than on the web. Shown on the top-up tab only. */}
+        <Show when={isCordova() && accountStore.walletTab === 'topup'}>
+          <p class="phone-amount-web-note">{wallet().webMoreCredits}</p>
+        </Show>
       </div>
       <div class="phone-transaction-section">
         <div class="phone-transaction-header">
@@ -566,7 +587,7 @@ const PhoneWalletSection = () => {
                       <span class="phone-transaction-date">{formatTransactionDate(tx.createdAt)}</span>
                     </div>
                     <div class="phone-transaction-amount-status">
-                      <span class={`phone-transaction-amount amount-${tx.type}`}>{tx.type === 'topup' || tx.type === 'earning' ? '+' : '-'}{tx.amount.toFixed(2)}</span>
+                      <span class={`phone-transaction-amount amount-${tx.type}`}>{tx.type === 'topup' || tx.type === 'earning' ? '+' : '-'}{formatCredits(tx.amount)}</span>
                       <span class={`phone-transaction-status ${getStatusClass(tx.status)}`}>{getStatusText(tx.status, t().account)}</span>
                     </div>
                   </div>

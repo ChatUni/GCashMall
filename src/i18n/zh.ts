@@ -200,6 +200,7 @@ export const zh = {
       gusd: 'GUSD',
       payAmountUsd: '支付 {usd}',
       receiveAmountUsd: '到账 {usd}',
+      webMoreCredits: '各平台的积分数量有所不同。',
       creditsLabel: '积分',
       creditsRate: '100 积分 = 1 美元',
       confirm: '确认',

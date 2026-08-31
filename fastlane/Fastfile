@@ -172,7 +172,14 @@ platform :ios do
     sigh(api_key: api_key, app_identifier: IOS_APP_IDENTIFIER, platform: "ios", output_path: CERTS_DIR)
     profile_name = lane_context[SharedValues::SIGH_NAME]
 
-    sh("cd .. && npm run build:cordova && npx cordova prepare ios")
+    # Run the web build + cordova prepare OUTSIDE Bundler's environment. fastlane runs under
+    # `bundle exec`, and that leaks into this child process — so when cordova shells out to
+    # CocoaPods, `pod` resolves against the Gemfile (which has no cocoapods gem) and dies
+    # with "can't find executable pod for gem cocoapods". It only bites when the Podfile
+    # actually changes, which is why it surfaced the first time the deployment target moved.
+    Bundler.with_unbundled_env do
+      sh("cd .. && npm run build:cordova && npx cordova prepare ios")
+    end
 
     # Manual distribution signing on the App target ONLY. Passing signing via global xcargs
     # would also hit the Cordova Swift-package framework targets, which don't support

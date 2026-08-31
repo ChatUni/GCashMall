@@ -1760,3 +1760,19 @@
   font-size: 13px;
   color: var(--c-text-muted);
 }
+
+/* Cash value under the credits figure on a top-up / withdrawal tier button. */
+.phone-amount-usd {
+  display: block;
+  font-size: 11px;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+
+/* Native only: the same tier grants fewer credits in-app because of store billing. */
+.phone-amount-web-note {
+  margin: 12px 4px 0;
+  font-size: 13px;
+  color: var(--c-text-muted);
+  text-align: center;
+}

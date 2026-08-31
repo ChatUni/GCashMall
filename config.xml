@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.ganime.app" version="1.0.0" ios-CFBundleVersion="15" android-versionCode="10003" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="io.ganime.app" version="1.0.0" ios-CFBundleVersion="18" android-versionCode="10003" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Ganime</name>
     <description>Watch AI-generated anime series, and create, publish, and monetize your own animated stories.</description>
     <author email="support@ganime.io" href="https://ganime.io">Fresh Road Studio Inc.</author>
@@ -52,6 +52,10 @@
         <icon height="167" src="res/ios/icon-167.png" width="167" />
         <icon height="180" src="res/ios/icon-180.png" width="180" />
         <icon height="1024" src="res/ios/icon-1024.png" width="1024" />
+        <!-- Apple requires MinimumOSVersion >= 15.0 for uploads from Spring 2027
+             (ITMS-90068). cordova-ios 8 defaults to 13.0, so set it explicitly.
+             iOS 15 still covers iPhone 6s and later. -->
+        <preference name="deployment-target" value="15.0" />
         <preference name="WKWebViewOnly" value="true" />
         <preference name="AllowInlineMediaPlayback" value="true" />
         <preference name="MediaPlaybackRequiresUserAction" value="false" />
