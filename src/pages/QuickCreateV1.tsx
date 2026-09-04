@@ -15,6 +15,7 @@ import { getShareText } from '../utils/playerHelpers'
 import {
   videoStorage,
   startNextEpisode as startNextEpisodeApi,
+  chargeEpisode as chargeEpisodeApi,
   fetchMe,
   type ProductionJob,
   type V1RoadmapEpisode,
@@ -33,6 +34,9 @@ import {
 } from '../stores/quickCreateV1Store'
 import './QuickCreateV1.css'
 import { formatCredits } from '../utils/credits'
+import TierPurchaseDialog from '../components/TierPurchaseDialog'
+import SettlementDialog from '../components/SettlementDialog'
+import { minTierCost } from '../utils/videoTiers'
 
 const tv = () => t().quickCreateV1
 
@@ -271,6 +275,7 @@ const readRow = (label: string, value: string, strong = false) => (
 )
 
 const Page2Proposal = () => {
+  const navigate = useNavigate()
   const p2 = () => tv().page2
   const proposal = () => s.proposal
   const cd = () => proposal()?.creativeDirection || {}
@@ -380,13 +385,47 @@ const Page2Proposal = () => {
     actions.selectEpisode(n)
   }
 
+  // Approve & Continue is now a purchase: episode 1 is no longer free, and every episode
+  // is priced the same way (tier rate x chosen length). The HOLD must land BEFORE
+  // production starts, so a failed payment can't produce a free episode; it is settled
+  // down to the episode's real length once rendering finishes.
+  const [buying, setBuying] = createSignal(false)
+  const [charging, setCharging] = createSignal(false)
+
+  const confirmPurchase = async (tierId: string, seconds: number) => {
+    if (!s.jobId || charging()) return
+    setCharging(true)
+    try {
+      const res = await chargeEpisodeApi(s.jobId, tierId, seconds)
+      if (!res.success || !res.data) {
+        toastStoreActions.show(
+          res.error === 'Insufficient balance'
+            ? tv().purchase.insufficientBalance
+            : res.error || 'Failed',
+          'error',
+        )
+        return
+      }
+      if (typeof res.data.balance === 'number') accountStoreActions.setBalance(res.data.balance)
+      setBuying(false)
+      actions.approve()
+    } finally {
+      setCharging(false)
+    }
+  }
+
   return (
     <Show
       when={proposal() && !(s.proposalLoading && !proposal())}
       fallback={
-        <div class="qcv1-loading">
-          <div class="qcv1-spinner" />
-          <p>{p2().loading}</p>
+        <div class="qcv1-loading proposal">
+          <p class="qcv1-loading-label">{p2().loading}</p>
+          {/* Call 1 reports no progress of its own, so this bar is an elapsed-time
+              estimate that eases toward 95% and completes when the proposal lands. */}
+          <div class="qcv1-progress-outer qcv1-proposal-bar">
+            <div class="qcv1-progress-inner" style={{ width: `${s.proposalPercent}%` }} />
+          </div>
+          <span class="qcv1-est-pct">{s.proposalPercent}%</span>
         </div>
       }
     >
@@ -644,7 +683,17 @@ const Page2Proposal = () => {
           </div>
         </div>
 
-        {/* Bottom action bar */}
+        <Show when={buying()}>
+        <TierPurchaseDialog
+          title={p2().approve}
+          busy={charging()}
+          onConfirm={confirmPurchase}
+          onCancel={() => setBuying(false)}
+          onTopUp={() => navigate('/account?tab=wallet')}
+        />
+      </Show>
+
+      {/* Bottom action bar */}
         <div class="qcv1-bottombar">
           <button class="qcv1-btn ghost" onClick={() => actions.goToStep(1)}>
             ← {p2().back}
@@ -653,7 +702,7 @@ const Page2Proposal = () => {
             <button class="qcv1-btn ghost" disabled={s.proposalLoading} onClick={() => actions.regenerateProposal()}>
               ⟳ {s.proposalLoading ? p2().applying : p2().regenerate}
             </button>
-            <button class="qcv1-btn primary" onClick={() => actions.approve()}>
+            <button class="qcv1-btn primary" onClick={() => setBuying(true)}>
               {p2().approve} →
             </button>
           </div>
@@ -943,7 +992,11 @@ const Page4Ready = () => {
   // Prefer the generated episode's actual beats; fall back to the proposal roadmap.
   const keyMoments = () =>
     s.episodeKeyMoments.length ? s.episodeKeyMoments : ep1()?.keyMoments || []
-  const kmTime = (i: number, n: number) => mmss(Math.round(((i + 1) / (n + 1)) * 30))
+  // Markers spread across the episode's real length (measured at settlement, else the
+  // length that was paid for) — not the fixed 30s this used to assume, which put every
+  // marker of a 60s episode in its first half.
+  const kmTime = (i: number, n: number) =>
+    mmss(Math.round(((i + 1) / (n + 1)) * s.episodeSeconds))
   // Episodes that already have a production (generated or generating).
   const producedNums = () => new Set(s.seriesEpisodes.map((e) => e.episode))
   // What's Next = roadmap episodes with no production yet (and not the current one).
@@ -955,20 +1008,16 @@ const Page4Ready = () => {
   // "What's Next": confirm dialog → balance check → charge/unlock → generate the episode.
   const [nextEp, setNextEp] = createSignal<V1RoadmapEpisode | null>(null)
   const [charging, setCharging] = createSignal(false)
-  const cost = () => systemSettingsStore.nextEpisodeCost ?? 0.99
-  const balance = () => accountStore.balance
-  const canAfford = () => balance() >= cost()
   const goTopUp = () => {
     setNextEp(null)
     navigate('/account?tab=wallet')
   }
-  const confirmNext = async () => {
+  const confirmNext = async (tierId: string, seconds: number) => {
     const ep = nextEp()
     if (!ep || charging() || !s.jobId) return
-    if (!canAfford()) return goTopUp() // client-side balance check
     setCharging(true)
     try {
-      const res = await startNextEpisodeApi(s.jobId, ep.episode)
+      const res = await startNextEpisodeApi(s.jobId, ep.episode, tierId, seconds)
       if (!res.success || !res.data) {
         if (res.error === 'Insufficient balance') {
           toastStoreActions.show(r().insufficientBalance, 'error')
@@ -1056,10 +1105,20 @@ const Page4Ready = () => {
         <div class="qcv1-p4-main">
           <div class="qcv1-p4-head">
             <div>
-              <h1 class="qcv1-h1">
-                {r().episodeWord} {s.episodeNumber} {r().readySuffix} 🎉
-              </h1>
-              <p class="qcv1-lead">{r().subtitle}</p>
+              <Show
+                when={!s.produceError}
+                fallback={
+                  <>
+                    <h1 class="qcv1-h1">{r().failedTitle}</h1>
+                    <p class="qcv1-lead">{r().failedSubtitle}</p>
+                  </>
+                }
+              >
+                <h1 class="qcv1-h1">
+                  {r().episodeWord} {s.episodeNumber} {r().readySuffix} 🎉
+                </h1>
+                <p class="qcv1-lead">{r().subtitle}</p>
+              </Show>
             </div>
             <div class="qcv1-time-card">
               <span class="qcv1-time-label">🕐 {r().totalTime}</span>
@@ -1070,10 +1129,32 @@ const Page4Ready = () => {
           <Show
             when={s.episodeVideo}
             fallback={
-              <div class="qcv1-loading tall">
-                <div class="qcv1-spinner" />
-                <p>{r().rendering}</p>
-              </div>
+              <Show
+                when={s.produceError}
+                fallback={
+                  <div class="qcv1-loading tall">
+                    <div class="qcv1-spinner" />
+                    <p>{r().rendering}</p>
+                  </div>
+                }
+              >
+                {/* The shots rendered; only the stitch failed. Re-composing reuses them, so
+                    there is nothing to regenerate and nothing more to pay. */}
+                <div class="qcv1-compose-failed">
+                  <div class="qcv1-compose-failed-icon">⚠️</div>
+                  <p class="qcv1-compose-failed-msg">{s.produceError}</p>
+                  <Show when={s.canRetryCompose}>
+                    <p class="qcv1-compose-failed-hint">{r().retryHint}</p>
+                    <button
+                      class="qcv1-btn primary"
+                      disabled={s.retryingCompose}
+                      onClick={() => actions.retryCompose()}
+                    >
+                      {s.retryingCompose ? '…' : r().retryBtn}
+                    </button>
+                  </Show>
+                </div>
+              </Show>
             }
           >
             {/* s1: the episode is on Bunny — play via the embed iframe. s0: Cloudinary mp4. */}
@@ -1109,8 +1190,8 @@ const Page4Ready = () => {
                 <Show when={cd().tone}><span class="qcv1-ep-tag">{cd().tone}</span></Show>
               </div>
               <div class="qcv1-ep-meta">
-                <span>🕐 0:30</span>
-                <span>📺 480p</span>
+                <span>🕐 {mmss(s.episodeSeconds)}</span>
+                <span>📺 {s.episodeResolution}</span>
                 <span>📅 {today()}</span>
               </div>
               <p class="qcv1-ep-summary">{ep1()?.summary || ''}</p>
@@ -1176,7 +1257,10 @@ const Page4Ready = () => {
                       <button class="qcv1-btn ghost sm full qcv1-next-btn" onClick={() => setNextEp(ep)}>
                         <span>{r().createEpisode} {ep.episode} →</span>
                         <span class="qcv1-next-price">
-                          <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {formatCredits(cost())}
+                          {/* The price depends on the quality tier picked in the dialog,
+                              so preview the cheapest. */}
+                          <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" />{' '}
+                          {tv().purchase.fromPrice.replace('{n}', formatCredits(minTierCost()))}
                         </span>
                       </button>
                     </div>
@@ -1259,55 +1343,19 @@ const Page4Ready = () => {
         </div>
       </Show>
 
-      {/* Generate-next-episode confirm dialog */}
+      {/* Generate-next-episode: same tier pricing as the first episode. */}
       <Show when={nextEp()}>
-        <div class="qcv1-modal-overlay" onClick={() => !charging() && setNextEp(null)}>
-          <div class="qcv1-modal" onClick={(e) => e.stopPropagation()}>
-            <div class="qcv1-modal-eyebrow">
-              {r().episodeWord} {nextEp()!.episode}
-            </div>
-            <h3 class="qcv1-modal-title">{nextEp()!.title}</h3>
-            <p class="qcv1-modal-summary">{nextEp()!.summary}</p>
-            <Show when={nextEp()!.endingCliffhanger}>
-              <p class="qcv1-modal-hook">🎬 {nextEp()!.endingCliffhanger}</p>
-            </Show>
-            <div class="qcv1-modal-cost">
-              <span>
-                {r().generateCostPre} {nextEp()!.episode} {r().generateCostMid}
-              </span>
-              <span class="qcv1-modal-price">
-                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> <b>{formatCredits(cost())}</b>
-              </span>
-            </div>
-            <div class="qcv1-modal-balance">
-              <span>{r().yourBalance}</span>
-              <span class={`qcv1-modal-bal ${canAfford() ? '' : 'low'}`}>
-                <img src={GUSD_LOGO} alt="GUSD" class="qcv1-gusd" /> {formatCredits(balance())}
-              </span>
-            </div>
-            <Show when={!canAfford()}>
-              <p class="qcv1-error sm">{r().insufficientBalance}</p>
-            </Show>
-            <div class="qcv1-modal-actions">
-              <button class="qcv1-btn ghost" disabled={charging()} onClick={() => setNextEp(null)}>
-                {r().cancel}
-              </button>
-              <Show
-                when={canAfford()}
-                fallback={
-                  <button class="qcv1-btn secondary" onClick={goTopUp}>
-                    {r().topUp}
-                  </button>
-                }
-              >
-                <button class="qcv1-btn primary" disabled={charging()} onClick={confirmNext}>
-                  {charging() ? r().generatingNext : r().continueGenerate}
-                </button>
-              </Show>
-            </div>
-          </div>
-        </div>
+        <TierPurchaseDialog
+          title={`${r().episodeWord} ${nextEp()!.episode} · ${nextEp()!.title}`}
+          busy={charging()}
+          onConfirm={confirmNext}
+          onCancel={() => setNextEp(null)}
+          onTopUp={goTopUp}
+        />
       </Show>
+
+      {/* What the episode actually cost, once the hold was settled against its real length. */}
+      <SettlementDialog />
     </div>
   )
 }
@@ -1343,7 +1391,7 @@ const v1PublishProduction = (): ProductionJob => {
     cover,
     seriesCover: cover,
     episodeVideo: s.episodeVideo,
-    episodeLength: 30,
+    episodeLength: s.episodeSeconds,
     genre: null,
     artStyle: null,
     videos: s.videos as ProductionJob['videos'],
@@ -1408,7 +1456,7 @@ const QuickCreateV1 = () => {
             production={v1PublishProduction()}
             jobId={s.jobId!}
             fallbackTitle={s.proposal?.project?.title || ''}
-            episodeLength={30}
+            episodeLength={s.episodeSeconds}
             defaultTags={publishTags()}
             onClose={() => actions.closePublish()}
             onPublished={(id) => actions.setSeriesId(id)}

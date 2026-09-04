@@ -21,11 +21,14 @@ import {
   getVideoTask,
   extractVideoUrl,
   apiProgress,
+  isOpenRouterUrl,
 } from './seedance.js'
+import { tierForProduction } from './videoTiers.js'
+import { downloadTo } from './download.js'
 import { extractLastFrame, extractCoverFrame, extractFrameAt, probeDuration } from './ffmpeg.js'
 import { uploadImage } from './cloudinaryUtil.js'
 import { ensureCharacterRefs, refImagesForShot } from './characterRefs.js'
-import { isS1, createBunnyVideo, fetchBunnyVideoFromUrl } from './bunny.js'
+import { isS1, createBunnyVideo, fetchBunnyVideoFromUrl, uploadFileToBunny } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
 
@@ -46,10 +49,26 @@ const percentOf = (progress) => {
 // old parallel, independent-per-shot rendering.
 const frameChainEnabled = () => process.env.SEEDANCE_FRAME_CHAIN !== 'false'
 
-const downloadTo = async (url, dest) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`download failed (${res.status})`)
-  fs.writeFileSync(dest, Buffer.from(await res.arrayBuffer()))
+// Get a rendered shot into Bunny.
+//
+// Bunny's /fetch makes BUNNY's servers download the URL, so it only works for a publicly
+// readable link — which is what the old ModelArk CDN URLs were. OpenRouter's video URLs can
+// require our bearer token, and Bunny has no way to send it: it gets a 401 and reports
+// "Bunny fetch failed (422): Origin returned HTTP 401". For those, pull the bytes here
+// (downloadTo attaches the token) and upload them directly instead.
+const ingestShotToBunny = async (bunnyVideoId, url, tag) => {
+  if (!isOpenRouterUrl(url)) {
+    await fetchBunnyVideoFromUrl(bunnyVideoId, url)
+    return
+  }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ganime-shot-'))
+  try {
+    const file = path.join(tmp, `${tag}.mp4`)
+    await downloadTo(url, file)
+    await uploadFileToBunny(bunnyVideoId, file)
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
 }
 
 // Download a rendered shot once and extract the requested frames, uploading each.
@@ -104,6 +123,8 @@ export const runVideoGeneration = async (jobId, userId) => {
   const docs = await get('productions', { jobId }, {}, {}, 1)
   if (!docs || docs.length === 0) throw new Error('production not found')
   const doc = docs[0]
+  // Model + resolution the user actually paid for (falls back for pre-tier jobs).
+  const tier = tierForProduction(doc)
   if (userId && String(doc.userId) !== String(userId)) {
     throw new Error('not authorized for this production')
   }
@@ -199,9 +220,10 @@ export const runVideoGeneration = async (jobId, userId) => {
           ? undefined
           : refImagesForShot(charsById.get(req.shot_id), charRefs)
         try {
-          const { url } = await generateVideo(req, {
+          const { url } = await generateVideo({ ...req, resolution: tier.resolution }, {
             firstFrameUrl,
             referenceImages,
+            model: tier.model,
             onProgress: (p) => {
               shotPct[i] = p
               pushProgress()
@@ -240,7 +262,7 @@ export const runVideoGeneration = async (jobId, userId) => {
       if (isS1() && video.url && !video.bunnyVideoId) {
         try {
           const bvid = await createBunnyVideo(`${jobId}-${req.shot_id}`)
-          await fetchBunnyVideoFromUrl(bvid, video.url)
+          await ingestShotToBunny(bvid, video.url, req.shot_id)
           video.bunnyVideoId = bvid
         } catch (error) {
           console.error(`Bunny shot upload ${req.shot_id} failed:`, error.message)
@@ -303,7 +325,7 @@ const buildShotContext = (doc) => {
 // Submit the next not-yet-started shot of a scene, once its predecessor has resolved.
 // Seeds with the previous shot's last frame (chaining) or, for a scene opener / after a
 // failed predecessor, with the character reference images. Persists just that element.
-const submitNextInScene = async (jobId, videos, sceneKey, reqById, charsById, charRefs, chain) => {
+const submitNextInScene = async (jobId, videos, sceneKey, reqById, charsById, charRefs, chain, tier) => {
   const scene = videos
     .filter((v) => v.sceneKey === sceneKey)
     .sort((a, b) => a.posInScene - b.posInScene)
@@ -319,10 +341,10 @@ const submitNextInScene = async (jobId, videos, sceneKey, reqById, charsById, ch
     ? undefined
     : refImagesForShot(charsById.get(next.shot_id), charRefs)
   try {
-    const { taskId, base } = await createVideoTask(reqById.get(next.shot_id), {
-      firstFrameUrl,
-      referenceImages,
-    })
+    const { taskId, base } = await createVideoTask(
+      { ...reqById.get(next.shot_id), resolution: tier.resolution },
+      { model: tier.model, firstFrameUrl, referenceImages },
+    )
     Object.assign(next, { status: 'submitted', taskId, base, submittedAt: new Date(), pct: 6, error: '' })
   } catch (error) {
     Object.assign(next, { status: 'failed', error: String(error.message || error), pct: 100 })
@@ -340,6 +362,8 @@ export const submitVideoGeneration = async (jobId, userId) => {
   const docs = await get('productions', { jobId }, {}, {}, 1)
   if (!docs || docs.length === 0) throw new Error('production not found')
   const doc = docs[0]
+  // Model + resolution the user actually paid for (falls back for pre-tier jobs).
+  const tier = tierForProduction(doc)
   if (userId && String(doc.userId) !== String(userId)) {
     throw new Error('not authorized for this production')
   }
@@ -403,7 +427,7 @@ export const submitVideoGeneration = async (jobId, userId) => {
 
   // Fire off each scene's opening (or first still-pending) shot.
   for (const sk of [...new Set(videos.map((v) => v.sceneKey))]) {
-    await submitNextInScene(jobId, videos, sk, reqById, charsById, charRefs, chain)
+    await submitNextInScene(jobId, videos, sk, reqById, charsById, charRefs, chain, tier)
   }
   await updateJob(jobId, {
     videos,
@@ -498,6 +522,8 @@ export const advanceVideoGeneration = async (jobId, userId, authHeader) => {
 const runAdvanceStep = async (jobId, authHeader) => {
   const docs = await get('productions', { jobId }, {}, {}, 1)
   const doc = docs[0]
+  // Model + resolution the user actually paid for (falls back for pre-tier jobs).
+  const tier = tierForProduction(doc)
   const render = doc.render
   const { reqById, charsById } = buildShotContext(doc)
   const charRefs = await ensureCharacterRefs(doc, (f) => updateJob(jobId, f)) // cached → fast
@@ -554,7 +580,7 @@ const runAdvanceStep = async (jobId, authHeader) => {
       if (isS1() && !shot.bunnyVideoId) {
         try {
           const bvid = await createBunnyVideo(`${jobId}-${shot.shot_id}`)
-          await fetchBunnyVideoFromUrl(bvid, url)
+          await ingestShotToBunny(bvid, url, shot.shot_id)
           shot.bunnyVideoId = bvid
         } catch (error) {
           console.error(`Bunny shot upload ${shot.shot_id} failed:`, error.message)
@@ -565,7 +591,7 @@ const runAdvanceStep = async (jobId, authHeader) => {
         { jobId, 'videos.shot_id': shot.shot_id },
         { $set: { 'videos.$': shot, updatedAt: new Date() } },
       )
-      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain)
+      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain, tier)
     } else if (st === 'failed' || st === 'error' || st === 'cancelled' || st === 'canceled') {
       Object.assign(shot, {
         status: 'failed',
@@ -577,7 +603,7 @@ const runAdvanceStep = async (jobId, authHeader) => {
         { jobId, 'videos.shot_id': shot.shot_id },
         { $set: { 'videos.$': shot, updatedAt: new Date() } },
       )
-      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain)
+      await submitNextInScene(jobId, videos, shot.sceneKey, reqById, charsById, charRefs, chain, tier)
     } else {
       const p = apiProgress(task)
       if (typeof p === 'number' && p !== shot.pct) {

@@ -23,16 +23,16 @@ export const toUsd = (credits) => Number((Number(credits || 0) / CREDITS_PER_USD
 //
 // Credits per top-up are NOT a flat rate: larger tiers carry a bonus.
 //
-//     $5  ->   500 credits   (100 / USD, the base rate)
-//     $10 ->  1200 credits   (120 / USD)
-//     $20 ->  2500 credits   (125 / USD)
-//     $50 ->  7000 credits   (140 / USD)
+//     $5.99  ->   600 credits   (100 / USD)
+//     $9.99  ->  1100 credits   (110 / USD)
+//     $19.99 ->  2300 credits   (115 / USD)
+//     $49.99 ->  6000 credits   (120 / USD)
 //
 // Apple and Google take a 30% cut of in-app purchases, so a store top-up grants 30% fewer
 // credits than the same tier bought on the web.
 //
 // Any amount not in the table (the small GUSD test tiers) falls back to the base rate.
-export const TOPUP_TIERS = { 5: 500, 10: 1200, 20: 2500, 50: 7000 }
+export const TOPUP_TIERS = { 5.99: 600, 9.99: 1100, 19.99: 2300, 49.99: 6000 }
 export const STORE_CREDIT_RATE = 0.7
 
 // Credits granted for a USD top-up. `viaStore` = Apple IAP / Google Play Billing.

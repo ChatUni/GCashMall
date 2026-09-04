@@ -1,179 +1,156 @@
-// Seedance video generation (Volcengine / BytePlus ModelArk style async API).
-// Flow: create a generation task, then poll the task until it succeeds and returns
-// a video URL. Configure via env:
-//   SEEDANCE_API_KEY   (required) — the ARK/ModelArk API key
-//   SEEDANCE_BASE_URL  — API base; if unset/unknown we auto-detect the region
-//   SEEDANCE_MODEL     — model id (e.g. seedance-1-0-pro-...)
+// Video generation via OpenRouter's Video Generation API.
 //
-// ARK keys are region-scoped: a key from one region returns 401 "API key doesn't
-// exist" on another. So on a 401 we transparently retry the known regions and cache
-// whichever one authenticates.
+//   POST /api/v1/videos              -> { id, status, polling_url }
+//   GET  {polling_url} | /videos/:id -> { status, unsigned_urls[], error }
+//   GET  /videos/:id/content?index=0 -> the MP4 bytes (needs the bearer token)
+//
+// Docs: https://openrouter.ai/docs/api/api-reference/video-generation
+//
+// Replaces the direct Volcengine/BytePlus ModelArk integration. The models are the same
+// Seedance ones, addressed by OpenRouter slug (bytedance/seedance-2.0-mini | -fast).
+//
+// Env:
+//   OPENROUTER_API_KEY  — required
+//   OPENROUTER_BASE_URL — optional override (default https://openrouter.ai/api/v1)
+//
+// The module's exported surface is unchanged from the ModelArk version so videoJob.js and
+// audioJob.js keep working: createVideoTask / getVideoTask / extractVideoUrl / apiProgress
+// / generateVideo / modelHasNativeAudio.
 
-import { createHash } from 'node:crypto'
 import { getSeedanceModel } from './modelConfig.js'
 
-// Netlify env vars are often pasted with surrounding quotes or a trailing newline;
-// those would be sent literally in the request and rejected, so sanitize them.
-const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '')
+const clean = (v) => String(v || '').trim().replace(/^['"]|['"]$/g, '')
 
-// The model comes from the admin settings (see modelConfig), NOT from SEEDANCE_MODEL — the
-// env var is ignored. Only the API key + base region still come from env.
-const KEY = clean(process.env.SEEDANCE_API_KEY)
+const BASE = (clean(process.env.OPENROUTER_BASE_URL) || 'https://openrouter.ai/api/v1').replace(/\/+$/, '')
+const KEY = clean(process.env.OPENROUTER_API_KEY)
 
-// Safe key fingerprint — length, first/last chars, and a short hash so the exact key
-// (including the middle) can be compared between dev and prod without leaking the secret.
-const keyFingerprint = () => {
-  if (!KEY) return 'MISSING'
-  const hash = createHash('sha256').update(KEY).digest('hex').slice(0, 10)
-  return `${KEY.length} chars, ${KEY.slice(0, 4)}…${KEY.slice(-4)}, sha256:${hash}`
-}
+const keyFingerprint = () =>
+  KEY ? `len=${KEY.length} ${KEY.slice(0, 6)}…${KEY.slice(-4)}` : 'MISSING'
 
-// One-time config log on cold start so the function logs explain any auth failure
-console.log(
-  `[seedance] config — key: [${keyFingerprint()}], base: ${
-    clean(process.env.SEEDANCE_BASE_URL) || '(auto-detect)'
-  }`,
-)
+export const describeConfig = () => `base=${BASE}, key=[${keyFingerprint()}]`
 
-// Seedance 2.x renders synchronized audio in the same pass, so no separate TTS/mux step is
-// needed — only the shots need stitching. Re-exported from modelConfig (async: reads the
-// admin-selected model).
+// Whether the selected model produces its own audio track (so no separate TTS/mix step is
+// needed — only the shots need stitching). Re-exported from modelConfig.
 export { modelHasNativeAudio } from './modelConfig.js'
-
-// Known ARK video-generation bases; the configured one (if any) is tried first.
-const KNOWN_BASES = [
-  'https://ark.cn-beijing.volces.com/api/v3', // Volcengine (China)
-  'https://ark.ap-southeast.bytepluses.com/api/v3', // BytePlus (International)
-]
-
-const candidateBases = () => {
-  const list = []
-  const configured = clean(process.env.SEEDANCE_BASE_URL).replace(/\/+$/, '')
-  if (configured) list.push(configured)
-  for (const b of KNOWN_BASES) if (!list.includes(b)) list.push(b)
-  return list
-}
-
-// Once a region authenticates, reuse it for the rest of the process
-let resolvedBase = null
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${KEY}`,
 })
 
+// A URL that points back at OpenRouter needs the bearer; a provider CDN URL must NOT get
+// it. Exported so callers can apply the right headers — and so they can tell whether a URL
+// is fetchable by a third party at all (Bunny's ingest cannot send our token).
+export const isOpenRouterUrl = (url) => String(url || '').startsWith('https://openrouter.ai')
+
+export const videoFetchHeaders = (url) =>
+  isOpenRouterUrl(url) ? { Authorization: `Bearer ${KEY}` } : {}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Use the storyboard's per-shot duration, clamped to Seedance's supported range. The
-// reference/image-to-video model rejects clips shorter than 5s, so the floor is 5.
-const clampDuration = (seconds) => Math.max(5, Math.min(12, Math.round(Number(seconds) || 5)))
-
-// Seedance takes a single text prompt with command-style parameters appended
-const buildText = (req) => {
-  const dur = clampDuration(req.duration_seconds)
-  const ratio = req.aspect_ratio || '16:9'
-  const res = req.resolution || '480p' // Quick Create defaults to 480p
-  return `${req.prompt} --resolution ${res} --ratio ${ratio} --duration ${dur} --watermark false`
+// Seedance 2.0 accepts 4–15s. The storyboard's per-shot duration is clamped into range.
+const SUPPORTED_DURATIONS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+const clampDuration = (seconds) => {
+  const n = Math.round(Number(seconds) || 5)
+  const clamped = Math.max(SUPPORTED_DURATIONS[0], Math.min(SUPPORTED_DURATIONS.at(-1), n))
+  // Say so. A silent clamp is why a 16s shot quietly became 15s and the episode landed
+  // under the length the creator paid for, with no error recorded anywhere.
+  if (clamped !== n) {
+    console.warn(`shot duration ${n}s is outside the renderer's ${SUPPORTED_DURATIONS[0]}-${SUPPORTED_DURATIONS.at(-1)}s range; rendering ${clamped}s instead`)
+  }
+  return clamped
 }
 
-// Build the ARK `content` array.
-// - firstFrameUrl → image-to-video: the clip starts from that frame (role: first_frame),
-//   giving shot-to-shot continuity within a scene.
-// - referenceImages → canonical character reference images (role: reference_image) so the
-//   character's identity stays consistent, especially on the opening shot of a scene.
-// With neither, it's plain text-to-video.
-const buildContent = (req, { firstFrameUrl, referenceImages } = {}) => {
-  const content = [{ type: 'text', text: buildText(req) }]
-  if (firstFrameUrl) {
-    content.push({ type: 'image_url', image_url: { url: firstFrameUrl }, role: 'first_frame' })
+// OpenRouter takes structured fields, not the ModelArk "--resolution 480p" prompt suffix.
+const buildBody = async (req, { firstFrameUrl, referenceImages, model: modelOverride } = {}) => {
+  // The tier the user paid for wins; the admin setting is only the fallback.
+  const model = modelOverride || (await getSeedanceModel())
+  const body = {
+    model,
+    prompt: req.prompt,
+    duration: clampDuration(req.duration_seconds),
+    resolution: req.resolution || '480p', // Quick Create defaults to 480p
+    aspect_ratio: req.aspect_ratio || '16:9',
   }
-  for (const url of (referenceImages || []).slice(0, 4)) {
-    if (url) content.push({ type: 'image_url', image_url: { url }, role: 'reference_image' })
-  }
-  return content
+  // Frame chaining: start this clip from the previous shot's last frame, so a scene is
+  // continuous. Seedance 2.0 advertises supported_frame_images: [first_frame, last_frame].
+  if (firstFrameUrl) body.first_frame_image = firstFrameUrl
+  // Canonical character stills, to hold identity across shots.
+  const refs = (referenceImages || []).filter(Boolean).slice(0, 4)
+  if (refs.length) body.reference_images = refs
+  return body
 }
 
-// Create a video-generation task; returns { taskId, base }. Auto-detects the region
-// by retrying known bases when a base rejects the key with 401/403. firstFrameUrl seeds
-// the shot from a start image (frame chaining); referenceImages anchor character identity.
-export const createVideoTask = async (req, { firstFrameUrl, referenceImages } = {}) => {
-  if (!KEY) throw new Error('SEEDANCE_API_KEY is not configured')
-  const MODEL = await getSeedanceModel()
-  const bases = resolvedBase ? [resolvedBase] : candidateBases()
-  let lastAuthError = ''
+// Submit a job. Returns { taskId, base } where `base` carries the polling URL — the shape
+// videoJob.js already persists per shot.
+export const createVideoTask = async (req, { firstFrameUrl, referenceImages, model } = {}) => {
+  if (!KEY) throw new Error('OPENROUTER_API_KEY is not configured')
 
-  for (const base of bases) {
-    const res = await fetch(`${base}/contents/generations/tasks`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        model: MODEL,
-        content: buildContent(req, { firstFrameUrl, referenceImages }),
-      }),
-    })
-
-    if (res.status === 401 || res.status === 403) {
-      lastAuthError = (await res.text()).slice(0, 300)
-      continue // key not valid on this region — try the next
-    }
-    if (!res.ok) {
-      throw new Error(`Seedance create error (${res.status}): ${(await res.text()).slice(0, 300)}`)
-    }
-
-    const data = await res.json()
-    const id = data.id || data.task_id || data.data?.id
-    if (!id) throw new Error('Seedance did not return a task id')
-    resolvedBase = base
-    return { taskId: id, base }
-  }
-
-  throw new Error(
-    `Seedance auth failed on all regions [${bases.join(', ')}] — check SEEDANCE_API_KEY / SEEDANCE_BASE_URL. Key: [${keyFingerprint()}], model: ${MODEL}. ${lastAuthError}`,
-  )
-}
-
-// Fetch a task's current state (on the base the task was created on)
-export const getVideoTask = async (taskId, base) => {
-  const b = base || resolvedBase || candidateBases()[0]
-  const res = await fetch(`${b}/contents/generations/tasks/${taskId}`, {
+  const body = await buildBody(req, { firstFrameUrl, referenceImages, model })
+  const res = await fetch(`${BASE}/videos`, {
+    method: 'POST',
     headers: authHeaders(),
+    body: JSON.stringify(body),
   })
+
   if (!res.ok) {
-    throw new Error(`Seedance query error (${res.status}): ${(await res.text()).slice(0, 300)}`)
+    const detail = (await res.text()).slice(0, 400)
+    // A 400 lists the supported values for whatever field was rejected — keep it visible.
+    throw new Error(
+      `OpenRouter video create failed (${res.status}) for model ${body.model}: ${detail}`,
+    )
+  }
+
+  const job = await res.json()
+  if (!job.id) throw new Error('OpenRouter did not return a video job id')
+  return { taskId: job.id, base: job.polling_url || `${BASE}/videos/${job.id}` }
+}
+
+// Current state of a job. `base` is the polling URL captured at submit time.
+export const getVideoTask = async (taskId, base) => {
+  const url = base
+    ? new URL(base, 'https://openrouter.ai').toString()
+    : `${BASE}/videos/${taskId}`
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${KEY}` } })
+  if (!res.ok) {
+    throw new Error(`OpenRouter video poll failed (${res.status}): ${(await res.text()).slice(0, 300)}`)
   }
   return res.json()
 }
 
+// The finished asset. Prefer unsigned_urls — the /content endpoint needs a bearer, and the
+// downloader fetches plainly. videoFetchHeaders() covers the case where an unsigned URL
+// still points back at OpenRouter.
 export const extractVideoUrl = (task) =>
-  task.content?.video_url ||
-  task.content?.video_urls?.[0] ||
+  task.unsigned_urls?.[0] ||
+  task.output?.[0]?.url ||
   task.video_url ||
-  task.data?.video_url ||
-  ''
+  (task.id && task.status === 'completed' ? `${BASE}/videos/${task.id}/content?index=0` : '')
 
-// Use the API's own progress if it reports one (normalized to 0–100), else undefined
+// The API's own progress if it reports one (normalized to 0–100), else undefined.
 export const apiProgress = (task) => {
-  const cand = [task.progress, task.percent, task.content?.progress, task.data?.progress].find(
-    (x) => typeof x === 'number',
-  )
+  const cand = [task.progress, task.percent].find((x) => typeof x === 'number')
   if (typeof cand !== 'number') return undefined
   return Math.max(0, Math.min(100, cand <= 1 ? Math.round(cand * 100) : Math.round(cand)))
 }
 
-// Estimate progress from status + elapsed time when the API doesn't report a percent
+// Estimate progress from status + elapsed time when the API doesn't report a percent.
 const EXPECTED_MS = 150000 // ~2.5 min for a shot to render
 const estimateProgress = (status, elapsedMs) => {
   if (status === 'queued' || status === 'pending' || status === 'submitted') return 8
   return Math.min(95, 10 + Math.round((elapsedMs / EXPECTED_MS) * 85))
 }
 
-// Create a task and poll until it produces a video URL (or errors/times out). onProgress
-// (if given) is called each poll with the task's progress 0–100.
+// OpenRouter's terminal states. 'completed' is the only success.
+const TERMINAL_FAILURES = ['failed', 'cancelled', 'canceled', 'expired']
+
+// Submit and poll until the job produces a video URL (or fails/times out). onProgress (if
+// given) is called each poll with 0–100.
 export const generateVideo = async (
   req,
-  { timeoutMs = 8 * 60 * 1000, intervalMs = 6000, onProgress, firstFrameUrl, referenceImages } = {},
+  { timeoutMs = 8 * 60 * 1000, intervalMs = 6000, onProgress, firstFrameUrl, referenceImages, model } = {},
 ) => {
-  const { taskId, base } = await createVideoTask(req, { firstFrameUrl, referenceImages })
+  const { taskId, base } = await createVideoTask(req, { firstFrameUrl, referenceImages, model })
   const startedAt = Date.now()
   onProgress?.(6)
 
@@ -182,18 +159,17 @@ export const generateVideo = async (
     const task = await getVideoTask(taskId, base)
     const status = String(task.status || '').toLowerCase()
 
-    if (status === 'succeeded' || status === 'success' || status === 'completed') {
+    if (status === 'completed' || status === 'succeeded' || status === 'success') {
       const url = extractVideoUrl(task)
-      if (!url) throw new Error('Seedance succeeded but returned no video URL')
+      if (!url) throw new Error('OpenRouter reported completed but returned no video URL')
       onProgress?.(100)
       return { url, taskId }
     }
-    if (status === 'failed' || status === 'error' || status === 'cancelled' || status === 'canceled') {
-      const msg = task.error?.message || JSON.stringify(task.error || {}).slice(0, 200)
-      throw new Error(`Seedance task ${status}: ${msg}`)
+    if (TERMINAL_FAILURES.includes(status)) {
+      const msg = task.error?.message || task.error || JSON.stringify(task).slice(0, 200)
+      throw new Error(`OpenRouter video job ${status}: ${msg}`)
     }
-    // queued / running / pending → report progress and keep polling
     onProgress?.(apiProgress(task) ?? estimateProgress(status, Date.now() - startedAt))
   }
-  throw new Error('Seedance task timed out')
+  throw new Error('OpenRouter video job timed out')
 }

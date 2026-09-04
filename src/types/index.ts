@@ -207,14 +207,11 @@ export interface WatchHistoryItem {
   tag?: string
 }
 
-export interface FavoriteItem {
-  _id: string
-  seriesId: string
-  seriesTitle: string
-  thumbnail: string
-  addedAt: Date
-  tag?: string
-}
+// One entry of user.favorites — the shape addToFavorites writes and FavoriteCard renders.
+// FavoriteItem was a second, drifted description of the same thing (_id/seriesTitle/
+// thumbnail/tag), which matched nothing stored or read; it went unnoticed because the
+// favorites endpoint always returned []. It is now an alias so the two can't diverge again.
+export type FavoriteItem = FavoriteUserItem
 
 export interface FeaturedSeries {
   _id: string

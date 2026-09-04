@@ -10,6 +10,7 @@
 // Background functions respond 202 immediately; the client polls the job document.
 
 import { get, save, update } from './utils/db.js'
+import { releaseEpisodeHold } from './utils/episodeBilling.js'
 import jwt from 'jsonwebtoken'
 import { runV1Call, V1_CALL_KEYS } from './utils/pipelineV1.js'
 import { callOpenAIChatJson } from './utils/pipeline.js'
@@ -47,7 +48,7 @@ const runProposal = async (jobId, userId, body) => {
     error: '',
     proposal: null,
     idea: body.idea || '',
-    episodeLength: 30,
+    // Length is chosen at purchase time, not here — leave it unset so the charge step owns it.
     updatedAt: new Date(),
   }
   if (existing && existing.length > 0) await updateJob(jobId, fields)
@@ -142,6 +143,9 @@ const runProduce = async (jobId, userId, body) => {
   const reusedBible = docs?.[0]?.callsV1?.characterDirector
   const episodeBrief = (proposal?.seasonRoadmap || [])[episode - 1] || {}
 
+  // Episode length is chosen at purchase time and stored on the job.
+  const episodeSeconds = Number(docs?.[0]?.episodeLength) || 30
+
   const nativeAudio = await modelHasNativeAudio()
   const progress = {
     calls: [
@@ -174,7 +178,7 @@ const runProduce = async (jobId, userId, body) => {
     title: seriesTitle,
     ideaTitle: seriesTitle,
     cover: '',
-    episodeLength: 30,
+    episodeLength: episodeSeconds,
     percent: percentOf(progress),
     progress,
     proposal,
@@ -207,6 +211,9 @@ const runProduce = async (jobId, userId, body) => {
     characterBible: callsV1.characterDirector,
     targetEpisode: episode,
     episodeBrief,
+    // The creator's chosen length. The prompt plans shot count and durations from this —
+    // it no longer assumes 30 seconds.
+    targetDurationSeconds: episodeSeconds,
   })
   await setCall('episodeDirector', 'done')
   await updateJob(jobId, { callsV1 })
@@ -276,6 +283,7 @@ export const handler = async (event) => {
       } catch (error) {
         console.error('V1 video hand-off failed:', error.message)
         await updateJob(jobId, { status: 'error', error: String(error.message || error) })
+        await releaseEpisodeHold(jobId, 'Video hand-off failed').catch(() => {})
       }
     }
     return { statusCode: 200 }
@@ -294,6 +302,9 @@ export const handler = async (event) => {
           error: String(error.message || error),
           ...(progress ? { progress } : {}),
         })
+        // The episode will never exist, so give the hold back rather than leave the creator
+        // paying for a dead job.
+        await releaseEpisodeHold(jobId, String(error.message || error)).catch(() => {})
       } catch (e) {
         console.error('Failed to mark v1 job errored:', e.message)
       }

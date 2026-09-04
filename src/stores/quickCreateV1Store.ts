@@ -4,6 +4,7 @@
 // Shared state lives outside the component tree (Rule #7); components subscribe directly.
 
 import { createStore, reconcile } from 'solid-js/store'
+import { accountStoreActions } from './accountStore'
 import {
   startV1Job,
   startTranscribeBackfill,
@@ -13,6 +14,7 @@ import {
   generateStoryPrompt,
   type V1Proposal,
   type ProductionJob,
+  retryComposition,
 } from '../services/dataService'
 
 export type { V1Proposal }
@@ -40,6 +42,23 @@ export const STORY_TEMPLATES = [
 
 // The seven studio production stages (Page 3). `serverKeys` maps a display stage to the
 // job's progress.calls keys; the Episode Renderer covers both video + composition.
+// Prefer the measured length over the purchased target — after settlement they can differ,
+// and the measured one is what the viewer will actually watch.
+const episodeSecondsOf = (job: ProductionJob): number =>
+  Math.round(job.settlement?.actualSeconds || job.episodeLength || 30)
+
+// The tier the episode was paid for decides what was rendered; older jobs predate tiers.
+const episodeResolutionOf = (job: ProductionJob): string => job.videoTier?.resolution || '480p'
+
+export interface EpisodeSettlement {
+  heldCredits: number
+  finalCredits: number
+  refundedCredits: number
+  actualSeconds: number
+  estimatedSeconds?: number | null
+  capped?: boolean
+}
+
 export interface StudioStage {
   key: string
   serverKeys: string[]
@@ -86,6 +105,9 @@ export interface V1State {
   jobId: string | null
   // Proposal (Page 2)
   proposalLoading: boolean
+  // 0–100 for the Review-Proposal wait. Call 1 reports no progress of its own, so this
+  // is an elapsed-time estimate — see startProposalProgress.
+  proposalPercent: number
   proposalError: string
   proposal: V1Proposal | null
   selectedEpisode: number // which season-roadmap episode is shown in Episode Details
@@ -96,6 +118,9 @@ export interface V1State {
   // Studio (Page 3) + Ready (Page 4)
   producing: boolean
   produceError: string
+  // A failed composition whose shots survive — offer a retry rather than a dead spinner.
+  canRetryCompose: boolean
+  retryingCompose: boolean
   progress: { key: string; status: string }[]
   percent: number
   stagePct: Record<string, number> // per-stage display percent (0-100)
@@ -111,6 +136,14 @@ export interface V1State {
   previewPinned: boolean // user browsed manually → stop auto-advancing the preview
   episodeVideo: string
   episodeBunnyVideoId: string // s1 storage: the episode's Bunny video guid
+  // Set once the hold taken at purchase has been settled against the finished episode's
+  // real duration. Shown as the "Episode charged" dialog, then dismissed.
+  settlement: EpisodeSettlement | null
+  // The episode's real length in seconds (measured at settlement), falling back to the
+  // length the creator paid for. Shown on the publish summary.
+  episodeSeconds: number
+  // The resolution actually rendered, from the tier the creator paid for.
+  episodeResolution: string
   episodeNumber: number // which episode is being produced / shown (1-based)
   episodeKeyMoments: string[] // key beats of the generated episode (from its shot list)
   seriesEpisodes: SeriesEpisode[] // all productions of this series (Generated Episodes list)
@@ -139,6 +172,7 @@ const getInitialState = (): V1State => ({
   surprising: false,
   jobId: null,
   proposalLoading: false,
+  proposalPercent: 0,
   proposalError: '',
   proposal: null,
   selectedEpisode: 1,
@@ -147,6 +181,8 @@ const getInitialState = (): V1State => ({
   aiEditInstruction: '',
   producing: false,
   produceError: '',
+  canRetryCompose: false,
+  retryingCompose: false,
   progress: [],
   percent: 0,
   stagePct: {},
@@ -162,6 +198,9 @@ const getInitialState = (): V1State => ({
   previewPinned: false,
   episodeVideo: '',
   episodeBunnyVideoId: '',
+  settlement: null,
+  episodeSeconds: 30,
+  episodeResolution: '480p',
   episodeNumber: 1,
   episodeKeyMoments: [],
   seriesEpisodes: [],
@@ -182,6 +221,33 @@ const newJobId = (): string => {
   return `job-${Date.now()}-${Math.floor(Math.random() * 1e9)}`
 }
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+// Call 1 (Executive Producer) is a single model call with no progress reporting, so the
+// Review-Proposal wait is estimated from elapsed time. The curve eases toward 95 and stops
+// there: it never stalls at a hard wall, and never claims to be finished before the
+// proposal actually lands.
+const PROPOSAL_EXPECTED_MS = 35000
+let proposalTimer: ReturnType<typeof setInterval> | null = null
+
+const stopProposalProgress = (final?: number) => {
+  if (proposalTimer) {
+    clearInterval(proposalTimer)
+    proposalTimer = null
+  }
+  if (typeof final === 'number') setState({ proposalPercent: final })
+}
+
+const startProposalProgress = () => {
+  stopProposalProgress()
+  const startedAt = Date.now()
+  setState({ proposalPercent: 3 })
+  proposalTimer = setInterval(() => {
+    const elapsed = Date.now() - startedAt
+    setState({
+      proposalPercent: Math.min(95, Math.round(3 + 92 * (1 - Math.exp(-elapsed / PROPOSAL_EXPECTED_MS)))),
+    })
+  }, 400)
+}
+
 const POLL_INTERVAL_MS = 2500
 const POLL_TIMEOUT_MS = 20 * 60 * 1000
 
@@ -190,6 +256,25 @@ const isSignedIn = (): boolean => !!localStorage.getItem('gcashmall_token')
 // ── Actions ──
 
 export const quickCreateV1Actions = {
+  dismissSettlement: () => setState({ settlement: null }),
+
+  // Re-stitch an episode whose shots rendered but whose composition failed. Nothing is
+  // regenerated and nothing is re-charged — the hold from the original purchase still
+  // stands, and settles normally once the episode lands.
+  retryCompose: async () => {
+    if (!state.jobId || state.retryingCompose) return
+    setState({ retryingCompose: true })
+    const res = await retryComposition(state.jobId)
+    setState({ retryingCompose: false })
+    if (!res.success) {
+      setState({ produceError: res.error || 'Retry failed', canRetryCompose: false })
+      return
+    }
+    setState({ step: 3, producing: true, produceError: '', canRetryCompose: false })
+    startStageTicker()
+    pollProduce(state.jobId)
+  },
+
   reset: () => setState(reconcile(getInitialState())),
   goToStep: (step: number) => setState({ step }),
   setIdea: (idea: string) => setState({ idea }),
@@ -224,11 +309,14 @@ export const quickCreateV1Actions = {
       step: 2,
       proposal: null,
       proposalLoading: true,
+      proposalPercent: 3,
       proposalError: '',
     })
+    startProposalProgress()
     try {
       await startV1Job(jobId, { mode: 'proposal', idea: state.idea.trim() })
     } catch (e) {
+      stopProposalProgress(0)
       setState({ proposalLoading: false, proposalError: (e as Error).message })
       return
     }
@@ -240,9 +328,11 @@ export const quickCreateV1Actions = {
     const jobId = state.jobId
     if (!jobId || state.proposalLoading) return
     setState({ proposalLoading: true, proposalError: '' })
+    startProposalProgress()
     try {
       await startV1Job(jobId, { mode: 'proposal', idea: state.idea.trim() })
     } catch (e) {
+      stopProposalProgress(0)
       setState({ proposalLoading: false, proposalError: (e as Error).message })
       return
     }
@@ -354,6 +444,8 @@ export const quickCreateV1Actions = {
       proposal: job.proposal || null,
       episodeVideo: job.episodeVideo || '',
       episodeBunnyVideoId: job.episodeBunnyVideoId || '',
+      episodeSeconds: episodeSecondsOf(job),
+      episodeResolution: episodeResolutionOf(job),
       episodeNumber: (job as { episode?: number }).episode || 1,
       episodeKeyMoments: job.keyMoments || [],
       seriesId: job.seriesId || '',
@@ -368,7 +460,21 @@ export const quickCreateV1Actions = {
           : 0,
       wantPublish: publish,
     })
-    if (job.episodeVideo || job.status === 'done') {
+    // A job can be marked done and still have no episode: composition failed after the
+    // shots rendered. Treating that as success is what left the Ready page congratulating
+    // the creator over a spinner that never resolves.
+    const composeFailed = !job.episodeVideo && (job.status === 'done' || job.status === 'error') &&
+      job.progress?.calls?.some((c) => c.key === 'composition' && c.status === 'error')
+    if (composeFailed) {
+      setState({
+        step: 4,
+        producing: false,
+        resuming: false,
+        produceError: job.audioError || job.error || 'Assembling the episode failed',
+        canRetryCompose: job.render?.recoverable !== false,
+      })
+      quickCreateV1Actions.loadSeriesEpisodes()
+    } else if (job.episodeVideo || job.status === 'done') {
       // s1 episodes produced before the Transcribe step have no subtitles yet — kick off
       // the backfill and show the pipeline page with the Transcribe task's live progress.
       const tr = job.progress?.calls?.find((c) => c.key === 'transcribe')
@@ -499,17 +605,21 @@ const pollProposal = async (jobId: string): Promise<void> => {
     if (state.jobId !== jobId) return
 
     if (job.proposal) {
+      stopProposalProgress(100)
       setState({ proposal: job.proposal, proposalLoading: false })
     }
     if (job.status === 'done' && job.proposal) {
+      stopProposalProgress(100)
       setState({ proposalLoading: false })
       return
     }
     if (job.status === 'error') {
+      stopProposalProgress(0)
       setState({ proposalLoading: false, proposalError: job.error || 'Failed to create proposal' })
       return
     }
     if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+      stopProposalProgress(0)
       setState({ proposalLoading: false, proposalError: 'Timed out creating proposal' })
       return
     }
@@ -584,6 +694,13 @@ const pollProduce = async (jobId: string): Promise<void> => {
 
     if (job.episodeVideo) {
       stopStageTicker()
+      // The hold taken at purchase has been settled against the finished episode's real
+      // length. Credit the refund locally on the first sighting only — a repeated poll tick
+      // must not add it twice.
+      const newSettlement = job.settlement && !state.settlement ? job.settlement : null
+      if (newSettlement && newSettlement.refundedCredits > 0) {
+        accountStoreActions.addBalance(newSettlement.refundedCredits)
+      }
       setState({
         episodeVideo: job.episodeVideo,
         episodeBunnyVideoId: job.episodeBunnyVideoId || '',
@@ -591,8 +708,21 @@ const pollProduce = async (jobId: string): Promise<void> => {
         producing: false,
         step: 4,
         totalTimeSec: state.createdAt ? Math.round((nowMs() - state.createdAt) / 1000) : 0,
+        settlement: newSettlement || state.settlement,
+        episodeSeconds: episodeSecondsOf(job),
+        episodeResolution: episodeResolutionOf(job),
       })
       quickCreateV1Actions.loadSeriesEpisodes()
+      return
+    }
+    if (job.render?.phase === 'error') {
+      stopStageTicker()
+      setState({
+        producing: false,
+        step: 4,
+        produceError: job.audioError || 'Assembling the episode failed',
+        canRetryCompose: job.render?.recoverable !== false,
+      })
       return
     }
     if (job.status === 'error') {

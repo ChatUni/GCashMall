@@ -2,14 +2,14 @@
 // Following Rule #7: React components should be pure - separate business logic from components
 
 import { isCordova, MOBILE_OAUTH_REDIRECT, getWebOrigin, openStripeInAppBrowser, isIOS, isAndroid } from '../utils/cordova'
-import { apiGet, apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser } from '../utils/api'
+import { apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser, setStoredUser } from '../utils/api'
 import { purchaseIAP, isIAPAvailable, finishTransaction, setIAPReconcileHandler } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { playerPageStoreActions } from '../stores/playerStore'
 import { validateEmail, validatePhone, validateBirthday, validatePassword, validateConfirmPassword } from '../utils/validation'
 import { fetchMyProductions } from './dataService'
-import type { ModerationSeries, User, Series, FavoriteItem, FavoriteUserItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
+import type { ModerationSeries, User, Series, FavoriteItem, OAuthType, ResetPasswordResponse, PurchaseItem, RevenueData } from '../types'
 
 // Initialize account data
 export const initializeAccountData = async (
@@ -135,8 +135,11 @@ export const checkLoginStatus = async (): Promise<boolean> => {
   // Token exists - try to get stored user first
   const storedUser = getStoredUser()
   if (storedUser) {
+    // Paint immediately from the cache, then reconcile with the server in the background so
+    // a stale balance can't survive a page load.
     accountStoreActions.initializeUserData(storedUser)
     accountStoreActions.setLoading(false)
+    refreshUser()
     return true
   }
 
@@ -161,10 +164,34 @@ export const checkLoginStatus = async (): Promise<boolean> => {
 
 // Fetch user data (favorites only, watch history comes from user.watchList)
 export const fetchAccountUserData = async () => {
-  const favoritesResponse = await apiGet<FavoriteItem[]>('favorites')
+  const favoritesResponse = await apiGetWithAuth<FavoriteItem[]>('favorites')
 
   if (favoritesResponse.success && favoritesResponse.data) {
     accountStoreActions.setFavorites(favoritesResponse.data)
+  }
+}
+
+// Re-read the signed-in user from the server and replace the cached copy.
+//
+// Session restore paints from localStorage so the UI is instant, but that snapshot is
+// written at login and never updated afterwards — balance included. Anything that changes
+// the balance elsewhere (a top-up on another device, an episode charge, a refund, the
+// credits redenomination) leaves the cache behind, which is how a funded account ends up
+// showing 0 credits and being told to top up.
+//
+// Cheap and safe to call whenever an accurate balance matters; failures leave the cached
+// values in place rather than blanking the UI.
+export const refreshUser = async (): Promise<void> => {
+  if (!isLoggedIn()) return
+  try {
+    const response = await apiGetWithAuth<User>('user')
+    if (response.success && response.data) {
+      accountStoreActions.initializeUserData(response.data)
+      // Keep the cache in step, so the next cold start paints the right number too.
+      setStoredUser(response.data)
+    }
+  } catch {
+    // Offline or transient — keep showing what we have.
   }
 }
 
@@ -539,14 +566,7 @@ export const removeFromFavoritesNoConfirm = async (seriesId: string): Promise<{ 
       accountStoreActions.setUser(response.data)
       // Also update the favorites list in the store from the user data
       if (response.data.favorites) {
-        accountStoreActions.setFavorites(response.data.favorites.map((f: FavoriteUserItem) => ({
-          _id: f.seriesId,
-          seriesId: f.seriesId,
-          seriesTitle: f.seriesName,
-          thumbnail: f.seriesCover,
-          addedAt: f.addedAt,
-          tag: f.seriesTags && f.seriesTags.length > 0 ? f.seriesTags[0] : undefined,
-        })))
+        accountStoreActions.setFavorites(response.data.favorites)
       }
       return { success: true }
     }

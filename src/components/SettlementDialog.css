@@ -1,0 +1,60 @@
+/* "Episode charged" dialog (Quick Create). Reuses the qcv1 modal shell. */
+
+.qcv1-modal.settle-modal {
+  max-width: 400px;
+}
+.settle-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.settle-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  background: var(--bg2);
+}
+.settle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.settle-row.strong {
+  color: var(--text);
+}
+.settle-row.refund {
+  color: #22c55e;
+  border-top: 1px solid var(--border2);
+  margin-top: 4px;
+  padding-top: 9px;
+}
+.settle-credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.settle-credits-icon {
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  object-fit: contain;
+}
+.settle-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.settle-note:empty {
+  display: none;
+}

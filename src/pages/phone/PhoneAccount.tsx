@@ -538,7 +538,7 @@ const PhoneWalletSection = () => {
                 >
                   <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="phone-amount-logo" />
                   <span>{formatCredits(credits())}</span>
-                  <span class="phone-amount-usd">${usd()}</span>
+                  <span class="phone-amount-usd">${usd().toFixed(2)}</span>
                 </button>
               )
             }}

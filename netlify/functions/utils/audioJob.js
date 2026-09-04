@@ -10,7 +10,9 @@ import path from 'node:path'
 import { get, update } from './db.js'
 import { v2 as cloudinary } from 'cloudinary'
 import { synthesizeSpeech } from './tts.js'
-import { muxAudioOntoVideo, concatVideos } from './ffmpeg.js'
+import { muxAudioOntoVideo, concatVideos, probeDuration } from './ffmpeg.js'
+import { settleEpisodeCharge, releaseEpisodeHold } from './episodeBilling.js'
+import { downloadTo } from './download.js'
 import { callOpenAIChatJson } from './pipeline.js'
 import { modelHasNativeAudio } from './seedance.js'
 import {
@@ -67,12 +69,6 @@ const runTranscribe = async ({ jobId, epPath, videoId, progress, ensureStep, ref
     transcribeProgress: { percent: 100, task: 'uploadSubs' },
     percent: percentOf(progress),
   })
-}
-
-const downloadTo = async (url, dest) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`download failed (${res.status})`)
-  fs.writeFileSync(dest, Buffer.from(await res.arrayBuffer()))
 }
 
 const uploadVideo = async (filePath) => {
@@ -279,11 +275,24 @@ export const runAudioComposition = async (jobId, userId) => {
       const epPath = path.join(tmp, 'episode.mp4')
       try {
         await concatVideos({ paths: composedPaths, listPath, outPath: epPath })
+        // Measured now (the file is here), but the hold is not settled until the episode is
+        // safely STORED — settling earlier would charge for an episode a failed upload
+        // meant nobody ever received.
+        const actualSeconds = await probeDuration({ videoPath: epPath })
+
         if (isS1()) {
           episodeBunnyVideoId = await uploadEpisodeToBunny(episodeTitle, epPath)
           episodeVideo = bunnyEmbedUrl(episodeBunnyVideoId)
           // Composition (stitch + upload) is complete; Bunny now encodes in the background.
           progress.calls[cIdx].status = 'done'
+          // The episode is stored and its real length is known: settle the hold down to
+          // what was actually produced and refund the rest. Written BEFORE the reveal
+          // below, so the client sees episodeVideo and settlement together and the
+          // "Episode charged" dialog can't be missed. Best-effort — a billing hiccup must
+          // never cost the creator the episode they already paid for.
+          await settleEpisodeCharge(jobId, actualSeconds).catch((e) =>
+            console.error('episode charge settlement failed:', e.message),
+          )
           // Make sure the episode is actually playable, then REVEAL it immediately: persist
           // episodeVideo + status:'done' + render.phase:'done' now so the studio advances to
           // the Ready page. Subtitle transcription is the slow tail — running it *before* the
@@ -307,6 +316,9 @@ export const runAudioComposition = async (jobId, userId) => {
           )
         } else {
           episodeVideo = await uploadVideo(epPath)
+          await settleEpisodeCharge(jobId, actualSeconds).catch((e) =>
+            console.error('episode charge settlement failed:', e.message),
+          )
         }
       } catch (error) {
         compositionError = error.message
@@ -335,6 +347,22 @@ export const runAudioComposition = async (jobId, userId) => {
       status: 'done',
       percent: 100,
     })
+
+    // Composition ended with nothing playable.
+    //
+    // Do NOT refund on the first failure. The expensive half — rendering every shot — has
+    // already succeeded, and stitching them is cheap and retryable, so a job whose shots
+    // are still on the doc is recoverable: keep the hold, mark it retryable, and let the
+    // creator (or a later attempt) re-compose into the episode they paid for. The hold is
+    // only released once recovery is genuinely out of reach, because a released job has to
+    // be re-purchased and that would throw away four good shots.
+    if (!episodeVideo) {
+      await handleCompositionFailure(
+        jobId,
+        doc,
+        firstError || compositionError || 'Composition produced no episode',
+      ).catch((e) => console.error('composition failure handling failed:', e.message))
+    }
   } finally {
     try {
       fs.rmSync(tmp, { recursive: true, force: true })
@@ -393,4 +421,35 @@ export const runTranscribeBackfill = async (jobId, userId) => {
   console.log(`[transcribe ${jobId}] source=${epPath} referer=${referer}`)
   await runTranscribe({ jobId, epPath, videoId, progress, ensureStep, referer })
   return { started: true }
+}
+
+// How many times composition may fail before we stop trying and give the money back.
+const MAX_COMPOSE_ATTEMPTS = 3
+
+// A job can be re-composed only if the rendered shots are still on the document — that is
+// the input the stitch needs. Without them there is nothing to retry and the hold must go
+// back.
+const isRecomposable = (doc) => (doc.videos || []).some((v) => v.url)
+
+// Decide between "retry later" and "refund" after a failed composition.
+const handleCompositionFailure = async (jobId, doc, reason) => {
+  const attempts = Number(doc.composeAttempts || 0) + 1
+  const recoverable = isRecomposable(doc) && attempts < MAX_COMPOSE_ATTEMPTS
+
+  await updateJob(jobId, {
+    composeAttempts: attempts,
+    // phase 'error' (rather than a missing phase) is what lets the client tell a failed
+    // composition apart from a finished one and offer a retry.
+    'render.phase': 'error',
+    'render.recoverable': recoverable,
+    audioError: reason,
+  })
+
+  if (recoverable) {
+    console.warn(`composition failed for ${jobId} (attempt ${attempts}/${MAX_COMPOSE_ATTEMPTS}); hold kept, retry available`)
+    return
+  }
+
+  console.warn(`composition unrecoverable for ${jobId} after ${attempts} attempt(s); releasing hold`)
+  await releaseEpisodeHold(jobId, reason)
 }

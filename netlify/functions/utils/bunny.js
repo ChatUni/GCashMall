@@ -74,8 +74,10 @@ export const createBunnyVideo = async (title) => {
   return (await res.json()).guid
 }
 
-// Tell Bunny to ingest a video from a public URL (used for shots, whose mp4 is a public
-// Seedance URL). Async on Bunny's side.
+// Tell Bunny to ingest a video from a PUBLIC URL. Bunny's servers do the download, so this
+// only works for a link a third party can read — it cannot carry our credentials. For a URL
+// that needs auth (OpenRouter's), download the bytes and use uploadFileToBunny instead; see
+// ingestShotToBunny in videoJob.js. Async on Bunny's side.
 export const fetchBunnyVideoFromUrl = async (videoId, url) => {
   const res = await fetch(
     `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}/fetch`,

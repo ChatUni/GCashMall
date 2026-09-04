@@ -21,7 +21,7 @@ const getInitialState = (): SystemSettingsState => ({
   welcomeCredit: 10000,
   chatModel: 'gpt-5-mini',
   imageModel: 'gpt-image-1-mini',
-  seedanceModel: 'doubao-seedance-2-0-mini-260615',
+  seedanceModel: 'bytedance/seedance-2.0-mini',
   loaded: false,
   saving: false,
 })
@@ -39,10 +39,10 @@ export const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 // Model options (must match the server's modelConfig option lists)
 export const CHAT_MODEL_OPTIONS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini', 'gpt-4o']
 export const IMAGE_MODEL_OPTIONS = ['gpt-image-1-mini', 'gpt-image-1']
+// OpenRouter video-generation slugs — must match the server's SEEDANCE_MODEL_OPTIONS.
 export const SEEDANCE_MODEL_OPTIONS = [
-  'doubao-seedance-2-0-mini-260615',
-  'doubao-seedance-2-0-260128',
-  'doubao-seedance-1-0-pro-250528',
+  'bytedance/seedance-2.0-mini',
+  'bytedance/seedance-2.0-fast',
 ]
 
 // How many episodes are free at the start of every series

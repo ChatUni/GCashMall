@@ -7,6 +7,11 @@
 // payout a withdrawal produces.
 export const CREDITS_PER_USD = 100
 
+// The credits mark shown beside any credit figure. Lives here so every price in the app
+// points at one URL rather than each screen hardcoding its own copy.
+export const CREDITS_ICON =
+  'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png'
+
 export const toCredits = (usd: number): number => Math.round(usd * CREDITS_PER_USD)
 
 export const toUsd = (credits: number): number => Number((credits / CREDITS_PER_USD).toFixed(2))
@@ -19,10 +24,10 @@ export const formatCredits = (credits: number): string =>
 // Mirrors netlify/functions/utils/credits.js — the server is authoritative; this copy only
 // drives what the wallet shows before the charge.
 //
-//     $5 -> 500,  $10 -> 1200,  $20 -> 2500,  $50 -> 7000
+//     $5.99 -> 600,  $9.99 -> 1100,  $19.99 -> 2300,  $49.99 -> 6000
 //
 // Apple/Google take 30% of an in-app purchase, so a store top-up grants 30% fewer credits.
-export const TOPUP_TIERS: Record<number, number> = { 5: 500, 10: 1200, 20: 2500, 50: 7000 }
+export const TOPUP_TIERS: Record<number, number> = { 5.99: 600, 9.99: 1100, 19.99: 2300, 49.99: 6000 }
 export const STORE_CREDIT_RATE = 0.7
 
 export const creditsForTopUp = (usd: number, viaStore = false): number => {

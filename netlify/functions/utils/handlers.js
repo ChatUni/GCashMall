@@ -21,6 +21,7 @@ import { bunnyEmbedUrl } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
 import { toCredits, toUsd, creditsForTopUp } from './credits.js'
+import { findTier, tierCost, normalizeEpisodeSeconds, DEFAULT_TIER_ID } from './videoTiers.js'
 import {
   getChatModel,
   chatTuning,
@@ -726,46 +727,52 @@ const getEpisodes = async (params) => {
 }
 
 
-const getFavorites = async (params) => {
+// The signed-in user's own favorites.
+//
+// A favorite is stored on the user document (see addToFavorites), not in a collection of
+// its own — this handler used to read `get('favorites', {})`, an unfiltered read of a
+// collection nothing has ever written to, so it returned an empty list to everyone
+// regardless of who asked. Reading the caller's record is both the correct filter and the
+// only place the data actually lives.
+//
+// Deleted series are filtered out, the same treatment buildUserResponse gives them, so a
+// favorite pointing at a removed series doesn't surface as a broken card.
+const getFavorites = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+
   try {
-    const limit = params.limit ? parseInt(params.limit) : 20
-    const favorites = await get('favorites', {}, {}, { addedAt: -1 }, limit)
-    return {
-      success: true,
-      data: favorites
-    }
+    const users = await get('users', { _id: new ObjectId(String(userId)) }, {}, {}, 1)
+    if (!users || users.length === 0) return { success: false, error: 'User not found' }
+
+    const favorites = await filterDeletedSeriesItems(users[0].favorites || [])
+    const sorted = [...favorites].sort(
+      (a, b) => new Date(b.addedAt || 0) - new Date(a.addedAt || 0),
+    )
+    const limit = params?.limit ? parseInt(params.limit) : 0
+
+    return { success: true, data: limit > 0 ? sorted.slice(0, limit) : sorted }
   } catch (error) {
     throw new Error(`Failed to get favorites: ${error.message}`)
   }
 }
 
-const getUser = async (params) => {
+// The signed-in user's own record. This is the authoritative read the client reconciles its
+// cached copy against, so it must return the CALLER's account and nothing more.
+//
+// It previously ignored the auth header entirely and returned `get('users', {}, {}, {}, 1)`
+// — the first user in the collection, raw, password hash included — to any caller with or
+// without a token. buildUserResponse is the same projection login uses and never includes
+// the password.
+const getUser = async (params, authHeader) => {
   try {
-    // For now, return a mock user or null
-    // In production, this would validate session and return user data
-    const users = await get('users', {}, {}, {}, 1)
-    
-    if (users && users.length > 0) {
-      return {
-        success: true,
-        data: {
-          ...users[0],
-          isLoggedIn: true
-        }
-      }
-    }
-    
-    return {
-      success: true,
-      data: {
-        _id: null,
-        username: 'Guest',
-        email: '',
-        isLoggedIn: false
-      }
-    }
+    const userId = await validateAuth(authHeader)
+    const users = await get('users', { _id: new ObjectId(String(userId)) }, {}, {}, 1)
+    if (!users || users.length === 0) return { success: false, error: 'User not found' }
+
+    return { success: true, data: { ...(await buildUserResponse(users[0])), isLoggedIn: true } }
   } catch (error) {
-    throw new Error(`Failed to get user: ${error.message}`)
+    // An absent or expired token is "not signed in", not a server error.
+    return { success: false, error: error.message || 'Not authenticated' }
   }
 }
 
@@ -3263,7 +3270,7 @@ const validateTopUpBody = (body) => {
 // ── IAP Receipt Verification ──
 
 // Valid IAP product amounts (must match App Store Connect tiers)
-const VALID_IAP_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
+const VALID_IAP_AMOUNTS = [5.99, 9.99, 19.99, 49.99]
 
 // Apple/Google take a 30% store fee on in-app purchases. Products are priced at face value
 // (the user pays the amount shown), and we absorb the fee by crediting 30% LESS — e.g. a
@@ -3335,7 +3342,8 @@ const validateIAPAmount = (amount) => {
 }
 
 const validateIAPProductId = (productId, amount) => {
-  const expectedProductId = `io.ganime.app.topup_${amount}`
+  // Cents — the tiers are $x.99 and a product id cannot contain a dot.
+  const expectedProductId = `io.ganime.app.topup_${Math.round(amount * 100)}`
   if (productId !== expectedProductId) {
     throw new Error(`Product ID mismatch: expected ${expectedProductId}, got ${productId}`)
   }
@@ -3881,6 +3889,8 @@ const validateAddCommentBody = (body) => {
 }
 
 export {
+  chargeEpisode,
+  retryComposition,
   approveAll,
   getSeriesForEdit,
   getModerationQueue,
@@ -3957,8 +3967,6 @@ export {
   extractStory,
   generateStoryPrompt,
   suggestDescription,
-  getPipelinePrompts,
-  savePipelinePrompt,
   getProductionStatus,
   advanceProduction,
   getModerationStatus,
@@ -5175,47 +5183,8 @@ const PIPELINE_CALL_KEYS = [
 ]
 
 // Admin: read all pipeline prompt documents (ordered)
-const getPipelinePrompts = async (params, authHeader) => {
-  await requireAdmin(authHeader)
-  try {
-    const docs = await get('pipelinePrompts', {}, {}, { order: 1 })
-    return { success: true, data: docs }
-  } catch (error) {
-    throw new Error(`Failed to get pipeline prompts: ${error.message}`)
-  }
-}
 
 // Admin: create/update a single pipeline prompt's markdown
-const savePipelinePrompt = async (body, authHeader) => {
-  await requireAdmin(authHeader)
-  if (!body || !body.key) throw new Error('Prompt key is required')
-  if (typeof body.markdown !== 'string') throw new Error('Prompt markdown is required')
-
-  try {
-    const existing = await get('pipelinePrompts', { key: body.key }, {}, {}, 1)
-    if (existing && existing.length > 0) {
-      await update(
-        'pipelinePrompts',
-        { key: body.key },
-        { $set: { markdown: body.markdown, updatedAt: new Date() } },
-      )
-    } else {
-      const order = PIPELINE_CALL_KEYS.indexOf(body.key) + 1 || 99
-      await save('pipelinePrompts', {
-        key: body.key,
-        title: body.title || body.key,
-        order,
-        markdown: body.markdown,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    }
-    const docs = await get('pipelinePrompts', {}, {}, { order: 1 })
-    return { success: true, data: docs }
-  } catch (error) {
-    throw new Error(`Failed to save pipeline prompt: ${error.message}`)
-  }
-}
 
 // List the logged-in user's Quick Create productions (episode jobs) for My Series.
 // Excludes the large `calls` field — the list only needs title/cover/progress.
@@ -5295,6 +5264,132 @@ const getModerationStatus = async (params, authHeader) => {
 // once a (paid) episode-N production exists for this series/production group, we reuse it
 // and never re-charge — so a failed render can be retried for free. Returns the jobId of
 // the episode-N production to generate.
+// Charge for generating one episode at the chosen quality tier, and record the tier on the
+// production so the render uses the model/resolution that was paid for.
+//
+// Every episode is priced the same way — rate x 30s — including the first. Replaces the old
+// flat nextEpisodeCost, which only applied from episode 2 because episode 1 used to be free.
+//
+// Idempotent per production: a job already charged is not charged again, so a retry or a
+// double-tap can't take the money twice.
+const chargeEpisode = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+
+  const tier = findTier(body.tierId) || findTier(DEFAULT_TIER_ID)
+  if (!tier) throw new Error('Unknown video tier')
+  // Hold the estimate: the target length the user picked, priced at the tier rate. The
+  // final charge is settled against the episode's real duration once it is composed
+  // (settleEpisodeCharge) and can only ever come down from here.
+  const episodeSeconds = normalizeEpisodeSeconds(body.seconds)
+  const cost = tierCost(tier, episodeSeconds)
+
+  const docs = await get('productions', { jobId: body.jobId }, {}, {}, 1)
+  if (!docs || docs.length === 0) return { success: false, error: 'Production not found' }
+  const doc = docs[0]
+  if (String(doc.userId) !== String(userId)) return { success: false, error: 'Not authorized' }
+
+  // Already paid for → let them proceed without a second charge. A job whose hold was
+  // refunded after a failure is NOT paid for any more, so buying a retry starts a fresh
+  // charge rather than rendering free.
+  if (doc.videoTier && doc.chargedAt && !doc.settlement?.released) {
+    return { success: true, data: { charged: false, alreadyPaid: true, tier: doc.videoTier } }
+  }
+
+  const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
+  if (!users || users.length === 0) return { success: false, error: 'User not found' }
+  const balance = users[0].balance || 0
+  if (balance < cost) {
+    return { success: false, error: 'Insufficient balance', data: { required: cost, balance } }
+  }
+
+  const seriesTitle = doc.proposal?.project?.title || doc.ideaTitle || 'Series'
+  const episode = Number(doc.episode || body.episode || 1)
+  const transaction = {
+    id: `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    referenceId: generateReferenceId(),
+    type: 'generate',
+    amount: cost,
+    description: `Generate ${seriesTitle} — Episode ${episode} (${tier.id}, up to ${episodeSeconds}s)`,
+    source: { seriesName: seriesTitle, episodeNumber: episode, episodeTitle: '' },
+    status: 'success',
+    createdAt: new Date(),
+  }
+
+  // Deduct only if the balance still covers it — guards against concurrent spends.
+  const paid = await update(
+    'users',
+    { _id: new ObjectId(userId), balance: { $gte: cost } },
+    {
+      $inc: { balance: -cost },
+      $push: { transactions: { $each: [transaction], $position: 0 } },
+      $set: { updatedAt: new Date() },
+    },
+  )
+  if (paid.matchedCount === 0) {
+    return { success: false, error: 'Insufficient balance', data: { required: cost, balance } }
+  }
+
+  await update(
+    'productions',
+    { jobId: body.jobId },
+    {
+      $set: {
+        videoTier: { id: tier.id, model: tier.model, resolution: tier.resolution, creditsPerSecond: tier.creditsPerSecond },
+        // Drives both the prompt's targetDurationSeconds and the settlement's estimate.
+        episodeLength: episodeSeconds,
+        chargedAt: new Date(),
+        chargedCredits: cost,
+        updatedAt: new Date(),
+      },
+    },
+  )
+
+  return {
+    success: true,
+    data: { charged: true, cost, held: cost, seconds: episodeSeconds, tier: tier.id, balance: balance - cost },
+  }
+}
+
+// Re-run composition for a job whose stitch failed but whose shots survived.
+//
+// Nothing retriggers composition on its own after it errors — the client only advances a
+// job whose render phase is 'rendering' or 'composing' — so without this a creator is left
+// with four good shots, a charge, and no way to reach their episode. Re-composing costs
+// nothing to regenerate: the rendered shots are reused as they are.
+const retryComposition = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body || !body.jobId) throw new Error('jobId is required')
+
+  const docs = await get('productions', { jobId: body.jobId }, {}, {}, 1)
+  if (!docs || docs.length === 0) return { success: false, error: 'Production not found' }
+  const doc = docs[0]
+  if (String(doc.userId) !== String(userId)) return { success: false, error: 'Not authorized' }
+
+  if (doc.episodeVideo) return { success: true, data: { retried: false, alreadyDone: true } }
+  if (!(doc.videos || []).some((v) => v.url)) {
+    return { success: false, error: 'This episode has no rendered shots to assemble' }
+  }
+
+  // Clear the compose claim so the background function can take it immediately rather than
+  // waiting out the stale window, and put the phase back to 'composing' so the client's
+  // poll shows progress instead of the failure.
+  const progress = doc.progress || { calls: [] }
+  const c = (progress.calls || []).find((x) => x.key === 'composition')
+  if (c) c.status = 'running'
+  await update(
+    'productions',
+    { jobId: body.jobId },
+    {
+      $set: { progress, 'render.phase': 'composing', audioError: '', status: 'running', updatedAt: new Date() },
+      $unset: { 'render.composeRunAt': '' },
+    },
+  )
+
+  await triggerBackground('pipeline-audio-background', body.jobId, authHeader)
+  return { success: true, data: { retried: true } }
+}
+
 const startNextEpisode = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   if (!body || !body.jobId) throw new Error('jobId is required')
@@ -5321,8 +5416,11 @@ const startNextEpisode = async (body, authHeader) => {
     return { success: true, data: { jobId: existing[0].jobId, charged: false, alreadyUnlocked: true } }
   }
 
-  // Charge the user's GUSD balance (cost is admin-configurable via system settings).
-  const { nextEpisodeCost } = await readSystemSettings()
+  // Same pricing as every other episode: tier rate x 30s. The old flat nextEpisodeCost is
+  // no longer used — episode 1 and follow-ups cost the same.
+  const tier = findTier(body.tierId) || findTier(DEFAULT_TIER_ID)
+  const episodeSeconds = normalizeEpisodeSeconds(body.seconds)
+  const nextEpisodeCost = tierCost(tier, episodeSeconds)
   const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
   if (!users || users.length === 0) return { success: false, error: 'User not found' }
   const user = users[0]
@@ -5336,7 +5434,7 @@ const startNextEpisode = async (body, authHeader) => {
     referenceId: generateReferenceId(),
     type: 'generate',
     amount: nextEpisodeCost,
-    description: `Generate ${seriesTitle} — Episode ${episode}`,
+    description: `Generate ${seriesTitle} — Episode ${episode} (${tier.id}, up to ${episodeSeconds}s)`,
     source: { seriesName: seriesTitle, episodeNumber: episode, episodeTitle },
     status: 'success',
     createdAt: new Date(),
@@ -5351,6 +5449,10 @@ const startNextEpisode = async (body, authHeader) => {
   const newJobId = `${rootJobId}-ep${episode}`
   await save('productions', {
     jobId: newJobId,
+    // The tier this episode was paid for — the render reads model/resolution from here.
+    videoTier: { id: tier.id, model: tier.model, resolution: tier.resolution, creditsPerSecond: tier.creditsPerSecond },
+    chargedAt: new Date(),
+    chargedCredits: nextEpisodeCost,
     userId: parent.userId,
     v: 1,
     mode: 'v1produce',
@@ -5363,7 +5465,7 @@ const startNextEpisode = async (body, authHeader) => {
     proposal: parent.proposal || null,
     ideaTitle: seriesTitle,
     title: seriesTitle,
-    episodeLength: 30,
+    episodeLength: episodeSeconds,
     callsV1: parent.callsV1?.characterDirector
       ? { characterDirector: parent.callsV1.characterDirector }
       : {},
@@ -5371,7 +5473,10 @@ const startNextEpisode = async (body, authHeader) => {
     updatedAt: new Date(),
   })
 
-  return { success: true, data: { jobId: newJobId, charged: true, balance: newBalance } }
+  return {
+    success: true,
+    data: { jobId: newJobId, charged: true, held: nextEpisodeCost, seconds: episodeSeconds, balance: newBalance },
+  }
 }
 
 // Delete a Quick Create production (the job doc). Only the owner may delete it. Does not

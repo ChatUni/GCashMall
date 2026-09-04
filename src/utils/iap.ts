@@ -119,17 +119,18 @@ declare global {
 const APP_BUNDLE_ID = 'io.ganime.app'
 
 // Pre-defined IAP product tiers matching App Store Connect
-export const IAP_TIERS = [1, 5, 10, 20, 50, 100, 200, 500, 1000] as const
+export const IAP_TIERS = [5.99, 9.99, 19.99, 49.99] as const
 export type IAPTierAmount = (typeof IAP_TIERS)[number]
 
-// Generate product ID from amount: e.g. "io.ganime.app.topup_1"
+// Product ID from a price, in CENTS: $5.99 -> "io.ganime.app.topup_599".
+// Cents, because the tiers are no longer whole dollars and a product id can't carry a dot.
 export const getProductId = (amount: number): string =>
-  `${APP_BUNDLE_ID}.topup_${amount}`
+  `${APP_BUNDLE_ID}.topup_${Math.round(amount * 100)}`
 
-// Extract amount from product ID
+// Extract the price from a product ID (cents -> dollars).
 const getAmountFromProductId = (productId: string): number => {
   const match = productId.match(/topup_(\d+)$/)
-  return match ? parseInt(match[1], 10) : 0
+  return match ? Math.round(parseInt(match[1], 10)) / 100 : 0
 }
 
 // Product definitions to register with the active store (App Store or Google Play).

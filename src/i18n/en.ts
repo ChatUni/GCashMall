@@ -173,8 +173,6 @@ export const en = {
       imageModel: 'Image Model',
       seedanceModel: 'Video Model (Seedance)',
       seconds: 'secs',
-      pipelinePrompts: 'AI Pipeline Prompts',
-      pipelinePromptsHint: 'Edit the system prompt (in markdown) for each of the 6 AI production calls.',
       selectCall: 'Select a call',
       markdownLabel: 'Markdown',
       previewLabel: 'Preview',
@@ -830,6 +828,34 @@ export const en = {
     },
   },
   quickCreateV1: {
+      purchase: {
+        fromPrice: 'from {n}',
+        chooseQuality: 'Choose the episode length and video quality.',
+        lengthLabel: 'Episode length',
+        seconds: '{n}s',
+        perSecond: '{n}/sec',
+        totalFor: 'Held for {n}s',
+        yourBalance: 'Your balance',
+        capNote:
+          "We hold this amount now and charge for the episode's actual length once it's " +
+          'rendered — never more than the amount held. Anything unused goes straight back ' +
+          'to your balance.',
+        insufficientBalance: "You don't have enough credits, please top up first",
+        confirmGenerate: 'Generate Episode',
+        cancel: 'Cancel',
+        topUp: 'Top Up',
+      },
+      settlement: {
+        title: 'Episode charged',
+        renderedFor: 'Your episode came in at {n} seconds.',
+        held: 'Held',
+        charged: 'Charged',
+        refunded: 'Refunded to your balance',
+        cappedNote:
+          'It ran a little long, so you were charged the amount quoted — no more than that.',
+        exactNote: 'That matched the estimate exactly, so nothing was refunded.',
+        done: 'Got it',
+      },
     steps: {
       idea: 'Idea',
       proposal: 'Production Proposal',
@@ -980,6 +1006,10 @@ export const en = {
     ready: {
       title: 'Episode 1 is Ready!',
       readySuffix: 'is Ready!',
+      failedTitle: 'Assembling your episode failed',
+      failedSubtitle: 'Your scenes rendered fine — only the final assembly failed.',
+      retryHint: 'Your rendered scenes are safe. Retrying reuses them, so nothing is regenerated and you are not charged again.',
+      retryBtn: 'Retry Assembly',
       subtitle: 'Your anime has been created successfully. Watch, share, and continue your journey.',
       totalTime: 'Total Creation Time',
       episodeWord: 'Episode',

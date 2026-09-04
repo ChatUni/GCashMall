@@ -9,17 +9,25 @@ const SETTINGS_KEY = 'system'
 export const MODEL_DEFAULTS = {
   chatModel: 'gpt-5-mini',
   imageModel: 'gpt-image-1-mini',
-  seedanceModel: 'doubao-seedance-2-0-mini-260615',
+  seedanceModel: 'bytedance/seedance-2.0-mini',
 }
 
 // Allowed values — power the admin dropdowns and the server-side validation. Add ids here.
 export const CHAT_MODEL_OPTIONS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini', 'gpt-4o']
 export const IMAGE_MODEL_OPTIONS = ['gpt-image-1-mini', 'gpt-image-1']
+// OpenRouter video-generation slugs (see /api/v1/videos/models).
 export const SEEDANCE_MODEL_OPTIONS = [
-  'doubao-seedance-2-0-mini-260615',
-  'doubao-seedance-2-0-260128',
-  'doubao-seedance-1-0-pro-250528',
+  'bytedance/seedance-2.0-mini',
+  'bytedance/seedance-2.0-fast',
 ]
+
+// Settings written before the move to OpenRouter hold Volcengine ModelArk ids. Map them so
+// an existing settings document keeps working instead of failing every render with a 400.
+const LEGACY_MODEL_IDS = {
+  'doubao-seedance-2-0-mini-260615': 'bytedance/seedance-2.0-mini',
+  'doubao-seedance-2-0-260128': 'bytedance/seedance-2.0-fast',
+  'doubao-seedance-1-0-pro-250528': 'bytedance/seedance-2.0-mini',
+}
 
 let cache = null
 let cacheAt = 0
@@ -38,7 +46,8 @@ const readModels = async () => {
   cache = {
     chatModel: saved.chatModel || MODEL_DEFAULTS.chatModel,
     imageModel: saved.imageModel || MODEL_DEFAULTS.imageModel,
-    seedanceModel: saved.seedanceModel || MODEL_DEFAULTS.seedanceModel,
+    seedanceModel:
+      LEGACY_MODEL_IDS[saved.seedanceModel] || saved.seedanceModel || MODEL_DEFAULTS.seedanceModel,
   }
   cacheAt = now
   return cache

@@ -303,8 +303,10 @@ export const accountStoreActions = {
   // Data
   setFavorites: (favorites: FavoriteItem[]) =>
     setAccountState({ favorites }),
-  removeFavoriteItem: (itemId: string) =>
-    setAccountState('favorites', (prev) => prev.filter((item) => item._id !== itemId)),
+  // Keyed by seriesId — a favorite is an entry on the user document, not a document of its
+  // own, so it has no _id of its own to filter on.
+  removeFavoriteItem: (seriesId: string) =>
+    setAccountState('favorites', (prev) => prev.filter((item) => item.seriesId !== seriesId)),
   
   // My Purchases
   setMyPurchases: (myPurchases: PurchaseItem[]) =>
@@ -591,7 +593,9 @@ export const getFilteredPhoneNavItems = () => phoneNavItems.filter((item) => can
 // the standard amounts only — never to the iOS IAP tiers below.
 export const isGusdTestMode = isFlagOn(import.meta.env.VITE_GUSD_TEST_MODE)
 const GUSD_TEST_AMOUNTS = [0.1, 0.2, 0.5, 1]
-export const walletAmounts = isGusdTestMode ? [...GUSD_TEST_AMOUNTS, 5, 10, 20, 50] : [5, 10, 20, 50]
+export const walletAmounts = isGusdTestMode
+  ? [...GUSD_TEST_AMOUNTS, 5.99, 9.99, 19.99, 49.99]
+  : [5.99, 9.99, 19.99, 49.99]
 
 // Withdrawal tiers are CREDITS, not dollars: the wallet is denominated in credits and the
 // payout is toUsd(credits). 500 credits pays out $5.
@@ -600,7 +604,7 @@ export const withdrawAmounts = isGusdTestMode
   : [500, 1000, 2000, 5000]
 
 // iOS In-App Purchase tiers - must be a subset of the registered IAP_TIERS / App Store Connect products
-export const iapWalletAmounts = [5, 10, 20, 50]
+export const iapWalletAmounts = [5.99, 9.99, 19.99, 49.99]
 
 // Apple/Google take a 30% store fee. Products are priced at face value (the user pays the
 

@@ -129,7 +129,7 @@ export const fetchPlayerData = async (seriesId: string) => {
 export const fetchUserData = async () => {
   const [historyResponse, favoritesResponse] = await Promise.all([
     apiGet<WatchHistoryItem[]>('watchHistory'),
-    apiGet<FavoriteItem[]>('favorites'),
+    apiGetWithAuth<FavoriteItem[]>('favorites'),
   ])
 
   return {
@@ -167,15 +167,21 @@ export const checkLoginStatus = async (): Promise<boolean> => {
     }
   }
 
-  try {
-    const response = await apiGet<User>('user')
-    if (response.success && response.data) {
-      accountStoreActions.setUser(response.data)
-      accountStoreActions.setLoading(false)
-      return true
+  // No cached copy but a token exists — ask the server who we are. This must be an
+  // authenticated call: `GET user` returns the caller's own record, so an unauthenticated
+  // one can only fail, and treating whatever came back as "logged in" is how a signed-out
+  // visitor could end up presented as somebody else.
+  if (isLoggedIn()) {
+    try {
+      const response = await apiGetWithAuth<User>('user')
+      if (response.success && response.data) {
+        accountStoreActions.setUser(response.data)
+        accountStoreActions.setLoading(false)
+        return true
+      }
+    } catch {
+      // Token rejected or offline — fall through to signed out.
     }
-  } catch {
-    // User not logged in
   }
 
   accountStoreActions.setLoading(false)
@@ -434,31 +440,8 @@ export const generateStoryPrompt = async (
 
 // ── AI Production Pipeline (Quick Create) ──
 
-export interface PipelinePrompt {
-  _id: string
-  key: string
-  title: string
-  order: number
-  markdown: string
-}
-
 // Admin: load all 6 pipeline prompt documents
-export const fetchPipelinePrompts = async (): Promise<PipelinePrompt[]> => {
-  const result = await apiGetWithAuth<PipelinePrompt[]>('pipelinePrompts')
-  if (result.success && result.data) return result.data
-  throw new Error(result.error || 'Failed to load pipeline prompts')
-}
-
 // Admin: save one pipeline prompt's markdown; returns the updated list
-export const savePipelinePrompt = async (
-  key: string,
-  markdown: string,
-): Promise<PipelinePrompt[]> => {
-  const result = await apiPostWithAuth<PipelinePrompt[]>('savePipelinePrompt', { key, markdown })
-  if (result.success && result.data) return result.data
-  throw new Error(result.error || 'Failed to save pipeline prompt')
-}
-
 // A production job's episode (as stored/returned by the pipeline-background function)
 export interface ProductionEpisode {
   n: number
@@ -484,9 +467,14 @@ export interface ProductionJob {
     coverStatus: string
   }
   videoProgress?: { done: number; total: number; percent?: number }
-  render?: { phase?: 'rendering' | 'composing' | 'done' | 'error'; total?: number } // async render state
+  render?: {
+    phase?: 'rendering' | 'composing' | 'done' | 'error'
+    total?: number
+    recoverable?: boolean // a failed composition whose shots survive can be re-stitched
+  }
   transcribeProgress?: { percent: number; task: string } // s1 subtitle step (0-100)
   transcribeError?: string
+  audioError?: string // why audio/composition failed, shown on the Ready page's retry state
   calls?: Record<string, Record<string, unknown>>
   episodes?: ProductionEpisode[]
   videos?: {
@@ -500,6 +488,16 @@ export interface ProductionJob {
     coverUrl?: string
   }[]
   episodeVideo?: string
+  // Written when the hold taken at purchase is settled against the finished episode's real
+  // duration (see episodeBilling.js). Drives the "Episode charged" dialog.
+  settlement?: {
+    heldCredits: number
+    finalCredits: number
+    refundedCredits: number
+    actualSeconds: number
+    estimatedSeconds?: number | null
+    capped?: boolean
+  }
   randomFrames?: { id: string; urls: string[] }
   coverGen?: { id: string; url: string; error?: boolean }
   idea?: string
@@ -507,6 +505,8 @@ export interface ProductionJob {
   genre?: string | null
   artStyle?: string | null
   episodeLength?: number | null
+  // The quality tier this episode was paid for and rendered at.
+  videoTier?: { id: string; model: string; resolution: string; creditsPerSecond: number }
   episodeBunnyVideoId?: string // s1 storage: the episode's Bunny video guid
   episode?: number // which episode this production represents (1-based)
   episodeGroup?: string // series-group key shared by all episodes of one series
@@ -719,9 +719,45 @@ export interface StartNextEpisodeResult {
 export const startNextEpisode = async (
   jobId: string,
   episode: number,
+  tierId: string,
+  seconds: number,
 ): Promise<{ success: boolean; data?: StartNextEpisodeResult; error?: string }> => {
-  return apiPostWithAuth<StartNextEpisodeResult>('startNextEpisode', { jobId, episode })
+  return apiPostWithAuth<StartNextEpisodeResult>('startNextEpisode', {
+    jobId,
+    episode,
+    tierId,
+    seconds,
+  })
 }
+
+export interface ChargeEpisodeResult {
+  charged: boolean
+  alreadyPaid?: boolean
+  cost?: number
+  held?: number
+  seconds?: number
+  tier?: string
+  balance?: number
+  required?: number
+}
+
+// Hold the estimated cost of one episode at the chosen quality tier and target length. The
+// server is authoritative for the price and records the tier + length on the production, so
+// the render uses what was paid for. The hold is settled against the episode's real duration
+// once it is composed. Idempotent per production.
+export const chargeEpisode = async (
+  jobId: string,
+  tierId: string,
+  seconds: number,
+): Promise<{ success: boolean; data?: ChargeEpisodeResult; error?: string }> =>
+  apiPostWithAuth<ChargeEpisodeResult>('chargeEpisode', { jobId, tierId, seconds })
+
+// Re-run composition for an episode whose shots rendered but whose stitch failed. Reuses
+// the existing shots, so nothing is regenerated and nothing is re-charged.
+export const retryComposition = async (
+  jobId: string,
+): Promise<{ success: boolean; data?: { retried: boolean }; error?: string }> =>
+  apiPostWithAuth<{ retried: boolean }>('retryComposition', { jobId })
 
 // Delete a Quick Create production (the job doc). Does not delete a published series.
 export const deleteProduction = async (jobId: string): Promise<void> => {

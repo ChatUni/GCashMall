@@ -1,0 +1,166 @@
+/* Quality-tier purchase dialog (Quick Create). Reuses the qcv1 modal shell. */
+
+.qcv1-modal.tier-modal {
+  max-width: 460px;
+}
+.tier-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.tier-row {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  background: var(--bg2);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+}
+.tier-row:hover:not(:disabled) {
+  border-color: var(--purple2);
+}
+.tier-row.selected {
+  border-color: var(--purple);
+  background: rgba(168, 85, 247, 0.1);
+}
+.tier-row:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.tier-radio {
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+}
+.tier-row.selected .tier-radio {
+  border-color: var(--purple);
+  background:
+    radial-gradient(circle, var(--purple) 0 4px, transparent 5px);
+}
+.tier-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tier-family {
+  font-weight: 600;
+}
+.tier-res {
+  font-size: 12px;
+  color: var(--muted);
+}
+/* The per-second rate, so the total is explainable rather than arbitrary. */
+.tier-rate {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tier-total {
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .tier-row {
+    grid-template-columns: 18px 1fr auto;
+  }
+  .tier-rate {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+/* Credits mark — every figure in this dialog is credits, not dollars. */
+.tier-credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.tier-credits-icon {
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+}
+.tier-credits-icon.sm {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  opacity: 0.75;
+}
+
+/* Episode length — a segmented pair above the tier list, since it scales every price
+   in it. */
+.tier-length {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.tier-length-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tier-length-opts {
+  display: flex;
+  gap: 6px;
+}
+.tier-length-opt {
+  min-width: 64px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.tier-length-opt:hover:not(:disabled) {
+  border-color: var(--purple2);
+}
+.tier-length-opt.selected {
+  border-color: var(--purple);
+  background: rgba(168, 85, 247, 0.14);
+  font-weight: 600;
+}
+.tier-length-opt:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Explains that the quoted number is a ceiling, not the final charge. */
+.tier-cap-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}

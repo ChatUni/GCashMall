@@ -1749,3 +1749,54 @@
 .qcv1-next-card.gen.active .qcv1-next-genstatus {
   color: var(--green);
 }
+
+/* Review-Proposal wait: a progress bar rather than a bare spinner, so the wait reads as
+   progress. The percentage is an elapsed-time estimate (Call 1 reports none). */
+.qcv1-loading.proposal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 56px 20px;
+}
+.qcv1-loading-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.qcv1-proposal-bar {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Composition failed but the rendered shots survived — a retry, not a dead end. */
+.qcv1-compose-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 320px;
+  padding: 32px 24px;
+  text-align: center;
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  background: var(--bg2);
+}
+.qcv1-compose-failed-icon {
+  font-size: 34px;
+  line-height: 1;
+}
+.qcv1-compose-failed-msg {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qcv1-compose-failed-hint {
+  margin: 0;
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}

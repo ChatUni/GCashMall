@@ -54,3 +54,13 @@ body,
 :root[data-theme='light'] .history-popover {
   border: 1px solid var(--c-border);
 }
+
+
+/* ── Credits mark on the light theme ──
+   The credits/GUSD glyph is white on transparency, so on the light theme's white surfaces
+   it disappears. Matched by src rather than by class: it is rendered from a single URL
+   (CREDITS_ICON in src/utils/credits.ts) in ~36 places, and naming each class meant a new
+   icon silently vanished every time one was added. */
+:root[data-theme='light'] img[src*="v1764702233/logo.png"] {
+  filter: invert(1);
+}
