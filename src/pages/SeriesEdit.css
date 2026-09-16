@@ -403,3 +403,18 @@
     transform: translateY(0);
   }
 }
+
+/* Appeal dialog input (the modal lives on this page). */
+.review-request-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}

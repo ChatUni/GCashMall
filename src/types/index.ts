@@ -289,6 +289,16 @@ export interface ModerationState<TPending> {
   reviewedAt: string | Date | null
   // The uploader's proposed replacement, held back from the public until approved.
   pending: TPending | null
+  // Which video the rejection judged. An appeal must carry a different one, or a human is
+  // being asked to re-examine exactly what the scanner already decided.
+  rejectedVideoId?: string | null
+  // Set when the creator has asked a person to look at an automated rejection.
+  reviewRequest?: {
+    reason: string
+    videoId: string
+    requestedAt: string | Date
+    requestedBy?: string
+  } | null
 }
 
 export interface ModerationEpisodePending {

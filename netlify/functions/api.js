@@ -70,13 +70,18 @@ import {
   suggestDescription,
   getProductionStatus,
   advanceProduction,
-  getModerationStatus,
   getSeriesForEdit,
   getModerationQueue,
   getMyModeration,
   approveSeries,
   approveAll,
   chargeEpisode,
+  getAdminUsers,
+  requestEpisodeReview,
+  getReviewRequests,
+  setUserVerified,
+  jobProgress,
+  jobComplete,
   retryComposition,
   rejectSeries,
   approveEpisode,
@@ -118,8 +123,9 @@ const apiHandlers = {
     settings: () => getSettings(),
     templates: () => getTemplates(),
     productionStatus: (params, authHeader) => getProductionStatus(params, authHeader),
-    moderationStatus: (params, authHeader) => getModerationStatus(params, authHeader),
     moderationQueue: (params, authHeader) => getModerationQueue(params, authHeader),
+    adminUsers: (params, authHeader) => getAdminUsers(params, authHeader),
+    reviewRequests: (params, authHeader) => getReviewRequests(params, authHeader),
     myModeration: (params, authHeader) => getMyModeration(params, authHeader),
     sharedEpisode: (params) => getSharedEpisode(params),
     me: (params, authHeader) => getMe(params, authHeader),
@@ -171,6 +177,11 @@ const apiHandlers = {
     approveSeries: (body, authHeader) => approveSeries(body, authHeader),
     approveAll: (body, authHeader) => approveAll(body, authHeader),
     chargeEpisode: (body, authHeader) => chargeEpisode(body, authHeader),
+    setUserVerified: (body, authHeader) => setUserVerified(body, authHeader),
+    requestEpisodeReview: (body, authHeader) => requestEpisodeReview(body, authHeader),
+    // Called by the moderation worker (HMAC-signed), never by the browser.
+    jobProgress: (body, authHeader, headers) => jobProgress(body, authHeader, headers),
+    jobComplete: (body, authHeader, headers) => jobComplete(body, authHeader, headers),
     retryComposition: (body, authHeader) => retryComposition(body, authHeader),
     rejectSeries: (body, authHeader) => rejectSeries(body, authHeader),
     approveEpisode: (body, authHeader) => approveEpisode(body, authHeader),
@@ -212,8 +223,9 @@ export const handler = async (event, context) => {
       result = await handler(queryParams, authHeader)
     } else {
       const body = parseBody(event.body)
-      // Pass auth header for handlers that need it
-      result = await handler(body, authHeader)
+      // Third argument: the raw headers. Handlers called by the moderation worker rather
+      // than by a signed-in user authenticate with an HMAC over the body, not a JWT.
+      result = await handler(body, authHeader, event.headers || {})
     }
 
     return createResponse(200, result)

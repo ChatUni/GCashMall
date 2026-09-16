@@ -16,8 +16,13 @@ const connectDB = async () => {
     const client = new MongoClient(mongoUri)
     await client.connect()
     
-    // Determine database name based on environment
+    // Determine database name based on environment. Named explicitly rather than derived
+    // from the URI, so say which variable is missing — "Cannot read properties of undefined
+    // (reading 'toLowerCase')" is a long way from "set VITE_APP_DISPLAY_NAME".
     const appName = process.env.VITE_APP_DISPLAY_NAME
+    if (!appName) {
+      throw new Error('VITE_APP_DISPLAY_NAME is not set — it is the database name')
+    }
     let dbName = appName.toLowerCase()
     
     if (process.env.NODE_ENV === 'production') {

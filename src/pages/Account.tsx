@@ -5,7 +5,7 @@ import paymentMethodsIcon from '../assets/payment-methods2.svg'
 import applePayIcon from '../assets/apple-pay-icon.svg'
 import googlePlayIcon from '../assets/google-play-icon.svg'
 import { isIOS, isAndroid, isCordova } from '../utils/cordova'
-import { toUsd, formatCredits, creditsForTopUp } from '../utils/credits'
+import { toUsd, formatCredits, creditsForTopUp, topUpBreakdown } from '../utils/credits'
 import TopBar from '../components/TopBar'
 import ModerationSection from '../components/ModerationSection'
 import { ReviewStatusBadge, ReviewStatusModal } from '../components/ReviewStatus'
@@ -919,6 +919,12 @@ function WalletSection() {
                   ? amount
                   : creditsForTopUp(amount, isIOS() || isAndroid())
               const usd = () => (accountStore.walletTab === 'withdraw' ? toUsd(amount) : amount)
+              // Tiers grant more than the dollar buys; show the extra as a bonus rather than
+              // folding it into one number, so the better value is legible.
+              const split = () =>
+                accountStore.walletTab === 'topup'
+                  ? topUpBreakdown(amount, isIOS() || isAndroid())
+                  : null
               const blocked = () =>
                 accountStore.walletTab === 'withdraw' && credits() > maxWithdraw()
               return (
@@ -930,7 +936,17 @@ function WalletSection() {
                   disabled={blocked()}
                 >
                   <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="amount-logo" />
-                  <span class="amount-value">{formatCredits(credits())}</span>
+                  <Show
+                    when={split() && split()!.bonus > 0}
+                    fallback={<span class="amount-value">{formatCredits(credits())}</span>}
+                  >
+                    <span class="amount-value">
+                      {formatCredits(split()!.base)}
+                      <span class="amount-bonus">
+                        + {formatCredits(split()!.bonus)} {wallet().bonusLabel}
+                      </span>
+                    </span>
+                  </Show>
                   <span class="amount-usd">${usd().toFixed(2)}</span>
                 </button>
               )

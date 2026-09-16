@@ -23,6 +23,7 @@ import {
 } from '../services/seriesEditService'
 import { deleteSeries } from '../services/accountService'
 import { toastStoreActions } from '../stores'
+import { requestEpisodeReview } from '../services/dataService'
 import './SeriesEdit.css'
 
 // Track initialization per series ID
@@ -40,6 +41,30 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
   const id = () => props.seriesId === 'new' ? undefined : props.seriesId
 
   // Save confirmation modal state
+  // Which episode (by index) is having a human review requested, and the creator's reason.
+  const [reviewTarget, setReviewTarget] = createSignal<number | null>(null)
+  const [reviewReason, setReviewReason] = createSignal('')
+  const [reviewSending, setReviewSending] = createSignal(false)
+
+  const submitReviewRequest = async () => {
+    const i = reviewTarget()
+    if (i === null || reviewSending()) return
+    const episode = seriesEditStore.formData.episodes[i]
+    if (!episode || !id()) return
+    setReviewSending(true)
+    const result = await requestEpisodeReview(id()!, episode.episodeNumber, reviewReason().trim())
+    setReviewSending(false)
+    if (!result.success) {
+      toastStoreActions.show(result.error || 'Failed to send the request', 'error')
+      return
+    }
+    // Reflect it immediately so the box changes style without a reload.
+    seriesEditStoreActions.updateEpisode(i, { reviewRequestedAt: new Date().toISOString() })
+    setReviewTarget(null)
+    setReviewReason('')
+    toastStoreActions.show(t().seriesEdit.requestReviewSent, 'success')
+  }
+
   const [showSaveModal, setShowSaveModal] = createSignal(false)
 
   // Cancel confirmation modal state
@@ -165,6 +190,7 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
             onDelete={seriesEditStoreActions.markEpisodeDeleted}
             onAddEpisode={handleAddEpisode}
             isAddDisabled={isAddEpisodeDisabled(seriesEditStore.formData.episodes)}
+            onRequestReview={(i) => setReviewTarget(i)}
             label={t().seriesEdit.episodes}
             addLabel={t().seriesEdit.addEpisode}
           />
@@ -222,6 +248,39 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
         </Show>
 
         {/* Delete Confirmation Modal */}
+        {/* Appealing an automated rejection: the creator says why a person should look. */}
+        <Show when={reviewTarget() !== null}>
+          <div class="save-modal-overlay" onClick={() => !reviewSending() && setReviewTarget(null)}>
+            <div class="save-modal" onClick={(e) => e.stopPropagation()}>
+              <h2 class="save-modal-title">{t().seriesEdit.requestReviewTitle}</h2>
+              <p class="save-modal-message">{t().seriesEdit.requestReviewBody}</p>
+              <textarea
+                class="review-request-input"
+                rows={4}
+                placeholder={t().seriesEdit.requestReviewPlaceholder}
+                value={reviewReason()}
+                onInput={(e) => setReviewReason(e.currentTarget.value)}
+              />
+              <div class="save-modal-buttons">
+                <button
+                  class="save-modal-btn save-modal-btn-cancel"
+                  disabled={reviewSending()}
+                  onClick={() => setReviewTarget(null)}
+                >
+                  {t().seriesEdit.cancel}
+                </button>
+                <button
+                  class="save-modal-btn save-modal-btn-confirm"
+                  disabled={reviewSending() || !reviewReason().trim()}
+                  onClick={submitReviewRequest}
+                >
+                  {reviewSending() ? '…' : t().seriesEdit.requestReviewSubmit}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Show>
+
         <Show when={showDeleteModal()}>
           <DeleteConfirmationModal
             title={(t().seriesEdit as Record<string, string>).deleteConfirmTitle || 'Confirm Delete'}
@@ -233,15 +292,6 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
           />
         </Show>
 
-        {/* Content Moderation Rejection Modal */}
-        <Show when={seriesEditStore.moderationError}>
-          <ModerationFailModal
-            title={(t().seriesEdit as Record<string, string>).moderationFailTitle || 'Upload Rejected'}
-            message={seriesEditStore.moderationError as string}
-            cancelLabel={t().seriesEdit.cancel}
-            onCancel={() => seriesEditStoreActions.setModerationError(null)}
-          />
-        </Show>
       </div>
     </Show>
   )
@@ -339,6 +389,7 @@ interface EpisodeListFieldProps {
   onDelete: (index: number) => void
   onAddEpisode: () => void
   isAddDisabled: boolean
+  onRequestReview: (index: number) => void
   label: string
   addLabel: string
 }
@@ -357,6 +408,10 @@ const EpisodeListField = (props: EpisodeListFieldProps) => (
             moderationStatus={episode.moderationStatus}
             moderationReason={episode.moderationReason}
             hasPendingEdit={episode.hasPendingEdit}
+            isNew={episode.isNew}
+            rejectedVideoId={episode.rejectedVideoId}
+            reviewRequestedAt={episode.reviewRequestedAt}
+            onRequestReview={() => props.onRequestReview(index())}
             onTitleChange={(title) => props.onTitleChange(index(), title)}
             onVideoChange={(file, previewUrl) => props.onVideoChange(index(), file, previewUrl)}
             onDelete={() => props.onDelete(index())}
@@ -535,28 +590,6 @@ const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => (
         <button class="save-modal-btn save-modal-btn-danger" onClick={props.onConfirm}>
           {props.confirmLabel}
         </button>
-        <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>
-          {props.cancelLabel}
-        </button>
-      </div>
-    </div>
-  </div>
-)
-
-interface ModerationFailModalProps {
-  title: string
-  message: string
-  cancelLabel: string
-  onCancel: () => void
-}
-
-const ModerationFailModal = (props: ModerationFailModalProps) => (
-  <div class="save-modal-overlay" onClick={props.onCancel}>
-    <div class="save-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="save-modal-icon">🚫</div>
-      <h2 class="save-modal-title">{props.title}</h2>
-      <p class="save-modal-message">{props.message}</p>
-      <div class="save-modal-buttons">
         <button class="save-modal-btn save-modal-btn-cancel" onClick={props.onCancel}>
           {props.cancelLabel}
         </button>

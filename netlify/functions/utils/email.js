@@ -312,6 +312,18 @@ export const sendModerationApprovedEmail = async (account, details) => {
   }
 }
 
+// What to tell a creator whose episode was turned down.
+//
+// An automated verdict can be wrong, and a creator who believes it is has no recourse from an
+// email that only says "edit and resubmit" — resubmitting the same video simply gets the same
+// automated answer. So an automated rejection points at the appeal: replace the video, then
+// ask for a person to look. A human rejection needs no such note; a person has already looked.
+const appealNote = (details) =>
+  details.automated
+    ? 'If you think this is a mistake, open the series in your account and use "Request Review" ' +
+      'on this episode — a staff member will watch it themselves.'
+    : 'You can edit it and submit again — it will go back into the review queue.'
+
 export const sendModerationRejectedEmail = async (account, details) => {
   if (!account?.email) return { success: false, error: 'no recipient' }
   const what = moderationSubjectLine(details)
@@ -323,14 +335,14 @@ export const sendModerationRejectedEmail = async (account, details) => {
       ...sender(),
       to: account.email,
       subject: `Changes needed: ${details.episodeNumber ? `Episode ${details.episodeNumber}` : details.seriesName} - Ganime`,
-      text: `Hi ${account.nickname || 'there'},\n\nWe reviewed ${what} and it can't be published as it is.\n\nReason:\n${reason}\n\nYou can edit it and submit again — it will go back into the review queue.`,
+      text: `Hi ${account.nickname || 'there'},\n\nWe reviewed ${what} and it can't be published as it is.\n\nReason:\n${reason}\n\n${appealNote(details)}`,
       html: generateModerationEmailHtml({
         nickname: account.nickname,
         heading: 'Changes needed',
         accent: '#f97316',
         body: `We reviewed ${escapeHtml(what)} and it can’t be published as it is.`,
         reason,
-        note: 'You can edit it and submit again — it will go back into the review queue.',
+        note: appealNote(details),
       }),
     })
     console.log('[sendModerationRejectedEmail] Email sent:', info.messageId)

@@ -410,3 +410,299 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Users panel ── */
+
+.mod-users {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-border);
+}
+.mod-users-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mod-users-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.mod-users-search {
+  flex: 1 1 240px;
+  max-width: 340px;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 9px;
+  background: var(--c-surface2);
+  color: var(--c-text);
+  font-size: 14px;
+}
+.mod-users-search:focus {
+  outline: none;
+  border-color: #8b5cf6;
+}
+.mod-users-hint {
+  margin: 8px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+}
+.mod-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mod-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-surface2);
+}
+.mod-user.verified {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.07);
+}
+.mod-user-avatar {
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--c-surface3);
+}
+.mod-user-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.mod-user-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.mod-user-email {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mod-user-tag.admin {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.16);
+  color: #8b5cf6;
+  font-size: 11px;
+  font-weight: 700;
+}
+.mod-user-pending {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mod-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.mod-toggle-label {
+  font-size: 13px;
+  color: var(--c-text-muted);
+}
+/* Fixed-size switch: never stretched by the flex row. */
+.mod-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface3);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.mod-toggle.on {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+.mod-toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mod-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+.mod-toggle.on .mod-toggle-knob {
+  transform: translateX(20px);
+}
+
+@media (max-width: 560px) {
+  .mod-user {
+    flex-wrap: wrap;
+  }
+  .mod-toggle-wrap {
+    margin-left: auto;
+  }
+}
+
+/* ── Verify confirmation dialog ── */
+/*
+ * A real centred overlay, matching .shelve-modal in Account.css. The markup referenced
+ * .mod-modal-* classes that were never written, so the dialog rendered as an unstyled block
+ * at the foot of the page instead of over it.
+ */
+.mod-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  animation: modModalFadeIn 0.2s ease;
+}
+.mod-modal {
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+  padding: 28px;
+  border-radius: 16px;
+  background-color: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  animation: modModalSlideUp 0.25s ease;
+}
+.mod-modal-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.mod-modal-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-text-muted);
+}
+.mod-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+@keyframes modModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modModalSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 480px) {
+  .mod-modal-actions {
+    flex-direction: column-reverse;
+  }
+  .mod-modal-actions .mod-btn {
+    width: 100%;
+  }
+}
+
+/* ── Review requests ── */
+
+.mod-requests {
+  margin-bottom: 32px;
+  padding: 18px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.06);
+}
+.mod-request-group {
+  margin-top: 14px;
+}
+.mod-group-head.static {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+.mod-request-series {
+  margin: 10px 0 0 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--c-border);
+}
+.mod-request-series-name {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.mod-request-episode {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-surface2);
+}
+.mod-request-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mod-request-ep {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.mod-request-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--c-text-muted);
+}
+.mod-request-line.creator {
+  color: var(--c-text);
+}
+.mod-request-label {
+  font-weight: 700;
+  color: var(--c-text-muted);
+}

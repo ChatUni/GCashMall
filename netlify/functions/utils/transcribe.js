@@ -1,3 +1,4 @@
+import { track } from './jobTiming.js'
 // Subtitle pipeline for the "s1" (Bunny) storage flow. For a finished episode video it:
 //   1. extracts the audio track with ffmpeg
 //   2. transcribes it to timed text (SRT) with OpenAI whisper-1 (also detects language)
@@ -27,11 +28,13 @@ const transcribeAudio = async (audioPath) => {
   form.append('file', new Blob([bytes], { type: 'audio/mpeg' }), 'audio.mp3')
   form.append('model', 'whisper-1')
   form.append('response_format', 'verbose_json') // gives per-segment timings + language
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: form,
-  })
+  const res = await track('api', () =>
+    fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: form,
+    }),
+  )
   if (!res.ok) throw new Error(`Whisper error (${res.status}): ${(await res.text()).slice(0, 300)}`)
   const data = await res.json()
   const segments = (data.segments || [])
@@ -60,7 +63,8 @@ const translateSegments = async (segments, targetLabel) => {
   if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured')
   const numbered = segments.map((s, i) => ({ i, text: s.text }))
   const model = await getChatModel()
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await track('api', () =>
+    fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -82,7 +86,7 @@ const translateSegments = async (segments, targetLabel) => {
         { role: 'user', content: JSON.stringify({ lines: numbered }) },
       ],
     }),
-  })
+  }))
   if (!res.ok)
     throw new Error(`Translate error (${res.status}): ${(await res.text()).slice(0, 300)}`)
   const data = await res.json()

@@ -184,3 +184,41 @@
   color: #ef4444;
   margin-bottom: 3px;
 }
+
+/* ── Appealing an automated rejection ── */
+
+.episode-request-review {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.episode-request-review:disabled {
+  background: transparent;
+  border-color: var(--c-border);
+  color: var(--c-text-muted);
+  cursor: not-allowed;
+}
+.episode-review-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+}
+/* Awaiting a person: distinct from both "rejected" and "in review", because it is neither —
+   it is a decision a human has been asked to make. */
+.episode-review-awaiting {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid #3b82f6;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+}

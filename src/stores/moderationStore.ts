@@ -4,6 +4,13 @@
 import { createStore } from 'solid-js/store'
 import { createMemo } from 'solid-js'
 import { apiGetWithAuth, apiPostWithAuth } from '../utils/api'
+import {
+  fetchAdminUsers,
+  setUserVerified,
+  fetchReviewRequests,
+  type AdminUser,
+  type ReviewRequestGroup,
+} from '../services/dataService'
 import type { ModerationGroup, ModerationSeries } from '../types'
 
 interface ModerationState {
@@ -23,6 +30,21 @@ interface ModerationState {
   // Approve is a one-way publish, so it confirms first. Same key scheme; mutually
   // exclusive with rejectTarget so only one prompt is ever open.
   confirmTarget: string
+  // ── Users ──
+  // Every user, not just those with something pending: the Verified toggle has to be
+  // reachable for a creator BEFORE they upload, otherwise it can only ever be granted
+  // reactively, once their work is already sitting in the queue.
+  users: AdminUser[]
+  usersLoading: boolean
+  userSearch: string
+  // The user whose Verified toggle is awaiting confirmation, and which way it would go.
+  verifyTarget: AdminUser | null
+  verifyBusyId: string
+  // ── Review requests ──
+  // Creators appealing an automated rejection. Listed first: someone is waiting on a person,
+  // and unlike the ordinary queue no machine will ever resolve it.
+  requests: ReviewRequestGroup[]
+  requestsLoading: boolean
 }
 
 const getInitialState = (): ModerationState => ({
@@ -35,6 +57,13 @@ const getInitialState = (): ModerationState => ({
   rejectTarget: '',
   rejectReason: '',
   confirmTarget: '',
+  users: [],
+  usersLoading: false,
+  userSearch: '',
+  verifyTarget: null,
+  verifyBusyId: '',
+  requests: [],
+  requestsLoading: false,
 })
 
 const [state, setState] = createStore<ModerationState>(getInitialState())
@@ -137,6 +166,50 @@ export const moderationStoreActions = {
 
   rejectEpisode: (seriesId: string, episodeNumber: number, reason: string) =>
     review('rejectEpisode', { seriesId, episodeNumber, reason }, seriesId),
+
+  loadRequests: async () => {
+    setState({ requestsLoading: true })
+    const result = await fetchReviewRequests()
+    setState({ requests: result.success && result.data ? result.data : [], requestsLoading: false })
+  },
+
+  // ── Users ──
+
+  loadUsers: async () => {
+    setState({ usersLoading: true })
+    const result = await fetchAdminUsers(state.userSearch)
+    setState({ users: result.success && result.data ? result.data : [], usersLoading: false })
+  },
+
+  // Typing filters the list. The search runs server-side (the user table is not something to
+  // ship to the browser in full), debounced by the caller.
+  setUserSearch: (userSearch: string) => {
+    setState({ userSearch })
+    return moderationStoreActions.loadUsers()
+  },
+
+  // Verifying is consequential — it approves everything the creator has waiting and every
+  // future upload — so the toggle asks first.
+  askVerify: (user: AdminUser) => setState({ verifyTarget: user }),
+  cancelVerify: () => setState({ verifyTarget: null }),
+
+  confirmVerify: async () => {
+    const user = state.verifyTarget
+    if (!user) return
+    setState({ verifyBusyId: user._id, verifyTarget: null })
+    const result = await setUserVerified(user._id, !user.verified)
+    if (result.success) {
+      setState('users', (u) => u._id === user._id, 'verified', !user.verified)
+      // Approving a backlog empties part of the queue, so both views are now stale.
+      if (!user.verified) {
+        setState('users', (u) => u._id === user._id, 'pendingCount', 0)
+        await moderationStoreActions.load()
+      }
+    } else {
+      setState({ error: result.error || 'Failed to update the user' })
+    }
+    setState({ verifyBusyId: '' })
+  },
 
   reset: () => setState(getInitialState()),
 }

@@ -888,7 +888,11 @@ export const fetchRevenueData = async (): Promise<{ success: boolean; error?: st
 
 // Shelve/unshelve series
 // skipConfirm: if true, skip the confirmation dialog (used when confirmation is handled by the component)
-export const shelveSeries = async (seriesId: string, skipConfirm: boolean = false): Promise<{ success: boolean; error?: string }> => {
+export const shelveSeries = async (
+  seriesId: string,
+  skipConfirm: boolean = false,
+  shelved?: boolean,
+): Promise<{ success: boolean; error?: string }> => {
   // skipConfirm is now always expected to be true since confirmation is handled by modals in the component
   // Keeping the parameter for backward compatibility
   if (!skipConfirm) {
@@ -896,7 +900,13 @@ export const shelveSeries = async (seriesId: string, skipConfirm: boolean = fals
   }
 
   try {
-    const response = await apiPostWithAuth<Series>('shelveSeries', { seriesId })
+    // Send the state being asked for, not "the opposite of whatever you have". The button
+    // is labelled from the series' derived `shelved`, so a flip on the server can invert the
+    // user's intent when the two disagree.
+    const response = await apiPostWithAuth<Series>('shelveSeries', {
+      seriesId,
+      ...(typeof shelved === 'boolean' ? { shelved } : {}),
+    })
 
     if (response.success && response.data) {
       // Update the series in the list
@@ -1641,7 +1651,14 @@ export const handleShelveClick = (seriesId: string, isShelved: boolean, series: 
 export const confirmShelve = async () => {
   const state = accountStoreActions.getState()
   if (state.pendingShelveSeriesId) {
-    const result = await shelveSeries(state.pendingShelveSeriesId, true)
+    // The dialog was opened from a card whose button read "Shelve" or "Unshelve" based on
+    // the series' derived `shelved`; ask for that, rather than letting the server flip a
+    // different flag.
+    const result = await shelveSeries(
+      state.pendingShelveSeriesId,
+      true,
+      !state.pendingShelveSeries?.shelved,
+    )
     if (!result.success && result.error) {
       toastStoreActions.show(result.error, 'error')
     }

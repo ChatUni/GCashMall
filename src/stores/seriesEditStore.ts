@@ -18,6 +18,10 @@ export interface EpisodeFormData {
   moderationReason?: string
   // True when this episode has an edit already waiting for review.
   hasPendingEdit?: boolean
+  // The video that was rejected. A review can only be requested once a DIFFERENT one is up.
+  rejectedVideoId?: string | null
+  // Set once the creator has asked for a human to look.
+  reviewRequestedAt?: string | Date | null
 }
 
 export interface SeriesFormData {
@@ -46,7 +50,6 @@ interface SeriesEditState {
   saving: boolean
   error: string | null
   success: string | null
-  moderationError: string | null
   uploadProgress: UploadProgress
 }
 
@@ -69,7 +72,6 @@ const getInitialState = (): SeriesEditState => ({
   saving: false,
   error: null,
   success: null,
-  moderationError: null,
   uploadProgress: {
     show: false,
     message: '',
@@ -158,8 +160,6 @@ export const seriesEditStoreActions = {
   setSuccess: (success: string | null) =>
     setSeriesEditState({ success }),
   // Content-moderation rejection message (shown as a dialog, not a toast)
-  setModerationError: (moderationError: string | null) =>
-    setSeriesEditState({ moderationError }),
 
   // Upload progress
   setUploadProgress: (uploadProgress: UploadProgress) =>

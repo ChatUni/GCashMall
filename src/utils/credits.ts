@@ -34,3 +34,31 @@ export const creditsForTopUp = (usd: number, viaStore = false): number => {
   const base = TOPUP_TIERS[usd] ?? toCredits(usd)
   return viaStore ? Math.round(base * STORE_CREDIT_RATE) : base
 }
+
+// ── Bonus ──
+//
+// The tiers are priced just under a round dollar and grant more than the dollar buys, so the
+// extra is a bonus worth naming rather than burying in a single total:
+//
+//     $5.99  ->   600 =   600            (no bonus)
+//     $9.99  -> 1,100 = 1,000 + 100
+//     $19.99 -> 2,300 = 2,000 + 300
+//     $49.99 -> 6,000 = 5,000 + 1,000
+//
+// The base is what the nearest round dollar buys at the standard rate; whatever the tier
+// grants beyond that is the bonus. Derived rather than listed, so a change to TOPUP_TIERS
+// cannot leave a hardcoded bonus behind saying something untrue.
+export interface TopUpBreakdown {
+  base: number
+  bonus: number
+  total: number
+}
+
+export const topUpBreakdown = (usd: number, viaStore = false): TopUpBreakdown => {
+  const total = creditsForTopUp(usd, viaStore)
+  const fullBase = toCredits(Math.round(usd))
+  // A store purchase grants less overall, so its base shrinks in the same proportion —
+  // otherwise the bonus would appear to vanish, or go negative.
+  const base = Math.min(total, viaStore ? Math.round(fullBase * STORE_CREDIT_RATE) : fullBase)
+  return { base, bonus: Math.max(0, total - base), total }
+}

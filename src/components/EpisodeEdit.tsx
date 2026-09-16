@@ -14,6 +14,13 @@ interface EpisodeEditProps {
   moderationStatus?: ModerationStatus
   moderationReason?: string
   hasPendingEdit?: boolean
+  // Added in this editing session and not yet saved — nothing has been submitted, so there
+  // is no review state to show.
+  isNew?: boolean
+  // Appeal state for a rejected episode.
+  rejectedVideoId?: string | null
+  reviewRequestedAt?: string | Date | null
+  onRequestReview?: () => void
   onTitleChange: (title: string) => void
   onVideoChange: (file: File | null, previewUrl: string | null) => void
   onDelete: () => void
@@ -25,12 +32,25 @@ const ReviewState = (props: {
   status?: ModerationStatus
   reason?: string
   hasPendingEdit?: boolean
+  isNew?: boolean
+  rejectedVideoId?: string | null
+  reviewRequestedAt?: string | Date | null
+  videoId?: string
+  onRequestReview?: () => void
 }) => {
+  // Always available on a rejected episode. The rejection deleted the video, so there is
+  // nothing attached to appeal with — requiring one first would make the appeal unreachable.
+  const awaitingHuman = () => !!props.reviewRequestedAt
   // An episode saved before manual moderation existed carries no status. It still has to
   // be reviewed, so treat "no record" as pending rather than showing no badge at all.
   const status = (): ModerationStatus => props.status || 'pending'
 
+  // A newly added episode has nothing submitted — no video, not even saved — so there is
+  // nothing for a reviewer to have an opinion about yet. "Pending review" on an empty slot
+  // reads as though the upload is already with someone, which is the opposite of the truth:
+  // it is waiting on the uploader. The badge appears once the episode has been saved.
   return (
+    <Show when={!props.isNew}>
     <div class="episode-review">
       <span class={`episode-review-chip ${status()}`}>
         {(t().seriesEdit as unknown as Record<string, string>)[`review_${status()}`]}
@@ -44,7 +64,25 @@ const ReviewState = (props: {
           {props.reason}
         </p>
       </Show>
+
+      {/* Appealing an automated rejection. Disabled until the video is replaced, with the
+          reason why — a greyed-out button with no explanation is its own bug report. */}
+      <Show when={status() === 'rejected' && !awaitingHuman()}>
+        <button
+          type="button"
+          class="episode-request-review"
+          onClick={() => props.onRequestReview?.()}
+        >
+          {t().seriesEdit.requestReview}
+        </button>
+        <p class="episode-review-hint">{t().seriesEdit.requestReviewHint}</p>
+      </Show>
+
+      <Show when={awaitingHuman()}>
+        <p class="episode-review-awaiting">{t().seriesEdit.awaitingHumanReview}</p>
+      </Show>
     </div>
+    </Show>
   )
 }
 
@@ -143,6 +181,11 @@ const EpisodeEdit = (props: EpisodeEditProps) => {
         status={props.moderationStatus}
         reason={props.moderationReason}
         hasPendingEdit={props.hasPendingEdit}
+        isNew={props.isNew}
+        rejectedVideoId={props.rejectedVideoId}
+        reviewRequestedAt={props.reviewRequestedAt}
+        videoId={props.videoId}
+        onRequestReview={props.onRequestReview}
       />
     </div>
   )

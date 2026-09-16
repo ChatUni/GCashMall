@@ -17,11 +17,13 @@ import { verifyAppleTransaction } from './appleIAP.js'
 import { verifyGooglePlayTransaction } from './googlePlay.js'
 import { finalizeGUSDOrder, parseGUSDOrderId } from './gusdTopup.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
-import { bunnyEmbedUrl } from './bunny.js'
+import { bunnyEmbedUrl, deleteBunnyVideo } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
 import { toCredits, toUsd, creditsForTopUp } from './credits.js'
 import { findTier, tierCost, normalizeEpisodeSeconds, DEFAULT_TIER_ID } from './videoTiers.js'
+import { verifySignature, dispatchJob } from './jobDispatch.js'
+import { progress as jobQueueProgress, finish as jobQueueFinish } from './jobQueue.js'
 import {
   getChatModel,
   chatTuning,
@@ -335,6 +337,17 @@ const saveSeries = async (body, authHeader) => {
       if (String(existingSeries[0].uploaderId) !== String(userId)) {
         return { success: false, error: 'You are not authorized to edit this series' }
       }
+      // Series Edit is for uploaded series. A Quick Create series is edited through the
+      // Quick Create flow, where episodes are regenerated rather than uploaded; the UI never
+      // offers this route for one (getMySeries filters them out), but the route itself is
+      // reachable by URL, and without this a creator could add arbitrary uploaded video to a
+      // series that is otherwise entirely our own output.
+      if (existingSeries[0].quickCreate) {
+        return {
+          success: false,
+          error: 'This series was created with Quick Create — edit it there instead',
+        }
+      }
       existing = existingSeries[0]
       // Convert _id to ObjectId
       body._id = new ObjectId(body._id)
@@ -350,7 +363,21 @@ const saveSeries = async (body, authHeader) => {
       body.genre = body.genre.map((genreId) => new ObjectId(genreId))
     }
 
-    const result = await save('series', stageSeriesForReview(body, existing))
+    // A verified uploader's work is approved on arrival and never scanned; everyone else's
+    // lands pending, exactly as before, and the automated scan is dispatched to whichever
+    // runtime owns it. The scan is NOT awaited: an upload must not block on it (a
+    // multi-episode series can take far longer than any request may live), which is why the
+    // client no longer polls a moderation gate.
+    const verified = await isVerifiedUploader(userId)
+    const staged = stageSeriesForReview(body, existing, verified)
+    const result = await save('series', staged)
+
+    // Dispatched for every upload, verified or not: the job transcribes each episode for
+    // subtitles as well as checking it, and a trusted creator's videos still need subtitles.
+    // `skipChecks` is what verification actually buys.
+    const seriesId = String(result?.insertedId || result?._id || existing?._id || body._id || '')
+    if (seriesId) await dispatchAutoModeration(seriesId, userId, verified)
+
     return {
       success: true,
       data: result,
@@ -366,18 +393,21 @@ const saveSeries = async (body, authHeader) => {
 // Edited series → the LIVE fields are restored and the submitted values are parked in
 //   `moderation.pending`. That is what keeps the old version public while the new one waits.
 //   An edit that changes nothing reviewable leaves the existing approval alone.
-const stageSeriesForReview = (body, existing) => {
+const stageSeriesForReview = (body, existing, verified = false) => {
   if (!existing) {
-    return {
+    const created = {
       ...body,
       shelvedByUploader: false,
-      shelved: true,
-      moderation: newModeration(MODERATION_PENDING),
+      moderation: initialModeration(verified),
       episodes: (body.episodes || []).map((ep) => ({
         ...ep,
-        moderation: newModeration(MODERATION_PENDING),
+        moderation: initialModeration(verified),
       })),
     }
+    // Derived, never assumed. It used to be hardcoded `shelved: true`, which was right for
+    // an upload awaiting review but wrong for a verified creator's — their work is approved
+    // on arrival, so hardcoding shelved hid it and made verification look broken.
+    return { ...created, shelved: computeShelved(created) }
   }
 
   const proposed = pickFields(body, SERIES_REVIEW_FIELDS)
@@ -394,22 +424,36 @@ const stageSeriesForReview = (body, existing) => {
         ? newModeration(MODERATION_PENDING, proposed)
         : { ...moderationOf(existing), status: MODERATION_PENDING, pending: null, reason: '' }
       : moderationOf(existing),
-    episodes: stageEpisodesForReview(body.episodes || [], existing.episodes || []),
+    episodes: stageEpisodesForReview(body.episodes || [], existing.episodes || [], verified),
   }
   return { ...staged, shelved: computeShelved(staged) }
 }
 
-const stageEpisodesForReview = (submitted, existing) => {
+// Does this episode have a human review outstanding? Such an episode is staged pending, like
+// any other, but is never dispatched to the scanner: the creator has explicitly said the
+// scanner got it wrong, so sending it back for the same automated verdict is a loop.
+const hasReviewRequest = (ep) => !!moderationOf(ep).reviewRequest
+
+const stageEpisodesForReview = (submitted, existing, verified = false) => {
   const byNumber = new Map(existing.map((ep) => [Number(ep.episodeNumber), ep]))
   return submitted.map((ep) => {
     const current = byNumber.get(Number(ep.episodeNumber))
     // A brand-new episode has no live version to protect — it is simply pending.
-    if (!current) return { ...ep, moderation: newModeration(MODERATION_PENDING) }
+    if (!current) return { ...ep, moderation: initialModeration(verified) }
 
     const mod = moderationOf(current)
     const proposed = pickFields(ep, EPISODE_REVIEW_FIELDS)
     if (!hasReviewableChange(current, proposed, EPISODE_REVIEW_FIELDS)) {
       return { ...current, ...ep, ...pickFields(current, EPISODE_REVIEW_FIELDS), moderation: mod }
+    }
+    // A re-upload made specifically to appeal: keep the request, take the new video, and stay
+    // pending for a person rather than going back to the scanner.
+    if (mod.reviewRequest) {
+      return {
+        ...current,
+        ...ep,
+        moderation: { ...mod, status: MODERATION_PENDING, pending: null, reason: mod.reason },
+      }
     }
     // Nothing public to protect → take the edit straight onto the episode, still pending.
     if (!hasLiveVersion(mod)) {
@@ -2316,8 +2360,9 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
         description: body.episodeDescription || '',
         thumbnail: body.thumbnail || body.cover || '',
         videoId,
-        // New episode → waits for an admin, exactly like a manual upload.
-        moderation: newModeration(MODERATION_PENDING),
+        // Quick Create output is auto-approved: it is generated by our own pipeline, so it
+        // is neither content-scanned nor queued for a human.
+        moderation: initialModeration(true),
       })
       series.episodes.sort((a, b) => (a.episodeNumber || 0) - (b.episodeNumber || 0))
       created = true
@@ -2350,10 +2395,11 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
     genre: genreIds,
     uploaderId: new ObjectId(userId),
     quickCreate: true, // published from Quick Create — shown in the Published tab, not Uploaded
-    // Nothing is public until an admin reviews it — see the manual moderation section.
+    // Quick Create output is auto-approved — generated by our own pipeline, so it is neither
+    // content-scanned nor queued for review. `shelved` is still derived (computeShelved)
+    // rather than assumed, so the creator's own Shelve switch keeps working.
     shelvedByUploader: false,
-    shelved: true,
-    moderation: newModeration(MODERATION_PENDING),
+    moderation: initialModeration(true),
     episodes: [
       {
         episodeNumber: episode,
@@ -2361,12 +2407,15 @@ const publishQuickCreateEpisode = async (body, authHeader) => {
         description: body.episodeDescription || '',
         thumbnail: body.thumbnail || body.cover || '',
         videoId,
-        moderation: newModeration(MODERATION_PENDING),
+        moderation: initialModeration(true),
       },
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
   }
+  // Approved on arrival, so this resolves to visible — but derive it rather than hardcode,
+  // so the one rule about what is public stays in one place.
+  seriesDoc.shelved = computeShelved(seriesDoc)
   const result = await save('series', seriesDoc)
   const seriesId = result.insertedId || seriesDoc._id
   await update(
@@ -2487,10 +2536,17 @@ const shelveSeries = async (body, authHeader) => {
       return { success: false, error: 'You are not authorized to modify this series' }
     }
 
-    // Toggle the uploader's own hide switch. Whether the series is actually public is
-    // derived from that plus its moderation state — an unapproved series stays shelved
-    // however this is toggled.
-    const staged = { ...series, shelvedByUploader: !series.shelvedByUploader }
+    // Set the uploader's own hide switch to what they asked for.
+    //
+    // It used to FLIP it, which does the wrong thing whenever the button's label and the
+    // switch disagree — and they disagree exactly when a series is shelved for a reason
+    // other than the uploader's own switch (awaiting review, say). The button then reads
+    // "Unshelve" while flipping the switch ON, so trying to publish buried it further.
+    // The client sends the state it is asking for; the flip remains only as a fallback for
+    // an older client that sends nothing.
+    const desired =
+      typeof body.shelved === 'boolean' ? body.shelved : !series.shelvedByUploader
+    const staged = { ...series, shelvedByUploader: desired }
     const updateData = {
       ...staged,
       shelved: computeShelved(staged),
@@ -3889,6 +3945,12 @@ const validateAddCommentBody = (body) => {
 }
 
 export {
+  requestEpisodeReview,
+  getReviewRequests,
+  getAdminUsers,
+  setUserVerified,
+  jobProgress,
+  jobComplete,
   chargeEpisode,
   retryComposition,
   approveAll,
@@ -3969,7 +4031,6 @@ export {
   suggestDescription,
   getProductionStatus,
   advanceProduction,
-  getModerationStatus,
   verifyGooglePlayPurchase,
   getSharedEpisode,
   deleteProduction,
@@ -4502,7 +4563,426 @@ const hasReviewableChange = (current, next, fields) =>
   fields.some((f) => next[f] !== undefined && JSON.stringify(next[f]) !== JSON.stringify(current[f]))
 
 
+// Dispatch the automated content scan for a series that needs one.
+//
+// Fire-and-forget by design: an upload must never wait on a scan whose length is bounded
+// only by how much video was uploaded. The series is already saved and pending, so a failed
+// dispatch delays review rather than losing the upload — and the job is durably queued
+// before any nudge is attempted (see jobQueue.js).
+//
+// What gets scanned is decided per ITEM, by whether it is awaiting review — not per series.
+//
+// It used to bail on any series carrying the `quickCreate` flag, on the reasoning that our
+// own generated output does not need checking. That conflated two different things: the flag
+// marks how the *series* was created, while what matters is where each *episode's video* came
+// from. Generated episodes are approved on arrival and so are never pending; an uploaded one
+// is. Filtering on pending therefore skips exactly our own output and nothing else, and a
+// series holding both kinds does the right thing for each.
+//
+// The job does two jobs: it CHECKS what is awaiting review, and it TRANSCRIBES every video
+// for subtitles. So "is there anything to do" is not "is anything pending" — a verified
+// creator's episodes arrive approved and still need their subtitles. Gating on pending alone
+// meant their uploads were never processed at all.
+//
+// Dispatch when there is any video to process or anything to decide. The pipeline itself is
+// idempotent, so a job that finds everything already done simply exits.
+const dispatchAutoModeration = async (seriesId, userId, skipChecks = false) => {
+  try {
+    const docs = await get('series', { _id: new ObjectId(String(seriesId)) }, {}, {}, 1)
+    const series = docs?.[0]
+    if (!series) return null
+    // Parked content is not reviewed — see moderateSeries.js.
+    if (series.shelvedByUploader) return null
+    const anythingToDo =
+      moderationOf(series).status === MODERATION_PENDING ||
+      (series.episodes || []).some(
+        (ep) =>
+          !hasReviewRequest(ep) &&
+          (ep.videoId || moderationOf(ep).status === MODERATION_PENDING),
+      )
+    if (!anythingToDo) return null
+
+    return await dispatchJob(
+      'moderateUpload',
+      { seriesId: String(seriesId), userId: String(userId), skipChecks },
+      { key: `moderateUpload:${seriesId}` },
+    )
+  } catch (error) {
+    console.error(`auto-moderation dispatch failed for series ${seriesId}: ${error.message}`)
+    return null
+  }
+}
+
+// ── Auto-moderation job callbacks (called by the worker, not by a user) ──
+//
+// The worker holds no user session; it authenticates with the shared secret, so these two
+// handlers are the only place a non-user caller may record a review decision. Both are
+// idempotent — a retried callback re-applies the same verdict rather than double-counting.
+//
+// Progress arrives per episode as the worker finishes it, so a long multi-episode scan shows
+// movement instead of going quiet for twenty minutes.
+const requireWorker = (body, headers) => {
+  const ok = verifySignature(
+    body,
+    headers?.['x-job-timestamp'] || headers?.['X-Job-Timestamp'],
+    headers?.['x-job-signature'] || headers?.['X-Job-Signature'],
+  )
+  if (!ok) throw new Error('Invalid worker signature')
+}
+
+// One episode (or the series' own text) has been scanned. Apply the verdict.
+//
+// Split from the HTTP handler so the serverless runtime can call it directly: it is already
+// inside the API, so signing a request to itself would be theatre. The worker, which has no
+// session, reaches the same code through jobProgress below.
+export const applyVerdict = async (body) => {
+  if (!body?.jobId || !body?.seriesId) throw new Error('jobId and seriesId are required')
+
+  const docs = await get('series', { _id: new ObjectId(String(body.seriesId)) }, {}, {}, 1)
+  if (!docs || docs.length === 0) return { success: false, error: 'Series not found' }
+  const series = docs[0]
+
+  const approved = body.verdict === 'approved'
+  const decide = (mod) =>
+    approved
+      ? approvedModeration(mod, 'auto-moderation')
+      : {
+          ...mod,
+          status: MODERATION_REJECTED,
+          reason: body.reason || 'Failed the automated content check',
+          reviewedAt: new Date(),
+          reviewedBy: 'auto-moderation',
+          // Which video was judged — an appeal must carry a different one.
+          rejectedVideoId: body.episodeNumber == null ? null : (series.episodes || []).find((e) => Number(e.episodeNumber) === Number(body.episodeNumber))?.videoId || null,
+          reviewRequest: null,
+        }
+
+  if (body.episodeNumber == null) {
+    series.moderation = decide(moderationOf(series))
+    if (approved) Object.assign(series, moderationOf(series).pending || {})
+  } else {
+    series.episodes = (series.episodes || []).map((ep) => {
+      if (Number(ep.episodeNumber) !== Number(body.episodeNumber)) return ep
+      const mod = moderationOf(ep)
+      // The video is kept on a rejection (see reject() in moderateUpload.js), so the episode
+      // keeps its videoId: the creator can watch what was flagged, and a reviewer can too.
+      return { ...ep, ...(approved ? mod.pending || {} : {}), moderation: decide(mod) }
+    })
+  }
+
+  series.shelved = computeShelved(series)
+  series.updatedAt = new Date()
+
+  // Write ONLY the fields this verdict owns, not the whole document.
+  //
+  // A full-document save here is a read-modify-write: everything read at the top of this
+  // function is written back, so a concurrent change to the same series — another episode's
+  // verdict, an uploader's edit, a second worker — is silently reverted to whatever this
+  // request happened to read. That is how a verdict that logged as applied could reappear as
+  // pending moments later.
+  await update(
+    'series',
+    { _id: new ObjectId(String(body.seriesId)) },
+    { $set: { episodes: series.episodes, moderation: series.moderation, shelved: series.shelved, updatedAt: series.updatedAt } },
+  )
+
+  // Tell the uploader. An automated verdict is still a verdict, and a rejection they are
+  // never told about is indistinguishable from their upload quietly vanishing — the manual
+  // review path has always emailed, and this one was silently skipping it.
+  notifyUploader(
+    await loadUploader(series.uploaderId),
+    approved ? sendModerationApprovedEmail : sendModerationRejectedEmail,
+    {
+      seriesName: series.name,
+      episodeNumber: body.episodeNumber == null ? undefined : Number(body.episodeNumber),
+      reason: approved ? '' : body.reason || 'Failed the automated content check',
+      // This verdict came from the scanner, so the email offers the appeal route.
+      automated: true,
+      note:
+        approved && body.episodeNumber != null && Number(body.episodeNumber) > approvedThrough(series.episodes)
+          ? 'It will go live once the earlier episodes in this series are approved too.'
+          : '',
+    },
+  )
+
+  await jobQueueProgress(body.jobId, {
+    episodesDone: Number(body.episodesDone) || 0,
+    episodesTotal: Number(body.episodesTotal) || 0,
+    lastVerdict: body.verdict,
+  }).catch(() => {})
+
+  return { success: true, data: { applied: true } }
+}
+
+// The worker's entry point to the same thing, gated on the shared secret.
+const jobProgress = async (body, authHeader, headers) => {
+  requireWorker(body, headers)
+  return applyVerdict(body)
+}
+
+// The whole scan is over. Recording it closes the job out; the per-episode verdicts have
+// already been applied by jobProgress.
+const jobComplete = async (body, authHeader, headers) => {
+  requireWorker(body, headers)
+  if (!body?.jobId) throw new Error('jobId is required')
+  await jobQueueFinish(body.jobId, body.error ? { error: body.error } : {})
+  if (body.error) console.error(`auto-moderation job ${body.jobId} failed: ${body.error}`)
+  return { success: true, data: { closed: true } }
+}
+
+// ── Review requests (a creator appealing an automated rejection) ──
+//
+// The scanner can be wrong, and a creator has no way to argue with it: resubmitting the same
+// video just earns the same automated verdict. A review request is the escape hatch — replace
+// the video, say why you think the decision was wrong, and a person looks.
+//
+// It is deliberately gated on a NEW video. Appealing without changing anything asks a human to
+// re-examine the exact content a machine already judged, which is how an appeal queue fills up
+// with nothing to decide. `videoId` at request time is recorded so the reviewer can see they
+// are looking at something different from what was rejected.
+const requestEpisodeReview = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body?.seriesId || body.episodeNumber == null) {
+    throw new Error('seriesId and episodeNumber are required')
+  }
+  const reason = String(body.reason || '').trim()
+  if (!reason) return { success: false, error: 'Please say why you think this should be reviewed' }
+
+  const docs = await get('series', { _id: new ObjectId(String(body.seriesId)) }, {}, {}, 1)
+  if (!docs || docs.length === 0) return { success: false, error: 'Series not found' }
+  const series = docs[0]
+  if (String(series.uploaderId) !== String(userId)) return { success: false, error: 'Not authorized' }
+
+  const episode = (series.episodes || []).find(
+    (e) => Number(e.episodeNumber) === Number(body.episodeNumber),
+  )
+  if (!episode) return { success: false, error: 'Episode not found' }
+
+  const mod = moderationOf(episode)
+  if (mod.status !== MODERATION_REJECTED) {
+    return { success: false, error: 'Only a rejected episode can be sent for review' }
+  }
+
+  // Deliberately NOT gated on a replacement video.
+  //
+  // A rejection deletes the video from Bunny, so there is nothing attached to appeal with —
+  // the creator has to re-upload the same file just to have something to show. Requiring a
+  // *different* video (as this once did) made the appeal unreachable: re-uploading triggers
+  // another automated scan, which rejects and deletes it again, leaving the button disabled
+  // forever. The request is an intent recorded ahead of the re-upload; the next save carries
+  // the video and goes straight to a person.
+  const reviewRequest = {
+    reason,
+    videoId: episode.videoId || '',
+    requestedAt: new Date(),
+    requestedBy: String(userId),
+  }
+  const nextEpisodes = (series.episodes || []).map((e) =>
+    Number(e.episodeNumber) === Number(body.episodeNumber)
+      ? { ...e, moderation: { ...moderationOf(e), reviewRequest } }
+      : e,
+  )
+  await update(
+    'series',
+    { _id: new ObjectId(String(body.seriesId)) },
+    { $set: { episodes: nextEpisodes, updatedAt: new Date() } },
+  )
+  return { success: true, data: { requested: true, requestedAt: reviewRequest.requestedAt } }
+}
+
+// Every outstanding appeal, grouped uploader -> series -> episode, like the review queue.
+const getReviewRequests = async (params, authHeader) => {
+  await requireAdmin(authHeader)
+  const all = await get('series', {}, {}, { updatedAt: -1 })
+  const withRequests = all
+    .filter((sx) => !isParked(sx))
+    .map((sx) => ({
+      series: sx,
+      episodes: (sx.episodes || []).filter((e) => moderationOf(e).reviewRequest),
+    }))
+    .filter((x) => x.episodes.length > 0)
+  if (withRequests.length === 0) return { success: true, data: [] }
+
+  const uploaderIds = [...new Set(withRequests.map((x) => String(x.series.uploaderId)).filter(Boolean))]
+  const uploaders = await get('users', {
+    _id: { $in: uploaderIds.map((id) => new ObjectId(id)) },
+  })
+  const byId = new Map(uploaders.map((u) => [String(u._id), u]))
+
+  return {
+    success: true,
+    data: uploaderIds.map((id) => {
+      const user = byId.get(id)
+      return {
+        uploaderId: id,
+        uploaderName: user?.nickname || 'Unknown',
+        uploaderEmail: user?.email || '',
+        uploaderAvatar: user?.avatar || '',
+        series: withRequests
+          .filter((x) => String(x.series.uploaderId) === id)
+          .map((x) => ({
+            _id: String(x.series._id),
+            name: x.series.name,
+            cover: x.series.cover || '',
+            episodes: x.episodes
+              .map((e) => ({
+                episodeNumber: e.episodeNumber,
+                title: e.title || '',
+                videoId: e.videoId || '',
+                rejectedReason: moderationOf(e).reason || '',
+                request: moderationOf(e).reviewRequest,
+              }))
+              .sort((a, b) => a.episodeNumber - b.episodeNumber),
+          })),
+      }
+    }),
+  }
+}
+
+// ── Verified uploaders ──
+//
+// A verified uploader is one an admin has decided to trust. Their uploads skip review
+// entirely: everything they have waiting is approved the moment the toggle is turned on,
+// and everything they upload afterwards is created already approved, with no auto-moderation
+// job dispatched. It is the per-creator escape hatch from a queue that would otherwise grow
+// with every trusted contributor.
+const isVerifiedUploader = async (userId) => {
+  if (!userId) return false
+  const users = await get('users', { _id: new ObjectId(String(userId)) }, {}, {}, 1)
+  return !!users?.[0]?.verified
+}
+
+// The moderation record a new item should be born with, given who is uploading.
+const initialModeration = (verified) =>
+  verified
+    ? { ...newModeration(MODERATION_APPROVED), reviewedAt: new Date(), reviewedBy: 'verified-uploader' }
+    : newModeration(MODERATION_PENDING)
+
+// Approve everything outstanding for one uploader. Used when the Verified toggle is turned
+// on — a creator marked trustworthy should not still be sitting in the queue.
+const approveAllForUploader = async (uploaderId) => {
+  const all = await get('series', { uploaderId: new ObjectId(String(uploaderId)) })
+  let seriesTouched = 0
+  let episodesTouched = 0
+
+  for (const series of all) {
+    let changed = false
+    const mod = moderationOf(series)
+    if (mod.status !== MODERATION_APPROVED) {
+      series.moderation = approvedModeration(mod, 'verified-uploader')
+      Object.assign(series, mod.pending || {})
+      changed = true
+      seriesTouched += 1
+    }
+    series.episodes = (series.episodes || []).map((ep) => {
+      const em = moderationOf(ep)
+      if (em.status === MODERATION_APPROVED) return ep
+      episodesTouched += 1
+      changed = true
+      return { ...ep, ...(em.pending || {}), moderation: approvedModeration(em, 'verified-uploader') }
+    })
+    if (!changed) continue
+    series.shelved = computeShelved(series)
+    series.updatedAt = new Date()
+    await save('series', series)
+  }
+  return { seriesTouched, episodesTouched }
+}
+
+// Approving copies any parked edit onto the live fields and clears it.
+const approvedModeration = (mod, reviewedBy) => ({
+  ...mod,
+  status: MODERATION_APPROVED,
+  reason: '',
+  reviewedAt: new Date(),
+  reviewedBy,
+  pending: null,
+  // A decision answers the appeal, so it leaves the Review Requests list.
+  reviewRequest: null,
+})
+
+// Every user, for the admin moderation page's uploader list. Search matches nickname or
+// email so an admin can find one person in a long list.
+const getAdminUsers = async (params, authHeader) => {
+  await requireAdmin(authHeader)
+  const search = String(params?.search || '').trim()
+  const filter = search
+    ? {
+        $or: [
+          { nickname: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ],
+      }
+    : {}
+  const limit = Math.min(Number(params?.limit) || 200, 500)
+  const users = await get('users', filter, {}, { nickname: 1 }, limit)
+
+  // How much each user still has waiting, so the list doubles as the queue's index.
+  const ids = users.map((u) => u._id)
+  const theirSeries = await get('series', { uploaderId: { $in: ids } })
+  const pendingByUploader = new Map()
+  for (const s of theirSeries) {
+    // Parked series are not in the queue, so they must not be in its counts either.
+    if (isParked(s)) continue
+    const key = String(s.uploaderId)
+    const n =
+      (needsSeriesReview(s) ? 1 : 0) + (s.episodes || []).filter(needsEpisodeReview).length
+    if (n > 0) pendingByUploader.set(key, (pendingByUploader.get(key) || 0) + n)
+  }
+
+  return {
+    success: true,
+    data: users.map((u) => ({
+      _id: String(u._id),
+      nickname: u.nickname || 'Guest',
+      email: u.email || '',
+      avatar: u.avatar || '',
+      verified: !!u.verified,
+      isAdmin: !!u.isAdmin,
+      pendingCount: pendingByUploader.get(String(u._id)) || 0,
+    })),
+  }
+}
+
+// Turn an uploader's Verified flag on or off. Turning it ON also clears whatever they have
+// waiting, so the toggle means the same thing for old and new content.
+const setUserVerified = async (body, authHeader) => {
+  const adminId = await requireAdmin(authHeader)
+  if (!body || !body.userId) throw new Error('userId is required')
+  const verified = !!body.verified
+
+  const users = await get('users', { _id: new ObjectId(String(body.userId)) }, {}, {}, 1)
+  if (!users || users.length === 0) return { success: false, error: 'User not found' }
+
+  await update(
+    'users',
+    { _id: new ObjectId(String(body.userId)) },
+    {
+      $set: {
+        verified,
+        verifiedAt: verified ? new Date() : null,
+        verifiedBy: verified ? String(adminId) : null,
+        updatedAt: new Date(),
+      },
+    },
+  )
+
+  // Un-verifying does NOT retract approvals already granted — content that is live stays
+  // live. It only means future uploads are reviewed again.
+  const swept = verified ? await approveAllForUploader(body.userId) : { seriesTouched: 0, episodesTouched: 0 }
+
+  return { success: true, data: { userId: String(body.userId), verified, ...swept } }
+}
+
 // ── Moderation queue + review actions (admin only) ──
+
+// Parked by its uploader or an admin. Such a series is skipped by the sweep, by dispatch and
+// by the pipeline, so it must be skipped by the review queue too — listing work that nothing
+// will ever act on is how a queue stops meaning anything.
+//
+// `shelvedByUploader`, not the derived `shelved`: the latter is true for everything awaiting
+// review, so filtering on it would empty the queue entirely.
+const isParked = (series) => !!series.shelvedByUploader
 
 // Anything an admin still has to look at: series details awaiting review, or any episode
 // awaiting review. Rejected items stay out of the queue until the uploader resubmits.
@@ -4518,8 +4998,11 @@ const getModerationQueue = async (params, authHeader) => {
   try {
     const all = await get('series', {}, {}, { updatedAt: -1 })
     const relevant = all.filter(
-      (s) => needsAnyReview(s) || moderationOf(s).status === MODERATION_REJECTED ||
-        (s.episodes || []).some((ep) => moderationOf(ep).status === MODERATION_REJECTED),
+      (s) =>
+        !isParked(s) &&
+        (needsAnyReview(s) ||
+          moderationOf(s).status === MODERATION_REJECTED ||
+          (s.episodes || []).some((ep) => moderationOf(ep).status === MODERATION_REJECTED)),
     )
     if (relevant.length === 0) return { success: true, data: [] }
 
@@ -4708,7 +5191,7 @@ const approveAll = async (body, authHeader) => {
     const series = await loadSeriesForReview(body.seriesId)
     const reviewedAt = new Date()
     const reviewedBy = new ObjectId(adminId)
-    const approve = () => ({ ...newModeration(MODERATION_APPROVED), reviewedAt, reviewedBy })
+    const approve = () => ({ ...newModeration(MODERATION_APPROVED), reviewedAt, reviewedBy, reviewRequest: null })
 
     const seriesMod = moderationOf(series)
     const seriesWasPending = seriesMod.status !== MODERATION_APPROVED
@@ -4760,13 +5243,36 @@ const reviewEpisode = async (body, authHeader, status) => {
   const applied =
     status === MODERATION_APPROVED && mod.pending ? { ...current, ...mod.pending } : current
 
+  // A person has now decided, and a person's rejection is final — so the video goes.
+  //
+  // An automated rejection deliberately keeps it, because a machine's verdict has to stay
+  // reviewable and the reviewer needs something to watch. Once a human has confirmed, neither
+  // holds: there is no further appeal, and keeping rejected footage is just storage.
+  if (status === MODERATION_REJECTED && current.videoId) {
+    await deleteBunnyVideo(current.videoId).catch((e) =>
+      console.error(`[moderation] deleting rejected video failed: ${e.message}`),
+    )
+  }
+
   const nextEpisodes = episodes.slice()
   nextEpisodes[idx] = {
     ...applied,
+    // The file is gone, so the reference goes with it — otherwise the edit page renders a
+    // player for a video that 404s.
+    ...(status === MODERATION_REJECTED ? { videoId: '' } : {}),
     moderation:
       status === MODERATION_APPROVED
         ? { ...newModeration(MODERATION_APPROVED), reviewedAt: new Date(), reviewedBy: new ObjectId(adminId) }
-        : { ...mod, status, reason, reviewedAt: new Date(), reviewedBy: new ObjectId(adminId) },
+        : {
+            ...mod,
+            status,
+            reason,
+            reviewedAt: new Date(),
+            reviewedBy: new ObjectId(adminId),
+            // A human has now looked, which is what the appeal asked for — answered either way.
+            reviewRequest: null,
+            rejectedVideoId: status === MODERATION_REJECTED ? current.videoId || null : null,
+          },
   }
 
   const saved = await saveReviewedSeries({ ...series, episodes: nextEpisodes })
@@ -5240,25 +5746,6 @@ const advanceProduction = async (body, authHeader) => {
   return { success: true, data: { triggered: true } }
 }
 
-// Status of an uploaded video's content-moderation job (transcribe + text/frame checks).
-// Polled by the upload flow, which won't publish an episode until it reads 'approved'.
-const getModerationStatus = async (params, authHeader) => {
-  await validateAuth(authHeader)
-  if (!params || !params.videoId) throw new Error('videoId is required')
-  const docs = await get('videoModeration', { videoId: params.videoId }, {}, {}, 1)
-  if (!docs || docs.length === 0) return { success: true, data: { status: 'pending', progress: 0 } }
-  const m = docs[0]
-  return {
-    success: true,
-    data: {
-      status: m.status || 'processing',
-      stage: m.stage || '',
-      progress: m.progress || 0,
-      reason: m.reason || '',
-      categories: m.categories || [],
-    },
-  }
-}
 
 // Charge for + unlock the generation of episode N from an existing production. Idempotent:
 // once a (paid) episode-N production exists for this series/production group, we reuse it

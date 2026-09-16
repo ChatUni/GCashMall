@@ -1,3 +1,4 @@
+import { track } from './jobTiming.js'
 // OpenAI omni-moderation-latest wrappers — one model handles both text and images.
 // Returns { flagged, categories } where categories lists the tripped category names.
 
@@ -35,7 +36,9 @@ const summarize = (results) => ({
 })
 
 // Moderate a block of text (e.g. the episode's transcript).
-export const moderateText = async (text) => {
+export const moderateText = async (text) => track('api', () => moderateTextInner(text))
+
+const moderateTextInner = async (text) => {
   const clean = String(text || '').trim()
   if (!clean) return { flagged: false, categories: [] }
   // omni-moderation accepts long text; cap to keep the request reasonable.
@@ -46,11 +49,20 @@ export const moderateText = async (text) => {
 // omni-moderation endpoint accepts only ONE image per request, so we fire the batch as
 // CONCURRENT single-image requests and aggregate — parallelism keeps it fast while the
 // caller still extracts + checks in bounded batches and can reject early.
-export const moderateImages = async (images) => {
+export const moderateImages = async (images) => track('api', () => moderateImagesInner(images))
+
+const moderateImagesInner = async (images) => {
   const list = (images || []).filter(Boolean)
   if (list.length === 0) return { flagged: false, categories: [] }
+  // One request per image, so a flag can be attributed to the image that caused it. Summing
+  // them into a single verdict loses that — and "a frame in this batch was violent" is not
+  // something a reviewer or an uploader can act on.
   const results = await Promise.all(
     list.map((url) => callModeration([{ type: 'image_url', image_url: { url } }])),
   )
-  return summarize(results.flat())
+  const flaggedIndexes = results
+    .map((r, i) => ({ i, flagged: summarize(r).flagged }))
+    .filter((x) => x.flagged)
+    .map((x) => x.i)
+  return { ...summarize(results.flat()), flaggedIndexes }
 }

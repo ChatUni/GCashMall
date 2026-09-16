@@ -13,7 +13,7 @@ import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
 import { t } from '../../stores/languageStore'
-import { toUsd, formatCredits, creditsForTopUp } from '../../utils/credits'
+import { toUsd, formatCredits, creditsForTopUp, topUpBreakdown } from '../../utils/credits'
 import { languageStore, languageStoreActions } from '../../stores/languageStore'
 import type { Language } from '../../i18n'
 import {
@@ -526,6 +526,12 @@ const PhoneWalletSection = () => {
                   ? amount
                   : creditsForTopUp(amount, isIOS() || isAndroid())
               const usd = () => (accountStore.walletTab === 'withdraw' ? toUsd(amount) : amount)
+              // Tiers grant more than the dollar buys; show the extra as a bonus rather than
+              // folding it into one number, so the better value is legible.
+              const split = () =>
+                accountStore.walletTab === 'topup'
+                  ? topUpBreakdown(amount, isIOS() || isAndroid())
+                  : null
               const blocked = () =>
                 accountStore.walletTab === 'withdraw' && credits() > maxWithdraw()
               return (
@@ -537,7 +543,17 @@ const PhoneWalletSection = () => {
                   disabled={blocked()}
                 >
                   <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt={wallet().creditsLabel} class="phone-amount-logo" />
-                  <span>{formatCredits(credits())}</span>
+                  <Show
+                    when={split() && split()!.bonus > 0}
+                    fallback={<span>{formatCredits(credits())}</span>}
+                  >
+                    <span>
+                      {formatCredits(split()!.base)}
+                      <span class="phone-amount-bonus">
+                        + {formatCredits(split()!.bonus)} {wallet().bonusLabel}
+                      </span>
+                    </span>
+                  </Show>
                   <span class="phone-amount-usd">${usd().toFixed(2)}</span>
                 </button>
               )

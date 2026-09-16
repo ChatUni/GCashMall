@@ -759,6 +759,59 @@ export const retryComposition = async (
 ): Promise<{ success: boolean; data?: { retried: boolean }; error?: string }> =>
   apiPostWithAuth<{ retried: boolean }>('retryComposition', { jobId })
 
+export interface AdminUser {
+  _id: string
+  nickname: string
+  email: string
+  avatar: string
+  verified: boolean
+  isAdmin: boolean
+  pendingCount: number
+}
+
+// Every user, for the moderation page's uploader list. `search` matches nickname or email.
+export const fetchAdminUsers = async (
+  search: string,
+): Promise<{ success: boolean; data?: AdminUser[]; error?: string }> =>
+  apiGetWithAuth<AdminUser[]>('adminUsers', search ? { search } : {})
+
+// Mark an uploader trusted (or not). Turning it on also approves everything they have
+// waiting, so the flag means the same for existing and future uploads.
+export const setUserVerified = async (
+  userId: string,
+  verified: boolean,
+): Promise<{ success: boolean; data?: { seriesTouched: number; episodesTouched: number }; error?: string }> =>
+  apiPostWithAuth('setUserVerified', { userId, verified })
+
+// Ask a person to look at an episode an automated scan rejected. Only accepted once a
+// different video has been uploaded — see requestEpisodeReview in handlers.js.
+export const requestEpisodeReview = async (
+  seriesId: string,
+  episodeNumber: number,
+  reason: string,
+): Promise<{ success: boolean; error?: string }> =>
+  apiPostWithAuth('requestEpisodeReview', { seriesId, episodeNumber, reason })
+
+export interface ReviewRequestEpisode {
+  episodeNumber: number
+  title: string
+  videoId: string
+  rejectedReason: string
+  request: { reason: string; videoId: string; requestedAt: string }
+}
+export interface ReviewRequestGroup {
+  uploaderId: string
+  uploaderName: string
+  uploaderEmail: string
+  uploaderAvatar: string
+  series: { _id: string; name: string; cover: string; episodes: ReviewRequestEpisode[] }[]
+}
+export const fetchReviewRequests = async (): Promise<{
+  success: boolean
+  data?: ReviewRequestGroup[]
+  error?: string
+}> => apiGetWithAuth<ReviewRequestGroup[]>('reviewRequests')
+
 // Delete a Quick Create production (the job doc). Does not delete a published series.
 export const deleteProduction = async (jobId: string): Promise<void> => {
   const result = await apiDeleteWithAuth<{ deleted: boolean }>('production', { jobId })
@@ -1053,34 +1106,6 @@ export const uploadVideoDirectly = async (
   if (!response.ok) {
     throw new Error(`Failed to upload video: ${response.statusText}`)
   }
-}
-
-// Kick off content moderation for a freshly-uploaded video (transcribe + text/frame
-// checks). Responds 202; poll fetchModerationStatus until it's approved or rejected.
-export const startUploadModeration = async (videoId: string): Promise<void> => {
-  const base = getApiBaseUrl()
-  const token = localStorage.getItem('gcashmall_token')
-  await fetch(`${base}/.netlify/functions/moderate-upload-background`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ videoId }),
-  })
-}
-
-export interface ModerationStatus {
-  status: 'pending' | 'processing' | 'approved' | 'rejected'
-  stage?: string
-  progress?: number
-  reason?: string
-  categories?: string[]
-}
-export const fetchModerationStatus = async (videoId: string): Promise<ModerationStatus> => {
-  const result = await apiGetWithAuth<ModerationStatus>('moderationStatus', { videoId })
-  if (result.success && result.data) return result.data
-  return { status: 'processing', progress: 0 }
 }
 
 export const deleteVideo = async (videoId: string) => {

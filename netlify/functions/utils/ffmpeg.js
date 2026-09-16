@@ -2,13 +2,48 @@
 // (+ optional background music) onto silent shot videos and concatenating shots into
 // one episode video.
 
-import ffmpegPath from 'ffmpeg-static'
+import ffmpegStaticPath from 'ffmpeg-static'
 import { spawn } from 'node:child_process'
+import { track } from './jobTiming.js'
 import fs from 'node:fs'
 
-const run = (args) =>
+// How many threads ffmpeg may use. Unset (the default) means ffmpeg decides, which is every
+// core — right for a Netlify function, where one invocation has the machine to itself.
+//
+// It is wrong for the worker, where several moderation jobs run at once: uncapped, a single
+// job saturates the box and the others just contend with it. Measured on a 10-core machine,
+// three 1080p decode passes:
+//
+//   threads=auto   3.50s wall,  19.5s CPU   (5.6 cores busy)
+//   threads=2      8.24s wall,  15.5s CPU   (1.9 cores busy)
+//   threads=4      4.43s wall,  15.9s CPU   (3.6 cores busy)
+//
+// Total CPU is roughly flat — capping does not waste work, it spreads it — and `auto` in fact
+// burns ~25% more CPU on threading overhead. So N capped jobs in parallel get the same
+// throughput as one uncapped job, but no single job can monopolise the instance.
+//
+// Set FFMPEG_THREADS on the worker (services/worker.env); leave it unset everywhere else.
+// Which ffmpeg to run.
+//
+// ffmpeg-static ships a statically linked binary, which is right on a laptop and a Netlify
+// function but breaks in a container: it cannot use glibc name resolution, so every remote
+// input dies with "Failed to resolve hostname ...: System error" even though Node's own fetch
+// to the same host succeeds. The image therefore installs the distro build and points
+// FFMPEG_PATH at it.
+const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStaticPath
+
+const threadArgs = () => {
+  const n = Number(process.env.FFMPEG_THREADS)
+  return Number.isFinite(n) && n > 0 ? ['-threads', String(Math.floor(n))] : []
+}
+
+// Every ffmpeg call is CPU work this process is doing, so it lands in the `cpu` bucket —
+// which is what makes a job's idle share meaningful (see jobTiming.js).
+const run = (args) => track('cpu', () => spawnFfmpeg(args))
+
+const spawnFfmpeg = (args) =>
   new Promise((resolve, reject) => {
-    const proc = spawn(ffmpegPath, ['-y', ...args], { stdio: ['ignore', 'ignore', 'pipe'] })
+    const proc = spawn(ffmpegPath, ['-y', ...threadArgs(), ...args], { stdio: ['ignore', 'ignore', 'pipe'] })
     let err = ''
     proc.stderr.on('data', (d) => {
       err += d.toString()

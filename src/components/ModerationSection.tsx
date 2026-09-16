@@ -20,6 +20,7 @@ import {
   orderedSeries,
 } from '../stores/moderationStore'
 import { getIframeUrl } from '../utils/playerHelpers'
+import type { AdminUser, ReviewRequestGroup } from '../services/dataService'
 import type { ModerationEpisode, ModerationSeries, ModerationGroup } from '../types'
 import './ModerationSection.css'
 
@@ -356,8 +357,207 @@ const UploaderGroup = (props: { group: ModerationGroup }) => {
   )
 }
 
+// ── Review requests ──
+//
+// A creator appealing an automated rejection, after replacing the video. Listed above the
+// ordinary queue because nothing else will ever resolve these: the scanner has already had
+// its say, and only a person can answer.
+const RequestedEpisode = (props: { seriesId: string; episode: ReviewRequestGroup['series'][number]['episodes'][number] }) => (
+  <div class="mod-request-episode">
+    <div class="mod-request-head">
+      <span class="mod-request-ep">
+        {m().episodeWord} {String(props.episode.episodeNumber).padStart(2, '0')}
+        {props.episode.title ? ` · ${props.episode.title}` : ''}
+      </span>
+      <span class="mod-pill rejected">{m().status_rejected}</span>
+    </div>
+    <p class="mod-request-line">
+      <span class="mod-request-label">{m().machineSaid}</span>
+      {props.episode.rejectedReason}
+    </p>
+    <p class="mod-request-line creator">
+      <span class="mod-request-label">{m().creatorSaid}</span>
+      {props.episode.request.reason}
+    </p>
+    <Show when={props.episode.videoId}>
+      <div class="mod-video">
+        <iframe
+          src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, props.episode.videoId)}
+          allowfullscreen
+          title={props.episode.title}
+        />
+      </div>
+    </Show>
+    <div class="mod-actions">
+      <button
+        class="mod-btn primary"
+        disabled={isBusy(props.seriesId)}
+        onClick={() => actions.approveEpisode(props.seriesId, props.episode.episodeNumber)}
+      >
+        {m().approveEpisode}
+      </button>
+      <button
+        class="mod-btn ghost"
+        onClick={() => actions.openReject(rejectKey(props.seriesId, props.episode.episodeNumber))}
+      >
+        {m().reject}
+      </button>
+    </div>
+    <RejectForm
+      target={rejectKey(props.seriesId, props.episode.episodeNumber)}
+      onConfirm={(reason) => actions.rejectEpisode(props.seriesId, props.episode.episodeNumber, reason)}
+    />
+  </div>
+)
+
+const ReviewRequestsPanel = () => (
+  <Show when={moderationStore.requests.length > 0}>
+    <section class="mod-requests">
+      <div class="mod-users-head">
+        <h2 class="mod-users-title">{m().requestsTitle}</h2>
+      </div>
+      <p class="mod-users-hint">{m().requestsHint}</p>
+      <For each={moderationStore.requests}>
+        {(group) => (
+          <div class="mod-request-group">
+            <div class="mod-group-head static">
+              <img class="mod-user-avatar" src={group.uploaderAvatar || '/img/default-avatar.png'} alt="" />
+              <div class="mod-user-id">
+                <span class="mod-user-name">{group.uploaderName}</span>
+                <span class="mod-user-email">{group.uploaderEmail}</span>
+              </div>
+            </div>
+            <For each={group.series}>
+              {(sx) => (
+                <div class="mod-request-series">
+                  <h3 class="mod-request-series-name">{sx.name}</h3>
+                  <For each={sx.episodes}>
+                    {(ep) => <RequestedEpisode seriesId={sx._id} episode={ep} />}
+                  </For>
+                </div>
+              )}
+            </For>
+          </div>
+        )}
+      </For>
+    </section>
+  </Show>
+)
+
+// ── Users ──
+//
+// Every user is listed, not only those with something in the queue: verifying a creator has
+// to be possible BEFORE they upload, or the flag could only ever be granted after their work
+// is already waiting. Search runs server-side — the user table is not something to ship to
+// the browser whole.
+const UserRow = (props: { user: AdminUser }) => (
+  <div class={`mod-user ${props.user.verified ? 'verified' : ''}`}>
+    <img
+      class="mod-user-avatar"
+      src={props.user.avatar || '/img/default-avatar.png'}
+      alt=""
+      onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
+    />
+    <div class="mod-user-id">
+      <span class="mod-user-name">
+        {props.user.nickname}
+        <Show when={props.user.isAdmin}>
+          <span class="mod-user-tag admin">{m().adminTag}</span>
+        </Show>
+      </span>
+      <span class="mod-user-email">{props.user.email}</span>
+    </div>
+    <Show when={props.user.pendingCount > 0}>
+      <span class="mod-user-pending">{m().pendingCount.replace('{n}', String(props.user.pendingCount))}</span>
+    </Show>
+    <label class="mod-toggle-wrap">
+      <span class="mod-toggle-label">{m().verified}</span>
+      <button
+        class={`mod-toggle ${props.user.verified ? 'on' : ''}`}
+        role="switch"
+        aria-checked={props.user.verified}
+        aria-label={m().verified}
+        disabled={moderationStore.verifyBusyId === props.user._id}
+        onClick={() => actions.askVerify(props.user)}
+      >
+        <span class="mod-toggle-knob" />
+      </button>
+    </label>
+  </div>
+)
+
+// Verifying approves the creator's whole backlog and every future upload, so it confirms.
+const VerifyConfirm = () => (
+  <Show when={moderationStore.verifyTarget}>
+    <div class="mod-modal-overlay" onClick={actions.cancelVerify}>
+      <div class="mod-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 class="mod-modal-title">
+          {moderationStore.verifyTarget!.verified ? m().unverifyTitle : m().verifyTitle}
+        </h3>
+        <p class="mod-modal-body">
+          {(moderationStore.verifyTarget!.verified ? m().unverifyBody : m().verifyBody).replace(
+            '{name}',
+            moderationStore.verifyTarget!.nickname,
+          )}
+        </p>
+        <div class="mod-modal-actions">
+          <button class="mod-btn ghost" onClick={actions.cancelVerify}>{m().cancel}</button>
+          <button
+            class={`mod-btn ${moderationStore.verifyTarget!.verified ? 'danger' : 'primary'}`}
+            onClick={() => actions.confirmVerify()}
+          >
+            {moderationStore.verifyTarget!.verified ? m().unverifyConfirm : m().verifyConfirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Show>
+)
+
+const UsersPanel = () => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  // Debounced so a filter runs once the typing pauses, not once per keystroke.
+  const onSearch = (value: string) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => actions.setUserSearch(value), 250)
+  }
+
+  return (
+    <section class="mod-users">
+      <div class="mod-users-head">
+        <h2 class="mod-users-title">{m().usersTitle}</h2>
+        <input
+          class="mod-users-search"
+          type="search"
+          placeholder={m().searchUsers}
+          onInput={(e) => onSearch(e.currentTarget.value)}
+        />
+      </div>
+      <p class="mod-users-hint">{m().verifiedHint}</p>
+
+      <Show
+        when={!moderationStore.usersLoading}
+        fallback={<div class="mod-loading">{m().loading}</div>}
+      >
+        <Show
+          when={moderationStore.users.length > 0}
+          fallback={<div class="mod-empty-state">{m().noUsers}</div>}
+        >
+          <div class="mod-user-list">
+            <For each={moderationStore.users}>{(user) => <UserRow user={user} />}</For>
+          </div>
+        </Show>
+      </Show>
+    </section>
+  )
+}
+
 const ModerationSection = () => {
-  onMount(() => actions.load())
+  onMount(() => {
+    actions.load()
+    actions.loadUsers()
+    actions.loadRequests()
+  })
 
   return (
     <div class="content-section moderation-section">
@@ -370,6 +570,8 @@ const ModerationSection = () => {
         <p class="mod-error">{moderationStore.error}</p>
       </Show>
 
+      <ReviewRequestsPanel />
+
       <Show
         when={!moderationStore.loading}
         fallback={<div class="mod-loading">{m().loading}</div>}
@@ -381,6 +583,9 @@ const ModerationSection = () => {
           <For each={moderationStore.groups}>{(group) => <UploaderGroup group={group} />}</For>
         </Show>
       </Show>
+
+      <UsersPanel />
+      <VerifyConfirm />
     </div>
   )
 }
