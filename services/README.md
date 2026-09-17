@@ -213,6 +213,22 @@ Inbound 8080 should be reachable only by Netlify, or fronted by an ALB with TLS.
 endpoint verifies its HMAC and is useless without the secret, but there is no reason to
 expose it broadly. `/health` is unauthenticated by design.
 
+### The shared secret
+
+Nothing generates `WORKER_SHARED_SECRET` for you. Make one:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Put the same value in **two** places — Netlify's environment and the instance's
+`services/worker.env`. It signs both directions of the link, and the worker's callbacks are
+the only path by which something that is not a signed-in user can record a moderation
+decision, so it is as sensitive as a database password.
+
+Generate a **different** one for production. The value in the local `.env` was created for
+development and has been read and written by test scripts all over this repo.
+
 ### Environment
 
 | Where | Variable | Purpose |

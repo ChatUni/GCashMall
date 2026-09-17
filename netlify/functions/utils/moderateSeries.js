@@ -45,6 +45,11 @@ export const moderateSeriesContent = async (
   if (!docs || docs.length === 0) throw new Error(`series ${seriesId} not found`)
   const series = docs[0]
 
+  // Every log line in this function is prefixed with it, including the earliest ones, so it
+  // is declared at the top. Declared lower down it is a TDZ error, which failed every job
+  // before any work ran.
+  const tag = `[${series.name || String(seriesId).slice(0, 8)}]`
+
   // Parked by its uploader or an admin: reviewing content nobody intends to publish spends
   // money to fill a queue. Checked here as well as in the sweep, because a series can be
   // hidden after its job was queued.
@@ -52,7 +57,7 @@ export const moderateSeriesContent = async (
   // `shelvedByUploader`, not the derived `shelved` — the latter is true for everything
   // awaiting review, which is what awaiting review means.
   if (series.shelvedByUploader) {
-    console.log(`${ts()} [${series.name || seriesId}] shelved by its uploader — skipping review`)
+    console.log(`${ts()} ${tag} shelved by its uploader — skipping review`)
     return { decided: [], incomplete: false, remaining: 0, waitingOnEncode: 0, skipped: 'shelved' }
   }
 
@@ -97,7 +102,7 @@ export const moderateSeriesContent = async (
   const decidable = withVideo.filter((ep) => isPending(ep) && !ep.moderation?.reviewRequest)
   if (appealed.length) {
     console.log(
-      `${ts()} [${series.name || seriesId}] skipping ${appealed.length} episode(s) awaiting human review: ` +
+      `${ts()} ${tag} skipping ${appealed.length} episode(s) awaiting human review: ` +
         appealed.map((e) => `ep${e.episodeNumber}`).join(', '),
     )
   }
@@ -116,7 +121,7 @@ export const moderateSeriesContent = async (
   const toProcess = [...decidable, ...subtitleBudget]
   const seriesTextPending = isPending(series)
   console.log(
-    `${ts()} [${series.name || seriesId}] ${decidable.length} to decide` +
+    `${ts()} ${tag} ${decidable.length} to decide` +
       (decidable.length ? ` (${decidable.map((e) => `ep${e.episodeNumber}`).join(', ')})` : '') +
       `, ${subtitleBudget.length} for subtitles${subtitlesDeferred ? `, ${subtitlesDeferred} deferred` : ''}`,
   )
@@ -140,7 +145,6 @@ export const moderateSeriesContent = async (
     return ep?.title ? ` "${ep.title}"` : ''
   }
   const label = (n) => (n === null ? 'series text' : `episode ${n}${titleOf(n)}`)
-  const tag = `[${series.name || String(seriesId).slice(0, 8)}]`
   const emit = async (episodeNumber, verdict, reason, startedAt) => {
     done += 1
     decided.push({ episodeNumber, verdict })

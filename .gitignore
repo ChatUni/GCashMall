@@ -51,3 +51,7 @@ fastlane/*.json
 # App Store Connect API key
 fastlane/*.p8
 fastlane/certs/
+
+# The worker's live credentials. Only the .example belongs in the repo.
+services/worker.env
+SECURITY-TODO.md

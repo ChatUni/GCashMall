@@ -12,15 +12,10 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    environment:
-      # Where to call back to. Everything else the pipeline needs (Mongo, OpenAI, Bunny)
-      # comes from the env file below.
-      API_URL: ${API_URL}
-      WORKER_SHARED_SECRET: ${WORKER_SHARED_SECRET}
-      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
-      WORKER_POLL_MS: ${WORKER_POLL_MS:-15000}
-      FFMPEG_THREADS: ${FFMPEG_THREADS:-2}
-      NODE_ENV: production
+    # Every value comes from worker.env. Do NOT add an `environment:` block with ${VAR}
+    # interpolation: those resolve from the shell, not from env_file, and `environment:`
+    # overrides `env_file` — so an unset shell var silently blanks a value that worker.env
+    # had set correctly. API_URL and WORKER_SHARED_SECRET were both blanked this way.
     env_file:
       - ./worker.env
     logging:
