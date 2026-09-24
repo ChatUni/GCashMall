@@ -39,6 +39,21 @@ sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-
 
 Confirm with `docker ps` (no sudo) and `docker-compose version` before continuing.
 
+`docker-compose up --build` also needs buildx, which the AMI does not ship — without it the
+build stops at `compose build requires buildx 0.17.0 or later`:
+
+```bash
+sudo dnf install -y docker-buildx-plugin || {
+  BUILDX_VER=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest \
+    | grep -m1 '"tag_name"' | cut -d'"' -f4)
+  mkdir -p ~/.docker/cli-plugins
+  curl -sSL "https://github.com/docker/buildx/releases/download/${BUILDX_VER}/buildx-${BUILDX_VER}.linux-amd64" \
+       -o ~/.docker/cli-plugins/docker-buildx
+  chmod +x ~/.docker/cli-plugins/docker-buildx
+}
+docker buildx version
+```
+
 Amazon Linux 2023 ships Docker already installed on some AMIs — `dnf` will say so and the
 install is still correct to run.
 
@@ -125,6 +140,18 @@ it finishes the job in flight; killed outright, that job stays claimed and canno
 for up to 30 minutes.
 
 To update: pull (or receive) the new code, then `docker-compose up -d --build`.
+
+Copy files onto the instance by hand only as a last resort. A hand-edited tracked file makes
+the checkout diverge, and the next `git pull` refuses with *"local changes would be
+overwritten"*. If that happens, `git checkout -- <file>` (the repo is authoritative) then pull.
+`worker.env` is untracked and is never affected.
+
+After a rebuild, check that the new container is actually the one running — a build that
+changed nothing leaves the old one up, and the symptom is the fix appearing to have no effect:
+
+```bash
+docker-compose logs --tail 5 moderation-worker   # the runner id changes when recreated
+```
 
 ## Sizing
 
