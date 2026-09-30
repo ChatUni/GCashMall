@@ -103,9 +103,10 @@
   background: #2563EB;
 }
 
-/* Safe area support */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .phone-home-feed {
-    padding-top: env(safe-area-inset-top);
-  }
-}
+/* Safe area support
+ *
+ * The feed itself is deliberately NOT inset — it runs edge to edge under the status bar, which
+ * is the whole point of a full-bleed video feed. Padding it down by the inset left a strip
+ * above the video and pushed every 100dvh card past the bottom of the screen. The overlay
+ * controls carry their own safe-area offsets (see VideoCard.css) so nothing lands under the
+ * status bar or the home indicator. */

@@ -11,6 +11,15 @@
   box-sizing: border-box;
 }
 
+/* The webview runs edge to edge (viewport-fit=cover) and <body> no longer carries a top
+   inset, so this header clears the status bar itself. */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .top-bar {
+    height: calc(60px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 .top-bar-content {
   display: flex;
   align-items: center;

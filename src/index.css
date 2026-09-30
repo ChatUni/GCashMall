@@ -162,10 +162,15 @@ select option {
   }
 }
 
-/* Safe area insets for notched devices */
-@supports (padding-top: env(safe-area-inset-top)) {
+/* Safe area insets for notched devices
+ *
+ * No padding-top here. With viewport-fit=cover the webview runs under the status bar, and a
+ * global top inset on <body> paints that strip in the page background — a white band over the
+ * full-bleed video feed, which is fixed to the viewport and cannot sit above it. Each piece of
+ * chrome carries its own top inset instead: .phone-layout, .phone-header, .phone-nav-bar and
+ * .top-bar. Horizontal insets stay, since nothing else accounts for them in landscape. */
+@supports (padding-left: env(safe-area-inset-left)) {
   body {
-    padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }

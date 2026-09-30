@@ -42,7 +42,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--c-bg);
+  /* Black, not the page background: this layer sits behind the video inside a full-bleed
+     black feed, so the light-theme page colour showed through as a white band. */
+  background: #000;
   z-index: 2;
 }
 
