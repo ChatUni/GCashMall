@@ -18,13 +18,37 @@ export const initializeAccountData = async (
   navigate?: (path: string) => void
 ) => {
   const code = searchParams.get('code')
+  const oauthError = searchParams.get('error')
   
   if (code) {
     await handleGoogleCallback(code, setSearchParams, navigate)
     return
   }
   
+  // The user declined at the provider's consent screen. They are not signed in, and they never
+  // asked to be on the account page — it is only where the provider was told to redirect. Put
+  // them back where they started instead of stranding them here with ?error= in the URL.
+  if (oauthError) {
+    const returnTo = takeStoredOAuthRedirect() || '/'
+    if (navigate) {
+      navigate(returnTo)
+    } else {
+      setSearchParams({ error: '' })
+    }
+    return
+  }
+  
   await checkLoginStatus()
+}
+
+// The page the user was on when they started OAuth, recorded by LoginModal before it hands
+// off to the provider. Read once and cleared, so a later visit to /account cannot be bounced
+// by a stale value. Anything that is not an in-app path is discarded rather than followed.
+const takeStoredOAuthRedirect = (): string => {
+  const stored = sessionStorage.getItem('oauth_redirect')
+  sessionStorage.removeItem('oauth_redirect')
+  if (stored && stored.startsWith('/') && !stored.startsWith('//')) return stored
+  return ''
 }
 
 // Handle OAuth callback (Google, Facebook, Twitter, LinkedIn)
@@ -39,8 +63,7 @@ const handleOAuthCallback = async (
   accountStoreActions.setUser(null)
   
   // Get stored redirect path (set by LoginModal before OAuth redirect)
-  const storedRedirect = sessionStorage.getItem('oauth_redirect')
-  sessionStorage.removeItem('oauth_redirect') // Clean up
+  const storedRedirect = takeStoredOAuthRedirect()
   
   // Track if we should redirect away from account page
   let shouldRedirect = false
@@ -294,6 +317,17 @@ export const validatePasswordForm = (form: PasswordFormState, t: Record<string, 
   const confirmValidation = validateConfirmPassword(form.newPassword, form.confirmPassword)
   if (!confirmValidation.valid) {
     accountStoreActions.updatePasswordError('confirmPasswordError', t.passwordMismatch || confirmValidation.error || '')
+    isValid = false
+  }
+
+  // Changing a password to the one already in use is a no-op the server would happily accept,
+  // and reporting "Update successful" for it tells the user something untrue. Only meaningful
+  // when there IS a current password to compare against.
+  if (hasExistingPassword && form.currentPassword && form.currentPassword === form.newPassword) {
+    accountStoreActions.updatePasswordError(
+      'newPasswordError',
+      t.passwordSameAsCurrent || 'Please choose a different password',
+    )
     isValid = false
   }
 

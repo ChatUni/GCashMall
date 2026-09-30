@@ -19,6 +19,7 @@ import {
   videoFeedStoreActions,
 } from '../stores'
 import { accountStoreActions } from '../stores/accountStore'
+import { languageStore } from '../stores/languageStore'
 import type { Series, WatchHistoryItem, FavoriteItem, Genre, User, SystemSettings } from '../types'
 import { getStoredUser, isLoggedIn, clearAuthData, saveAuthData } from '../utils/api'
 
@@ -431,7 +432,11 @@ export const extractStory = async (file: string, filename: string): Promise<stri
 export const generateStoryPrompt = async (
   idea: string,
 ): Promise<{ title: string; text: string }> => {
-  const result = await apiPost<{ title: string; text: string }>('generateStoryPrompt', { idea })
+  // The premise is read and edited by the creator, so it is generated in their language.
+  const result = await apiPost<{ title: string; text: string }>('generateStoryPrompt', {
+    idea,
+    language: languageStore.language,
+  })
   if (result.success && result.data) {
     return { title: result.data.title || '', text: result.data.text }
   }

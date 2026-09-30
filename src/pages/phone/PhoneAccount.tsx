@@ -255,7 +255,7 @@ const PhoneOverviewSection = () => {
           <div class="phone-form-group">
             <label>{overview().currentPassword}</label>
             <div class="phone-password-input">
-              <input type={showCurrentPassword() ? 'text' : 'password'} value={accountStore.passwordForm.currentPassword} onInput={(e) => { accountStoreActions.updatePasswordField('currentPassword', e.currentTarget.value); if (accountStore.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '') }} placeholder={overview().currentPasswordPlaceholder} class={accountStore.passwordErrors.currentPasswordError ? 'error' : ''} />
+              <input type={showCurrentPassword() ? 'text' : 'password'} value={accountStore.passwordForm.currentPassword} onInput={(e) => { accountStoreActions.updatePasswordField('currentPassword', e.currentTarget.value); if (accountStore.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '') }} placeholder={overview().currentPasswordPlaceholder} autocomplete="current-password" class={accountStore.passwordErrors.currentPasswordError ? 'error' : ''} />
               <button type="button" class="phone-password-toggle" onClick={() => setShowCurrentPassword(!showCurrentPassword())}><PasswordToggle show={showCurrentPassword()} /></button>
             </div>
             <Show when={accountStore.passwordErrors.currentPasswordError}><span class="phone-field-error">{accountStore.passwordErrors.currentPasswordError}</span></Show>
@@ -264,7 +264,7 @@ const PhoneOverviewSection = () => {
         <div class="phone-form-group">
           <label>{overview().newPassword}</label>
           <div class="phone-password-input">
-            <input type={showNewPassword() ? 'text' : 'password'} value={accountStore.passwordForm.newPassword} onInput={(e) => { accountStoreActions.updatePasswordField('newPassword', e.currentTarget.value); if (accountStore.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '') }} placeholder={overview().newPasswordPlaceholder} class={accountStore.passwordErrors.newPasswordError ? 'error' : ''} />
+            <input type={showNewPassword() ? 'text' : 'password'} value={accountStore.passwordForm.newPassword} onInput={(e) => { accountStoreActions.updatePasswordField('newPassword', e.currentTarget.value); if (accountStore.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '') }} placeholder={overview().newPasswordPlaceholder} autocomplete="new-password" class={accountStore.passwordErrors.newPasswordError ? 'error' : ''} />
             <button type="button" class="phone-password-toggle" onClick={() => setShowNewPassword(!showNewPassword())}><PasswordToggle show={showNewPassword()} /></button>
           </div>
           <Show when={accountStore.passwordErrors.newPasswordError} fallback={<span class="phone-password-hint">{overview().passwordRequirements || 'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character'}</span>}>
@@ -274,7 +274,7 @@ const PhoneOverviewSection = () => {
         <div class="phone-form-group">
           <label>{overview().confirmPassword}</label>
           <div class="phone-password-input">
-            <input type={showConfirmPassword() ? 'text' : 'password'} value={accountStore.passwordForm.confirmPassword} onInput={(e) => { accountStoreActions.updatePasswordField('confirmPassword', e.currentTarget.value); if (accountStore.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '') }} placeholder={overview().confirmPasswordPlaceholder} class={accountStore.passwordErrors.confirmPasswordError ? 'error' : ''} />
+            <input type={showConfirmPassword() ? 'text' : 'password'} value={accountStore.passwordForm.confirmPassword} onInput={(e) => { accountStoreActions.updatePasswordField('confirmPassword', e.currentTarget.value); if (accountStore.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '') }} placeholder={overview().confirmPasswordPlaceholder} autocomplete="new-password" class={accountStore.passwordErrors.confirmPasswordError ? 'error' : ''} />
             <button type="button" class="phone-password-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword())}><PasswordToggle show={showConfirmPassword()} /></button>
           </div>
           <Show when={accountStore.passwordErrors.confirmPasswordError}><span class="phone-field-error">{accountStore.passwordErrors.confirmPasswordError}</span></Show>

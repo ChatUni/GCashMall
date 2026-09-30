@@ -5,7 +5,10 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* No background here. A background on <html> stops the one on <body> propagating to the
+     canvas, which is the surface that covers the whole scrollable area. With this set (it was
+     the Vite starter's #242424), scrolling sideways exposed that grey in both themes. The
+     themed background is applied to html in theme.css instead. */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

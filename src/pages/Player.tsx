@@ -34,6 +34,7 @@ import {
   handleVolumeToggle,
   handleSpeedChange,
   handleFullscreen,
+  attachPlayerJs,
 } from '../stores/playerStore'
 import { isEpisodePurchased } from '../services/dataService'
 import { isIOS } from '../utils/cordova'
@@ -293,6 +294,7 @@ const VideoPlayer = () => {
               playsinline
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
+              onPlay={() => playerPageStoreActions.handlePlaybackStarted()}
               onClick={onPlayPause}
             />
 
@@ -326,6 +328,7 @@ const VideoPlayer = () => {
           <iframe
             ref={iframeRef}
             src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, playerStore.currentEpisode!.videoId || '')}
+            onLoad={() => attachPlayerJs(iframeRef, playerStore.currentEpisode?.videoId)}
             loading="lazy"
             style={{ border: 'none', width: '100%', height: '100%' }}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"

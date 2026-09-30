@@ -160,6 +160,7 @@ export const en = {
         'Password must be at least 6 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character',
       confirmPasswordRequired: 'Please confirm your new password',
       passwordMismatch: 'Passwords do not match',
+      passwordSameAsCurrent: 'Please choose a different password',
       passwordChangeSuccess: 'Password changed successfully',
     },
     watchHistory: {
@@ -416,6 +417,8 @@ export const en = {
     episodes: 'Episodes',
     share: 'Share',
     shareTitle: 'Share this episode',
+    shareTextEpisode: 'Check out {series} - EP {n}!',
+    shareTextSeries: 'Check out {series}!',
     addToFavorites: 'Add to favorites',
     breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: 'Unlock Episode',

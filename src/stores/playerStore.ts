@@ -21,6 +21,7 @@ import {
   fetchShares,
   shareSeries,
   recordView,
+  fetchViews,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -167,6 +168,8 @@ interface PlayerPageState {
   shareCount: number
   // View count
   viewCount: number
+  // A view belongs to a play, not a page load. Guards against a refresh counting again.
+  viewRecorded: boolean
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -195,6 +198,7 @@ const getInitialState = (): PlayerPageState => ({
   showSharePopup: false,
   shareCount: 0,
   viewCount: 0,
+  viewRecorded: false,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -319,6 +323,29 @@ export const releasePlayerJs = (videoId: string | undefined): void => {
   playerInstances.delete(videoId)
 }
 
+// Listen for the embedded player actually starting, so a view is counted for a play rather
+// than for a page load.
+//
+// Player.js talks to the iframe over postMessage. If that channel is unavailable the events
+// simply never arrive and no view is recorded — which is the safe direction to fail: an
+// uncounted view beats a count that climbs on every refresh.
+export const attachPlayerJs = (iframe: HTMLIFrameElement | undefined, videoId: string | undefined): void => {
+  if (!iframe || !videoId) return
+  const playerjs = (window as WindowWithPlayerJs).playerjs
+  if (!playerjs) return
+
+  releasePlayerJs(videoId)
+  try {
+    const player = new playerjs.Player(iframe)
+    player.on('ready', () => {
+      player.on('play', () => playerPageStoreActions.handlePlaybackStarted())
+    })
+    playerInstances.set(videoId, { cleanup: () => player.pause() })
+  } catch (error) {
+    console.error('Failed to attach player events:', error)
+  }
+}
+
 // ======================
 // Native video control handlers
 // ======================
@@ -423,7 +450,7 @@ export const playerPageStoreActions = {
       playerPageStoreActions.loadLikes(seriesId)
       playerPageStoreActions.loadRatings(seriesId)
       playerPageStoreActions.loadShares(seriesId)
-      playerPageStoreActions.recordView(seriesId)
+      playerPageStoreActions.loadViews(seriesId)
       systemSettingsStoreActions.load()
     }
     if (fetchRecommendationsData) {
@@ -701,14 +728,38 @@ export const playerPageStoreActions = {
     setPlayerPageState("showSharePopup", (prev) => !prev)
   },
 
-  // View count actions - records a view on player load and stores the updated count
+  // Read the current count without adding to it. Called when the player page opens.
+  loadViews: async (seriesId: string) => {
+    try {
+      const data = await fetchViews(seriesId)
+      setPlayerPageState({ viewCount: data.count })
+    } catch (error) {
+      console.error('Failed to load views:', error)
+    }
+  },
+
+  // Count a view, once, when playback actually starts.
+  //
+  // This used to run from `initialize`, so every page load was a view and a reader who
+  // refreshed five times added five. Playback is the event worth counting; `viewRecorded`
+  // keeps a pause/resume, a seek or a replay from counting again within the same visit.
   recordView: async (seriesId: string) => {
+    if (playerPageState.viewRecorded) return
+    setPlayerPageState({ viewRecorded: true })
     try {
       const data = await recordView(seriesId)
       setPlayerPageState({ viewCount: data.count })
     } catch (error) {
+      // Let a failed call be retried by the next play rather than swallowing the view.
+      setPlayerPageState({ viewRecorded: false })
       console.error('Failed to record view:', error)
     }
+  },
+
+  // The player reporting that playback began. Safe to call repeatedly.
+  handlePlaybackStarted: () => {
+    const seriesId = playerPageState.currentSeriesId
+    if (seriesId) playerPageStoreActions.recordView(seriesId)
   },
 
   // Share count actions

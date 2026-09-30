@@ -4,6 +4,7 @@ import { APP_DISPLAY_NAME } from '../utils/config'
 import { BRAND_LOGO } from '../utils/brand'
 import { t } from '../stores/languageStore'
 import { accountStore, accountStoreActions } from '../stores/accountStore'
+import { quickCreateV1Actions } from '../stores/quickCreateV1Store'
 import { startFreshQuickCreate } from '../services/quickCreateNav'
 import { currentTheme, themeStoreActions } from '../stores/themeStore'
 import { topBarStore, topBarStoreActions } from '../stores/topBarStore'
@@ -46,7 +47,9 @@ const TopBar = () => {
   const handleLoginSuccess = (user: User) => {
     accountStoreActions.initializeUserData(user)
     topBarStoreActions.setShowLoginModal(false)
-    navigate('/')
+    // Stay on the page the user signed in from. Sending them home discards whatever they
+    // were doing — most visibly a Quick Create idea they had just typed.
+    quickCreateV1Actions.resumeAfterSignIn()
   }
 
   return (
@@ -152,7 +155,12 @@ const TopBar = () => {
 
       <Show when={topBarStore.showLoginModal}>
         <LoginModal
-          onClose={() => topBarStoreActions.setShowLoginModal(false)}
+          onClose={() => {
+            topBarStoreActions.setShowLoginModal(false)
+            // Dismissing the dialog abandons whatever asked for the sign-in, so a later
+            // sign-in elsewhere does not silently resume it.
+            quickCreateV1Actions.cancelSignIn()
+          }}
           onLoginSuccess={handleLoginSuccess}
         />
       </Show>

@@ -177,10 +177,7 @@ const Page1Idea = () => {
         </div>
       </div>
 
-      <Show when={s.proposalError === '__signin__'}>
-        <p class="qcv1-error">{tv().signinRequired}</p>
-      </Show>
-      <Show when={s.proposalError && s.proposalError !== '__signin__'}>
+      <Show when={s.proposalError}>
         <p class="qcv1-error">{s.proposalError}</p>
       </Show>
 

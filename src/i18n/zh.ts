@@ -156,6 +156,7 @@ export const zh = {
       newPasswordInvalid: '密码必须至少6个字符，包含1个大写字母、1个小写字母、1个数字和1个特殊字符',
       confirmPasswordRequired: '请确认您的新密码',
       passwordMismatch: '两次输入的密码不一致',
+      passwordSameAsCurrent: '请选择一个不同的密码',
       passwordChangeSuccess: '密码修改成功',
     },
     watchHistory: {
@@ -412,6 +413,8 @@ export const zh = {
     episodes: '剧集',
     share: '分享',
     shareTitle: '分享这一集',
+    shareTextEpisode: '快来看《{series}》第 {n} 集！',
+    shareTextSeries: '快来看《{series}》！',
     addToFavorites: '添加到收藏',
     breadcrumbHome: APP_DISPLAY_NAME,
     unlockEpisode: '解锁剧集',

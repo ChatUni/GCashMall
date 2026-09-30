@@ -367,7 +367,7 @@ export const accountStoreActions = {
     setAccountState((prev) => ({
       ...prev,
       profileForm: { ...prev.originalProfile },
-      profileErrors: initialProfileErrors,
+      profileErrors: { ...initialProfileErrors },
     })),
   
   // Password form
@@ -381,10 +381,13 @@ export const accountStoreActions = {
     setAccountState('passwordErrors', { [field]: value } as Partial<PasswordErrorsState>),
   setPasswordChanging: (passwordChanging: boolean) => 
     setAccountState({ passwordChanging }),
+  // Fresh objects, not the module constants. Assigning the constant itself makes the store
+  // proxy write straight through to it on the next keystroke, so the "empty" form is polluted
+  // with the password just typed — and every later clear restores that instead of clearing.
   clearPasswordForm: () =>
     setAccountState({
-      passwordForm: initialPasswordForm,
-      passwordErrors: initialPasswordErrors,
+      passwordForm: { ...initialPasswordForm },
+      passwordErrors: { ...initialPasswordErrors },
     }),
   
   // Avatar

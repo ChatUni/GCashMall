@@ -4,6 +4,7 @@
 import type { Episode } from '../types'
 import { isCordova, PRODUCTION_ORIGIN, getWebOrigin, openSystemBrowser, getSocialSharing } from './cordova'
 import { getApiBaseUrl } from './api'
+import { t } from '../stores/languageStore'
 
 export const playbackSpeeds = [0.25, 0.5, 1.0, 1.25, 1.5, 2.0, 3.0]
 
@@ -85,11 +86,17 @@ export const getPlayerShareUrl = (seriesId: string): string => {
   return `${getWebOrigin()}/player/${seriesId}`
 }
 
+// The message carried into email, WhatsApp, X and the native share sheet. Built from the
+// resource bundle, not a literal: the share text is user-facing copy and has to follow the
+// language the reader picked, like every other string on the page.
 export const getShareText = (seriesName: string, episodeNumber?: number): string => {
+  const player = t().player as unknown as Record<string, string>
   if (episodeNumber) {
-    return `Check out ${seriesName} - EP ${episodeNumber.toString().padStart(2, '0')}!`
+    return (player.shareTextEpisode || 'Check out {series} - EP {n}!')
+      .replace('{series}', seriesName)
+      .replace('{n}', episodeNumber.toString().padStart(2, '0'))
   }
-  return `Check out ${seriesName}!`
+  return (player.shareTextSeries || 'Check out {series}!').replace('{series}', seriesName)
 }
 
 export const openShareWindow = (url: string): void => {

@@ -28,8 +28,15 @@
   --c-text-muted: #6b7280;
 }
 
+/* On html, not only body: the canvas takes its background from html when html has one, and
+   the canvas is what paints the full scrollable area — including whatever a horizontal scroll
+   reveals past the viewport's right edge. */
+html,
 body {
   background: var(--c-bg);
+}
+
+body {
   color: var(--c-text);
 }
 

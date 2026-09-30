@@ -26,6 +26,7 @@ import {
   getFilteredEpisodes,
   getEpisodeRangeOptions,
   checkEpisodePurchased,
+  attachPlayerJs,
 } from '../../stores/playerStore'
 import { isIOS } from '../../utils/cordova'
 import { getFreeEpisodeCount } from '../../stores/systemSettingsStore'
@@ -135,6 +136,8 @@ const PhonePlayer = () => {
 
   const handleIframeLoad = () => {
     setIframeLoaded(true)
+    // A view is counted when playback starts, not when the page opens.
+    attachPlayerJs(iframeRef, playerStore.currentEpisode?.videoId)
   }
 
   // iOS: resume playback after purchase by reloading the iframe that the fallback stopped.

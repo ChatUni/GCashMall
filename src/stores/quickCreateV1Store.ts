@@ -5,6 +5,7 @@
 
 import { createStore, reconcile } from 'solid-js/store'
 import { accountStoreActions } from './accountStore'
+import { topBarStoreActions } from './topBarStore'
 import {
   startV1Job,
   startTranscribeBackfill,
@@ -109,6 +110,8 @@ export interface V1State {
   // is an elapsed-time estimate — see startProposalProgress.
   proposalPercent: number
   proposalError: string
+  // A create was attempted while signed out; resume it once the user signs in.
+  awaitingSignIn: boolean
   proposal: V1Proposal | null
   selectedEpisode: number // which season-roadmap episode is shown in Episode Details
   // AI Edit Assistant
@@ -174,6 +177,7 @@ const getInitialState = (): V1State => ({
   proposalLoading: false,
   proposalPercent: 0,
   proposalError: '',
+  awaitingSignIn: false,
   proposal: null,
   selectedEpisode: 1,
   aiEditing: false,
@@ -299,8 +303,12 @@ export const quickCreateV1Actions = {
   // Page 1 → Call 1 → Page 2. Starts the proposal job and polls until it's ready.
   generateProposal: async () => {
     if (!state.idea.trim()) return
+    // Signed out: open the sign-in dialog over this page rather than rejecting the click.
+    // The idea is already in the store, so nothing the user wrote is lost, and
+    // `awaitingSignIn` lets the page pick the create back up once they are through.
     if (!isSignedIn()) {
-      setState({ proposalError: '__signin__' })
+      setState({ awaitingSignIn: true, proposalError: '' })
+      topBarStoreActions.setShowLoginModal(true)
       return
     }
     const jobId = newJobId()
@@ -322,6 +330,16 @@ export const quickCreateV1Actions = {
     }
     pollProposal(jobId)
   },
+
+  // Called when a sign-in completes while the user was mid-create. Nothing happens unless a
+  // create was actually interrupted, so it is safe to call on any sign-in.
+  resumeAfterSignIn: () => {
+    if (!state.awaitingSignIn) return
+    setState({ awaitingSignIn: false })
+    if (isSignedIn() && state.idea.trim()) quickCreateV1Actions.generateProposal()
+  },
+
+  cancelSignIn: () => setState({ awaitingSignIn: false }),
 
   // Page 2 — "Regenerate Proposal": re-run Call 1 from the original idea.
   regenerateProposal: async () => {

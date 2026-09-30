@@ -359,6 +359,7 @@ function OverviewSection() {
                 if (accountStore.passwordErrors.currentPasswordError) accountStoreActions.updatePasswordError('currentPasswordError', '')
               }}
               placeholder={overview().currentPasswordPlaceholder}
+              autocomplete="current-password"
               error={accountStore.passwordErrors.currentPasswordError}
             />
           </Show>
@@ -370,6 +371,7 @@ function OverviewSection() {
               if (accountStore.passwordErrors.newPasswordError) accountStoreActions.updatePasswordError('newPasswordError', '')
             }}
             placeholder={overview().newPasswordPlaceholder}
+            autocomplete="new-password"
             error={accountStore.passwordErrors.newPasswordError}
           />
           <PasswordField
@@ -380,6 +382,7 @@ function OverviewSection() {
               if (accountStore.passwordErrors.confirmPasswordError) accountStoreActions.updatePasswordError('confirmPasswordError', '')
             }}
             placeholder={overview().confirmPasswordPlaceholder}
+            autocomplete="new-password"
             error={accountStore.passwordErrors.confirmPasswordError}
           />
         </div>
@@ -430,6 +433,9 @@ interface PasswordFieldProps {
   onChange: (value: string) => void
   placeholder: string
   error: string
+  // Without this the browser treats all three boxes as one saved login and refills them from
+  // the keychain after the form is cleared, which reads as "the password change did nothing".
+  autocomplete: 'current-password' | 'new-password'
 }
 
 const PasswordField = (props: PasswordFieldProps) => (
@@ -440,6 +446,7 @@ const PasswordField = (props: PasswordFieldProps) => (
       value={props.value}
       onInput={(e) => props.onChange(e.currentTarget.value)}
       placeholder={props.placeholder}
+      autocomplete={props.autocomplete}
       class={props.error ? 'input-error' : ''}
     />
     <Show when={props.error}>

@@ -1347,6 +1347,13 @@ const updatePassword = async (body, authHeader) => {
       return { success: false, error: 'Current password is incorrect' }
     }
 
+    // Re-setting the same password is a no-op dressed up as a change. The client blocks it,
+    // but the client is not the authority — a direct call would otherwise be answered with
+    // "success" for a password that never changed.
+    if (oldPassword === newPassword) {
+      return { success: false, error: 'Please choose a different password' }
+    }
+
     // Hash the new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 10)
 
@@ -5555,8 +5562,21 @@ const extractStoryFromDocx = async (dataUrl) => {
 const STORY_PROMPT_INSTRUCTION =
   'You are a creative anime story writer. Given a short story idea (or nothing at all), craft a rich, original story premise for an anime series. Return a JSON object with two fields: "title" — a short, catchy 2-4 word series title; and "prompt" — the full premise written as 3 to 4 short paragraphs of flowing prose (no headings, no bullet points, no labels) covering the world/setting, the main character, a supporting character, the inciting incident, the goal, and the main conflict, and ending with a final paragraph that begins with "Episode 1 introduces" describing what the first episode covers and ending on an intriguing hook or cliffhanger. Return only valid JSON.'
 
+// The premise is shown to the creator, edited by them, and becomes their series' title and
+// description — so it has to be written in the language they are reading the app in. The
+// instruction is appended rather than baked into STORY_PROMPT_INSTRUCTION so the structural
+// rules (JSON shape, paragraph count, the "Episode 1 introduces" close) stay in one place.
+const LANGUAGE_NAMES = { en: 'English', zh: 'Simplified Chinese' }
+
+const languageInstruction = (language) => {
+  const name = LANGUAGE_NAMES[language]
+  if (!name || language === 'en') return ''
+  return ` Write both the title and the prompt in ${name}. The JSON field names stay in English.`
+}
+
 const generateStoryPrompt = async (body) => {
   const idea = (body && typeof body.idea === 'string' ? body.idea : '').trim()
+  const language = body && typeof body.language === 'string' ? body.language : 'en'
 
   try {
     const userMessage = idea
@@ -5573,7 +5593,7 @@ const generateStoryPrompt = async (body) => {
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: STORY_PROMPT_INSTRUCTION },
+          { role: 'system', content: STORY_PROMPT_INSTRUCTION + languageInstruction(language) },
           { role: 'user', content: userMessage },
         ],
         ...chatTuning(model, 0.9),
