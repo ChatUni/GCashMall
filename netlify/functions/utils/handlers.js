@@ -1993,6 +1993,7 @@ const buildUserResponse = async (user) => {
     purchases: user.purchases || [],
     balance: user.balance || 0,
     transactions: user.transactions || [],
+    // Ids only. The client uses them to hide blocked creators' series from every list.
   }
 }
 
@@ -3851,7 +3852,7 @@ const creditCreatorRevenue = async (series, episodeCost, creatorSharePercent, ep
 
 // ── Comments ──
 
-const getComments = async (params) => {
+const getComments = async (params, authHeader) => {
   validateGetCommentsParams(params)
 
   try {
@@ -3859,7 +3860,9 @@ const getComments = async (params) => {
     const page = parseInt(params.page) || 1
     const pageSize = parseInt(params.pageSize) || 20
 
-    const filter = { seriesId, episodeId }
+    // Comments from anyone the viewer has blocked are left out, counts included.
+    const blocked = await blockedIdsForCaller(authHeader)
+    const filter = blocked.length ? { seriesId, episodeId, userId: { $nin: blocked } } : { seriesId, episodeId }
     const skip = (page - 1) * pageSize
 
     const comments = await get('comments', filter, {}, { createdAt: -1 }, pageSize, skip)
@@ -3893,6 +3896,9 @@ const addComment = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
   validateAddCommentBody(body)
   validateCommentProfanity(body.body)
+  if (await blockedByCreator(body.seriesId, userId)) {
+    return { success: false, error: 'You cannot comment on this series.' }
+  }
 
   try {
     const { seriesId, episodeId, body: commentBody } = body
@@ -3955,6 +3961,12 @@ export {
   requestEpisodeReview,
   getReviewRequests,
   getAdminUsers,
+  reportContent,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+  getReports,
+  resolveReport,
   setUserVerified,
   jobProgress,
   jobComplete,
@@ -4926,6 +4938,178 @@ const approvedModeration = (mod, reviewedBy) => ({
   // A decision answers the appeal, so it leaves the Review Requests list.
   reviewRequest: null,
 })
+
+// ── Reporting and blocking ──
+//
+// The App Store requires every app with user-generated content to let people report offensive
+// content and block abusive users (Guideline 1.2). Automated moderation filters uploads before
+// they go live; these are the two things a viewer can do about whatever gets past it.
+//
+// A report is recorded, never acted on automatically: an admin decides in the Reports queue.
+// Blocking applies to comments only — creators' series are never hidden. It hides the blocked
+// user's comments from the person who blocked them, and stops the blocked user commenting on
+// that person's series. Nobody else is affected.
+
+const REPORT_REASONS = ['sexual', 'violence', 'harassment', 'spam', 'other']
+const REPORT_TARGETS = ['series', 'episode', 'comment']
+
+const reportContent = async (body, authHeader) => {
+  const reporterId = await validateAuth(authHeader)
+  const target = String(body?.targetType || '')
+  const reason = String(body?.reason || '')
+  if (!REPORT_TARGETS.includes(target)) return { success: false, error: 'Unknown report target' }
+  if (!REPORT_REASONS.includes(reason)) return { success: false, error: 'Choose a reason' }
+  if (!body?.seriesId) return { success: false, error: 'seriesId is required' }
+
+  const series = (await get('series', { _id: new ObjectId(String(body.seriesId)) }, {}, {}, 1))[0]
+  if (!series) return { success: false, error: 'Series not found' }
+
+  // Whose content it is, so the queue can show it and an admin can see repeat offenders.
+  let reportedUserId = String(series.uploaderId || '')
+  let commentId = null
+  if (target === 'comment') {
+    if (!body.commentId) return { success: false, error: 'commentId is required' }
+    const comment = (await get('comments', { _id: new ObjectId(String(body.commentId)) }, {}, {}, 1))[0]
+    if (!comment) return { success: false, error: 'Comment not found' }
+    reportedUserId = String(comment.userId || '')
+    commentId = String(comment._id)
+  }
+  const episodeNumber = target === 'episode' ? Number(body.episodeNumber) || null : null
+
+  // One open report per person per thing. Reporting twice adds nothing for the reviewer.
+  const key = { reporterId: String(reporterId), targetType: target, seriesId: String(series._id), episodeNumber, commentId, status: 'open' }
+  const existing = await get('reports', key, {}, {}, 1)
+  if (existing.length === 0) {
+    await save('reports', {
+      ...key,
+      reportedUserId,
+      reason,
+      details: String(body.details || '').trim().slice(0, 1000),
+      createdAt: new Date(),
+    })
+  }
+  return { success: true, data: { reported: true } }
+}
+
+const blockUser = async (body, authHeader) => {
+  const userId = String(await validateAuth(authHeader))
+  const target = String(body?.userId || '')
+  if (!target) return { success: false, error: 'userId is required' }
+  if (target === userId) return { success: false, error: 'You cannot block yourself' }
+  await update('users', { _id: new ObjectId(userId) }, { $addToSet: { blockedUsers: target } })
+  return { success: true, data: { blockedUsers: await blockedIdsOf(userId) } }
+}
+
+const unblockUser = async (body, authHeader) => {
+  const userId = String(await validateAuth(authHeader))
+  const target = String(body?.userId || '')
+  if (!target) return { success: false, error: 'userId is required' }
+  await update('users', { _id: new ObjectId(userId) }, { $pull: { blockedUsers: target } })
+  return { success: true, data: { blockedUsers: await blockedIdsOf(userId) } }
+}
+
+// The caller's block list with names, for the settings screen where they can unblock.
+const getBlockedUsers = async (params, authHeader) => {
+  const userId = String(await validateAuth(authHeader))
+  const ids = await blockedIdsOf(userId)
+  const valid = ids.filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id))
+  const users = valid.length ? await get('users', { _id: { $in: valid } }) : []
+  return {
+    success: true,
+    data: users.map((u) => ({ _id: String(u._id), nickname: u.nickname || 'Guest', avatar: u.avatar || '' })),
+  }
+}
+
+const blockedIdsOf = async (userId) => {
+  const user = (await get('users', { _id: new ObjectId(String(userId)) }, {}, {}, 1))[0]
+  return (user?.blockedUsers || []).map(String)
+}
+
+// A series' creator who has blocked a user stops that user commenting on the series.
+const blockedByCreator = async (seriesId, userId) => {
+  if (!seriesId || !ObjectId.isValid(String(seriesId))) return false
+  const series = (await get('series', { _id: new ObjectId(String(seriesId)) }, { uploaderId: 1 }, {}, 1))[0]
+  if (!series?.uploaderId) return false
+  return (await blockedIdsOf(series.uploaderId)).includes(String(userId))
+}
+
+// Blocked ids for whoever is calling, or none for a guest. Never throws: reading content must
+// not fail because a token expired.
+const blockedIdsForCaller = async (authHeader) => {
+  if (!authHeader) return []
+  try {
+    return await blockedIdsOf(await validateAuth(authHeader))
+  } catch {
+    return []
+  }
+}
+
+// ── Reports queue (admin) ──
+
+const getReports = async (params, authHeader) => {
+  await requireAdmin(authHeader)
+  const reports = await get('reports', { status: 'open' }, {}, { createdAt: -1 }, 200)
+
+  // Enough context to judge each report without opening anything else.
+  const ids = (list) => [...new Set(list.filter((x) => x && ObjectId.isValid(x)))].map((x) => new ObjectId(x))
+  const users = await get('users', { _id: { $in: ids(reports.flatMap((r) => [r.reporterId, r.reportedUserId])) } })
+  const series = await get('series', { _id: { $in: ids(reports.map((r) => r.seriesId)) } })
+  const comments = await get('comments', { _id: { $in: ids(reports.map((r) => r.commentId)) } })
+  const nameOf = (id) => users.find((u) => String(u._id) === String(id))
+  const seriesOf = (id) => series.find((s) => String(s._id) === String(id))
+  const commentOf = (id) => comments.find((c) => String(c._id) === String(id))
+
+  return {
+    success: true,
+    data: reports.map((r) => ({
+      _id: String(r._id),
+      targetType: r.targetType,
+      reason: r.reason,
+      details: r.details || '',
+      createdAt: r.createdAt,
+      seriesId: r.seriesId,
+      seriesName: seriesOf(r.seriesId)?.name || '(deleted series)',
+      episodeNumber: r.episodeNumber,
+      commentBody: r.commentId ? commentOf(r.commentId)?.body || '(deleted comment)' : '',
+      reporter: nameOf(r.reporterId)?.email || '',
+      reportedUser: nameOf(r.reportedUserId)?.email || '',
+    })),
+  }
+}
+
+// Close a report. `remove` takes the content down: a comment is deleted; an episode or a whole
+// series is rejected, which hides it through the normal visibility rules and lets the creator
+// appeal it like any other rejection. `dismiss` closes it with no change.
+const resolveReport = async (body, authHeader) => {
+  const adminId = String(await requireAdmin(authHeader))
+  const action = String(body?.action || '')
+  if (!['dismiss', 'remove'].includes(action)) return { success: false, error: 'Unknown action' }
+  const report = (await get('reports', { _id: new ObjectId(String(body?.reportId || '')) }, {}, {}, 1))[0]
+  if (!report) return { success: false, error: 'Report not found' }
+
+  if (action === 'remove') {
+    const now = new Date()
+    const rejected = { status: MODERATION_REJECTED, reason: 'Removed after a user report', reviewedAt: now, reviewedBy: adminId }
+    if (report.targetType === 'comment' && report.commentId) {
+      await remove('comments', { _id: new ObjectId(report.commentId) })
+    } else if (report.targetType === 'episode' && report.episodeNumber) {
+      await update('series', { _id: new ObjectId(report.seriesId), 'episodes.episodeNumber': report.episodeNumber },
+        { $set: Object.fromEntries(Object.entries(rejected).map(([k, v]) => [`episodes.$.moderation.${k}`, v])) })
+    } else {
+      await update('series', { _id: new ObjectId(report.seriesId) },
+        { $set: Object.fromEntries(Object.entries(rejected).map(([k, v]) => [`moderation.${k}`, v])) })
+    }
+  }
+
+  // Every open report on the same thing is settled by the same decision. updateMany directly:
+  // the shared `update` helper is updateOne, which would close only the first.
+  const db = await (await import('./db.js')).connectDB()
+  await db.collection('reports').updateMany(
+    { status: 'open', targetType: report.targetType, seriesId: report.seriesId, episodeNumber: report.episodeNumber, commentId: report.commentId },
+    { $set: { status: action === 'remove' ? 'removed' : 'dismissed', resolvedAt: new Date(), resolvedBy: adminId } },
+  )
+  return { success: true, data: { action } }
+}
 
 // Every user, for the admin moderation page's uploader list. Search matches nickname or
 // email so an admin can find one person in a long list.

@@ -1,6 +1,6 @@
 import { createStore } from 'solid-js/store'
 import type { Comment } from '../types'
-import { apiGet, apiPostWithAuth } from '../utils/api'
+import { apiGetWithAuth, apiPostWithAuth } from '../utils/api'
 
 // ── State ──
 
@@ -65,6 +65,9 @@ const validateCommentBody = (text: string): boolean => {
   return true
 }
 
+// The series' creator has blocked this user from commenting.
+const isBlockedError = (error: string) => error.includes('cannot comment on this series')
+
 const isProfanityError = (error: string): boolean =>
   error.toLowerCase().includes('profane')
 
@@ -83,7 +86,9 @@ const fetchComments = async (
   episodeId: string,
   page: number,
 ) => {
-  const result = await apiGet<{
+  // Sent with the viewer's token when there is one, so the server can leave out comments from
+  // anyone they have blocked. A guest's request goes without it and sees everything.
+  const result = await apiGetWithAuth<{
     comments: Comment[]
     totalCount: number
     hasMore: boolean
@@ -116,6 +121,16 @@ const applyFetchedComments = (
 }
 
 export const commentStoreActions = {
+  // Re-fetch the open thread even though it is already loaded — after blocking someone, so
+  // their comments (filtered out on the server) disappear straight away.
+  reload: async () => {
+    const seriesId = state.currentSeriesId
+    const episodeId = state.currentEpisodeId
+    if (!seriesId || !episodeId) return
+    setState({ currentSeriesId: null, currentEpisodeId: null })
+    await commentStoreActions.load(seriesId, episodeId)
+  },
+
   // Load initial comments for a series/episode
   load: async (seriesId: string, episodeId: string) => {
     if (!validateIds(seriesId, episodeId)) return
@@ -194,6 +209,8 @@ export const commentStoreActions = {
         })
       } else if (result.error && isProfanityError(result.error)) {
         setState({ submitError: 'profane' })
+      } else if (result.error && isBlockedError(result.error)) {
+        setState({ submitError: 'blocked' })
       }
     } catch (error) {
       console.error('Failed to submit comment:', error)

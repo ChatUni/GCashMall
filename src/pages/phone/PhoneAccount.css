@@ -1787,3 +1787,9 @@
   color: #22c55e;
   white-space: nowrap;
 }
+
+.phone-blocked-users {
+  padding: 16px;
+  background: var(--c-surface2);
+  border-radius: 8px;
+}

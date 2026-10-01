@@ -9,6 +9,7 @@ import { isIOS, isAndroid, isCordova } from '../../utils/cordova'
 import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import ModerationSection from '../../components/ModerationSection'
+import BlockedUsers from '../../components/BlockedUsers'
 import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
@@ -471,6 +472,9 @@ const PhoneSettingsSection = () => {
           <span class="phone-toggle-slider"></span>
         </label>
       </div>
+      <Show when={accountStore.user}>
+        <BlockedUsers class="phone-blocked-users" />
+      </Show>
       <button class="phone-logout-btn" onClick={onLogout}>
         <span><Icon name="door" /></span>
         {nav().logout}

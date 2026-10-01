@@ -266,3 +266,11 @@
     gap: 12px;
   }
 }
+
+/* Report-or-block on a comment, pushed to the end of the meta row. */
+.comment-safety-btn {
+  align-self: center;
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+}

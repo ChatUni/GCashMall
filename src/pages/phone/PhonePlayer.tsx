@@ -6,6 +6,7 @@ import CommentSection from '../../components/CommentSection'
 import LoginModal from '../../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../../components/PlayerModals'
 import { RatingSection, RatingModal } from '../../components/StarRating'
+import SafetyDialogs, { SeriesSafetyButton } from '../../components/SafetyDialogs'
 import { t } from '../../stores/languageStore'
 import {
   playerStore,
@@ -299,6 +300,7 @@ const PhonePlayer = () => {
                       />
                     </svg>
                   </button>
+                  <SeriesSafetyButton iconOnly />
                   <Show when={!isPurchased()}>
                     <button
                       class="phone-action-btn phone-action-btn-large locked"
@@ -540,6 +542,8 @@ const PhonePlayer = () => {
               </div>
             </div>
           </Show>
+
+          <SafetyDialogs />
 
           {/* Login Modal */}
           <Show when={loginModalStore.isOpen}>

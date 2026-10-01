@@ -51,6 +51,7 @@ import {
 } from '../utils/playerHelpers'
 import type { Episode } from '../types'
 import { SocialShareRow } from '../components/SocialShare'
+import SafetyDialogs, { SeriesSafetyButton } from '../components/SafetyDialogs'
 import './Player.css'
 
 const Player = () => {
@@ -112,6 +113,8 @@ const Player = () => {
       </Show>
 
       <BottomBar />
+
+      <SafetyDialogs />
 
       {/* Login Modal */}
       <Show when={loginModalStore.isOpen}>
@@ -515,6 +518,8 @@ const EpisodeMetadata = () => {
               />
             </svg>
           </button>
+
+          <SeriesSafetyButton iconOnly />
 
           <Show when={!isPurchased()}>
             <button class="unlock-button" onClick={playerPageStoreActions.handleUnlockClick} title="Unlock episode">

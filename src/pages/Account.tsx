@@ -8,6 +8,7 @@ import { isIOS, isAndroid, isCordova } from '../utils/cordova'
 import { toUsd, formatCredits, creditsForTopUp, topUpBreakdown } from '../utils/credits'
 import TopBar from '../components/TopBar'
 import ModerationSection from '../components/ModerationSection'
+import BlockedUsers from '../components/BlockedUsers'
 import { ReviewStatusBadge, ReviewStatusModal } from '../components/ReviewStatus'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
@@ -695,6 +696,12 @@ function SettingsSection() {
           </label>
         </div>
       </div>
+
+      <Show when={accountStore.user}>
+        <div class="section-card">
+          <BlockedUsers />
+        </div>
+      </Show>
 
       <Show when={accountStore.user?.isAdmin}>
         <SystemSettingsCard />

@@ -1,0 +1,71 @@
+.reports-panel {
+  margin-bottom: 32px;
+  padding: 18px;
+  border: 1px solid rgba(217, 137, 47, 0.4);
+  border-radius: 12px;
+  background: rgba(217, 137, 47, 0.06);
+}
+
+.report-row {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-surface2);
+}
+
+.report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.report-target {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.report-time,
+.report-meta {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+.report-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+
+.report-reason {
+  font-weight: 700;
+}
+
+.report-quote {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--c-border);
+  font-size: 13px;
+  color: var(--c-text-2);
+  white-space: pre-wrap;
+}
+
+.report-meta {
+  margin: 0 0 10px;
+}
+
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.report-empty {
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--c-text-muted);
+}

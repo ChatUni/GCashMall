@@ -541,3 +541,9 @@
 .phone-episode-thumbnail.locked .phone-episode-thumb-img {
   filter: brightness(0.55);
 }
+
+/* The report-or-block trigger matches the other action buttons in the row. */
+.phone-player-actions .safety-trigger.icon-only {
+  width: 48px;
+  height: 48px;
+}

@@ -1,0 +1,48 @@
+.blocked-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.blocked-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.blocked-avatar {
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.blocked-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--c-text);
+}
+
+.blocked-unblock {
+  flex: none;
+  padding: 6px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--c-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.blocked-empty {
+  font-size: 13px;
+  color: var(--c-text-muted);
+}

@@ -7,6 +7,9 @@ import { t } from '../stores/languageStore'
 import { isLoggedIn } from '../utils/api'
 import { loginModalStoreActions } from '../stores'
 import { timeAgo } from '../utils/timeAgo'
+import { safetyActions } from '../stores/safetyStore'
+import Icon from './Icon'
+import type { Comment } from '../types'
 import './CommentSection.css'
 
 // ── Main Comment Section ──
@@ -107,6 +110,9 @@ const CommentInput = () => {
         <Show when={commentStore.submitError === 'profane'}>
           <div class="comment-error">{t().player.comments.profaneError}</div>
         </Show>
+        <Show when={commentStore.submitError === 'blocked'}>
+          <div class="comment-error">{t().player.comments.blockedError}</div>
+        </Show>
       </div>
       <div class="comment-input-actions">
         <button
@@ -185,7 +191,7 @@ const CommentList = () => (
 
 // ── Comment Item ──
 
-const CommentItem = (props: { comment: { userAvatar: string | null; userNickname: string; createdAt: string | Date; body: string } }) => (
+const CommentItem = (props: { comment: Comment }) => (
   <div class="comment-item">
     <div class="comment-avatar-col">
       <UserAvatar
@@ -198,11 +204,38 @@ const CommentItem = (props: { comment: { userAvatar: string | null; userNickname
       <div class="comment-meta">
         <span class="comment-username">{props.comment.userNickname}</span>
         <span class="comment-time">{timeAgo(props.comment.createdAt)}</span>
+        <CommentSafetyButton comment={props.comment} />
       </div>
       <div class="comment-text">{props.comment.body}</div>
     </div>
   </div>
 )
+
+// "Report or block" on someone else's comment. Hidden on your own.
+const CommentSafetyButton = (props: { comment: Comment }) => (
+  <Show when={!isOwnComment(props.comment)}>
+    <button
+      class="safety-trigger icon-only comment-safety-btn"
+      title={t().safety.reportOrBlock}
+      aria-label={t().safety.reportOrBlock}
+      onClick={() => openCommentSheet(props.comment)}
+    >
+      <Icon name="more" size={16} />
+    </button>
+  </Show>
+)
+
+const isOwnComment = (comment: Comment) =>
+  !!accountStore.user && String(accountStore.user._id) === String(comment.userId)
+
+const openCommentSheet = (comment: Comment) =>
+  safetyActions.openSheet({
+    targetType: 'comment',
+    seriesId: comment.seriesId,
+    commentId: comment._id,
+    userId: comment.userId,
+    userName: comment.userNickname,
+  })
 
 // ── Shared Avatar ──
 

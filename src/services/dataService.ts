@@ -790,6 +790,53 @@ export interface AdminUser {
   pendingCount: number
 }
 
+// ── Reporting and blocking ──
+
+export type ReportTarget = 'series' | 'episode' | 'comment'
+export type ReportReason = 'sexual' | 'violence' | 'harassment' | 'spam' | 'other'
+
+export const reportContent = (payload: {
+  targetType: ReportTarget
+  seriesId: string
+  episodeNumber?: number
+  commentId?: string
+  reason: ReportReason
+  details?: string
+}) => apiPostWithAuth<{ reported: boolean }>('reportContent', payload)
+
+export const blockUser = (userId: string) =>
+  apiPostWithAuth<{ blockedUsers: string[] }>('blockUser', { userId })
+
+export const unblockUser = (userId: string) =>
+  apiPostWithAuth<{ blockedUsers: string[] }>('unblockUser', { userId })
+
+export interface BlockedUser {
+  _id: string
+  nickname: string
+  avatar: string
+}
+
+export const fetchBlockedUsers = () => apiGetWithAuth<BlockedUser[]>('blockedUsers')
+
+export interface ContentReport {
+  _id: string
+  targetType: ReportTarget
+  reason: ReportReason
+  details: string
+  createdAt: string
+  seriesId: string
+  seriesName: string
+  episodeNumber: number | null
+  commentBody: string
+  reporter: string
+  reportedUser: string
+}
+
+export const fetchReports = () => apiGetWithAuth<ContentReport[]>('reports')
+
+export const resolveReport = (reportId: string, action: 'dismiss' | 'remove') =>
+  apiPostWithAuth<{ action: string }>('resolveReport', { reportId, action })
+
 // Every user, for the moderation page's uploader list. `search` matches nickname or email.
 export const fetchAdminUsers = async (
   search: string,

@@ -24,6 +24,7 @@ import type { AdminUser, ReviewRequestGroup } from '../services/dataService'
 import type { ModerationEpisode, ModerationSeries, ModerationGroup } from '../types'
 import './ModerationSection.css'
 import Icon from './Icon'
+import ReportsPanel from './ReportsPanel'
 
 const m = () => t().account.moderation
 
@@ -571,6 +572,7 @@ const ModerationSection = () => {
         <p class="mod-error">{moderationStore.error}</p>
       </Show>
 
+      <ReportsPanel />
       <ReviewRequestsPanel />
 
       <Show
