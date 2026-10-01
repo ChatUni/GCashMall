@@ -1,0 +1,109 @@
+/* Icon layout and colour.
+ *
+ * Every <Icon> carries `icon` plus `icon-<name>`, so a colour can be attached per icon here
+ * while any more specific rule still wins — an active nav item setting `color` on its own
+ * selector (e.g. `.phone-tab-item.active .phone-tab-icon`) beats these single-class rules and
+ * keeps its state colour. That is deliberate: these are defaults, not overrides.
+ *
+ * Colours are mid-tone on purpose. They have to stay legible on the light page background and
+ * on the near-black one, so nothing here is very pale or very dark.
+ */
+
+.icon {
+  /* An inline SVG sits on the text baseline, which reads as too high next to a cap-height
+     glyph. This drops it to optical centre for inline use; flex parents centre it themselves. */
+  vertical-align: -0.125em;
+  flex: none;
+}
+
+/* ── People & account ── */
+.icon-person { color: #4F90D8; }
+.icon-people { color: #5B86C9; }
+.icon-artist { color: #9B7BD4; }
+.icon-idCard { color: #6C8CB5; }
+.icon-crown { color: #E0A826; }
+.icon-door { color: #C2615A; }
+
+/* ── Media ── */
+.icon-tv { color: #7A6FD0; }
+.icon-clapper { color: #8A63C8; }
+.icon-play { color: #3F9E6B; }
+.icon-playCircle { color: #3F9E6B; }
+.icon-film { color: #9A6FBF; }
+.icon-camera { color: #7F72C4; }
+.icon-image { color: #4FA3B8; }
+.icon-music { color: #B265A8; }
+.icon-tvScreen { color: #7A6FD0; }
+
+/* ── Commerce ── */
+.icon-cart { color: #4A9E82; }
+.icon-money { color: #3F9E6B; }
+.icon-cash { color: #4EA06A; }
+.icon-wallet { color: #B8863F; }
+.icon-gem { color: #46A5C4; }
+
+/* ── Status & feedback ── */
+.icon-heart { color: #D9534F; }
+.icon-heartBroken { color: #B0565E; }
+.icon-check { color: #3F9E6B; }
+.icon-checkCircle { color: #3F9E6B; }
+.icon-warning { color: #D9892F; }
+.icon-info { color: #4F90D8; }
+.icon-hourglass { color: #C08A3E; }
+.icon-bell { color: #D4A33A; }
+.icon-target { color: #D06A4E; }
+.icon-party { color: #D4567F; }
+.icon-fire { color: #D9663A; }
+.icon-star { color: #E0B130; }
+.icon-sparkle { color: #A77BE0; }
+.icon-bolt { color: #D9B02E; }
+
+/* ── Security ── */
+.icon-lock { color: #7E8AA0; }
+.icon-unlock { color: #4A9E82; }
+.icon-shield { color: #4E8FB5; }
+
+/* ── Actions ── */
+.icon-pencil { color: #5E9BD1; }
+.icon-trash { color: #CB5B55; }
+.icon-save { color: #4E8FB5; }
+.icon-upload { color: #5B8FD4; }
+.icon-download { color: #4E9BA8; }
+.icon-refresh { color: #5B9BC9; }
+.icon-link { color: #4F97C4; }
+.icon-search { color: #7E8AA0; }
+.icon-share { color: #5B9BC9; }
+.icon-dice { color: #A77BE0; }
+.icon-menu { color: #7E8AA0; }
+.icon-grid { color: #6C8CB5; }
+.icon-gear { color: #7E8AA0; }
+
+/* ── Content & docs ── */
+.icon-book { color: #B5894A; }
+.icon-clipboard { color: #6C8CB5; }
+.icon-bulb { color: #D4A33A; }
+.icon-chart { color: #4A9E82; }
+.icon-chartUp { color: #3F9E6B; }
+.icon-calendar { color: #5B86C9; }
+.icon-chat { color: #5FA3BF; }
+.icon-envelope { color: #5B8FD4; }
+.icon-inbox { color: #5E96B8; }
+.icon-outbox { color: #B8863F; }
+
+/* ── World & device ── */
+.icon-globe { color: #3FA08F; }
+.icon-phone { color: #6C8CB5; }
+.icon-cloud { color: #6FA8C9; }
+.icon-rocket { color: #C96A4E; }
+.icon-clock { color: #7E8AA0; }
+.icon-palette { color: #C2669B; }
+
+/* ── Genre marks ── */
+.icon-swords { color: #B5564E; }
+.icon-crystalBall { color: #9B6FD4; }
+.icon-ghost { color: #8E94B5; }
+.icon-ufo { color: #4A9EA8; }
+.icon-smile { color: #D4A33A; }
+.icon-masks { color: #B5628F; }
+.icon-send { color: #4F90D8; }
+.icon-cat { color: #C08A5A; }

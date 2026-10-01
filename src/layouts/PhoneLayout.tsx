@@ -14,7 +14,7 @@ interface PhoneLayoutProps {
 }
 
 const PhoneLayout = (props: PhoneLayoutProps) => (
-  <div class="phone-layout">
+  <div class={`phone-layout ${props.showHeader === false ? 'no-header' : ''}`}>
     <Show when={props.showHeader !== false}>
       <PhoneHeader
         title={props.title}

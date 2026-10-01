@@ -37,6 +37,7 @@ import { formatCredits } from '../utils/credits'
 import TierPurchaseDialog from '../components/TierPurchaseDialog'
 import SettlementDialog from '../components/SettlementDialog'
 import { minTierCost } from '../utils/videoTiers'
+import Icon, { type IconName } from '../components/Icon'
 
 const tv = () => t().quickCreateV1
 
@@ -54,17 +55,17 @@ const GUSD_LOGO = 'https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233
 const QC1_CDN = 'https://res.cloudinary.com/daqc8bim3/image/upload/GCash/quick%20create%20v1'
 const img = (name: string): string => `${QC1_CDN}/${name}.webp`
 
-// Emoji icon per studio stage (matches the mockup's stage-list icons)
-const STAGE_ICON: Record<string, string> = {
-  executiveProducer: '📋',
-  characterDirector: '🎭',
-  episodeDirector: '🎬',
-  visualAssetDirector: '🖼️',
-  audioDirector: '🎵',
-  episodeProducer: '🎞️',
-  renderingShots: '🎥',
-  episodeRenderer: '🚀',
-  transcribe: '💬',
+// Icon per studio stage (matches the mockup's stage-list icons).
+const STAGE_ICON: Record<string, IconName> = {
+  executiveProducer: 'clipboard',
+  characterDirector: 'masks',
+  episodeDirector: 'clapper',
+  visualAssetDirector: 'image',
+  audioDirector: 'music',
+  episodeProducer: 'film',
+  renderingShots: 'camera',
+  episodeRenderer: 'rocket',
+  transcribe: 'chat',
 }
 
 // The 7 Production-Progress items map to a driving studio stage.
@@ -140,7 +141,7 @@ const Page1Idea = () => {
         <img class="qcv1-p1-hero-img" src={heroImage} alt="" />
         <div class="qcv1-p1-hero-scrim" />
         <div class="qcv1-p1-hero-text">
-          <span class="qcv1-badge">⚡ {p1().badge.toUpperCase()}</span>
+          <span class="qcv1-badge"><Icon name="bolt" /> {p1().badge.toUpperCase()}</span>
           <h1 class="qcv1-h1">
             {p1().titlePre}
             <span class="qcv1-accent">{p1().titleAccent}</span>
@@ -151,7 +152,7 @@ const Page1Idea = () => {
 
       <div class="qcv1-idea-card">
         <div class="qcv1-idea-card-head">
-          <span class="qcv1-idea-card-title">✦ {p1().cardTitle}</span>
+          <span class="qcv1-idea-card-title"><Icon name="sparkle" /> {p1().cardTitle}</span>
           <span class="qcv1-counter">{s.idea.length} / 1000</span>
         </div>
         <textarea
@@ -164,14 +165,14 @@ const Page1Idea = () => {
         />
         <div class="qcv1-idea-actions">
           <button class="qcv1-btn ghost" disabled={s.surprising} onClick={() => actions.surpriseMe()}>
-            🎲 {s.surprising ? p1().surprising : p1().surpriseMe}
+            <Icon name="dice" /> {s.surprising ? p1().surprising : p1().surpriseMe}
           </button>
           <button
             class="qcv1-btn primary qcv1-create-btn"
             disabled={!s.idea.trim() || s.proposalLoading}
             onClick={() => actions.generateProposal()}
           >
-            <span class="qcv1-create-main">✦ {p1().create}</span>
+            <span class="qcv1-create-main"><Icon name="sparkle" /> {p1().create}</span>
             <span class="qcv1-create-sub">{p1().createSub}</span>
           </button>
         </div>
@@ -183,7 +184,7 @@ const Page1Idea = () => {
 
       <div class="qcv1-popular">
         <h2 class="qcv1-h2">{p1().popularTitle}</h2>
-        <p class="qcv1-popular-hint">🔥 {p1().popularHint}</p>
+        <p class="qcv1-popular-hint"><Icon name="fire" /> {p1().popularHint}</p>
         <div class="qcv1-idea-grid">
           <For each={STORY_TEMPLATES}>
             {(id) => {
@@ -205,11 +206,11 @@ const Page1Idea = () => {
       </div>
 
       <div class="qcv1-tip-bar">
-        <span class="qcv1-tip-icon">💡</span>
+        <span class="qcv1-tip-icon"><Icon name="bulb" /></span>
         <span>
           <b>{p1().tipLabel}</b> {p1().tip}
         </span>
-        <span class="qcv1-tip-cat">🐱</span>
+        <span class="qcv1-tip-cat"><Icon name="cat" /></span>
       </div>
     </div>
   )
@@ -438,12 +439,12 @@ const Page2Proposal = () => {
             {/* Series Overview */}
             <section class="qcv1-card">
               <div class="qcv1-card-head">
-                <span class="qcv1-card-title">▦ {p2().seriesOverview.toUpperCase()}</span>
+                <span class="qcv1-card-title"><Icon name="grid" /> {p2().seriesOverview.toUpperCase()}</span>
                 <Show
                   when={editSeries()}
                   fallback={
                     <button class="qcv1-btn tiny" onClick={startSeries}>
-                      ✎ {p2().edit}
+                      <Icon name="pencil" /> {p2().edit}
                     </button>
                   }
                 >
@@ -499,7 +500,7 @@ const Page2Proposal = () => {
             {/* Main Characters */}
             <section class="qcv1-card">
               <div class="qcv1-card-head">
-                <span class="qcv1-card-title">👥 {p2().mainCharacters.toUpperCase()}</span>
+                <span class="qcv1-card-title"><Icon name="people" /> {p2().mainCharacters.toUpperCase()}</span>
                 <button class="qcv1-btn tiny" onClick={() => actions.addCharacter()}>
                   + {p2().addCharacter}
                 </button>
@@ -523,7 +524,7 @@ const Page2Proposal = () => {
                           <span class="qcv1-cell-val">{char.personality}</span>
                           <span class="qcv1-cell-val">{char.background}</span>
                           <button class="qcv1-row-edit" onClick={() => startChar(i())}>
-                            ✎ {p2().edit}
+                            <Icon name="pencil" /> {p2().edit}
                           </button>
                         </div>
                       }
@@ -551,7 +552,7 @@ const Page2Proposal = () => {
             {/* Season 1 Overview */}
             <section class="qcv1-card">
               <div class="qcv1-card-head">
-                <span class="qcv1-card-title">▦ {p2().season.toUpperCase()}</span>
+                <span class="qcv1-card-title"><Icon name="grid" /> {p2().season.toUpperCase()}</span>
               </div>
               <div class="qcv1-season">
                 <div class="qcv1-ep-list">
@@ -582,7 +583,7 @@ const Page2Proposal = () => {
                         when={editEp()}
                         fallback={
                           <button class="qcv1-btn tiny" onClick={startEp}>
-                            ✎ {p2().editEpisode}
+                            <Icon name="pencil" /> {p2().editEpisode}
                           </button>
                         }
                       >
@@ -643,7 +644,7 @@ const Page2Proposal = () => {
           {/* Sidebar */}
           <div class="qcv1-p2-side">
             <section class="qcv1-card qcv1-ai">
-              <span class="qcv1-card-title">✦ {p2().aiAssistant.toUpperCase()}</span>
+              <span class="qcv1-card-title"><Icon name="sparkle" /> {p2().aiAssistant.toUpperCase()}</span>
               <p class="qcv1-ai-sub">{p2().aiSub}</p>
               <div class="qcv1-ai-input-wrap">
                 <input
@@ -655,7 +656,7 @@ const Page2Proposal = () => {
                   onKeyDown={(e) => e.key === 'Enter' && actions.applyAiEdit()}
                 />
                 <button class="qcv1-ai-send" disabled={!s.aiEditInstruction.trim() || s.aiEditing} onClick={() => actions.applyAiEdit()}>
-                  {s.aiEditing ? '…' : '➤'}
+                  {s.aiEditing ? '…' : <Icon name="send" />}
                 </button>
               </div>
               <p class="qcv1-ai-ex-title">{p2().aiExamplesTitle}</p>
@@ -671,7 +672,7 @@ const Page2Proposal = () => {
               </Show>
             </section>
             <section class="qcv1-card qcv1-tip-card">
-              <span class="qcv1-tip-icon">💡</span>
+              <span class="qcv1-tip-icon"><Icon name="bulb" /></span>
               <div>
                 <b>{p2().tipTitle}</b>
                 <p>{p2().tip}</p>
@@ -704,7 +705,7 @@ const Page2Proposal = () => {
             </button>
           </div>
         </div>
-        <p class="qcv1-footer-note">🔒 {p2().footerNote}</p>
+        <p class="qcv1-footer-note"><Icon name="lock" /> {p2().footerNote}</p>
       </div>
     </Show>
   )
@@ -768,7 +769,7 @@ const Page3Studio = () => {
             </div>
           </div>
           <div class="qcv1-know-card">
-            <span class="qcv1-know-title">✦ {st().didYouKnow}</span>
+            <span class="qcv1-know-title"><Icon name="sparkle" /> {st().didYouKnow}</span>
             <p>{st().didYouKnowText}</p>
           </div>
         </div>
@@ -790,7 +791,7 @@ const Page3Studio = () => {
               const pct = () => (isShots ? currentShotPct() : info.pct())
               return (
                 <div class={`qcv1-stage ${info.status()}`}>
-                  <span class="qcv1-stage-icon">{STAGE_ICON[stage.key]}</span>
+                  <span class="qcv1-stage-icon"><Icon name={STAGE_ICON[stage.key]} /></span>
                   <div class="qcv1-stage-body">
                     <div class="qcv1-stage-name">{name()}</div>
                     <div class="qcv1-stage-desc">{meta().desc}</div>
@@ -855,7 +856,7 @@ const Page3Studio = () => {
                   <button class="qcv1-preview-nav left" onClick={() => actions.prevShot()}>‹</button>
                 </Show>
                 <div class="qcv1-preview-image">
-                  <Show when={previewImg()} fallback={<div class="qcv1-preview-placeholder">🎬</div>}>
+                  <Show when={previewImg()} fallback={<div class="qcv1-preview-placeholder"><Icon name="clapper" /></div>}>
                     <img src={previewImg()} alt="" />
                   </Show>
                 </div>
@@ -879,7 +880,7 @@ const Page3Studio = () => {
                         <div class="qcv1-prod-thumb">
                           <img src={img(`prog-${item.id}`)} alt="" loading="lazy" />
                           <Show when={info.status() === 'pending'}>
-                            <span class="qcv1-prod-lock">🔒</span>
+                            <span class="qcv1-prod-lock"><Icon name="lock" /></span>
                           </Show>
                         </div>
                         <span class="qcv1-prod-label">{(st().prog as Record<string, string>)[item.id]}</span>
@@ -939,7 +940,7 @@ const Page3Studio = () => {
           isn't ready yet (audio/composition + encode). Reassures the user the studio will
           advance on its own, so step 3 doesn't look frozen. */}
       <Show when={s.producing && !s.episodeVideo && s.videoTotal > 0 && s.videoDone >= s.videoTotal}>
-        <p class="qcv1-finalizing">⏳ {st().finalizing}</p>
+        <p class="qcv1-finalizing"><Icon name="hourglass" /> {st().finalizing}</p>
       </Show>
 
       {/* Bottom bar */}
@@ -948,11 +949,11 @@ const Page3Studio = () => {
           ← {st().backToProposal}
         </button>
         <div class="qcv1-saved-note">
-          ☁ {st().savedCloud} {st().savedCloudSub}
+          <Icon name="cloud" /> {st().savedCloud} {st().savedCloudSub}
         </div>
         <div class="qcv1-bottombar-right">
           <button class="qcv1-btn ghost" onClick={() => navigate('/')}>
-            🚪 {st().exitStudio}
+            <Icon name="door" /> {st().exitStudio}
           </button>
           {/* Enabled only once the episode video is ready; it then opens the Ready page (the
               studio also auto-advances there on its own). Disabled while still producing. */}
@@ -961,7 +962,7 @@ const Page3Studio = () => {
             disabled={!s.episodeVideo}
             onClick={() => actions.goToStep(4)}
           >
-            ▶ {st().stayWatch}
+            <Icon name="play" /> {st().stayWatch}
           </button>
         </div>
       </div>
@@ -1079,7 +1080,7 @@ const Page4Ready = () => {
   }) => (
     <div class="qcv1-action-card">
       <div class="qcv1-action-head">
-        <span class="qcv1-action-icon">{props.icon}</span>
+        <span class="qcv1-action-icon"><Icon name={props.icon as IconName} /></span>
         <div>
           <div class="qcv1-action-title">{props.title}</div>
           <div class="qcv1-action-desc">{props.desc}</div>
@@ -1112,13 +1113,13 @@ const Page4Ready = () => {
                 }
               >
                 <h1 class="qcv1-h1">
-                  {r().episodeWord} {s.episodeNumber} {r().readySuffix} 🎉
+                  {r().episodeWord} {s.episodeNumber} {r().readySuffix} <Icon name="party" />
                 </h1>
                 <p class="qcv1-lead">{r().subtitle}</p>
               </Show>
             </div>
             <div class="qcv1-time-card">
-              <span class="qcv1-time-label">🕐 {r().totalTime}</span>
+              <span class="qcv1-time-label"><Icon name="clock" /> {r().totalTime}</span>
               <span class="qcv1-time-val">{totalTime()}</span>
             </div>
           </div>
@@ -1138,7 +1139,7 @@ const Page4Ready = () => {
                 {/* The shots rendered; only the stitch failed. Re-composing reuses them, so
                     there is nothing to regenerate and nothing more to pay. */}
                 <div class="qcv1-compose-failed">
-                  <div class="qcv1-compose-failed-icon">⚠️</div>
+                  <div class="qcv1-compose-failed-icon"><Icon name="warning" /></div>
                   <p class="qcv1-compose-failed-msg">{s.produceError}</p>
                   <Show when={s.canRetryCompose}>
                     <p class="qcv1-compose-failed-hint">{r().retryHint}</p>
@@ -1173,7 +1174,7 @@ const Page4Ready = () => {
           <div class="qcv1-ep-card">
             <div class="qcv1-ep-card-left">
               <div class="qcv1-ep-card-head">
-                <span class="qcv1-ep-icon">🎬</span>
+                <span class="qcv1-ep-icon"><Icon name="clapper" /></span>
                 <div>
                   <div class="qcv1-ep-eyebrow">
                     {r().episodeWord} {s.episodeNumber}
@@ -1187,9 +1188,9 @@ const Page4Ready = () => {
                 <Show when={cd().tone}><span class="qcv1-ep-tag">{cd().tone}</span></Show>
               </div>
               <div class="qcv1-ep-meta">
-                <span>🕐 {mmss(s.episodeSeconds)}</span>
-                <span>📺 {s.episodeResolution}</span>
-                <span>📅 {today()}</span>
+                <span><Icon name="clock" /> {mmss(s.episodeSeconds)}</span>
+                <span><Icon name="tv" /> {s.episodeResolution}</span>
+                <span><Icon name="calendar" /> {today()}</span>
               </div>
               <p class="qcv1-ep-summary">{ep1()?.summary || ''}</p>
             </div>
@@ -1220,7 +1221,7 @@ const Page4Ready = () => {
                       onClick={() => actions.openProduction(ep.jobId)}
                     >
                       <div class="qcv1-next-thumb">
-                        <Show when={ep.cover} fallback={<span>🎬</span>}>
+                        <Show when={ep.cover} fallback={<span><Icon name="clapper" /></span>}>
                           <img src={ep.cover} alt="" />
                         </Show>
                       </div>
@@ -1247,7 +1248,7 @@ const Page4Ready = () => {
                 <For each={nextEpisodes()}>
                   {(ep, i) => (
                     <div class={`qcv1-next-card ${i() === 0 ? 'active' : ''}`}>
-                      <div class="qcv1-next-thumb">🎞️</div>
+                      <div class="qcv1-next-thumb"><Icon name="film" /></div>
                       <div class="qcv1-next-eyebrow">{r().episodeWord} {ep.episode}</div>
                       <div class="qcv1-next-title">{ep.title}</div>
                       <div class="qcv1-next-desc">{ep.summary}</div>
@@ -1270,14 +1271,14 @@ const Page4Ready = () => {
 
         {/* Action sidebar */}
         <div class="qcv1-p4-side">
-          <ActionCard icon="▶" title={r().watchTitle} desc={r().watchDesc} btn={`${r().watchBtn} ▶`} primary onClick={() => document.querySelector('.qcv1-video')?.scrollIntoView({ behavior: 'smooth' })} />
-          <ActionCard icon="🔗" title={r().shareTitle} desc={r().shareDesc} btn={`${r().shareBtn} ⧉`} onClick={() => setShareOpen(true)} disabled={!s.episodeVideo} />
+          <ActionCard icon="play" title={r().watchTitle} desc={r().watchDesc} btn={r().watchBtn} primary onClick={() => document.querySelector('.qcv1-video')?.scrollIntoView({ behavior: 'smooth' })} />
+          <ActionCard icon="link" title={r().shareTitle} desc={r().shareDesc} btn={`${r().shareBtn} ⧉`} onClick={() => setShareOpen(true)} disabled={!s.episodeVideo} />
           <Show when={!S1}>
-            <ActionCard icon="⬇" title={r().downloadTitle} desc={r().downloadDesc} btn={`${r().downloadBtn} ⬇`} onClick={download} disabled={!s.episodeVideo} />
+            <ActionCard icon="download" title={r().downloadTitle} desc={r().downloadDesc} btn={r().downloadBtn} onClick={download} disabled={!s.episodeVideo} />
           </Show>
-          <ActionCard icon="✎" title={r().editTitle} desc={r().editDesc} btn={`${r().editBtn} ⧉`} onClick={soon} />
+          <ActionCard icon="pencil" title={r().editTitle} desc={r().editDesc} btn={`${r().editBtn} ⧉`} onClick={soon} />
           <ActionCard
-            icon="▣"
+            icon="grid"
             title={r().publishTitle}
             desc={r().publishDesc.replace('{n}', String(s.episodeNumber))}
             btn={r().publishBtn.replace('{n}', String(s.episodeNumber))}
@@ -1304,9 +1305,9 @@ const Page4Ready = () => {
             ← {r().backToStudio}
           </button>
         </Show>
-        <div class="qcv1-saved-note">☁ {r().savedCloud} {r().savedCloudSub}</div>
+        <div class="qcv1-saved-note"><Icon name="cloud" /> {r().savedCloud} {r().savedCloudSub}</div>
         <button class="qcv1-btn primary" onClick={() => navigate('/account')}>
-          ▦ {r().goToMySeries}
+          <Icon name="grid" /> {r().goToMySeries}
         </button>
       </div>
 
@@ -1325,7 +1326,7 @@ const Page4Ready = () => {
       <Show when={joinPrompt()}>
         <div class="qcv1-modal-overlay" onClick={() => setJoinPrompt(false)}>
           <div class="qcv1-modal" onClick={(e) => e.stopPropagation()}>
-            <div class="qcv1-modal-eyebrow">✦ {r().joinEyebrow}</div>
+            <div class="qcv1-modal-eyebrow"><Icon name="sparkle" /> {r().joinEyebrow}</div>
             <h3 class="qcv1-modal-title">{r().joinTitle}</h3>
             <p class="qcv1-modal-summary">{r().joinDesc}</p>
             <div class="qcv1-modal-actions">

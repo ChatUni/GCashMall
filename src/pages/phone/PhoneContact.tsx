@@ -3,6 +3,7 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import { t } from '../../stores/languageStore'
 import { submitFeedback } from '../../services/dataService'
 import './PhoneContact.css'
+import Icon from '../../components/Icon'
 
 const FEEDBACK_MAX = 5000
 
@@ -41,7 +42,7 @@ export const PhoneContactContent = () => {
   return (
     <div class="phone-contact">
         <div class="phone-contact-header">
-          <div class="phone-contact-emoji">✉️</div>
+          <div class="phone-contact-emoji"><Icon name="envelope" /></div>
           <h1 class="phone-contact-title">{contact().title}</h1>
           <p class="phone-contact-subtitle">{contact().subtitle}</p>
         </div>
@@ -51,7 +52,7 @@ export const PhoneContactContent = () => {
 
           <div class="phone-contact-info">
             <div class="phone-contact-item">
-              <span class="phone-contact-icon">📧</span>
+              <span class="phone-contact-icon"><Icon name="envelope" /></span>
               <div>
                 <span class="phone-contact-label">{contact().emailLabel}</span>
                 <a href="mailto:chatuni.ai@gmail.com" class="phone-contact-value">
@@ -65,7 +66,7 @@ export const PhoneContactContent = () => {
             when={!submitted()}
             fallback={
               <div class="phone-contact-thankyou">
-                <span class="phone-contact-thankyou-icon">🎉</span>
+                <span class="phone-contact-thankyou-icon"><Icon name="party" /></span>
                 <p>{contact().thankYou}</p>
               </div>
             }
@@ -90,7 +91,7 @@ export const PhoneContactContent = () => {
               disabled={submitting() || feedback().trim().length === 0}
               onClick={handleSubmit}
             >
-              ✉️ {submitting() ? '...' : contact().submit}
+              <Icon name="envelope" /> {submitting() ? '...' : contact().submit}
             </button>
           </Show>
         </div>

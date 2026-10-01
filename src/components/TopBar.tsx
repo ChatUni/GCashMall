@@ -100,7 +100,13 @@ const TopBar = () => {
                 class={`nav-link create-link ${isActiveRoute('/quick-create') ? 'active' : ''}`}
                 onClick={handleCreateClick}
               >
-                <span class="create-link-icon">✨</span>
+                {/* Inline SVG, not the ✨ emoji: emoji depend on a platform font that
+                    some environments (notably the iOS Simulator) do not expose to the
+                    webview, where it renders as a missing-glyph box. */}
+                <svg class="create-link-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2.5l1.9 5.1 5.1 1.9-5.1 1.9L12 16.5l-1.9-5.1L5 9.5l5.1-1.9L12 2.5z" />
+                  <path d="M18.5 15l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9.9-2.4z" />
+                </svg>
                 {t().topBar.create}
               </a>
             </nav>

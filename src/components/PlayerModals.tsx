@@ -3,6 +3,7 @@ import { systemSettingsStore } from '../stores/systemSettingsStore'
 import { toastStore } from '../stores'
 import './PlayerModals.css'
 import { formatCredits } from '../utils/credits'
+import Icon from './Icon'
 
 // Purchase Popup Modal
 interface PurchasePopupProps {
@@ -34,7 +35,7 @@ const episodeLabel = (episodeNumber: number, title?: string): string => {
 export const PurchasePopup = (props: PurchasePopupProps) => (
   <div class="popup-overlay" onClick={props.onCancel}>
     <div class="popup-modal purchase-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="popup-icon">🔓</div>
+      <div class="popup-icon"><Icon name="unlock" /></div>
       <h2 class="popup-title">{props.t.unlockEpisode}</h2>
       <p class="popup-message">{props.t.unlockMessage}</p>
       <div class="popup-episode-info">
@@ -149,7 +150,7 @@ interface FavoriteModalProps {
 export const FavoriteModal = (props: FavoriteModalProps) => (
   <div class="popup-overlay" onClick={props.onCancel}>
     <div class="popup-modal favorite-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="popup-icon">{props.action === 'add' ? '❤️' : '💔'}</div>
+      <div class="popup-icon"><Icon name={props.action === 'add' ? 'heart' : 'heartBroken'} /></div>
       <h2 class="popup-title">
         {props.action === 'add' ? props.t.addToFavoritesTitle : props.t.removeFromFavoritesTitle}
       </h2>

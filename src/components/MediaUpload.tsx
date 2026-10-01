@@ -2,6 +2,7 @@ import { createSignal, createEffect, onCleanup, Show, Switch, Match } from 'soli
 import { t } from '../stores/languageStore'
 import { toastStoreActions } from '../stores'
 import './MediaUpload.css'
+import Icon from './Icon'
 
 type MediaMode = 'image' | 'video'
 
@@ -225,7 +226,7 @@ const VideoThumbnail = (props: VideoThumbnailProps) => {
         >
           <div class="media-upload-video-container">
             <img src={thumbnailUrl()!} alt="Video thumbnail" class="media-upload-image" />
-            <div class="media-upload-play-icon">▶</div>
+            <div class="media-upload-play-icon"><Icon name="play" /></div>
           </div>
         </Show>
       }

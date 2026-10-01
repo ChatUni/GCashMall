@@ -553,28 +553,28 @@ export const accountStoreActions = {
 
 // Nav items config for desktop (without about/contact - those are separate pages)
 export const navItems: { key: AccountTab; icon: string }[] = [
-  { key: 'overview', icon: '👤' },
-  { key: 'watchHistory', icon: '📺' },
-  { key: 'favorites', icon: '❤️' },
-  { key: 'myPurchases', icon: '🛒' },
-  { key: 'mySeries', icon: '🎬' },
-  { key: 'wallet', icon: '💰' },
-  { key: 'moderation', icon: '🛡️' },
-  { key: 'settings', icon: '⚙️' },
+  { key: 'overview', icon: 'person' },
+  { key: 'watchHistory', icon: 'tv' },
+  { key: 'favorites', icon: 'heart' },
+  { key: 'myPurchases', icon: 'cart' },
+  { key: 'mySeries', icon: 'clapper' },
+  { key: 'wallet', icon: 'money' },
+  { key: 'moderation', icon: 'shield' },
+  { key: 'settings', icon: 'gear' },
 ]
 
 // Nav items config for phone (includes about/contact as tabs)
 export const phoneNavItems: { key: AccountTab; icon: string }[] = [
-  { key: 'overview', icon: '👤' },
-  { key: 'watchHistory', icon: '📺' },
-  { key: 'favorites', icon: '❤️' },
-  { key: 'myPurchases', icon: '🛒' },
-  { key: 'mySeries', icon: '🎬' },
-  { key: 'wallet', icon: '💰' },
-  { key: 'moderation', icon: '🛡️' },
-  { key: 'settings', icon: '⚙️' },
-  { key: 'about', icon: 'ℹ️' },
-  { key: 'contact', icon: '✉️' },
+  { key: 'overview', icon: 'person' },
+  { key: 'watchHistory', icon: 'tv' },
+  { key: 'favorites', icon: 'heart' },
+  { key: 'myPurchases', icon: 'cart' },
+  { key: 'mySeries', icon: 'clapper' },
+  { key: 'wallet', icon: 'money' },
+  { key: 'moderation', icon: 'shield' },
+  { key: 'settings', icon: 'gear' },
+  { key: 'about', icon: 'info' },
+  { key: 'contact', icon: 'envelope' },
 ]
 
 // My Series is always visible (anyone can Quick Create); its publisher-only sub-tabs

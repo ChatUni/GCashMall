@@ -5,6 +5,7 @@ import { APP_DISPLAY_NAME } from '../utils/config'
 import { BRAND_MARK } from '../utils/brand'
 import { t } from '../stores/languageStore'
 import './About.css'
+import Icon from '../components/Icon'
 
 const About = () => {
   // Scroll to top when page loads
@@ -35,7 +36,7 @@ const About = () => {
           {/* Mission Section */}
           <div class="about-card">
             <div class="about-section">
-              <div class="about-section-icon">🎯</div>
+              <div class="about-section-icon"><Icon name="target" /></div>
               <h2 class="about-section-title">{about().missionTitle}</h2>
               <p class="about-section-text">{about().missionText}</p>
             </div>
@@ -46,22 +47,22 @@ const About = () => {
             <h2 class="about-card-title">{about().featuresTitle}</h2>
             <div class="about-features-grid">
               <div class="about-feature">
-                <div class="about-feature-icon">🎬</div>
+                <div class="about-feature-icon"><Icon name="clapper" /></div>
                 <h3 class="about-feature-title">{about().feature1Title}</h3>
                 <p class="about-feature-text">{about().feature1Text}</p>
               </div>
               <div class="about-feature">
-                <div class="about-feature-icon">💰</div>
+                <div class="about-feature-icon"><Icon name="money" /></div>
                 <h3 class="about-feature-title">{about().feature2Title}</h3>
                 <p class="about-feature-text">{about().feature2Text}</p>
               </div>
               <div class="about-feature">
-                <div class="about-feature-icon">🌍</div>
+                <div class="about-feature-icon"><Icon name="globe" /></div>
                 <h3 class="about-feature-title">{about().feature3Title}</h3>
                 <p class="about-feature-text">{about().feature3Text}</p>
               </div>
               <div class="about-feature">
-                <div class="about-feature-icon">📱</div>
+                <div class="about-feature-icon"><Icon name="phone" /></div>
                 <h3 class="about-feature-title">{about().feature4Title}</h3>
                 <p class="about-feature-text">{about().feature4Text}</p>
               </div>

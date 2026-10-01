@@ -22,6 +22,7 @@ import {
   BIO_MAX,
 } from '../stores/creatorProgramStore'
 import './CreatorProgram.css'
+import Icon, { type IconName } from '../components/Icon'
 
 const cp = () => t().creatorProgram
 
@@ -39,18 +40,18 @@ const isCreator = () =>
 // ── Landing ──
 
 const WHY = [
-  { icon: '⬆️', cls: 'purple', k: 'publish' },
-  { icon: '📈', cls: 'green', k: 'earn' },
-  { icon: '👛', cls: 'amber', k: 'payouts' },
-  { icon: '🛡️', cls: 'blue', k: 'secure' },
-  { icon: '👥', cls: 'pink', k: 'built' },
+  { icon: 'upload', cls: 'purple', k: 'publish' },
+  { icon: 'chartUp', cls: 'green', k: 'earn' },
+  { icon: 'wallet', cls: 'amber', k: 'payouts' },
+  { icon: 'shield', cls: 'blue', k: 'secure' },
+  { icon: 'people', cls: 'pink', k: 'built' },
 ] as const
 
 const HOW = [
-  { n: 1, icon: '✏️', tag: 'ok', k: 's1' },
-  { n: 2, icon: '☁️', tag: 'green', k: 's2' },
-  { n: 3, icon: '📈', tag: 'amber', k: 's3' },
-  { n: 4, icon: '🛡️', tag: 'blue', k: 's4' },
+  { n: 1, icon: 'pencil', tag: 'ok', k: 's1' },
+  { n: 2, icon: 'cloud', tag: 'green', k: 's2' },
+  { n: 3, icon: 'chartUp', tag: 'amber', k: 's3' },
+  { n: 4, icon: 'shield', tag: 'blue', k: 's4' },
 ] as const
 
 const FAQS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'] as const
@@ -70,7 +71,7 @@ const Landing = () => {
       {/* Hero */}
       <div class="cpp-hero">
         <div class="cpp-hero-left">
-          <span class="cpp-hero-badge">✦ {cp().hero.badge}</span>
+          <span class="cpp-hero-badge"><Icon name="sparkle" /> {cp().hero.badge}</span>
           <h2 class="cpp-hero-title">
             {cp().hero.titlePre}
             <span class="cpp-accent">{cp().hero.titleAccent}</span>
@@ -104,7 +105,7 @@ const Landing = () => {
       {/* Already a creator */}
       <Show when={isCreator()}>
         <div class="cpp-already">
-          <div class="cpp-already-icon">👑</div>
+          <div class="cpp-already-icon"><Icon name="crown" /></div>
           <div class="cpp-already-text">
             <b>{cp().alreadyTitle}</b>
             <p>{cp().alreadyDesc}</p>
@@ -121,7 +122,7 @@ const Landing = () => {
         <For each={WHY}>
           {(w) => (
             <div class="cpp-why-card">
-              <span class={`cpp-why-icon ${w.cls}`}>{w.icon}</span>
+              <span class={`cpp-why-icon ${w.cls}`}><Icon name={w.icon as IconName} /></span>
               <b class="cpp-why-title">{why()[`${w.k}Title`]}</b>
               <p class="cpp-why-desc">{why()[`${w.k}Desc`]}</p>
             </div>
@@ -137,7 +138,7 @@ const Landing = () => {
             <>
               <div class="cpp-how-card">
                 <span class="cpp-how-num">{h.n}</span>
-                <span class="cpp-how-icon">{h.icon}</span>
+                <span class="cpp-how-icon"><Icon name={h.icon as IconName} /></span>
                 <b class="cpp-how-title">{how()[`${h.k}Title`]}</b>
                 <p class="cpp-how-desc">{how()[`${h.k}Desc`]}</p>
                 <span class={`cpp-how-tag ${h.tag}`}>{how()[`${h.k}Tag`]}</span>
@@ -158,7 +159,7 @@ const Landing = () => {
           <div class="cpp-earn-value">$0.00</div>
           <p class="cpp-status-note">{cp().pendingNote}</p>
           <button class="cpp-btn-outline full" onClick={() => navigate('/account?tab=mySeries')}>
-            📊 {cp().viewEarnings}
+            <Icon name="chart" /> {cp().viewEarnings}
           </button>
         </div>
 
@@ -167,7 +168,7 @@ const Landing = () => {
             {cp().payoutStatusTitle} <span class="cpp-pill-warn">{cp().payoutNotEnabled}</span>
           </div>
           <div class="cpp-payout-kyc">
-            <span class="cpp-payout-kyc-icon">🪪</span>
+            <span class="cpp-payout-kyc-icon"><Icon name="idCard" /></span>
             <b>{cp().payoutKycTitle}</b>
           </div>
           <ul class="cpp-check-list">
@@ -224,17 +225,17 @@ const Landing = () => {
       {/* CTA */}
       <div class="cpp-cta">
         <div class="cpp-cta-left">
-          <span class="cpp-cta-emoji">🧑‍🎨</span>
+          <span class="cpp-cta-emoji"><Icon name="artist" /></span>
           <span>{cp().ctaTitle}</span>
         </div>
         <div class="cpp-cta-right">
           <button class="cpp-btn-primary" onClick={actions.startJoin}>
             {cp().hero.join}
           </button>
-          <span class="cpp-cta-time">⏱ {cp().ctaTime}</span>
+          <span class="cpp-cta-time"><Icon name="clock" /> {cp().ctaTime}</span>
         </div>
       </div>
-      <p class="cpp-footer-note">🔒 {cp().footerNote}</p>
+      <p class="cpp-footer-note"><Icon name="lock" /> {cp().footerNote}</p>
     </div>
   )
 }
@@ -255,7 +256,7 @@ const StepAgreement = () => {
   return (
     <div class="cpp-panel">
       <span class="cpp-step-badge">{j().stepLabel.replace('{n}', '1')}</span>
-      <h2 class="cpp-panel-title">📋 {j().agTitle}</h2>
+      <h2 class="cpp-panel-title"><Icon name="clipboard" /> {j().agTitle}</h2>
       <p class="cpp-panel-desc">{j().agDesc}</p>
 
       <div class="cpp-agreement">
@@ -294,13 +295,13 @@ const StepAgreement = () => {
       <button class="cpp-btn-primary full" disabled={!store.agreementAccepted} onClick={actions.next}>
         {j().acceptContinue} →
       </button>
-      <p class="cpp-panel-note">🔒 {j().dataSafe}</p>
+      <p class="cpp-panel-note"><Icon name="lock" /> {j().dataSafe}</p>
     </div>
   )
 }
 
 const SOCIALS = [
-  { key: 'youtube', icon: '▶', ph: 'youtube.com/yourchannel' },
+  { key: 'youtube', icon: 'play', ph: 'youtube.com/yourchannel' },
   { key: 'instagram', icon: '◎', ph: 'instagram.com/yourhandle' },
   { key: 'x', icon: '𝕏', ph: 'x.com/yourhandle' },
 ] as const
@@ -387,7 +388,8 @@ const StepProfile = () => {
             disabled={!canAdvanceJoin() || store.submitting}
             onClick={submit}
           >
-            {store.submitting ? j().joining : `${j().become} ✨`}
+            {store.submitting ? j().joining : j().become}
+            <Show when={!store.submitting}><Icon name="sparkle" /></Show>
           </button>
         </div>
         <Show when={store.submitError}>
@@ -427,7 +429,7 @@ const StepProfile = () => {
               {j().statFollowers}
             </span>
           </div>
-          <p class="cpp-preview-customize">✨ {j().previewCustomize}</p>
+          <p class="cpp-preview-customize"><Icon name="sparkle" /> {j().previewCustomize}</p>
         </div>
       </div>
     </div>
@@ -477,7 +479,7 @@ const JoinWizard = () => {
       </Switch>
 
       <div class="cpp-kyc-banner">
-        <span>ℹ️ {j().kycBanner}</span>
+        <span><Icon name="info" /> {j().kycBanner}</span>
         <button class="cpp-link">{cp().learnPayouts} →</button>
       </div>
     </div>

@@ -17,7 +17,7 @@ import { verifyAppleTransaction } from './appleIAP.js'
 import { verifyGooglePlayTransaction } from './googlePlay.js'
 import { finalizeGUSDOrder, parseGUSDOrderId } from './gusdTopup.js'
 import { reserveTransaction, releaseTransaction } from './iapLedger.js'
-import { bunnyEmbedUrl, deleteBunnyVideo } from './bunny.js'
+import { bunnyEmbedUrl, deleteBunnyVideo, getBunnyVideo } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
 import { toCredits, toUsd, creditsForTopUp } from './credits.js'
@@ -4028,6 +4028,7 @@ export {
   getShares,
   shareSeries,
   getViews,
+  getVideoStatus,
   recordView,
   getSettings,
   saveSettings,
@@ -4435,6 +4436,24 @@ const validateSharesParams = (data) => {
 }
 
 // ── Views ──
+
+// Whether an episode's video can actually be played.
+//
+// Bunny renders its own white error page inside the embed when a video failed to encode, and an
+// iframe's content cannot be styled cross-origin — so the player has to decide NOT to mount the
+// iframe rather than try to hide the result. 4 = Finished; 5/6 are terminal failures; anything
+// else is still encoding.
+const getVideoStatus = async (params) => {
+  if (!params?.videoId) return { success: false, error: 'videoId is required' }
+  try {
+    const v = await getBunnyVideo(params.videoId).catch(() => null)
+    const state =
+      !v ? 'missing' : v.status === 4 ? 'ready' : v.status === 5 || v.status === 6 ? 'failed' : 'encoding'
+    return { success: true, data: { state, playable: state === 'ready' } }
+  } catch (error) {
+    throw new Error(`Failed to get video status: ${error.message}`)
+  }
+}
 
 const getViews = async (params) => {
   validateViewsParams(params)

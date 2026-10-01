@@ -38,6 +38,7 @@ import {
 } from '../stores/playerStore'
 import { isEpisodePurchased } from '../services/dataService'
 import { isIOS } from '../utils/cordova'
+import Icon from '../components/Icon'
 import {
   formatTime,
   formatLikeCount,
@@ -58,6 +59,12 @@ const Player = () => {
   const navigate = useNavigate()
 
   // Initialize data
+  // Ask whether the current episode's video is playable. Without this the player mounts the
+  // Bunny iframe for a failed encode and shows its white error page.
+  createEffect(() => {
+    playerPageStoreActions.loadVideoState(playerStore.currentEpisode?.videoId)
+  })
+
   createEffect(() => {
     const id = params.id
     if (id) {
@@ -325,6 +332,15 @@ const VideoPlayer = () => {
             </div>
           </div>
         }>
+          <Show
+            when={playerPageStore.videoState !== 'failed' && playerPageStore.videoState !== 'missing'}
+            fallback={
+              <div class="video-unavailable">
+                <Icon name="warning" size={40} />
+                <p>{(t().player as unknown as Record<string, string>).videoUnavailable}</p>
+              </div>
+            }
+          >
           <iframe
             ref={iframeRef}
             src={getIframeUrl(import.meta.env.VITE_BUNNY_LIBRARY_ID, playerStore.currentEpisode!.videoId || '')}
@@ -334,6 +350,7 @@ const VideoPlayer = () => {
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
             allowfullscreen
           />
+          </Show>
         </Show>
         </Show>
       </Show>

@@ -23,6 +23,7 @@ import { getIframeUrl } from '../utils/playerHelpers'
 import type { AdminUser, ReviewRequestGroup } from '../services/dataService'
 import type { ModerationEpisode, ModerationSeries, ModerationGroup } from '../types'
 import './ModerationSection.css'
+import Icon from './Icon'
 
 const m = () => t().account.moderation
 
@@ -333,7 +334,7 @@ const UploaderGroup = (props: { group: ModerationGroup }) => {
     <div class="mod-group">
       <button class="mod-group-head" onClick={() => actions.toggleGroup(g().uploaderId)}>
         <span class="mod-avatar">
-          <Show when={g().uploaderAvatar} fallback={<span>👤</span>}>
+          <Show when={g().uploaderAvatar} fallback={<span><Icon name="person" /></span>}>
             <img src={g().uploaderAvatar} alt="" />
           </Show>
         </span>
@@ -578,7 +579,7 @@ const ModerationSection = () => {
       >
         <Show
           when={moderationStore.groups.length > 0}
-          fallback={<div class="mod-empty-state">✅ {m().emptyQueue}</div>}
+          fallback={<div class="mod-empty-state"><Icon name="checkCircle" /> {m().emptyQueue}</div>}
         >
           <For each={moderationStore.groups}>{(group) => <UploaderGroup group={group} />}</For>
         </Show>

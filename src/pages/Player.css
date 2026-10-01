@@ -987,3 +987,27 @@
 :root[data-theme='light'] .episode-sidebar {
   background-color: transparent;
 }
+
+/* Shown in place of the Bunny iframe when the episode's video cannot play. Mounting the iframe
+   anyway renders Bunny's own white error page, which cross-origin CSS cannot touch. */
+.video-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+  background: #000;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.video-unavailable p {
+  margin: 0;
+  max-width: 34ch;
+}

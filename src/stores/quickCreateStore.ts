@@ -81,18 +81,18 @@ export const POPULAR_IDEAS: PopularIdea[] = [
 
 // Step 1 secondary action cards (i18n keys under quickCreate.step1.actions)
 export const IDEA_ACTIONS = [
-  { id: 'uploadStory', icon: '⬆️' },
-  { id: 'importManga', icon: '📖' },
-  { id: 'surpriseMe', icon: '🎲' },
+  { id: 'uploadStory', icon: 'upload' },
+  { id: 'importManga', icon: 'book' },
+  { id: 'surpriseMe', icon: 'dice' },
 ]
 
 export const GENRES: GenreOption[] = [
-  { id: 'action', icon: '⚔️', image: genreImage('action') },
-  { id: 'romance', icon: '💗', image: genreImage('romance') },
-  { id: 'comedy', icon: '😄', image: genreImage('comedy') },
-  { id: 'fantasy', icon: '🔮', image: genreImage('fantasy') },
-  { id: 'horror', icon: '👻', image: genreImage('horror') },
-  { id: 'sciFi', icon: '🛸', image: genreImage('sciFi') },
+  { id: 'action', icon: 'swords', image: genreImage('action') },
+  { id: 'romance', icon: 'heart', image: genreImage('romance') },
+  { id: 'comedy', icon: 'smile', image: genreImage('comedy') },
+  { id: 'fantasy', icon: 'crystalBall', image: genreImage('fantasy') },
+  { id: 'horror', icon: 'ghost', image: genreImage('horror') },
+  { id: 'sciFi', icon: 'ufo', image: genreImage('sciFi') },
 ]
 
 export const ART_STYLES: ArtStyleOption[] = [
@@ -109,14 +109,15 @@ export const EPISODE_LENGTHS: EpisodeLengthOption[] = [
   { seconds: 60, image: lengthImage('60'), statKeys: ['shots60', 'shot60', 'gen60'] },
 ]
 
-// Icons for the episode-length stat chips (matching the mockup)
+// Icon names for the episode-length stat chips. Currently unreferenced; render through
+// <Icon name=... /> if these come back into use, never as text.
 export const STAT_ICONS: Record<string, string> = {
-  shots30: '🎬',
-  shot30: '🕐',
-  gen30: '⚡',
-  shots60: '🎬',
-  shot60: '🕐',
-  gen60: '⭐',
+  shots30: 'clapper',
+  shot30: 'clock',
+  gen30: 'bolt',
+  shots60: 'clapper',
+  shot60: 'clock',
+  gen60: 'star',
 }
 
 // ── Step 5: hardcoded AI Director plan (based on the mockup) ──

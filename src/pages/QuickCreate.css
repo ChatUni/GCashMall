@@ -236,8 +236,17 @@
   margin: 0 0 6px;
 }
 
+/* The heading's leading mark, as an SVG mask rather than an emoji glyph — see Icon.tsx. */
 .qc-heading::before {
-  content: '✨ ';
+  content: '';
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.35em;
+  vertical-align: -0.08em;
+  background: currentColor;
+  -webkit-mask: var(--icon-sparkle) center / contain no-repeat;
+  mask: var(--icon-sparkle) center / contain no-repeat;
 }
 
 .qc-subtitle {

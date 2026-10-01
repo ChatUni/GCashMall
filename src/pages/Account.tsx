@@ -93,6 +93,7 @@ const defaultIdeaCover =
   'https://res.cloudinary.com/daqc8bim3/image/upload/GCash/quick%20create%20v1/banner-hero.webp'
 import type { Series, User } from '../types'
 import './Account.css'
+import Icon, { type IconName } from '../components/Icon'
 
 const tabComponents: Record<string, Component> = {
   overview: OverviewSection,
@@ -198,7 +199,7 @@ const AccountSidebar = (props: AccountSidebarProps) => (
   <aside class="account-sidebar">
     <div class="sidebar-profile">
       <div class="sidebar-avatar">
-        <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji">👤</span>}>
+        <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji"><Icon name="person" /></span>}>
           <img src={accountStore.user!.avatar!} alt={accountStore.user?.nickname} />
         </Show>
       </div>
@@ -215,7 +216,7 @@ const AccountSidebar = (props: AccountSidebarProps) => (
             class={`nav-item ${accountStore.activeTab === item.key ? 'active' : ''}`}
             onClick={() => props.onTabClick(item.key)}
           >
-            <span class="nav-icon">{item.icon}</span>
+            <span class="nav-icon"><Icon name={item.icon as IconName} /></span>
             <span class="nav-label">{(t().account.nav as Record<string, string>)[item.key]}</span>
           </button>
         )}
@@ -223,7 +224,7 @@ const AccountSidebar = (props: AccountSidebarProps) => (
     </nav>
 
     <button class="nav-item logout" onClick={props.onLogout}>
-      <span class="nav-icon">🚪</span>
+      <span class="nav-icon"><Icon name="door" /></span>
       <span class="nav-label">{(t().account.nav as Record<string, string>).logout}</span>
     </button>
   </aside>
@@ -324,7 +325,7 @@ function OverviewSection() {
         <h3 class="card-title">{overview().profilePicture}</h3>
         <div class="avatar-section">
           <div class="avatar-preview">
-            <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji-large">👤</span>}>
+            <Show when={accountStore.user?.avatar} fallback={<span class="avatar-emoji-large"><Icon name="person" /></span>}>
               <img src={accountStore.user!.avatar!} alt="Avatar" />
             </Show>
           </div>
@@ -473,7 +474,7 @@ function WatchHistorySection() {
 
       <Show when={sortedItems().length > 0} fallback={
         <EmptyState
-          icon="📺"
+          icon="tv"
           title={watchHistory().emptyTitle}
           subtext={watchHistory().emptySubtext}
           buttonText={watchHistory().exploreButton}
@@ -551,7 +552,7 @@ function FavoritesSection() {
 
       <Show when={sortedItems().length > 0} fallback={
         <EmptyState
-          icon="❤️"
+          icon="heart"
           title={favorites().emptyTitle}
           subtext={favorites().emptySubtext}
           buttonText={favorites().exploreButton}
@@ -623,7 +624,7 @@ interface EmptyStateProps {
 
 const EmptyState = (props: EmptyStateProps) => (
   <div class="empty-state">
-    <div class="empty-icon">{props.icon}</div>
+    <div class="empty-icon"><Icon name={props.icon as IconName} /></div>
     <h3 class="empty-title">{props.title}</h3>
     <p class="empty-subtext">{props.subtext}</p>
     <Show when={props.buttonText}>
@@ -845,7 +846,7 @@ function WalletSection() {
       </div>
 
       <div class="balance-card">
-        <div class="balance-icon">💰</div>
+        <div class="balance-icon"><Icon name="money" /></div>
         <div class="balance-info">
           <span class="balance-label">{wallet().currentBalance}</span>
           <div class="balance-amount">
@@ -1164,7 +1165,7 @@ function WalletSection() {
           return (
             <div class="popup-overlay" onClick={close}>
               <div class="popup-modal" onClick={(e) => e.stopPropagation()}>
-                <div class="popup-icon">⏳</div>
+                <div class="popup-icon"><Icon name="hourglass" /></div>
                 <h2 class="popup-title">
                   {isW() ? (wallet().withdrawProcessingTitle || 'Withdrawal Processing') : (wallet().processingTitle || 'Payment Processing')}
                 </h2>
@@ -1205,7 +1206,7 @@ function MyPurchasesSection() {
 
         <Show when={seriesList().length > 0} fallback={
           <EmptyState
-            icon="🛒"
+            icon="cart"
             title={myPurchases().emptyTitle || 'No purchases yet'}
             subtext={myPurchases().emptySubtext || 'Browse series and purchase episodes to watch'}
             buttonText={myPurchases().exploreButton || 'Explore Series'}
@@ -1218,7 +1219,7 @@ function MyPurchasesSection() {
                 <div class="purchase-series-group">
                   <div class="purchase-series-header" onClick={() => navigate(`/player/${seriesGroup.seriesId}`)}>
                     <div class="purchase-series-cover">
-                      <Show when={seriesGroup.seriesCover} fallback={<div class="purchase-series-placeholder">🎬</div>}>
+                      <Show when={seriesGroup.seriesCover} fallback={<div class="purchase-series-placeholder"><Icon name="clapper" /></div>}>
                         <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
                       </Show>
                     </div>
@@ -1237,7 +1238,7 @@ function MyPurchasesSection() {
                           onClick={() => navigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
                         >
                           <div class="purchase-episode-thumbnail">
-                            <Show when={episode.episodeThumbnail} fallback={<div class="purchase-episode-placeholder">▶️</div>}>
+                            <Show when={episode.episodeThumbnail} fallback={<div class="purchase-episode-placeholder"><Icon name="play" /></div>}>
                               <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
                             </Show>
                             <div class="purchase-episode-overlay">
@@ -1341,7 +1342,7 @@ function ProductionCard(props: {
   return (
     <button class="production-card" onClick={props.onClick}>
       <div class="production-card-cover">
-        <Show when={cover()} fallback={<div class="production-card-placeholder">✨</div>}>
+        <Show when={cover()} fallback={<div class="production-card-placeholder"><Icon name="sparkle" /></div>}>
           <img src={cover()} alt={props.production.title || ''} loading="lazy" />
         </Show>
         <Show when={props.production.status !== 'done' && !isProposal()}>
@@ -1487,7 +1488,7 @@ function MySeriesSection() {
                   class="btn-primary create-own-btn"
                   onClick={() => startFreshQuickCreate(navigate)}
                 >
-                  ✨ {mySeries().createOwn || 'Create your own'}
+                  <Icon name="sparkle" /> {mySeries().createOwn || 'Create your own'}
                 </button>
               </Show>
               <Show when={activeSubTab() === 'uploaded' && accountStore.user?.allowUpload}>
@@ -1507,13 +1508,13 @@ function MySeriesSection() {
                 class={`my-series-tab ${activeSubTab() === 'quickCreate' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('quickCreate')}
               >
-                ✨ {mySeries().quickCreateGroup || 'Quick Create'}
+                <Icon name="sparkle" /> {mySeries().quickCreateGroup || 'Quick Create'}
               </button>
               <button
                 class={`my-series-tab ${activeSubTab() === 'published' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('published')}
               >
-                🚀 {mySeries().publishedTab || 'Published'}
+                <Icon name="rocket" /> {mySeries().publishedTab || 'Published'}
               </button>
               <button
                 class={`my-series-tab ${activeSubTab() === 'uploaded' ? 'active' : ''}`}
@@ -1525,7 +1526,7 @@ function MySeriesSection() {
                 class={`my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('revenue')}
               >
-                💰 {mySeries().revenueTab || 'Revenue'}
+                <Icon name="money" /> {mySeries().revenueTab || 'Revenue'}
               </button>
             </div>
           </Show>
@@ -1534,7 +1535,7 @@ function MySeriesSection() {
           <Show when={activeSubTab() === 'quickCreate'}>
             <Show when={quickCreateGroups().length > 0} fallback={
               <EmptyState
-                icon="✨"
+                icon="sparkle"
                 title={mySeries().quickCreateEmptyTitle || 'No creations yet'}
                 subtext={mySeries().quickCreateEmptySubtext || 'Turn your idea into an anime series in minutes'}
                 buttonText={mySeries().createOwn || 'Create your own'}
@@ -1571,7 +1572,7 @@ function MySeriesSection() {
           <Show when={activeSubTab() === 'published'}>
             <Show when={publishedGroups().length > 0} fallback={
               <EmptyState
-                icon="🚀"
+                icon="rocket"
                 title={mySeries().publishedEmptyTitle || 'Nothing published yet'}
                 subtext={mySeries().publishedEmptySubtext || 'Publish an episode to share it with the world'}
                 buttonText=""
@@ -1607,7 +1608,7 @@ function MySeriesSection() {
           <Show when={activeSubTab() === 'uploaded'}>
             <Show when={accountStore.mySeries.length > 0} fallback={
               <EmptyState
-                icon="🎬"
+                icon="clapper"
                 title={mySeries().emptyTitle || 'No series yet'}
                 subtext={mySeries().emptySubtext || 'Start creating your first series'}
                 buttonText={accountStore.user?.allowUpload ? (mySeries().uploadSeries || 'Upload Series') : ''}
@@ -1723,7 +1724,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
     }>
       <Show when={accountStore.revenueData} fallback={
         <EmptyState
-          icon="💰"
+          icon="money"
           title={props.translations.noRevenue || 'No revenue yet'}
           subtext={props.translations.noRevenueSubtext || 'Upload series and start earning from episode sales'}
           buttonText={props.translations.addSeries || 'Add Series'}
@@ -1733,7 +1734,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
         {/* Revenue Summary Cards */}
         <div class="revenue-summary">
           <div class="revenue-card total-revenue">
-            <div class="revenue-card-icon">💵</div>
+            <div class="revenue-card-icon"><Icon name="cash" /></div>
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="revenue-card-value">
@@ -1743,7 +1744,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             </div>
           </div>
           <div class="revenue-card your-share">
-            <div class="revenue-card-icon">🎯</div>
+            <div class="revenue-card-icon"><Icon name="target" /></div>
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="revenue-card-value highlight">
@@ -1753,7 +1754,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             </div>
           </div>
           <div class="revenue-card pending-payout">
-            <div class="revenue-card-icon">⏳</div>
+            <div class="revenue-card-icon"><Icon name="hourglass" /></div>
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="revenue-card-value">
@@ -1763,7 +1764,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
             </div>
           </div>
           <div class="revenue-card paid-out">
-            <div class="revenue-card-icon">✅</div>
+            <div class="revenue-card-icon"><Icon name="checkCircle" /></div>
             <div class="revenue-card-info">
               <span class="revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="revenue-card-value">
@@ -1786,7 +1787,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
                   <div class="revenue-series-item">
                     <div class="revenue-series-header" onClick={() => toggleSeriesExpand(seriesRevenue.seriesId)}>
                       <div class="revenue-series-cover">
-                        <Show when={seriesRevenue.seriesCover} fallback={<div class="revenue-series-placeholder">🎬</div>}>
+                        <Show when={seriesRevenue.seriesCover} fallback={<div class="revenue-series-placeholder"><Icon name="clapper" /></div>}>
                           <img src={seriesRevenue.seriesCover} alt={seriesRevenue.seriesName} />
                         </Show>
                       </div>
@@ -1900,15 +1901,13 @@ const MySeriesCard = (props: MySeriesCardProps) => {
               onClick={(e) => { e.stopPropagation(); props.onShelve(); }}
               title={props.series.shelved ? (props.translations.unshelve || 'Unshelve') : (props.translations.shelve || 'Shelve')}
             >
-              {props.series.shelved ? '📤' : '📥'}
+              <Icon name={props.series.shelved ? 'outbox' : 'inbox'} />
             </button>
             <button
               class="action-icon-btn"
               onClick={(e) => { e.stopPropagation(); props.onEdit(); }}
               title={props.translations.edit || 'Edit'}
-            >
-              ✏️
-            </button>
+            ><Icon name="pencil" /></button>
           </div>
         </Show>
       </div>
@@ -1935,7 +1934,7 @@ interface ShelveConfirmationModalProps {
 const ShelveConfirmationModal = (props: ShelveConfirmationModalProps) => (
   <div class="shelve-modal-overlay" onClick={props.onCancel}>
     <div class="shelve-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="shelve-modal-icon">📥</div>
+      <div class="shelve-modal-icon"><Icon name="inbox" /></div>
       <h2 class="shelve-modal-title">{props.title}</h2>
       <div class="shelve-modal-series-info">
         <span class="shelve-modal-series-name">{props.seriesName}</span>
@@ -1966,7 +1965,7 @@ interface UnshelveConfirmationModalProps {
 const UnshelveConfirmationModal = (props: UnshelveConfirmationModalProps) => (
   <div class="unshelve-modal-overlay" onClick={props.onCancel}>
     <div class="unshelve-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="unshelve-modal-icon">📤</div>
+      <div class="unshelve-modal-icon"><Icon name="outbox" /></div>
       <h2 class="unshelve-modal-title">{props.title}</h2>
       <div class="unshelve-modal-series-info">
         <span class="unshelve-modal-series-name">{props.seriesName}</span>

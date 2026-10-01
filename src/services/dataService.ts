@@ -382,6 +382,22 @@ interface ViewsData {
   count: number
 }
 
+export type VideoPlayState = 'unknown' | 'ready' | 'encoding' | 'failed' | 'missing'
+
+// Can this episode's video actually be played? Bunny serves its own white error page inside
+// the embed for a failed encode, and cross-origin iframe content cannot be styled — so the
+// player needs to know before deciding whether to mount the iframe at all.
+export const fetchVideoStatus = async (videoId: string): Promise<VideoPlayState> => {
+  if (!videoId) return 'missing'
+  try {
+    const r = await apiGet<{ state: VideoPlayState; playable: boolean }>('videoStatus', { videoId })
+    return r.success && r.data ? r.data.state : 'unknown'
+  } catch {
+    // A failed status call must not block playback of a video that is probably fine.
+    return 'unknown'
+  }
+}
+
 export const fetchViews = async (seriesId: string): Promise<ViewsData> => {
   const result = await apiGet<ViewsData>('views', { seriesId })
   if (result.success && result.data) {

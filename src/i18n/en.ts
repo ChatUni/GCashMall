@@ -418,6 +418,8 @@ export const en = {
     share: 'Share',
     shareTitle: 'Share this episode',
     shareTextEpisode: 'Check out {series} - EP {n}!',
+    videoEncoding: 'This episode is still being processed. Check back shortly.',
+    videoUnavailable: 'This episode is unavailable. The creator has been notified.',
     shareTextSeries: 'Check out {series}!',
     addToFavorites: 'Add to favorites',
     breadcrumbHome: APP_DISPLAY_NAME,

@@ -68,6 +68,12 @@ const PhonePlayer = () => {
   const isUnlocked = () => isCurrentEpisodeUnlocked()
 
   // Initialize data
+  // Ask whether the current episode's video is playable. Without this the player mounts the
+  // Bunny iframe for a failed encode and shows its white error page.
+  createEffect(() => {
+    playerPageStoreActions.loadVideoState(playerStore.currentEpisode?.videoId)
+  })
+
   createEffect(() => {
     const id = params.id
     if (id) {

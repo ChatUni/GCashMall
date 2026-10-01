@@ -20,9 +20,14 @@
   min-height: 0; /* Required for flex child to allow overflow scroll */
 }
 
-/* Safe area support for notched devices */
+/* Safe area support for notched devices
+ *
+ * Exactly ONE element may carry the top inset. PhoneHeader already pads itself and grows its
+ * own height by it, so the layout must not pad as well — doing both stacked two status bars'
+ * worth of blank space above the header. The layout takes the inset only when it renders no
+ * header and its content would otherwise start under the status bar. */
 @supports (padding-top: env(safe-area-inset-top)) {
-  .phone-layout {
+  .phone-layout.no-header {
     padding-top: env(safe-area-inset-top);
   }
   

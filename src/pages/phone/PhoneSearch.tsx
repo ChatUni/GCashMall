@@ -6,6 +6,7 @@ import { t } from '../../stores/languageStore'
 import { apiGet } from '../../utils/api'
 import type { Series, SearchSuggestion } from '../../types'
 import './PhoneSearch.css'
+import Icon from '../../components/Icon'
 
 const PhoneSearch = () => {
   const navigate = useNavigate()
@@ -151,7 +152,7 @@ const PhoneSearch = () => {
                 when={searchResults().length > 0}
                 fallback={
                   <div class="phone-search-empty">
-                    <span class="phone-search-empty-icon">🔍</span>
+                    <span class="phone-search-empty-icon"><Icon name="search" /></span>
                     <p>{t().series?.noSeries || 'No results found'}</p>
                   </div>
                 }
@@ -174,7 +175,7 @@ const PhoneSearch = () => {
         {/* Empty State - No search yet */}
         <Show when={!hasSearched() && suggestions().length === 0}>
           <div class="phone-search-empty-state">
-            <span class="phone-search-empty-icon">🔍</span>
+            <span class="phone-search-empty-icon"><Icon name="search" /></span>
             <p>{t().topBar?.searchPlaceholder || 'Search for series'}</p>
           </div>
         </Show>

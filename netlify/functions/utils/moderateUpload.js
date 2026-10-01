@@ -19,7 +19,9 @@ import { moderateText, moderateImages } from './moderation.js'
 import { ts, mark, timing, summarize, fmtMs } from './jobTiming.js'
 import { extractFrameAt, probeDuration } from './ffmpeg.js'
 import {
-  waitForBunnyReady,
+  waitForBunnyEncode,
+  BUNNY_READY,
+  BUNNY_FAILED,
   bunnyHlsUrl,
   bunnyReferer,
   getBunnyVideo,
@@ -195,10 +197,14 @@ export const runUploadModeration = async (videoId, userId, { checks, readyTimeou
       await setMod(videoId, {
         videoId,
         userId: userId || null,
-        status: 'approved',
+        // NOT approved yet. The verdict is pre-decided (no content check will run), but an
+        // episode whose video never encodes must not go live, so the status waits on Bunny
+        // confirming the encode. Writing 'approved' here is what published 21 episodes with
+        // an unplayable video.
+        status: 'processing',
         phase: 'awaiting_encode',
-        stage: 'done',
-        progress: 100,
+        stage: 'encoding',
+        progress: 5,
         reason: checks === false ? 'verified_uploader' : 'moderation_disabled',
         checked: false,
         categories: [],
@@ -235,12 +241,27 @@ export const runUploadModeration = async (videoId, userId, { checks, readyTimeou
     // Backfill passes a short timeout: if Bunny has not finished this video yet, that is a
     // reason to come back later, not to hold a worker slot for six minutes over subtitles
     // nobody is waiting on. A decision, by contrast, is worth waiting for.
-    const ready = await waitForBunnyReady(videoId, readyTimeoutMs ? { timeoutMs: readyTimeoutMs } : {})
-    if (!ready) {
+    const encode = await waitForBunnyEncode(videoId, readyTimeoutMs ? { timeoutMs: readyTimeoutMs } : {})
+    if (encode === BUNNY_FAILED) {
+      // Terminal. Retrying cannot help, and leaving it pre-approved would publish an episode
+      // that plays nothing. Closed with a reason that is plainly not a content judgement.
+      log('bunny encode FAILED — closing as encode_failed rather than approving')
+      await setMod(videoId, {
+        status: 'rejected',
+        reason: 'encode_failed',
+        phase: 'done',
+        stage: 'done',
+        progress: 100,
+      })
+      return { status: 'rejected', reason: 'encode_failed' }
+    }
+    if (encode !== BUNNY_READY) {
       log('bunny has not finished encoding — releasing the claim so this can be retried')
       await setMod(videoId, { phase: 'awaiting_encode' })
       return { waiting: true }
     }
+    // Encode confirmed: now the pre-decided verdict may be applied.
+    await setMod(videoId, { status: 'approved', stage: 'done', progress: 100 })
 
     try {
       await transcribeEpisode({ videoPath: bunnyHlsUrl(videoId), videoId, referer: bunnyReferer() })

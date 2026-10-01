@@ -25,6 +25,7 @@ import { deleteSeries } from '../services/accountService'
 import { toastStoreActions } from '../stores'
 import { requestEpisodeReview } from '../services/dataService'
 import './SeriesEdit.css'
+import Icon from '../components/Icon'
 
 // Track initialization per series ID
 const initializedIds = new Set<string | undefined>()
@@ -529,7 +530,7 @@ interface SaveConfirmationModalProps {
 const SaveConfirmationModal = (props: SaveConfirmationModalProps) => (
   <div class="save-modal-overlay" onClick={props.onCancel}>
     <div class="save-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="save-modal-icon">💾</div>
+      <div class="save-modal-icon"><Icon name="save" /></div>
       <h2 class="save-modal-title">{props.title}</h2>
       <p class="save-modal-message">{props.message}</p>
       <div class="save-modal-buttons">
@@ -556,7 +557,7 @@ interface CancelConfirmationModalProps {
 const CancelConfirmationModal = (props: CancelConfirmationModalProps) => (
   <div class="save-modal-overlay" onClick={props.onCancel}>
     <div class="save-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="save-modal-icon">⚠️</div>
+      <div class="save-modal-icon"><Icon name="warning" /></div>
       <h2 class="save-modal-title">{props.title}</h2>
       <p class="save-modal-message">{props.message}</p>
       <div class="save-modal-buttons">
@@ -583,7 +584,7 @@ interface DeleteConfirmationModalProps {
 const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => (
   <div class="save-modal-overlay" onClick={props.onCancel}>
     <div class="save-modal" onClick={(e) => e.stopPropagation()}>
-      <div class="save-modal-icon">🗑️</div>
+      <div class="save-modal-icon"><Icon name="trash" /></div>
       <h2 class="save-modal-title">{props.title}</h2>
       <p class="save-modal-message">{props.message}</p>
       <div class="save-modal-buttons">

@@ -83,6 +83,7 @@ import {
 import { toastStore } from '../../stores'
 import type { User } from '../../types'
 import './PhoneAccount.css'
+import Icon, { type IconName } from '../../components/Icon'
 
 const PhoneAccount = () => {
   const navigate = useNavigate()
@@ -128,7 +129,7 @@ const PhoneAccount = () => {
       <Show when={accountStore.isLoggedIn} fallback={
         <PhoneLayout showHeader={true} title={(t().account.nav as Record<string, string>).overview || 'Account'}>
           <div class="phone-account-login-prompt">
-            <div class="phone-login-icon">👤</div>
+            <div class="phone-login-icon"><Icon name="person" /></div>
             <h2 class="phone-login-title">{t().login.title || 'Login'}</h2>
             <p class="phone-login-message">Please log in to access your account</p>
             <button class="phone-login-btn" onClick={() => accountStoreActions.setShowLoginModal(true)}>
@@ -145,7 +146,7 @@ const PhoneAccount = () => {
             <Show when={accountStore.activeTab === 'overview'}>
               <div class="phone-account-header">
                 <div class="phone-account-avatar">
-                  <Show when={accountStore.user?.avatar} fallback={<span class="phone-avatar-emoji">👤</span>}>
+                  <Show when={accountStore.user?.avatar} fallback={<span class="phone-avatar-emoji"><Icon name="person" /></span>}>
                     <img src={accountStore.user!.avatar!} alt={accountStore.user!.nickname} />
                   </Show>
                   <label class="phone-avatar-edit">
@@ -163,7 +164,7 @@ const PhoneAccount = () => {
               <For each={getFilteredPhoneNavItems()}>
                 {(item) => (
                   <button class={`phone-account-tab ${accountStore.activeTab === item.key ? 'active' : ''}`} onClick={() => onTabClick(item.key)}>
-                    <span class="phone-tab-icon">{item.icon}</span>
+                    <span class="phone-tab-icon"><Icon name={item.icon as IconName} /></span>
                     <span class="phone-tab-label">{(t().account.nav as Record<string, string>)[item.key]}</span>
                   </button>
                 )}
@@ -297,7 +298,7 @@ const PhoneWatchHistorySection = () => {
   return (
     <Show when={sortedItems().length > 0} fallback={
       <div class="phone-empty-state">
-        <span class="phone-empty-icon">📺</span>
+        <span class="phone-empty-icon"><Icon name="tv" /></span>
         <p>{wh().emptyTitle}</p>
         <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{wh().exploreButton}</button>
       </div>
@@ -314,7 +315,7 @@ const PhoneWatchHistorySection = () => {
         <Show when={accountStore.showClearHistoryModal}>
           <div class="phone-modal-overlay" onClick={cancelClearHistory}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-              <span class="phone-modal-icon">🗑️</span>
+              <span class="phone-modal-icon"><Icon name="trash" /></span>
               <h3 class="phone-modal-title">{wh().clearConfirmTitle || 'Clear Watch History'}</h3>
               <p class="phone-modal-message">{wh().clearConfirmMessage || 'Are you sure you want to clear all watch history? This action cannot be undone.'}</p>
               <div class="phone-modal-buttons">
@@ -327,7 +328,7 @@ const PhoneWatchHistorySection = () => {
         <Show when={accountStore.showDeleteHistoryItemModal}>
           <div class="phone-modal-overlay" onClick={cancelDeleteHistoryItem}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-              <span class="phone-modal-icon">🗑️</span>
+              <span class="phone-modal-icon"><Icon name="trash" /></span>
               <h3 class="phone-modal-title">{wh().deleteConfirmTitle || 'Remove from History'}</h3>
               <Show when={accountStore.pendingDeleteHistorySeriesName}><div class="phone-modal-series">{accountStore.pendingDeleteHistorySeriesName}</div></Show>
               <p class="phone-modal-message">{wh().deleteConfirmMessage || 'Are you sure you want to remove this item from your watch history?'}</p>
@@ -356,7 +357,7 @@ interface PhoneHistoryCardProps {
 const PhoneHistoryCard = (props: PhoneHistoryCardProps) => (
   <div class="phone-history-item" onClick={props.onClick}>
     <div class="phone-history-cover">
-      <Show when={props.seriesCover} fallback={<div class="phone-history-placeholder">🎬</div>}>
+      <Show when={props.seriesCover} fallback={<div class="phone-history-placeholder"><Icon name="clapper" /></div>}>
         <img src={props.seriesCover} alt={props.seriesName || 'Series'} />
       </Show>
       <span class="phone-history-ep">EP {props.episodeNumber}</span>
@@ -376,7 +377,7 @@ const PhoneFavoritesSection = () => {
   return (
     <Show when={sortedItems().length > 0} fallback={
       <div class="phone-empty-state">
-        <span class="phone-empty-icon">❤️</span>
+        <span class="phone-empty-icon"><Icon name="heart" /></span>
         <p>{fav().emptyTitle}</p>
         <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{fav().exploreButton}</button>
       </div>
@@ -388,7 +389,7 @@ const PhoneFavoritesSection = () => {
             {(item) => (
               <div class="phone-favorite-item" onClick={() => navigate(`/player/${item.seriesId}`)}>
                 <div class="phone-favorite-cover">
-                  <Show when={item.seriesCover} fallback={<div class="phone-favorite-placeholder">🎬</div>}>
+                  <Show when={item.seriesCover} fallback={<div class="phone-favorite-placeholder"><Icon name="clapper" /></div>}>
                     <img src={item.seriesCover} alt={item.seriesName} />
                   </Show>
                 </div>
@@ -401,7 +402,7 @@ const PhoneFavoritesSection = () => {
         <Show when={accountStore.showClearFavoritesModal}>
           <div class="phone-modal-overlay" onClick={cancelClearFavorites}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-              <span class="phone-modal-icon">🗑️</span>
+              <span class="phone-modal-icon"><Icon name="trash" /></span>
               <h3 class="phone-modal-title">{fav().clearConfirmTitle || 'Clear Favorites'}</h3>
               <p class="phone-modal-message">{fav().clearConfirmMessage || 'Are you sure you want to clear all favorites? This action cannot be undone.'}</p>
               <div class="phone-modal-buttons">
@@ -414,7 +415,7 @@ const PhoneFavoritesSection = () => {
         <Show when={accountStore.showDeleteFavoriteItemModal}>
           <div class="phone-modal-overlay" onClick={cancelDeleteFavoriteItem}>
             <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-              <span class="phone-modal-icon">🗑️</span>
+              <span class="phone-modal-icon"><Icon name="trash" /></span>
               <h3 class="phone-modal-title">{fav().deleteConfirmTitle || 'Remove from Favorites'}</h3>
               <Show when={accountStore.pendingDeleteFavoriteSeriesName}><div class="phone-modal-series">{accountStore.pendingDeleteFavoriteSeriesName}</div></Show>
               <p class="phone-modal-message">{fav().deleteConfirmMessage || 'Are you sure you want to remove this item from your favorites?'}</p>
@@ -471,7 +472,7 @@ const PhoneSettingsSection = () => {
         </label>
       </div>
       <button class="phone-logout-btn" onClick={onLogout}>
-        <span>🚪</span>
+        <span><Icon name="door" /></span>
         {nav().logout}
       </button>
     </div>
@@ -711,7 +712,7 @@ const PhoneWalletSection = () => {
           return (
             <div class="phone-popup-overlay" onClick={close}>
               <div class="phone-popup-modal" onClick={(e) => e.stopPropagation()}>
-                <div class="phone-popup-icon">⏳</div>
+                <div class="phone-popup-icon"><Icon name="hourglass" /></div>
                 <h3 class="phone-popup-title">
                   {isW() ? (wallet().withdrawProcessingTitle || 'Withdrawal Processing') : (wallet().processingTitle || 'Payment Processing')}
                 </h3>
@@ -744,7 +745,7 @@ const PhoneMyPurchasesSection = () => {
     <Show when={!accountStore.myPurchasesLoading} fallback={<div class="phone-loading">Loading...</div>}>
       <Show when={seriesList().length > 0} fallback={
         <div class="phone-empty-state">
-          <span class="phone-empty-icon">🛒</span>
+          <span class="phone-empty-icon"><Icon name="cart" /></span>
           <p>{mp().emptyTitle || 'No purchases yet'}</p>
           <button class="phone-explore-btn" onClick={() => navigate('/genre')}>{mp().exploreButton || 'Explore Series'}</button>
         </div>
@@ -755,7 +756,7 @@ const PhoneMyPurchasesSection = () => {
               <div class="phone-purchase-group">
                 <div class="phone-purchase-header" onClick={() => navigate(`/player/${sg.seriesId}`)}>
                   <div class="phone-purchase-cover">
-                    <Show when={sg.seriesCover} fallback={<div class="phone-purchase-placeholder">🎬</div>}>
+                    <Show when={sg.seriesCover} fallback={<div class="phone-purchase-placeholder"><Icon name="clapper" /></div>}>
                       <img src={sg.seriesCover} alt={sg.seriesName} />
                     </Show>
                   </div>
@@ -769,7 +770,7 @@ const PhoneMyPurchasesSection = () => {
                     {(ep) => (
                       <div class="phone-purchase-episode" onClick={() => navigate(`/player/${sg.seriesId}?episode=${ep.episodeNumber}`)}>
                         <div class="phone-episode-thumbnail">
-                          <Show when={ep.episodeThumbnail} fallback={<div class="phone-episode-placeholder">▶️</div>}>
+                          <Show when={ep.episodeThumbnail} fallback={<div class="phone-episode-placeholder"><Icon name="play" /></div>}>
                             <img src={ep.episodeThumbnail} alt={`Episode ${ep.episodeNumber}`} />
                           </Show>
                           <div class="phone-episode-overlay">
@@ -825,13 +826,13 @@ const PhoneMySeriesSection = () => {
               class={`phone-my-series-tab ${activeSubTab() === 'series' ? 'active' : ''}`}
               onClick={() => setActiveSubTab('series')}
             >
-              🎬 {ms().title || 'My Series'}
+              <Icon name="clapper" /> {ms().title || 'My Series'}
             </button>
             <button
               class={`phone-my-series-tab ${activeSubTab() === 'revenue' ? 'active' : ''}`}
               onClick={() => setActiveSubTab('revenue')}
             >
-              💰 {ms().revenueTab || 'Revenue'}
+              <Icon name="money" /> {ms().revenueTab || 'Revenue'}
             </button>
           </div>
 
@@ -839,7 +840,7 @@ const PhoneMySeriesSection = () => {
           <Show when={activeSubTab() === 'series'}>
             <Show when={accountStore.mySeries.length > 0} fallback={
               <div class="phone-empty-state">
-                <span class="phone-empty-icon">🎬</span>
+                <span class="phone-empty-icon"><Icon name="clapper" /></span>
                 <p>{ms().emptyTitle || 'No series yet'}</p>
                 <p class="phone-empty-subtext">{ms().emptySubtext || 'Start creating your first series'}</p>
                 <button class="phone-add-series-btn" onClick={handleAddSeries}>{ms().addSeries || 'Add Series'}</button>
@@ -853,7 +854,7 @@ const PhoneMySeriesSection = () => {
                   {(si) => (
                     <div class={`phone-series-item ${si.shelved ? 'shelved' : ''}`} onClick={() => navigate(`/player/${si._id}`)}>
                       <div class="phone-series-item-cover">
-                        <Show when={si.cover} fallback={<div class="phone-series-item-placeholder">🎬</div>}>
+                        <Show when={si.cover} fallback={<div class="phone-series-item-placeholder"><Icon name="clapper" /></div>}>
                           <img src={si.cover!} alt={si.name} />
                         </Show>
                         <Show when={si.shelved}><span class="phone-series-item-badge">{ms().shelved || 'Shelved'}</span></Show>
@@ -863,9 +864,9 @@ const PhoneMySeriesSection = () => {
                         <span class="phone-series-item-tags">{si.tags?.slice(0, 2).join(' • ') || 'No tags'}</span>
                       </div>
                       <div class="phone-series-item-actions">
-                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleShelveClick(si._id, si.shelved || false, si) }} title={si.shelved ? (ms().unshelve || 'Unshelve') : (ms().shelve || 'Shelve')}>{si.shelved ? '📤' : '📥'}</button>
-                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleEditSeries(si) }} title={ms().edit || 'Edit'}>✏️</button>
-                        <button class="phone-series-action-btn phone-series-action-btn-delete" onClick={(e) => { e.stopPropagation(); openDeleteSeriesModal(si) }} title={ms().delete || 'Delete'}>🗑️</button>
+                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleShelveClick(si._id, si.shelved || false, si) }} title={si.shelved ? (ms().unshelve || 'Unshelve') : (ms().shelve || 'Shelve')}><Icon name={si.shelved ? 'outbox' : 'inbox'} /></button>
+                        <button class="phone-series-action-btn" onClick={(e) => { e.stopPropagation(); handleEditSeries(si) }} title={ms().edit || 'Edit'}><Icon name="pencil" /></button>
+                        <button class="phone-series-action-btn phone-series-action-btn-delete" onClick={(e) => { e.stopPropagation(); openDeleteSeriesModal(si) }} title={ms().delete || 'Delete'}><Icon name="trash" /></button>
                       </div>
                     </div>
                   )}
@@ -883,7 +884,7 @@ const PhoneMySeriesSection = () => {
           <Show when={accountStore.showShelveModal && accountStore.pendingShelveSeries}>
             <div class="phone-modal-overlay" onClick={cancelShelve}>
               <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                <span class="phone-modal-icon">📥</span>
+                <span class="phone-modal-icon"><Icon name="inbox" /></span>
                 <h3 class="phone-modal-title">{ms().shelveConfirmTitle || 'Confirm Shelve'}</h3>
                 <div class="phone-modal-series">{accountStore.pendingShelveSeries!.name || 'Untitled Series'}</div>
                 <p class="phone-modal-message">{ms().shelveConfirmMessage || 'Are you sure you want to shelve this series? It will be hidden from users.'}</p>
@@ -897,7 +898,7 @@ const PhoneMySeriesSection = () => {
           <Show when={accountStore.showUnshelveModal && accountStore.pendingUnshelveSeries}>
             <div class="phone-modal-overlay" onClick={cancelUnshelve}>
               <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                <span class="phone-modal-icon">📤</span>
+                <span class="phone-modal-icon"><Icon name="outbox" /></span>
                 <h3 class="phone-modal-title">{ms().unshelveConfirmTitle || 'Confirm Unshelve'}</h3>
                 <div class="phone-modal-series">{accountStore.pendingUnshelveSeries!.name || 'Untitled Series'}</div>
                 <p class="phone-modal-message">{ms().unshelveConfirmMessage || 'Are you sure you want to unshelve this series? It will become visible to all users.'}</p>
@@ -911,7 +912,7 @@ const PhoneMySeriesSection = () => {
           <Show when={accountStore.showDeleteSeriesModal && accountStore.pendingDeleteSeries}>
             <div class="phone-modal-overlay" onClick={cancelDeleteSeries}>
               <div class="phone-modal" onClick={(e) => e.stopPropagation()}>
-                <span class="phone-modal-icon">🗑️</span>
+                <span class="phone-modal-icon"><Icon name="trash" /></span>
                 <h3 class="phone-modal-title">{ms().deleteConfirmTitle || 'Confirm Delete'}</h3>
                 <div class="phone-modal-series">{accountStore.pendingDeleteSeries!.name || 'Untitled Series'}</div>
                 <p class="phone-modal-message">{ms().deleteConfirmMessage || 'Are you sure you want to delete this series? This action cannot be undone.'}</p>
@@ -944,7 +945,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
     <Show when={!accountStore.revenueLoading} fallback={<div class="phone-loading">Loading...</div>}>
       <Show when={accountStore.revenueData} fallback={
         <div class="phone-empty-state">
-          <span class="phone-empty-icon">💰</span>
+          <span class="phone-empty-icon"><Icon name="money" /></span>
           <p>{props.translations.noRevenue || 'No revenue yet'}</p>
           <p class="phone-empty-subtext">{props.translations.noRevenueSubtext || 'Upload series and start earning from episode sales'}</p>
           <button class="phone-add-series-btn" onClick={handleAddSeries}>{props.translations.addSeries || 'Add Series'}</button>
@@ -953,7 +954,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
         {/* Revenue Summary Cards */}
         <div class="phone-revenue-summary">
           <div class="phone-revenue-card phone-revenue-total">
-            <span class="phone-revenue-card-icon">💵</span>
+            <span class="phone-revenue-card-icon"><Icon name="cash" /></span>
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.totalRevenue || 'Total Revenue'}</span>
               <span class="phone-revenue-card-value">
@@ -963,7 +964,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             </div>
           </div>
           <div class="phone-revenue-card phone-revenue-share">
-            <span class="phone-revenue-card-icon">🎯</span>
+            <span class="phone-revenue-card-icon"><Icon name="target" /></span>
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
               <span class="phone-revenue-card-value highlight">
@@ -973,7 +974,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             </div>
           </div>
           <div class="phone-revenue-card phone-revenue-pending">
-            <span class="phone-revenue-card-icon">⏳</span>
+            <span class="phone-revenue-card-icon"><Icon name="hourglass" /></span>
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.pendingPayout || 'Pending Payout'}</span>
               <span class="phone-revenue-card-value">
@@ -983,7 +984,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
             </div>
           </div>
           <div class="phone-revenue-card phone-revenue-paid">
-            <span class="phone-revenue-card-icon">✅</span>
+            <span class="phone-revenue-card-icon"><Icon name="checkCircle" /></span>
             <div class="phone-revenue-card-info">
               <span class="phone-revenue-card-label">{props.translations.paidOut || 'Paid Out'}</span>
               <span class="phone-revenue-card-value">
@@ -1006,7 +1007,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                   <div class="phone-revenue-series-item">
                     <div class="phone-revenue-series-header" onClick={() => toggleSeriesExpand(seriesRevenue.seriesId)}>
                       <div class="phone-revenue-series-cover">
-                        <Show when={seriesRevenue.seriesCover} fallback={<div class="phone-revenue-series-placeholder">🎬</div>}>
+                        <Show when={seriesRevenue.seriesCover} fallback={<div class="phone-revenue-series-placeholder"><Icon name="clapper" /></div>}>
                           <img src={seriesRevenue.seriesCover} alt={seriesRevenue.seriesName} />
                         </Show>
                       </div>
@@ -1065,10 +1066,10 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
 const PhoneAboutSection = () => {
   const about = () => (t().about || {}) as Record<string, string>
   const features = () => [
-    { icon: '🎬', title: about().feature1Title || 'Exclusive Content', text: about().feature1Text || 'Access a wide variety of exclusive series and movies you won\'t find anywhere else.' },
-    { icon: '💰', title: about().feature2Title || 'Easy Payments', text: about().feature2Text || 'Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere.' },
-    { icon: '🌍', title: about().feature3Title || 'Multi-Language Support', text: about().feature3Text || 'Enjoy content in multiple languages with our built-in language switching feature.' },
-    { icon: '📱', title: about().feature4Title || 'Watch Anywhere', text: about().feature4Text || 'Stream on any device - desktop, tablet, or mobile. Your entertainment, your way.' },
+    { icon: 'clapper', title: about().feature1Title || 'Exclusive Content', text: about().feature1Text || 'Access a wide variety of exclusive series and movies you won\'t find anywhere else.' },
+    { icon: 'money', title: about().feature2Title || 'Easy Payments', text: about().feature2Text || 'Pay for episodes seamlessly with your GUSD wallet. Top up anytime, anywhere.' },
+    { icon: 'globe', title: about().feature3Title || 'Multi-Language Support', text: about().feature3Text || 'Enjoy content in multiple languages with our built-in language switching feature.' },
+    { icon: 'phone', title: about().feature4Title || 'Watch Anywhere', text: about().feature4Text || 'Stream on any device - desktop, tablet, or mobile. Your entertainment, your way.' },
   ]
   const steps = () => [
     { number: 1, title: about().step1Title || 'Create an Account', text: about().step1Text || 'Sign up for free using your email or social media accounts. It only takes a minute.' },
@@ -1084,7 +1085,7 @@ const PhoneAboutSection = () => {
         <p class="phone-about-tagline">{about().tagline || 'Your premium destination for streaming entertainment'}</p>
       </div>
       <div class="phone-about-card">
-        <span class="phone-about-card-icon">🎯</span>
+        <span class="phone-about-card-icon"><Icon name="target" /></span>
         <h2 class="phone-about-card-title">{about().missionTitle || 'Our Mission'}</h2>
         <p class="phone-about-card-text">{about().missionText || `${APP_DISPLAY_NAME} is dedicated to bringing you the best streaming experience with a vast library of series and movies.`}</p>
       </div>
@@ -1094,7 +1095,7 @@ const PhoneAboutSection = () => {
           <For each={features()}>
             {(feature) => (
               <div class="phone-about-feature">
-                <span class="phone-about-feature-icon">{feature.icon}</span>
+                <span class="phone-about-feature-icon"><Icon name={feature.icon as IconName} /></span>
                 <h3 class="phone-about-feature-title">{feature.title}</h3>
                 <p class="phone-about-feature-text">{feature.text}</p>
               </div>

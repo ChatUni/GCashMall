@@ -11,6 +11,7 @@ import {
   syncGenreFromUrl,
 } from '../../services/genreService'
 import './PhoneGenre.css'
+import Icon from '../../components/Icon'
 
 // ======================
 // Sub-components
@@ -141,7 +142,7 @@ const SkeletonGrid = () => (
 
 const EmptyState = () => (
   <div class="phone-genre-empty">
-    <span class="phone-genre-empty-icon">🎬</span>
+    <span class="phone-genre-empty-icon"><Icon name="clapper" /></span>
     <p>{t().series.noSeries}</p>
   </div>
 )

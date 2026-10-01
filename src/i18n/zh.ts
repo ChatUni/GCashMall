@@ -414,6 +414,8 @@ export const zh = {
     share: '分享',
     shareTitle: '分享这一集',
     shareTextEpisode: '快来看《{series}》第 {n} 集！',
+    videoEncoding: '本集仍在处理中，请稍后再试。',
+    videoUnavailable: '本集暂时无法播放，我们已通知创作者。',
     shareTextSeries: '快来看《{series}》！',
     addToFavorites: '添加到收藏',
     breadcrumbHome: APP_DISPLAY_NAME,

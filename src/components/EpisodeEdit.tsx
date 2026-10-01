@@ -4,6 +4,7 @@ import { toastStoreActions } from '../stores'
 import { t } from '../stores/languageStore'
 import type { ModerationStatus } from '../types'
 import './EpisodeEdit.css'
+import Icon from './Icon'
 
 interface EpisodeEditProps {
   episodeNumber: number
@@ -211,7 +212,7 @@ const TitleField = (props: TitleFieldProps) => {
       fallback={
         <div class="episode-title-display" onClick={props.onTitleClick}>
           <span class="episode-title">{displayTitle()}</span>
-          <span class="episode-edit-icon">✏️</span>
+          <span class="episode-edit-icon"><Icon name="pencil" /></span>
           <span class="episode-edit-text">(edit)</span>
         </div>
       }

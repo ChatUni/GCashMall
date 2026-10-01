@@ -37,6 +37,7 @@ import {
   type StepStatus,
 } from '../stores/quickCreateStore'
 import './QuickCreate.css'
+import Icon, { type IconName } from '../components/Icon'
 
 // The 4 downstream steps shown (but not yet run) after the 6 calls in step 6
 const FUTURE_STEP_KEYS: string[] = []
@@ -191,13 +192,13 @@ const PipelineProgress = () => {
           </ul>
 
           <Show when={pl().error && !isSignin()}>
-            <div class="qc-pl-error">⚠ {pl().error}</div>
+            <div class="qc-pl-error"><Icon name="warning" /> {pl().error}</div>
             <div class="qc-pl-actions">
               <button class="qc-back-btn" onClick={() => quickCreateStoreActions.resetPipeline()}>
                 {pipelineT().cancel}
               </button>
               <button class="qc-primary-btn" onClick={() => quickCreateStoreActions.runPlan()}>
-                🔄 {pipelineT().retry}
+                <Icon name="refresh" /> {pipelineT().retry}
               </button>
             </div>
           </Show>
@@ -231,7 +232,7 @@ const Sidebar = () => {
             <div class="qc-pro-upgrade">{qc().sidebar.upgradeTo}</div>
             <div class="qc-pro-title">{qc().sidebar.creatorProTitle}</div>
           </div>
-          <span class="qc-pro-crown">👑</span>
+          <span class="qc-pro-crown"><Icon name="crown" /></span>
         </div>
         <ul class="qc-pro-features">
           <For each={[features().unlock, features().quality, features().faster, features().noWatermark]}>
@@ -406,7 +407,7 @@ const Step1Idea = () => {
       <img class="qc-hero-img" src={heroImage} alt="" />
       <div class="qc-hero-scrim" />
       <div class="qc-hero-titlebar">
-        <span class="qc-hero-icon">✨</span>
+        <span class="qc-hero-icon"><Icon name="sparkle" /></span>
         <div>
           <h1 class="qc-hero-title">{qc().title}</h1>
           <p class="qc-hero-desc">{qc().subtitle}</p>
@@ -451,7 +452,7 @@ const Step1Idea = () => {
               else if (action.id === 'surpriseMe') onSurprise()
             }}
           >
-            <span class="qc-action-icon">{action.icon}</span>
+            <span class="qc-action-icon"><Icon name={action.icon as IconName} /></span>
             <span class="qc-action-text">
               <span class="qc-action-title">{actionT(action.id).title}</span>
               <span class="qc-action-subtitle">{actionT(action.id).subtitle}</span>
@@ -468,7 +469,7 @@ const Step1Idea = () => {
       </div>
     </Show>
     <Show when={actionError()}>
-      <div class="qc-upload-error">⚠ {actionError()}</div>
+      <div class="qc-upload-error"><Icon name="warning" /> {actionError()}</div>
     </Show>
 
     <div class="qc-popular-head">
@@ -489,7 +490,7 @@ const Step1Idea = () => {
               <div class="qc-template-tags">
                 <For each={tpl.tags}>{(tag) => <span class="qc-template-tag">{tag}</span>}</For>
               </div>
-              <span class="qc-template-audience">👥 {tpl.targetAudience}</span>
+              <span class="qc-template-audience"><Icon name="people" /> {tpl.targetAudience}</span>
             </div>
           </button>
         )}
@@ -514,7 +515,7 @@ const Step2Genre = () => (
           >
             <div class="qc-media-thumb-wrap">
               <img class="qc-media-thumb" src={genre.image} alt={genreT(genre.id).name} loading="lazy" />
-              <span class="qc-media-badge">{genre.icon}</span>
+              <span class="qc-media-badge"><Icon name={genre.icon as IconName} /></span>
               <Show when={quickCreateStore.genreId === genre.id}>
                 <CheckBadge />
               </Show>
@@ -594,7 +595,7 @@ const Step5Review = () => {
           <p class="qc-subtitle">{s5().subtitle}</p>
         </div>
         <div class="qc-director">
-          <span class="qc-director-avatar">🎬</span>
+          <span class="qc-director-avatar"><Icon name="clapper" /></span>
           <div class="qc-director-bubble">
             <span class="qc-director-name">{s5().directorName}</span>
             <span class="qc-director-note">{s5().directorNote}</span>
@@ -647,12 +648,12 @@ const Step5Review = () => {
                       when={i() === 0}
                       fallback={
                         <button class="qc-ep-status planned" disabled>
-                          🔒 {s5().statusPending}
+                          <Icon name="lock" /> {s5().statusPending}
                         </button>
                       }
                     >
                       <button class="qc-ep-status generating">
-                        ✨ {s5().statusGenerating}
+                        <Icon name="sparkle" /> {s5().statusGenerating}
                       </button>
                     </Show>
                   </div>
@@ -660,7 +661,7 @@ const Step5Review = () => {
               </For>
             </div>
             <div class="qc-director-tip">
-              <span class="qc-tip-label">💡 {s5().directorTipLabel}</span>
+              <span class="qc-tip-label"><Icon name="bulb" /> {s5().directorTipLabel}</span>
               <span class="qc-tip-text">{s5().directorTip}</span>
             </div>
           </div>
@@ -713,7 +714,7 @@ const Step6Generating = () => {
           <p class="qc-subtitle">{s6().subtitle}</p>
         </div>
         <div class="qc-director qc-tip-card">
-          <span class="qc-director-avatar">💡</span>
+          <span class="qc-director-avatar"><Icon name="bulb" /></span>
           <div class="qc-director-bubble">
             <span class="qc-director-name">{s6().tipTitle}</span>
             <span class="qc-director-note">{s6().tipText}</span>
@@ -783,7 +784,7 @@ const Step6Generating = () => {
           >
             <div class="qc-s6-progress-row qc-s6-subprogress-row">
               <span class="qc-s6-progress-label">
-                🎬 {callT('videoGeneration')}
+                <Icon name="clapper" /> {callT('videoGeneration')}
                 <Show when={pl().videoProgress.total}>
                   {' '}({pl().videoProgress.done}/{pl().videoProgress.total})
                 </Show>
@@ -799,7 +800,7 @@ const Step6Generating = () => {
           </Show>
 
           <Show when={pl().error && pl().error !== '__signin__'}>
-            <div class="qc-pl-error">⚠ {pl().error}</div>
+            <div class="qc-pl-error"><Icon name="warning" /> {pl().error}</div>
           </Show>
         </div>
 
@@ -825,7 +826,7 @@ const Step6Generating = () => {
 
           <div class="qc-s6-cards">
             <div class="qc-s6-card">
-              <div class="qc-s6-card-title">📖 {s6().yourSeries}</div>
+              <div class="qc-s6-card-title"><Icon name="book" /> {s6().yourSeries}</div>
               <div class="qc-s6-series-row">
                 <img class="qc-s6-series-thumb" src={heroCover()} alt={seriesTitle()} />
                 <div class="qc-s6-series-info">
@@ -837,7 +838,7 @@ const Step6Generating = () => {
             </div>
 
             <div class="qc-s6-card">
-              <div class="qc-s6-card-title">🛡 {s6().qualityTitle}</div>
+              <div class="qc-s6-card-title"><Icon name="shield" /> {s6().qualityTitle}</div>
               <p class="qc-s6-card-text">{s6().qualityText}</p>
             </div>
           </div>
@@ -847,7 +848,7 @@ const Step6Generating = () => {
             {(episodeUrl) => (
               <div class="qc-s6-videos">
                 <div class="qc-s6-videos-head">
-                  <h3 class="qc-s6-videos-title">🎬 {s6().episodeVideoTitle}</h3>
+                  <h3 class="qc-s6-videos-title"><Icon name="clapper" /> {s6().episodeVideoTitle}</h3>
                   <button
                     class="qc-s6-share-btn"
                     title={s6().share}
@@ -866,7 +867,7 @@ const Step6Generating = () => {
           {/* Rendered shot videos (Seedance) — with audio once composed */}
           <Show when={(production()?.videos?.length ?? 0) > 0}>
             <div class="qc-s6-videos">
-              <h3 class="qc-s6-videos-title">🎞 {s6().shotVideos}</h3>
+              <h3 class="qc-s6-videos-title"><Icon name="film" /> {s6().shotVideos}</h3>
               <div class="qc-s6-videos-grid">
                 <For each={production()!.videos}>
                   {(v) => (
@@ -875,9 +876,7 @@ const Step6Generating = () => {
                         when={v.audioUrl || v.url}
                         keyed
                         fallback={
-                          <div class="qc-s6-video-error" title={v.error || 'Generation failed'}>
-                            ⚠
-                          </div>
+                          <div class="qc-s6-video-error" title={v.error || 'Generation failed'}><Icon name="warning" /></div>
                         }
                       >
                         {(url) => (
@@ -919,7 +918,7 @@ const Step6Generating = () => {
       </Show>
 
       <div class="qc-s6-notify">
-        🔔 {s6().notify}
+        <Icon name="bell" /> {s6().notify}
       </div>
     </div>
   )
@@ -1002,12 +1001,12 @@ const Step7Ready = () => {
           ←
         </button>
         <div class="qc-s7-titles">
-          <h2 class="qc-s7-heading">🎉 {s7().heading.replace('{n}', String(ep1()?.n ?? 1))}</h2>
+          <h2 class="qc-s7-heading"><Icon name="party" /> {s7().heading.replace('{n}', String(ep1()?.n ?? 1))}</h2>
           <p class="qc-subtitle">{s7().subtitle1}</p>
           <p class="qc-subtitle">{s7().subtitle2}</p>
         </div>
         <div class="qc-s7-momentum">
-          <span class="qc-s7-momentum-gem">💎</span>
+          <span class="qc-s7-momentum-gem"><Icon name="gem" /></span>
           <div>
             <div class="qc-s7-momentum-title">{s7().momentumTitle}</div>
             <div class="qc-s7-momentum-text">{s7().momentumText1}</div>
@@ -1037,14 +1036,14 @@ const Step7Ready = () => {
               <p class="qc-s7-epinfo-desc">{epDesc()}</p>
             </div>
             <div class="qc-s7-epmeta">
-              <span>🕐 {lengthText()}</span>
-              <span>🎬 {genreText()}</span>
-              <span>🎨 {styleText()}</span>
+              <span><Icon name="clock" /> {lengthText()}</span>
+              <span><Icon name="clapper" /> {genreText()}</span>
+              <span><Icon name="palette" /> {styleText()}</span>
             </div>
           </div>
 
           <div class="qc-s7-next">
-            <span class="qc-s7-next-icon">✨</span>
+            <span class="qc-s7-next-icon"><Icon name="sparkle" /></span>
             <span>
               <b>{s7().whatsNextTitle}</b> {s7().whatsNextText}
             </span>
@@ -1080,7 +1079,7 @@ const Step7Ready = () => {
                     }}
                   >
                     <Show when={i() === 0}>
-                      <span class="qc-s7-ep-play">▶</span>
+                      <span class="qc-s7-ep-play"><Icon name="play" /></span>
                     </Show>
                   </div>
                   <div class="qc-s7-ep-info">
@@ -1091,7 +1090,7 @@ const Step7Ready = () => {
                   </div>
                   <Show
                     when={i() === 0}
-                    fallback={<span class="qc-s7-ep-status locked">🔒 {s7().locked}</span>}
+                    fallback={<span class="qc-s7-ep-status locked"><Icon name="lock" /> {s7().locked}</span>}
                   >
                     <span class="qc-s7-ep-status completed">✓ {s7().completed}</span>
                   </Show>
@@ -1113,7 +1112,7 @@ const Step7Ready = () => {
           </ul>
 
           <div class="qc-s7-upsell">
-            <div class="qc-s7-upsell-line">👑 {s7().unlockBanner}</div>
+            <div class="qc-s7-upsell-line"><Icon name="crown" /> {s7().unlockBanner}</div>
             <button class="qc-s7-upsell-btn" onClick={() => navigate('/creator-program')}>
               {s7().upgradeToPro}
             </button>
@@ -1125,7 +1124,7 @@ const Step7Ready = () => {
       {/* Bottom action bar (replaces the wizard nav on this step) */}
       <div class="qc-s7-actions">
         <button class="qc-s7-action" onClick={onPublishClick}>
-          ⬆ {s7().publish}
+          <Icon name="upload" /> {s7().publish}
         </button>
         <button
           class="qc-s7-action"
@@ -1134,14 +1133,14 @@ const Step7Ready = () => {
             setShareUrl(S1 ? watchUrl(quickCreateStore.pipeline.episodeJobId) : episodeVideo())
           }
         >
-          🔗 {s7().share}
+          <Icon name="link" /> {s7().share}
         </button>
         <button class="qc-s7-action outline" onClick={() => navigate('/account?tab=mySeries')}>
-          ☰ {s7().viewSeries}
+          <Icon name="menu" /> {s7().viewSeries}
         </button>
         <div class="qc-s7-generate-wrap">
           <button class="qc-primary-btn qc-s7-generate" onClick={comingSoon}>
-            ✨ {s7().generateNext}
+            <Icon name="sparkle" /> {s7().generateNext}
           </button>
           <span class="qc-s7-generate-note">{s7().continueAdventure}</span>
         </div>
@@ -1162,7 +1161,7 @@ const Step7Ready = () => {
       <Show when={joinPrompt()}>
         <div class="qc-pub-dialog-overlay" onClick={() => setJoinPrompt(false)}>
           <div class="qc-join-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 class="qc-join-title">✦ {s7().joinTitle}</h3>
+            <h3 class="qc-join-title"><Icon name="sparkle" /> {s7().joinTitle}</h3>
             <p class="qc-join-desc">{s7().joinDesc}</p>
             <div class="qc-join-actions">
               <button class="qc-s7-action outline" onClick={() => setJoinPrompt(false)}>
@@ -1554,7 +1553,7 @@ export const PublishEpisode = (
           ←
         </button>
         <div>
-          <h2 class="qc-pub-heading">✦ {pub().heading.replace('{n}', String(ep1()?.n ?? 1))}</h2>
+          <h2 class="qc-pub-heading"><Icon name="sparkle" /> {pub().heading.replace('{n}', String(ep1()?.n ?? 1))}</h2>
           <p class="qc-subtitle">{pub().subtitle}</p>
         </div>
       </div>
@@ -1590,7 +1589,7 @@ export const PublishEpisode = (
                     {pub().seriesDescLabel} <span class="qc-pub-req">*</span>
                   </label>
                   <button class="qc-pub-ai" onClick={() => openSuggest('series')}>
-                    ✦ {pub().aiSuggest}
+                    <Icon name="sparkle" /> {pub().aiSuggest}
                   </button>
                 </div>
                 <div class="qc-pub-input-wrap">
@@ -1632,7 +1631,7 @@ export const PublishEpisode = (
                         disabled={uploadingCover()}
                         onClick={() => coverInput?.click()}
                       >
-                        <span class="qc-pub-thumb-icon">⬆</span>
+                        <span class="qc-pub-thumb-icon"><Icon name="upload" /></span>
                         {uploadingCover() ? pub().uploading : pub().upload}
                       </button>
                     }
@@ -1662,7 +1661,7 @@ export const PublishEpisode = (
                     when={aiCover()}
                     fallback={
                       <button class="qc-pub-thumb-alt" onClick={openCoverGen}>
-                        <span class="qc-pub-thumb-icon">✦</span>
+                        <span class="qc-pub-thumb-icon"><Icon name="sparkle" /></span>
                         {pub().aiGenerate}
                       </button>
                     }
@@ -1768,7 +1767,7 @@ export const PublishEpisode = (
                 {pub().descLabel} <span class="qc-pub-req">*</span>
               </label>
               <button class="qc-pub-ai" onClick={() => openSuggest('episode')}>
-                ✦ {pub().aiSuggest}
+                <Icon name="sparkle" /> {pub().aiSuggest}
               </button>
             </div>
             <div class="qc-pub-input-wrap">
@@ -1806,7 +1805,7 @@ export const PublishEpisode = (
                 when={shotCover()}
                 fallback={
                   <button class="qc-pub-thumb-alt" onClick={() => setShotDialogOpen(true)}>
-                    <span class="qc-pub-thumb-icon">🎞</span>
+                    <span class="qc-pub-thumb-icon"><Icon name="film" /></span>
                     {pub().chooseFromShots}
                   </button>
                 }
@@ -1841,7 +1840,7 @@ export const PublishEpisode = (
                 when={randomCover()}
                 fallback={
                   <button class="qc-pub-thumb-alt" onClick={openRandom}>
-                    <span class="qc-pub-thumb-icon">🎲</span>
+                    <span class="qc-pub-thumb-icon"><Icon name="dice" /></span>
                     {pub().randomFrame}
                   </button>
                 }
@@ -1891,9 +1890,9 @@ export const PublishEpisode = (
               <h4 class="qc-pub-preview-name">{title() || ep1()?.title || ''}</h4>
               <p class="qc-pub-preview-desc">{desc() || ep1()?.desc || ''}</p>
               <div class="qc-pub-preview-meta">
-                <span>🕐 {lengthText()}</span>
-                <span>🎬 {[genreText(), styleText()].filter(Boolean).join(', ')}</span>
-                <span>🎨 {styleText()}</span>
+                <span><Icon name="clock" /> {lengthText()}</span>
+                <span><Icon name="clapper" /> {[genreText(), styleText()].filter(Boolean).join(', ')}</span>
+                <span><Icon name="palette" /> {styleText()}</span>
               </div>
             </div>
           </div>
@@ -1920,7 +1919,7 @@ export const PublishEpisode = (
               </div>
             </div>
             <div class="qc-pub-tip">
-              <span class="qc-pub-tip-icon">💡</span>
+              <span class="qc-pub-tip-icon"><Icon name="bulb" /></span>
               <div>
                 <div class="qc-pub-tip-title">{pub().tipTitle}</div>
                 <div class="qc-pub-tip-text">{pub().tipText}</div>
@@ -1937,7 +1936,7 @@ export const PublishEpisode = (
             disabled={!canPublish() || publishing()}
             onClick={onPublish}
           >
-            ⬆ {publishing() ? pub().publishing : pub().publishNow.replace('{n}', String(ep1()?.n ?? 1))}
+            <Icon name="upload" /> {publishing() ? pub().publishing : pub().publishNow.replace('{n}', String(ep1()?.n ?? 1))}
           </button>
           <span class="qc-s7-generate-note">{pub().liveImmediately}</span>
         </div>
@@ -2120,7 +2119,7 @@ const WizardNav = () => (
     <Switch>
       <Match when={quickCreateStore.step === 1}>
         <button class="qc-primary-btn" disabled={!canAdvance()} onClick={quickCreateStoreActions.next}>
-          ✨ {qc().continue}
+          <Icon name="sparkle" /> {qc().continue}
         </button>
       </Match>
       <Match when={quickCreateStore.step === 3}>
@@ -2130,7 +2129,7 @@ const WizardNav = () => (
           disabled={!canAdvance() || quickCreateStore.pipeline.running}
           onClick={() => quickCreateStoreActions.runPlan()}
         >
-          ✨ {qc().step1.next}
+          <Icon name="sparkle" /> {qc().step1.next}
         </button>
       </Match>
       <Match when={quickCreateStore.step === 4}>
@@ -2140,7 +2139,7 @@ const WizardNav = () => (
           disabled={!quickCreateStore.pipeline.plan}
           onClick={() => quickCreateStoreActions.runEpisode()}
         >
-          🚀 {qc().step5.generate}
+          <Icon name="rocket" /> {qc().step5.generate}
         </button>
       </Match>
       <Match when={quickCreateStore.step === 5}>

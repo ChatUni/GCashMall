@@ -124,17 +124,31 @@ export const getBunnyVideo = async (videoId) => {
 // Poll until Bunny finishes encoding the video (so it's actually playable) or it errors /
 // times out. Bunny status: 4 = Finished, 5 = Error, 6 = UploadFailed. Returns true if
 // finished, false on error/timeout (caller proceeds either way).
-export const waitForBunnyReady = async (videoId, { timeoutMs = 6 * 60 * 1000, intervalMs = 4000 } = {}) => {
+// Bunny video status: 4 = Finished, 5 = Error, 6 = UploadFailed; anything else is in flight.
+//
+// Returns WHICH of three things happened, because "not finished yet" and "will never finish"
+// demand opposite responses: the first is worth retrying, the second must stop the pipeline.
+// Collapsing both into `false` is what left 21 episodes approved with an unplayable video —
+// each retried forever while the encode had permanently failed.
+export const BUNNY_READY = 'ready'
+export const BUNNY_FAILED = 'failed'
+export const BUNNY_PENDING = 'pending'
+
+export const waitForBunnyEncode = async (videoId, { timeoutMs = 6 * 60 * 1000, intervalMs = 4000 } = {}) => {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const v = await getBunnyVideo(videoId).catch(() => null)
     const status = v?.status
-    if (status === 4) return true
-    if (status === 5 || status === 6) return false
+    if (status === 4) return BUNNY_READY
+    if (status === 5 || status === 6) return BUNNY_FAILED
     await new Promise((r) => setTimeout(r, intervalMs))
   }
-  return false
+  return BUNNY_PENDING
 }
+
+// Boolean form for callers that only want to know whether it is safe to read the video.
+export const waitForBunnyReady = async (videoId, opts) =>
+  (await waitForBunnyEncode(videoId, opts)) === BUNNY_READY
 
 // Set a custom thumbnail (from a public image URL) on a Bunny video.
 export const setBunnyThumbnail = async (videoId, thumbnailUrl) => {

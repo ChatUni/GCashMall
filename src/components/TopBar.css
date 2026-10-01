@@ -134,9 +134,13 @@
 }
 
 .create-link-icon {
-  flex-shrink: 0;
-  font-size: 15px;
-  line-height: 1;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  padding: 0;
+  fill: currentColor;
+  display: block;
 }
 
 .search-container {
@@ -400,7 +404,11 @@
 }
 
 .language-icon {
-  font-size: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .language-dropdown {

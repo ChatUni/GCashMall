@@ -22,6 +22,8 @@ import {
   shareSeries,
   recordView,
   fetchViews,
+  fetchVideoStatus,
+  type VideoPlayState,
 } from '../services/dataService'
 import { isLoggedIn } from '../utils/api'
 import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '../utils/playerHelpers'
@@ -170,6 +172,8 @@ interface PlayerPageState {
   viewCount: number
   // A view belongs to a play, not a page load. Guards against a refresh counting again.
   viewRecorded: boolean
+  // Whether the current episode's video can be played (see fetchVideoStatus).
+  videoState: VideoPlayState
 }
 
 const getInitialState = (): PlayerPageState => ({
@@ -199,6 +203,7 @@ const getInitialState = (): PlayerPageState => ({
   shareCount: 0,
   viewCount: 0,
   viewRecorded: false,
+  videoState: 'unknown' as VideoPlayState,
 })
 
 const [playerPageState, setPlayerPageState] = createStore<PlayerPageState>(getInitialState())
@@ -729,6 +734,16 @@ export const playerPageStoreActions = {
   },
 
   // Read the current count without adding to it. Called when the player page opens.
+  // Ask whether the episode's video is playable before the player mounts an iframe for it.
+  loadVideoState: async (videoId: string | undefined) => {
+    if (!videoId) {
+      setPlayerPageState({ videoState: 'missing' })
+      return
+    }
+    setPlayerPageState({ videoState: 'unknown' })
+    setPlayerPageState({ videoState: await fetchVideoStatus(videoId) })
+  },
+
   loadViews: async (seriesId: string) => {
     try {
       const data = await fetchViews(seriesId)

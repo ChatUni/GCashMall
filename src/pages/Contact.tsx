@@ -4,6 +4,7 @@ import BottomBar from '../components/BottomBar'
 import { t } from '../stores/languageStore'
 import { submitFeedback } from '../services/dataService'
 import './Contact.css'
+import Icon from '../components/Icon'
 
 const FEEDBACK_MAX = 5000
 
@@ -48,7 +49,7 @@ const Contact = () => {
       <main class="contact-content">
         <div class="contact-container">
           <div class="contact-header">
-            <div class="contact-icon">✉️</div>
+            <div class="contact-icon"><Icon name="envelope" /></div>
             <h1 class="contact-title">{contact().title}</h1>
             <p class="contact-subtitle">{contact().subtitle}</p>
           </div>
@@ -60,7 +61,7 @@ const Contact = () => {
 
             <div class="contact-info">
               <div class="contact-info-item">
-                <span class="contact-info-icon">📧</span>
+                <span class="contact-info-icon"><Icon name="envelope" /></span>
                 <div class="contact-info-details">
                   <span class="contact-info-label">{contact().emailLabel}</span>
                   <a href="mailto:chatuni.ai@gmail.com" class="contact-info-value">
@@ -75,7 +76,7 @@ const Contact = () => {
                 when={!submitted()}
                 fallback={
                   <div class="contact-thankyou">
-                    <span class="contact-thankyou-icon">🎉</span>
+                    <span class="contact-thankyou-icon"><Icon name="party" /></span>
                     <p>{contact().thankYou}</p>
                   </div>
                 }
@@ -100,7 +101,7 @@ const Contact = () => {
                   disabled={submitting() || feedback().trim().length === 0}
                   onClick={handleSubmit}
                 >
-                  <span class="contact-btn-icon">✉️</span>
+                  <span class="contact-btn-icon"><Icon name="envelope" /></span>
                   {submitting() ? '...' : contact().submit}
                 </button>
               </Show>
