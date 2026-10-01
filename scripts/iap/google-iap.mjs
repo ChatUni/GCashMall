@@ -57,12 +57,18 @@ const play = async (method, path, body) => {
 }
 
 // Mirrors TOPUP_TIERS in src/utils/credits.ts and the ids getProductId() builds (cents).
+//
+// `credits` is what a STORE purchase grants, not the web amount. Google takes its cut, so the
+// server credits a Play purchase at STORE_CREDIT_RATE (70%) of the tier — see creditsForTopUp().
+// The title and description are what the buyer reads in the Play purchase sheet, so they must
+// state the amount that actually lands in their balance.
+const STORE_CREDIT_RATE = 0.7
 const TIERS = [
-  { cents: 599,  usd: 5.99,  credits: 600 },
-  { cents: 999,  usd: 9.99,  credits: 1100 },
-  { cents: 1999, usd: 19.99, credits: 2300 },
-  { cents: 4999, usd: 49.99, credits: 6000 },
-]
+  { cents: 599,  usd: 5.99,  webCredits: 600 },
+  { cents: 999,  usd: 9.99,  webCredits: 1100 },
+  { cents: 1999, usd: 19.99, webCredits: 2300 },
+  { cents: 4999, usd: 49.99, webCredits: 6000 },
+].map((t) => ({ ...t, credits: Math.round(t.webCredits * STORE_CREDIT_RATE) }))
 const fmt = (n) => n.toLocaleString('en-US')
 const productId = (t) => `${PKG}.topup_${t.cents}`
 const title = (t) => `${fmt(t.credits)} Credits`
@@ -93,7 +99,13 @@ const main = async () => {
   }
 
   console.log('\nAPPLYING')
-  for (const t of TIERS) await upsert(t, byId.has(productId(t)))
+  for (const t of TIERS) {
+    // An existing product gets its listing corrected and nothing else. The full upsert
+    // regenerates every regional price from Play's CURRENT conversion table, so re-running it
+    // to fix a typo could silently reprice the product in ~170 regions.
+    if (byId.has(productId(t))) await updateListing(byId.get(productId(t)), t)
+    else await upsert(t, false)
+  }
   await activateAll()
 
   if (deleteOld) {
@@ -132,6 +144,29 @@ const activateAll = async () => {
     })
     console.log(`  ${p.productId}: activated (${draft.map((o) => o.purchaseOptionId).join(', ')})`)
   }
+}
+
+// Title and description only — prices, purchase options and availability are left exactly as
+// they are (updateMask=listings). Skipped when the text already matches.
+const updateListing = async (product, t) => {
+  const pid = productId(t)
+  const want = { languageCode: 'en-US', title: title(t), description: description(t) }
+  const have = (product.listings || []).find((l) => l.languageCode === 'en-US') || {}
+  if (have.title === want.title && have.description === want.description) {
+    console.log(`  ${pid}: listing up to date`)
+    return
+  }
+  // The PATCH requires the regions version even when prices are not part of the update mask.
+  // convertRegionPrices only reads Play's table; it changes nothing on the product.
+  const { regionVersion } = await play('POST', '/pricing:convertRegionPrices', { price: money(t.usd) })
+  const otherListings = (product.listings || []).filter((l) => l.languageCode !== 'en-US')
+  await play('PATCH',
+    `/onetimeproducts/${encodeURIComponent(pid)}` +
+      `?updateMask=listings` +
+      `&regionsVersion.version=${encodeURIComponent(regionVersion?.version || '')}`,
+    { packageName: PKG, productId: pid, listings: [...otherListings, want] },
+  )
+  console.log(`  ${pid}: "${have.title}" -> "${want.title}" — ${want.description}`)
 }
 
 const upsert = async (t, exists) => {

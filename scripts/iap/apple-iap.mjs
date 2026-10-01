@@ -68,12 +68,18 @@ const apply = process.argv.includes('--apply')
 const deleteOld = process.argv.includes('--delete-old')
 
 // Mirrors TOPUP_TIERS in src/utils/credits.ts and the ids getProductId() builds (cents).
+//
+// `credits` is what a STORE purchase grants, not the web amount. Apple and Google take 30%, so
+// the server credits an in-app purchase at STORE_CREDIT_RATE (70%) of the tier — see
+// creditsForTopUp(). The product name and description are what the buyer reads in Apple's
+// purchase sheet, so they must state the amount that actually lands in their balance.
+const STORE_CREDIT_RATE = 0.7
 const TIERS = [
-  { cents: 599,  usd: 5.99,  credits: 600 },
-  { cents: 999,  usd: 9.99,  credits: 1100 },
-  { cents: 1999, usd: 19.99, credits: 2300 },
-  { cents: 4999, usd: 49.99, credits: 6000 },
-]
+  { cents: 599,  usd: 5.99,  webCredits: 600 },
+  { cents: 999,  usd: 9.99,  webCredits: 1100 },
+  { cents: 1999, usd: 19.99, webCredits: 2300 },
+  { cents: 4999, usd: 49.99, webCredits: 6000 },
+].map((t) => ({ ...t, credits: Math.round(t.webCredits * STORE_CREDIT_RATE) }))
 const fmt = (n) => n.toLocaleString('en-US')
 const productId = (t) => `${BUNDLE}.topup_${t.cents}`
 // Display name <= 30 chars, description <= 45.
@@ -111,6 +117,7 @@ const main = async () => {
     let iap = byProductId.get(pid)
     if (iap) {
       console.log(`  ${pid}: already exists (${iap.id})`)
+      await ensureProductText(iap, t)
     } else {
       const created = await asc('POST', '/v2/inAppPurchases', {
         data: {
@@ -197,11 +204,38 @@ const retire = async (p) => {
   }
 }
 
+// The product's internal reference name and the note App Review reads. Patched when they no
+// longer match the tier, so a change to the credit amounts reaches existing products too.
+const ensureProductText = async (iap, t) => {
+  const want = { name: displayName(t), reviewNote: reviewNote(t) }
+  const have = { name: iap.attributes.name, reviewNote: iap.attributes.reviewNote }
+  if (have.name === want.name && have.reviewNote === want.reviewNote) {
+    console.log('      reference name / review note: up to date')
+    return
+  }
+  await asc('PATCH', `/v2/inAppPurchases/${iap.id}`, {
+    data: { type: 'inAppPurchases', id: iap.id, attributes: want },
+  })
+  console.log(`      reference name: "${have.name}" -> "${want.name}" (review note updated)`)
+}
+
 // English only, per instruction. en-US is the locale the App Store falls back to.
+//
+// An existing localization is UPDATED when its text differs, not skipped. Skipping is what left
+// the products advertising the web credit amounts after the store rate was applied.
 const ensureLocalization = async (iapId, t) => {
   const locs = await ascAll(`/v2/inAppPurchases/${iapId}/inAppPurchaseLocalizations?limit=200`)
-  if (locs.some((l) => l.attributes.locale === 'en-US')) {
-    console.log('      localization: already present')
+  const en = locs.find((l) => l.attributes.locale === 'en-US')
+  if (en) {
+    const want = { name: displayName(t), description: description(t) }
+    if (en.attributes.name === want.name && en.attributes.description === want.description) {
+      console.log('      localization: up to date')
+      return
+    }
+    await asc('PATCH', `/v1/inAppPurchaseLocalizations/${en.id}`, {
+      data: { type: 'inAppPurchaseLocalizations', id: en.id, attributes: want },
+    })
+    console.log(`      localization: "${en.attributes.name}" -> "${want.name}" — ${want.description}`)
     return
   }
   await asc('POST', '/v1/inAppPurchaseLocalizations', {
