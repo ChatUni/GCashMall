@@ -2615,9 +2615,9 @@ const getMyRevenue = async (params, authHeader) => {
   const userId = await validateAuth(authHeader)
 
   try {
-    // Creator revenue share (percent) comes from the admin-configured system settings
-    const { creatorShare: creatorSharePercent } = await readSystemSettings()
-    const creatorShareRate = creatorSharePercent / 100
+    // What the creator was actually paid per episode, from their earning transactions. The
+    // share setting can change; each purchase credited whatever the share was at the time.
+    const earned = await creatorEarningsByEpisode(userId)
 
     // Get all series uploaded by this user
     const mySeries = await get('series', { uploaderId: new ObjectId(userId) }, {}, {})
@@ -2648,7 +2648,7 @@ const getMyRevenue = async (params, authHeader) => {
       const purchases = user.purchases || []
       for (const purchase of purchases) {
         if (seriesIds.includes(String(purchase.seriesId)) && purchase.status === 'success') {
-          const key = `${purchase.seriesId}-${purchase.episodeNumber}`
+          const key = episodeKey(purchase.seriesId, purchase.episodeNumber)
           if (!purchasesBySeriesAndEpisode.has(key)) {
             purchasesBySeriesAndEpisode.set(key, {
               seriesId: purchase.seriesId,
@@ -2690,11 +2690,11 @@ const getMyRevenue = async (params, authHeader) => {
         episodeTitle: episodeData.episodeTitle,
         totalSales: episodeData.totalSales,
         totalRevenue: episodeData.totalRevenue,
-        creatorShare: episodeData.totalRevenue * creatorShareRate,
+        creatorShare: earned.get(key) || 0,
       })
       seriesData.totalSales += episodeData.totalSales
       seriesData.totalRevenue += episodeData.totalRevenue
-      seriesData.creatorShare += episodeData.totalRevenue * creatorShareRate
+      seriesData.creatorShare += earned.get(key) || 0
     }
 
     // Sort episodes by episode number within each series
@@ -3804,6 +3804,20 @@ const validatePurchaseEpisodeBody = (body) => {
   if (body.episodeNumber === undefined || body.episodeNumber === null) {
     throw new Error('Episode number is required')
   }
+}
+
+const episodeKey = (seriesId, episodeNumber) => `${seriesId}-${Number(episodeNumber)}`
+
+// Sum of the creator's 'earning' transactions, keyed by series + episode.
+const creatorEarningsByEpisode = async (userId) => {
+  const user = (await get('users', { _id: new ObjectId(String(userId)) }, { transactions: 1 }, {}, 1))[0]
+  const earned = new Map()
+  for (const txn of user?.transactions || []) {
+    if (txn.type !== 'earning' || txn.status !== 'success' || !txn.source?.seriesId) continue
+    const key = episodeKey(txn.source.seriesId, txn.source.episodeNumber)
+    earned.set(key, (earned.get(key) || 0) + (Number(txn.amount) || 0))
+  }
+  return earned
 }
 
 // Credit the creator (series uploader) their revenue share of an episode purchase.
@@ -5523,8 +5537,8 @@ const DEFAULT_SYSTEM_SETTINGS = {
   seedanceModel: MODEL_DEFAULTS.seedanceModel, // Seedance video model
 }
 const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
-const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
-const EPISODE_COST_OPTIONS = [10, 20, 30, 50, 75, 100]
+const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
+const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
 const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 
 // An episode is free when it is among the first `freeEpisodes` of its series. Replaces the

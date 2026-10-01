@@ -18,6 +18,7 @@ import { languageStore, languageStoreActions } from '../stores/languageStore'
 import {
   systemSettingsStore,
   systemSettingsStoreActions,
+  yourShareLabel,
   FREE_EPISODES_OPTIONS,
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
@@ -1719,6 +1720,9 @@ interface RevenueSectionProps {
 }
 
 const RevenueSection = (props: RevenueSectionProps) => {
+  onMount(() => {
+    if (!systemSettingsStore.loaded) systemSettingsStoreActions.load()
+  })
   const [expandedSeries, setExpandedSeries] = createSignal<string | null>(null)
 
   const toggleSeriesExpand = (seriesId: string) => {
@@ -1753,7 +1757,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
           <div class="revenue-card your-share">
             <div class="revenue-card-icon"><Icon name="target" /></div>
             <div class="revenue-card-info">
-              <span class="revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
+              <span class="revenue-card-label">{yourShareLabel(props.translations.yourShare || 'Your Share ({pct}%)')}</span>
               <span class="revenue-card-value highlight">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="revenue-gcash-logo" />
                 {formatCredits(accountStore.revenueData!.totalCreatorShare)}

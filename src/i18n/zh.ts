@@ -325,7 +325,7 @@ export const zh = {
       revenueTitle: '分销分成',
       revenueSubtitle: '追踪您的剧集销售收益（五五分成）',
       totalRevenue: '总收益',
-      yourShare: '您的分成 (50%)',
+      yourShare: '您的分成 ({pct}%)',
       pendingPayout: '待结算',
       paidOut: '已结算',
       noRevenue: '暂无收益',

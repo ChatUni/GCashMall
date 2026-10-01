@@ -1,4 +1,5 @@
-import { createSignal, Show, For, createEffect } from 'solid-js'
+import { createSignal, Show, For, createEffect, onMount } from 'solid-js'
+import { systemSettingsStore, systemSettingsStoreActions, yourShareLabel } from '../../stores/systemSettingsStore'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../../utils/config'
@@ -939,6 +940,9 @@ interface PhoneRevenueSectionProps {
 }
 
 const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
+  onMount(() => {
+    if (!systemSettingsStore.loaded) systemSettingsStoreActions.load()
+  })
   const [expandedSeries, setExpandedSeries] = createSignal<string | null>(null)
 
   const toggleSeriesExpand = (seriesId: string) => {
@@ -970,7 +974,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
           <div class="phone-revenue-card phone-revenue-share">
             <span class="phone-revenue-card-icon"><Icon name="target" /></span>
             <div class="phone-revenue-card-info">
-              <span class="phone-revenue-card-label">{props.translations.yourShare || 'Your Share (50%)'}</span>
+              <span class="phone-revenue-card-label">{yourShareLabel(props.translations.yourShare || 'Your Share ({pct}%)')}</span>
               <span class="phone-revenue-card-value highlight">
                 <img src="https://res.cloudinary.com/daqc8bim3/image/upload/v1764702233/logo.png" alt="GUSD" class="phone-revenue-logo" />
                 {formatCredits(accountStore.revenueData!.totalCreatorShare)}

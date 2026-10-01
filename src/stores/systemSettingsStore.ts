@@ -32,8 +32,8 @@ export const systemSettingsStore = state
 
 // Selectable options (must match the backend's allowed values and the spec)
 export const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
-export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 75]
-export const EPISODE_COST_OPTIONS = [10, 20, 30, 50, 75, 100]
+export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
+export const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
 export const NEXT_EPISODE_COST_OPTIONS = [49, 99, 149, 199, 299]
 export const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 // Model options (must match the server's modelConfig option lists)
@@ -53,6 +53,10 @@ export const getFreeEpisodeCount = (): number => state.freeEpisodes ?? DEFAULT_F
 // Mirrored server-side by isEpisodeFree in netlify/functions/utils/handlers.js.
 export const isEpisodeFree = (episodeNumber: number): boolean =>
   episodeNumber <= getFreeEpisodeCount()
+// "Your Share (70%)" — the revenue label with the live creator share filled in.
+export const yourShareLabel = (template: string): string =>
+  template.replace('{pct}', String(state.creatorShare))
+
 // GUSD cost to generate a follow-up episode
 export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 99
 

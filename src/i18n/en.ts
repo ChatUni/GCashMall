@@ -329,7 +329,7 @@ export const en = {
       revenueTitle: 'Revenue Sharing',
       revenueSubtitle: 'Track your earnings from episode sales (50/50 split)',
       totalRevenue: 'Total Revenue',
-      yourShare: 'Your Share (50%)',
+      yourShare: 'Your Share ({pct}%)',
       pendingPayout: 'Pending Payout',
       paidOut: 'Paid Out',
       noRevenue: 'No revenue yet',
