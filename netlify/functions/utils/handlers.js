@@ -20,6 +20,7 @@ import { reserveTransaction, releaseTransaction } from './iapLedger.js'
 import { bunnyEmbedUrl, deleteBunnyVideo, getBunnyVideo } from './bunny.js'
 import { triggerBackground } from './trigger.js'
 import { getJwtSecret } from './jwt.js'
+import { issueOAuthTicket, readOAuthTicket, verifyAppleIdentityToken, appleRefreshToken, revokeAppleToken } from './oauth.js'
 import { toCredits, toUsd, creditsForTopUp } from './credits.js'
 import { findTier, tierCost, normalizeEpisodeSeconds, DEFAULT_TIER_ID } from './videoTiers.js'
 import { verifySignature, dispatchJob } from './jobDispatch.js'
@@ -537,6 +538,69 @@ const validateNoEpisodePurchased = async (seriesId) => {
   }
 }
 
+// ── Account deletion ──
+//
+// Required by the App Store for any app that lets people create an account (5.1.1(v)).
+// Removes the account and what belongs only to it. Series someone else has paid for are kept
+// playable for those buyers but cut loose from the account: no uploader, hidden from browsing.
+// Any remaining credit balance is forfeited — the client warns before confirming.
+
+const deleteAccount = async (body, authHeader) => {
+  const userId = String(await validateAuth(authHeader))
+  if (body?.confirm !== true) return { success: false, error: 'Confirmation is required' }
+  const user = (await get('users', { _id: new ObjectId(userId) }, {}, {}, 1))[0]
+  if (!user) return { success: false, error: 'User not found' }
+
+  const { deleted, anonymized } = await releaseOwnSeries(userId)
+  await removeUserActivity(userId, deleted)
+  await revokeAppleToken(user.apple_refresh_token)
+  await remove('users', { _id: new ObjectId(userId) })
+  return { success: true, data: { deletedSeries: deleted.length, anonymizedSeries: anonymized.length } }
+}
+
+// Delete the user's series, except ones another user has bought — those are anonymized.
+const releaseOwnSeries = async (userId) => {
+  const own = await get('series', { uploaderId: { $in: [userId, new ObjectId(userId)] } }, { _id: 1 })
+  const deleted = [], anonymized = []
+  for (const series of own) {
+    const id = String(series._id)
+    if (await boughtByOthers(id, userId)) {
+      await anonymizeSeries(series._id)
+      anonymized.push(id)
+    } else {
+      await remove('series', { _id: series._id })
+      deleted.push(id)
+    }
+  }
+  return { deleted, anonymized }
+}
+
+const boughtByOthers = async (seriesId, userId) =>
+  (await get('users', {
+    _id: { $ne: new ObjectId(userId) },
+    $or: [{ 'purchases.seriesId': seriesId }, { 'purchaseHistory.seriesId': seriesId }],
+  }, { _id: 1 }, {}, 1)).length > 0
+
+const anonymizeSeries = (seriesId) =>
+  update('series', { _id: seriesId }, {
+    $set: { uploaderDeleted: true, shelvedByUploader: true, shelved: true, updatedAt: new Date() },
+    $unset: { uploaderId: '' },
+  })
+
+// Everything else keyed to the user: their comments (and comments on series now deleted),
+// likes, ratings, reports they filed, Quick Create productions, and their place on other
+// people's block lists.
+const removeUserActivity = async (userId, deletedSeriesIds) => {
+  const ids = [userId, new ObjectId(userId)]
+  await remove('comments', { $or: [{ userId: { $in: ids } }, { seriesId: { $in: deletedSeriesIds } }] })
+  await remove('likes', { userId: { $in: ids } })
+  await remove('ratings', { userId: { $in: ids } })
+  await remove('reports', { reporterId: userId })
+  await remove('productions', { userId: { $in: ids } })
+  const db = await (await import('./db.js')).connectDB()
+  await db.collection('users').updateMany({ blockedUsers: userId }, { $pull: { blockedUsers: userId } })
+}
+
 const validateDeleteSeriesBody = (body) => {
   if (!body) {
     throw new Error('Request body is required')
@@ -853,7 +917,12 @@ const emailRegister = async (body) => {
   validateEmailRegisterBody(body)
 
   try {
-    const { email, password, nickname, photoUrl, oauthId, oauthType } = body
+    const { email, password, nickname, photoUrl } = body
+    // OAuth details only from a server-issued ticket for this same email — never from the body.
+    const oauth = body.ticket ? readOAuthTicket(body.ticket) : null
+    if (oauth && oauth.email !== email.toLowerCase()) return { success: false, error: 'Email does not match your sign-in' }
+    const oauthId = oauth?.oauthId
+    const oauthType = oauth?.provider
 
     // Check if email already exists
     const existingUsers = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
@@ -938,9 +1007,8 @@ const validateEmailRegisterBody = (body) => {
     throw new Error('Invalid email address')
   }
 
-  // Password is required if no OAuth type/id
-  const hasOAuth = body.oauthId && body.oauthType
-  if (!hasOAuth && !body.password) {
+  // Password is required unless registering through a sign-in provider (ticket checked later)
+  if (!body.ticket && !body.password) {
     throw new Error('Password is required')
   }
 
@@ -991,7 +1059,6 @@ const googleAuth = async (body) => {
 
     const tokenData = await tokenResponse.json()
     console.log('[googleAuth] Token response status:', tokenResponse.status)
-    console.log('[googleAuth] Token data:', JSON.stringify(tokenData, null, 2))
 
     if (!tokenData.access_token) {
       // Return detailed error from Google
@@ -1007,15 +1074,24 @@ const googleAuth = async (body) => {
     })
 
     const userInfo = await userInfoResponse.json()
-    console.log('[googleAuth] User info:', JSON.stringify(userInfo, null, 2))
+    const identity = {
+      provider: 'google',
+      oauthId: String(userInfo.id),
+      email: String(userInfo.email || '').toLowerCase(),
+      emailVerified: userInfo.verified_email === true,
+      name: userInfo.name || userInfo.given_name || 'Guest',
+      picture: userInfo.picture || null,
+    }
 
     return {
       success: true,
       data: {
-        id: userInfo.id,
-        name: userInfo.name || userInfo.given_name || 'Guest',
-        email: userInfo.email,
-        picture: userInfo.picture,
+        id: identity.oauthId,
+        name: identity.name,
+        email: identity.email,
+        picture: identity.picture,
+        // The only thing oauthLogin accepts: proof that Google, not the client, named this email.
+        ticket: issueOAuthTicket(identity),
       },
     }
   } catch (error) {
@@ -1024,53 +1100,76 @@ const googleAuth = async (body) => {
   }
 }
 
-// Google login - for existing users who registered via Google
-const googleLogin = async (body) => {
-  if (!body || !body.email) {
-    throw new Error('Email is required')
-  }
+// ── OAuth sign-in (Google ticket / Apple identity token) ──
 
-  try {
-    const { email, oauthId, oauthType } = body
+// Google: exchange the ticket from googleAuth. googleLogin is the old route name, kept so
+// existing clients reach the same checked path — it no longer accepts a bare email.
+const oauthLogin = async (body) => signInWithOAuth(readOAuthTicket(body?.ticket))
+const googleLogin = oauthLogin
 
-    // Find user by email
-    const users = await get('users', { email: email.toLowerCase() }, {}, {}, 1)
-    if (!users || users.length === 0) {
-      return { success: false, error: 'User not found' }
-    }
+// Apple (iOS app): verify Apple's identity token, then the same shared step.
+const appleLogin = async (body) => {
+  const claims = await verifyAppleIdentityToken(body?.identityToken)
+  const name = [body?.fullName?.givenName, body?.fullName?.familyName].filter(Boolean).join(' ').trim()
+  return signInWithOAuth(
+    {
+      provider: 'apple',
+      oauthId: String(claims.sub),
+      email: String(claims.email || '').toLowerCase(),
+      emailVerified: claims.email_verified === true || claims.email_verified === 'true',
+      name: name || 'Guest',
+      picture: null,
+    },
+    { apple_refresh_token: await appleRefreshToken(body?.authorizationCode) },
+  )
+}
 
-    const user = users[0]
-
-    // Generate JWT token
-    const token = generateToken({ email: user.email, id: user._id })
-
-    // Add OAuth type/id to the account if not exist
-    if (oauthId && oauthType) {
-      const oauthKey = `${oauthType}_id`
-      if (!user[oauthKey]) {
-        const updateData = {
-          ...user,
-          [oauthKey]: oauthId,
-          updatedAt: new Date(),
-        }
-        await save('users', updateData)
-      }
-    }
-
-    // Return user without password
-    const userResponse = await buildUserResponse(user)
-
-    return {
-      success: true,
-      data: {
-        user: userResponse,
-        token,
-      },
-    }
-  } catch (error) {
-    throw new Error(`Google login failed: ${error.message}`)
+// Existing account (same provider id, or same email): merge and log in — an email match only
+// counts when the provider verified that email. Otherwise create the account from the
+// provider's details. `extra` holds provider fields to store, null ones skipped.
+const signInWithOAuth = async (identity, extra = {}) => {
+  const idKey = `${identity.provider}_id`
+  const existing = await findOAuthUser(idKey, identity)
+  const user = existing ? await mergeOAuthAccount(existing, idKey, identity, extra) : await createOAuthAccount(idKey, identity, extra)
+  return {
+    success: true,
+    data: { user: await buildUserResponse(user), token: generateToken({ email: user.email, id: user._id }), isNew: !existing },
   }
 }
+
+const findOAuthUser = async (idKey, identity) => {
+  const byId = (await get('users', { [idKey]: identity.oauthId }, {}, {}, 1))[0]
+  if (byId) return byId
+  if (!identity.email) return null
+  return (await get('users', { email: identity.email }, {}, {}, 1))[0] || null
+}
+
+const mergeOAuthAccount = async (user, idKey, identity, extra) => {
+  if (user[idKey] !== identity.oauthId && !identity.emailVerified) {
+    throw new Error('This email is not verified with your sign-in provider')
+  }
+  const updated = { ...user, [idKey]: identity.oauthId, ...withoutNulls(extra), updatedAt: new Date() }
+  await save('users', updated)
+  return updated
+}
+
+const createOAuthAccount = async (idKey, identity, extra) => {
+  if (!identity.email) throw new Error('Your sign-in provider did not share an email address')
+  const newUser = {
+    email: identity.email,
+    nickname: identity.name || 'Guest',
+    avatar: identity.picture || null,
+    [idKey]: identity.oauthId,
+    ...withoutNulls(extra),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+  await applyWelcomeCredit(newUser)
+  const result = await save('users', newUser)
+  return { ...newUser, _id: result.insertedId }
+}
+
+const withoutNulls = (obj) => Object.fromEntries(Object.entries(obj || {}).filter(([, v]) => v != null))
 
 // Login with email and password
 const login = async (body) => {
@@ -1993,7 +2092,6 @@ const buildUserResponse = async (user) => {
     purchases: user.purchases || [],
     balance: user.balance || 0,
     transactions: user.transactions || [],
-    // Ids only. The client uses them to hide blocked creators' series from every list.
   }
 }
 
@@ -2599,15 +2697,38 @@ const getMyPurchases = async (params, authHeader) => {
     const currentUser = users[0]
     const purchases = currentUser.purchases || []
 
-    // Return the purchases array directly
-    // Each purchase item should have: seriesId, seriesName, seriesCover, episodeId, episodeNumber, episodeTitle, episodeThumbnail, price, purchasedAt
+    // Each purchase item has: seriesId, seriesName, seriesCover, episodeId, episodeNumber,
+    // episodeTitle, episodeThumbnail, price, purchasedAt — plus `available`, false once the
+    // series or episode has been deleted, hidden or taken down.
     return {
       success: true,
-      data: purchases,
+      data: await withAvailability(purchases),
     }
   } catch (error) {
     throw new Error(`Failed to get my purchases: ${error.message}`)
   }
+}
+
+const withAvailability = async (purchases) => {
+  const seriesById = await publicSeriesById(purchases.map((p) => p.seriesId))
+  return purchases.map((p) => ({ ...p, available: isPurchaseAvailable(p, seriesById.get(String(p.seriesId))) }))
+}
+
+// The purchased series that still exist, keyed by id.
+const publicSeriesById = async (seriesIds) => {
+  const ids = [...new Set(seriesIds.map(String))].filter((id) => ObjectId.isValid(id))
+  const docs = ids.length ? await get('series', { _id: { $in: ids.map((id) => new ObjectId(id)) } }) : []
+  return new Map(docs.map((s) => [String(s._id), s]))
+}
+
+// Watchable by the public: the series exists and isn't shelved, and (for an episode
+// purchase) the episode is still among the live ones.
+const isPurchaseAvailable = (purchase, series) => {
+  if (!series) return false
+  // A deleted creator's series is hidden from browsing but stays playable for its buyers.
+  if (series.shelved && !series.uploaderDeleted) return false
+  if (purchase.scope === 'series') return true
+  return publicEpisodes(series).some((ep) => Number(ep.episodeNumber) === Number(purchase.episodeNumber))
 }
 
 // Get My Revenue - get revenue data for the logged in creator
@@ -2733,7 +2854,9 @@ const addPurchase = async (body, authHeader) => {
   validateAddPurchaseBody(body)
 
   try {
-    const { seriesId, episodeId, episodeNumber, price } = body
+    const { seriesId, episodeId, episodeNumber } = body
+    // The price is the server's setting, never what the client sends.
+    const { episodeCost: price } = await readSystemSettings()
 
     // Get current user
     const users = await get('users', { _id: new ObjectId(userId) }, {}, {}, 1)
@@ -2785,6 +2908,9 @@ const addPurchase = async (body, authHeader) => {
 
     if (existingPurchase) {
       return { success: false, error: 'Episode already purchased' }
+    }
+    if (hasSeriesUnlock(purchases, seriesId)) {
+      return { success: false, error: 'Series already unlocked' }
     }
 
     // Generate reference ID for the purchase
@@ -2846,11 +2972,64 @@ const validateAddPurchaseBody = (body) => {
   if (!body.episodeNumber && body.episodeNumber !== 0) {
     throw new Error('Episode number is required')
   }
-
-  if (body.price === undefined || body.price === null) {
-    throw new Error('Price is required')
-  }
 }
+
+// ── Whole-series unlock ──
+//
+// One purchase at the series' flat price unlocks every episode, including ones published
+// later. Stored in `purchases` like an episode purchase, marked scope 'series' with episode
+// number 0 so lists and the creator's revenue can show it as "All episodes".
+
+const hasSeriesUnlock = (purchases, seriesId) =>
+  (purchases || []).some((p) => p.scope === 'series' && String(p.seriesId) === String(seriesId) && p.status === 'success')
+
+const purchaseSeries = async (body, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  if (!body?.seriesId || !ObjectId.isValid(String(body.seriesId))) return { success: false, error: 'Series ID is required' }
+
+  const user = (await get('users', { _id: new ObjectId(userId) }, {}, {}, 1))[0]
+  if (!user) return { success: false, error: 'User not found' }
+  const series = (await get('series', { _id: new ObjectId(String(body.seriesId)) }, {}, {}, 1))[0]
+  if (!series) return { success: false, error: 'Series not found' }
+
+  const refusal = seriesPurchaseRefusal(user, series)
+  if (refusal) return { success: false, error: refusal }
+
+  const { seriesCost: price, creatorShare } = await readSystemSettings()
+  if ((user.balance || 0) < price) return { success: false, error: 'Insufficient balance' }
+
+  const updated = {
+    ...user,
+    balance: (user.balance || 0) - price,
+    purchases: [...(user.purchases || []), seriesPurchaseItem(series, price)],
+    updatedAt: new Date(),
+  }
+  await save('users', updated)
+  await creditCreatorRevenue(series, price, creatorShare, 0)
+  return { success: true, data: await buildUserResponse(updated) }
+}
+
+const seriesPurchaseRefusal = (user, series) => {
+  if (String(series.uploaderId) === String(user._id)) return 'You cannot purchase your own series'
+  if (hasSeriesUnlock(user.purchases, series._id)) return 'Series already unlocked'
+  return null
+}
+
+const seriesPurchaseItem = (series, price) => ({
+  _id: new ObjectId().toString(),
+  scope: 'series',
+  seriesId: String(series._id),
+  seriesName: series.name,
+  seriesCover: series.cover,
+  episodeId: '',
+  episodeNumber: 0,
+  episodeTitle: '',
+  episodeThumbnail: series.cover,
+  price,
+  purchasedAt: new Date(),
+  status: 'success',
+  referenceId: `GC${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+})
 
 // Top up - add balance to user's wallet
 const topUp = async (body, authHeader) => {
@@ -4003,6 +4182,7 @@ export {
   getGenres,
   saveSeries,
   deleteSeries,
+  deleteAccount,
   uploadImage,
   deleteImage,
   uploadVideo,
@@ -4021,6 +4201,8 @@ export {
   login,
   googleAuth,
   googleLogin,
+  oauthLogin,
+  appleLogin,
   updateProfile,
   updateProfilePicture,
   updatePassword,
@@ -4039,6 +4221,7 @@ export {
   getMyPurchases,
   getMyRevenue,
   addPurchase,
+  purchaseSeries,
   topUp,
   completeStripeTopUp,
   syncGUSDTopUps,
@@ -5530,6 +5713,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
   freeEpisodes: 5, // episodes at the start of every series that need no purchase
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 10, // credits to unlock an episode (100 credits = 1 USD)
+  seriesCost: 600, // credits to unlock every episode of a series, including later ones
   nextEpisodeCost: 99, // credits to generate a follow-up episode
   welcomeCredit: 10000, // credits granted to a newly registered user
   chatModel: MODEL_DEFAULTS.chatModel, // OpenAI text/story model
@@ -5539,6 +5723,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
 const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
 const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
+const SERIES_COST_OPTIONS = [300, 400, 500, 600, 800, 1000]
 const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 
 // An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
@@ -5555,6 +5740,7 @@ const readSystemSettings = async () => {
     freeEpisodes: saved.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
     creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
+    seriesCost: saved.seriesCost ?? DEFAULT_SYSTEM_SETTINGS.seriesCost,
     nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
     welcomeCredit: saved.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
     chatModel: saved.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
@@ -5581,6 +5767,7 @@ const saveSettings = async (body, authHeader) => {
       freeEpisodes: body.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
       creatorShare: body.creatorShare,
       episodeCost: body.episodeCost,
+      seriesCost: body.seriesCost ?? DEFAULT_SYSTEM_SETTINGS.seriesCost,
       nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
       welcomeCredit: body.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
       chatModel: body.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
@@ -5624,6 +5811,9 @@ const validateSystemSettingsBody = (body) => {
   }
   if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
     throw new Error('Invalid episodeCost')
+  }
+  if (body.seriesCost != null && !SERIES_COST_OPTIONS.includes(body.seriesCost)) {
+    throw new Error('Invalid seriesCost')
   }
   if (body.chatModel != null && !CHAT_MODEL_OPTIONS.includes(body.chatModel)) {
     throw new Error('Invalid chatModel')

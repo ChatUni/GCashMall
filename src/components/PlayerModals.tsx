@@ -1,5 +1,6 @@
 import { Show } from 'solid-js'
 import { systemSettingsStore } from '../stores/systemSettingsStore'
+import { isSeriesUnlockWorthIt } from '../stores/playerStore'
 import { toastStore } from '../stores'
 import './PlayerModals.css'
 import { formatCredits } from '../utils/credits'
@@ -13,6 +14,7 @@ interface PurchasePopupProps {
   userBalance: number
   isPurchasing: boolean
   onConfirm: () => void
+  onConfirmSeries: () => void
   onCancel: () => void
   t: {
     unlockEpisode: string
@@ -20,6 +22,9 @@ interface PurchasePopupProps {
     yourBalance: string
     confirmPurchase: string
     cancel: string
+    unlockSeriesOr: string
+    unlockSeriesHint: string
+    unlockSeriesButton: string
   }
 }
 
@@ -63,12 +68,35 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
         <button class="btn-confirm" onClick={props.onConfirm} disabled={props.isPurchasing}>
           {props.isPurchasing ? '...' : props.t.confirmPurchase}
         </button>
+        <SeriesUnlockOption
+          isPurchasing={props.isPurchasing}
+          onConfirm={props.onConfirmSeries}
+          t={props.t}
+        />
         <button class="btn-cancel" onClick={props.onCancel} disabled={props.isPurchasing}>
           {props.t.cancel}
         </button>
       </div>
     </div>
   </div>
+)
+
+// The whole-series alternative under the single-episode purchase. Hidden when buying the
+// remaining locked episodes one by one would cost less.
+const SeriesUnlockOption = (props: {
+  isPurchasing: boolean
+  onConfirm: () => void
+  t: { unlockSeriesOr: string; unlockSeriesHint: string; unlockSeriesButton: string }
+}) => (
+  <Show when={isSeriesUnlockWorthIt()}>
+    <div class="popup-series-option">
+      <span class="popup-series-or">{props.t.unlockSeriesOr}</span>
+      <span class="popup-series-hint">{props.t.unlockSeriesHint}</span>
+      <button class="btn-series" onClick={props.onConfirm} disabled={props.isPurchasing}>
+        {props.isPurchasing ? '...' : props.t.unlockSeriesButton.replace('{price}', formatCredits(systemSettingsStore.seriesCost))}
+      </button>
+    </div>
+  </Show>
 )
 
 // Result Modal

@@ -792,11 +792,24 @@ export const groupPurchasesBySeries = (purchases: PurchaseItem[]) => {
         seriesName: purchase.seriesName,
         seriesCover: purchase.seriesCover,
         episodes: [],
+        unavailable: true,
       }
     }
     acc[purchase.seriesId].episodes.push(purchase)
+    if (!isPurchaseUnavailable(purchase)) acc[purchase.seriesId].unavailable = false
     return acc
-  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[] }>)
-  
-  return Object.values(groups)
+  }, {} as Record<string, { seriesId: string; seriesName: string; seriesCover: string; episodes: PurchaseItem[]; unavailable: boolean }>)
+
+  // Watchable series first; ones that are gone sink to the bottom (sort is stable).
+  return Object.values(groups).sort((a, b) => Number(a.unavailable) - Number(b.unavailable))
 }
+
+// Within a series: watchable episodes in episode order, unavailable ones after them.
+export const sortPurchasedEpisodes = (episodes: PurchaseItem[]): PurchaseItem[] =>
+  [...episodes].sort(
+    (a, b) =>
+      Number(isPurchaseUnavailable(a)) - Number(isPurchaseUnavailable(b)) || a.episodeNumber - b.episodeNumber,
+  )
+
+// Only an explicit false counts: purchases fresh from a buy carry no flag and are playable.
+export const isPurchaseUnavailable = (purchase: PurchaseItem): boolean => purchase.available === false

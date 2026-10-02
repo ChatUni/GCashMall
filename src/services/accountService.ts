@@ -1,8 +1,9 @@
 // Account service - business logic extracted from Account page
 // Following Rule #7: React components should be pure - separate business logic from components
 
+import { signInWithOAuthCode } from '../utils/oauthSignIn'
 import { isCordova, MOBILE_OAUTH_REDIRECT, getWebOrigin, openStripeInAppBrowser, isIOS, isAndroid } from '../utils/cordova'
-import { apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, checkEmail, emailRegister, saveAuthData, clearAuthData, isLoggedIn, getStoredUser, setStoredUser } from '../utils/api'
+import { apiPost, apiPostWithAuth, apiGetWithAuth, apiDeleteWithAuth, saveAuthData, clearAuthData, isLoggedIn, getStoredUser, setStoredUser } from '../utils/api'
 import { purchaseIAP, isIAPAvailable, finishTransaction, setIAPReconcileHandler } from '../utils/iap'
 import { accountStoreActions, type ProfileFormState, type PasswordFormState, generateReferenceId, type AccountTab, navItems, phoneNavItems } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
@@ -71,54 +72,15 @@ const handleOAuthCallback = async (
   
   try {
     const redirectUri = isCordova() ? MOBILE_OAUTH_REDIRECT : `${window.location.origin}/account`
-    const response = await apiPost<{ id: string; name: string; email: string; picture: string }>(
-      `${oauthType}Auth`,
-      { code, redirectUri }
-    )
+    const result = await signInWithOAuthCode(oauthType, code, redirectUri)
 
-    if (response.success && response.data) {
-      const { id: oauthId, name, email, picture } = response.data
-      const checkResponse = await checkEmail(email)
-      
-      if (checkResponse.success && checkResponse.data?.exists) {
-        // User exists - login with OAuth info
-        const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', {
-          email,
-          oauthId,
-          oauthType,
-        })
-        if (loginResponse.success && loginResponse.data) {
-          saveAuthData(loginResponse.data.token, loginResponse.data.user)
-          accountStoreActions.initializeUserData(loginResponse.data.user)
-          // Mark for redirect if we have a stored path different from /account
-          if (storedRedirect && storedRedirect !== '/account' && navigate) {
-            shouldRedirect = true
-            redirectPath = storedRedirect
-          }
-        } else {
-          accountStoreActions.setShowLoginModal(true)
-        }
-      } else {
-        // New user - register with OAuth info (no password required)
-        const registerResponse = await emailRegister({
-          email,
-          nickname: name,
-          photoUrl: picture,
-          oauthId,
-          oauthType,
-        })
-        
-        if (registerResponse.success && registerResponse.data) {
-          saveAuthData(registerResponse.data.token, registerResponse.data.user)
-          accountStoreActions.initializeUserData(registerResponse.data.user)
-          // Mark for redirect if we have a stored path different from /account
-          if (storedRedirect && storedRedirect !== '/account' && navigate) {
-            shouldRedirect = true
-            redirectPath = storedRedirect
-          }
-        } else {
-          accountStoreActions.setShowLoginModal(true)
-        }
+    if (result.success && result.data) {
+      saveAuthData(result.data.token, result.data.user)
+      accountStoreActions.initializeUserData(result.data.user)
+      // Mark for redirect if we have a stored path different from /account
+      if (storedRedirect && storedRedirect !== '/account' && navigate) {
+        shouldRedirect = true
+        redirectPath = storedRedirect
       }
     } else {
       accountStoreActions.setShowLoginModal(true)

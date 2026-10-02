@@ -17,6 +17,7 @@ const getInitialState = (): SystemSettingsState => ({
   freeEpisodes: DEFAULT_FREE_EPISODES,
   creatorShare: 50,
   episodeCost: 10,
+  seriesCost: 600,
   nextEpisodeCost: 99,
   welcomeCredit: 10000,
   chatModel: 'gpt-5-mini',
@@ -34,6 +35,7 @@ export const systemSettingsStore = state
 export const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
 export const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
+export const SERIES_COST_OPTIONS = [300, 400, 500, 600, 800, 1000]
 export const NEXT_EPISODE_COST_OPTIONS = [49, 99, 149, 199, 299]
 export const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 // Model options (must match the server's modelConfig option lists)
@@ -76,6 +78,7 @@ export const systemSettingsStoreActions = {
       freeEpisodes: changes.freeEpisodes ?? state.freeEpisodes,
       creatorShare: changes.creatorShare ?? state.creatorShare,
       episodeCost: changes.episodeCost ?? state.episodeCost,
+      seriesCost: changes.seriesCost ?? state.seriesCost,
       nextEpisodeCost: changes.nextEpisodeCost ?? state.nextEpisodeCost,
       welcomeCredit: changes.welcomeCredit ?? state.welcomeCredit,
       chatModel: changes.chatModel ?? state.chatModel,

@@ -234,3 +234,20 @@
   color: #2563eb;
   text-decoration: underline;
 }
+
+/* Sign in with Apple, logo-only per Apple's guidelines: black circle, white logo. */
+.login-apple-btn {
+  width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #000000;
+}
+
+.login-apple-btn:hover {
+  background: #000000;
+}

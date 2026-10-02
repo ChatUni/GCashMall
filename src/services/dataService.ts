@@ -1224,18 +1224,52 @@ export const purchaseEpisode = async (
   return result
 }
 
+// Unlock every episode of a series, including later ones, at the flat series price.
+export const purchaseSeries = async (seriesId: string) => {
+  const result = await apiPostWithAuth<User>('purchaseSeries', { seriesId })
+  if (result.success && result.data) applyPurchasedUser(result.data)
+  return result
+}
+
+const applyPurchasedUser = (user: User) => {
+  const token = localStorage.getItem('gcashmall_token')
+  if (token) saveAuthData(token, user)
+  accountStoreActions.setUser(user)
+  if (user.purchases) accountStoreActions.setMyPurchases(user.purchases)
+  if (user.balance !== undefined) accountStoreActions.setBalance(user.balance)
+}
+
+type PurchaseRef = { seriesId: string; episodeId: string; episodeNumber?: number; scope?: 'series' }
+
+export const isSeriesUnlocked = (seriesId: string, purchases?: PurchaseRef[]): boolean =>
+  !!purchases?.some((p) => p.scope === 'series' && String(p.seriesId) === String(seriesId))
+
+// "EP 3", or "All episodes" for a whole-series unlock (stored as episode 0).
+export const purchaseEpisodeLabel = (episodeNumber: number | null | undefined, allEpisodes: string): string =>
+  Number(episodeNumber) > 0 ? `EP ${episodeNumber}` : allEpisodes
+
+// "3 episodes" under a purchased series, or "All episodes" once the whole series is unlocked.
+export const purchasedCountLabel = (
+  items: { episodeNumber: number }[],
+  words: { episode: string; episodes: string; allEpisodes: string },
+): string => {
+  if (items.some((i) => !(Number(i.episodeNumber) > 0))) return words.allEpisodes
+  return `${items.length} ${items.length === 1 ? words.episode : words.episodes}`
+}
+
 // Check if episode is purchased
 export const isEpisodePurchased = (
   seriesId: string,
   episodeId: string,
-  purchases?: { seriesId: string; episodeId: string; episodeNumber?: number }[],
+  purchases?: PurchaseRef[],
   episodeNumber?: number,
 ): boolean => {
   if (!purchases || purchases.length === 0) return false
+  if (isSeriesUnlocked(seriesId, purchases)) return true
   return purchases.some(
     (p) => {
       const seriesMatch = String(p.seriesId) === String(seriesId)
-      if (!seriesMatch) return false
+      if (!seriesMatch || p.scope === 'series') return false
       // Check by episodeId first, then by episodeNumber as fallback
       const episodeIdMatch = String(p.episodeId) === String(episodeId)
       const episodeNumberMatch = episodeNumber !== undefined && p.episodeNumber === episodeNumber

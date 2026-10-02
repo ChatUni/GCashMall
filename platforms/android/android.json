@@ -104,6 +104,9 @@
     },
     "cordova-plugin-purchase": {
       "PACKAGE_NAME": "io.ganime.app"
+    },
+    "cordova-plugin-sign-in-with-apple": {
+      "PACKAGE_NAME": "io.ganime.app"
     }
   },
   "dependent_plugins": {},
@@ -146,6 +149,14 @@
         "store",
         "CdvPurchase"
       ]
+    },
+    {
+      "id": "cordova-plugin-sign-in-with-apple.SignInWithApple",
+      "file": "plugins/cordova-plugin-sign-in-with-apple/www/sign-in-with-apple.js",
+      "pluginId": "cordova-plugin-sign-in-with-apple",
+      "clobbers": [
+        "cordova.plugins.SignInWithApple"
+      ]
     }
   ],
   "plugin_metadata": {
@@ -153,6 +164,7 @@
     "cordova-plugin-inappbrowser": "6.0.0",
     "cordova-plugin-customurlscheme": "5.0.2",
     "cordova-plugin-x-socialsharing": "6.0.4",
-    "cordova-plugin-purchase": "13.16.1"
+    "cordova-plugin-purchase": "13.16.1",
+    "cordova-plugin-sign-in-with-apple": "0.1.2"
   }
 }

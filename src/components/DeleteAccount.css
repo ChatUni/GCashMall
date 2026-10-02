@@ -1,0 +1,20 @@
+.delete-account-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #cb5b55;
+  border-radius: 8px;
+  background: transparent;
+  color: #cb5b55;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-account-btn:hover {
+  background: rgba(203, 91, 85, 0.08);
+}
+
+.delete-account-balance {
+  color: #cb5b55;
+  font-weight: 600;
+}

@@ -1,5 +1,6 @@
 import { createSignal, Show, For, createEffect, onMount } from 'solid-js'
 import { systemSettingsStore, systemSettingsStoreActions, yourShareLabel } from '../../stores/systemSettingsStore'
+import { purchaseEpisodeLabel, purchasedCountLabel } from '../../services/dataService'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../../utils/config'
@@ -11,6 +12,7 @@ import PhoneLayout from '../../layouts/PhoneLayout'
 import LoginModal from '../../components/LoginModal'
 import ModerationSection from '../../components/ModerationSection'
 import BlockedUsers from '../../components/BlockedUsers'
+import DeleteAccount from '../../components/DeleteAccount'
 import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
@@ -33,6 +35,8 @@ import {
   getStatusClass,
   hasProfileChanges,
   groupPurchasesBySeries,
+  isPurchaseUnavailable,
+  sortPurchasedEpisodes,
   getSortedWatchHistoryItems,
   getSortedFavoritesItems,
 } from '../../stores/accountStore'
@@ -480,6 +484,9 @@ const PhoneSettingsSection = () => {
         <span><Icon name="door" /></span>
         {nav().logout}
       </button>
+      <Show when={accountStore.user}>
+        <DeleteAccount class="phone-delete-account" />
+      </Show>
     </div>
   )
 }
@@ -595,14 +602,14 @@ const PhoneWalletSection = () => {
                             <div class="phone-purchase-type-cell">
                               <span class="phone-purchase-type-series">{wallet().earning || 'Earning'}</span>
                               <Show when={tx.source}>
-                                <span class="phone-purchase-type-episode">{tx.source!.seriesName} · EP {tx.source!.episodeNumber}</span>
+                                <span class="phone-purchase-type-episode">{tx.source!.seriesName} · {purchaseEpisodeLabel(tx.source!.episodeNumber, t().player.allEpisodes)}</span>
                               </Show>
                             </div>
                           </Show>
                         }>
                           <div class="phone-purchase-type-cell">
                             <span class="phone-purchase-type-series">{tx.purchase!.seriesName}</span>
-                            <span class="phone-purchase-type-episode">EP {tx.purchase!.episodeNumber}{tx.purchase!.episodeTitle ? ` ${tx.purchase!.episodeTitle}` : ''}</span>
+                            <span class="phone-purchase-type-episode">{purchaseEpisodeLabel(tx.purchase!.episodeNumber, t().player.allEpisodes)}{tx.purchase!.episodeTitle ? ` ${tx.purchase!.episodeTitle}` : ''}</span>
                           </div>
                         </Show>
                       </div>
@@ -759,23 +766,23 @@ const PhoneMyPurchasesSection = () => {
           <For each={seriesList()}>
             {(sg) => (
               <div class="phone-purchase-group">
-                <div class="phone-purchase-header" onClick={() => navigate(`/player/${sg.seriesId}`)}>
+                <div class={`phone-purchase-header ${sg.unavailable ? 'unavailable' : ''}`} onClick={() => !sg.unavailable && navigate(`/player/${sg.seriesId}`)}>
                   <div class="phone-purchase-cover">
-                    <Show when={sg.seriesCover} fallback={<div class="phone-purchase-placeholder"><Icon name="clapper" /></div>}>
+                    <Show when={sg.seriesCover && !sg.unavailable} fallback={<div class="phone-purchase-placeholder"><Icon name="clapper" /></div>}>
                       <img src={sg.seriesCover} alt={sg.seriesName} />
                     </Show>
                   </div>
                   <div class="phone-purchase-info">
                     <h3 class="phone-purchase-name">{sg.seriesName}</h3>
-                    <span class="phone-purchase-count">{sg.episodes.length} {sg.episodes.length === 1 ? (mp().episode || 'episode') : (mp().episodes || 'episodes')}</span>
+                    <span class={`phone-purchase-count ${sg.unavailable ? 'unavailable' : ''}`}>{sg.unavailable ? mp().seriesUnavailable : purchasedCountLabel(sg.episodes, { episode: mp().episode || 'episode', episodes: mp().episodes || 'episodes', allEpisodes: t().player.allEpisodes })}</span>
                   </div>
                 </div>
                 <div class="phone-purchase-episodes">
-                  <For each={sg.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)}>
+                  <For each={sortPurchasedEpisodes(sg.episodes)}>
                     {(ep) => (
-                      <div class="phone-purchase-episode" onClick={() => navigate(`/player/${sg.seriesId}?episode=${ep.episodeNumber}`)}>
+                      <div class={`phone-purchase-episode ${isPurchaseUnavailable(ep) ? 'unavailable' : ''}`} onClick={() => !isPurchaseUnavailable(ep) && navigate(`/player/${sg.seriesId}?episode=${ep.episodeNumber || 1}`)}>
                         <div class="phone-episode-thumbnail">
-                          <Show when={ep.episodeThumbnail} fallback={<div class="phone-episode-placeholder"><Icon name="play" /></div>}>
+                          <Show when={ep.episodeThumbnail && !isPurchaseUnavailable(ep)} fallback={<div class="phone-episode-placeholder"><Icon name="ban" /></div>}>
                             <img src={ep.episodeThumbnail} alt={`Episode ${ep.episodeNumber}`} />
                           </Show>
                           <div class="phone-episode-overlay">
@@ -783,8 +790,9 @@ const PhoneMyPurchasesSection = () => {
                           </div>
                         </div>
                         <div class="phone-episode-info">
-                          <span class="phone-episode-number">EP {ep.episodeNumber}</span>
+                          <span class="phone-episode-number">{purchaseEpisodeLabel(ep.episodeNumber, t().player.allEpisodes)}</span>
                           <Show when={ep.episodeTitle}><span class="phone-episode-title">{ep.episodeTitle}</span></Show>
+                          <Show when={isPurchaseUnavailable(ep)}><span class="purchase-unavailable">{mp().unavailable}</span></Show>
                         </div>
                       </div>
                     )}
@@ -1041,7 +1049,7 @@ const PhoneRevenueSection = (props: PhoneRevenueSectionProps) => {
                           {(episode) => (
                             <div class="phone-revenue-episode-item">
                               <div class="phone-revenue-episode-info">
-                                <span class="phone-revenue-episode-number">EP {episode.episodeNumber}</span>
+                                <span class="phone-revenue-episode-number">{purchaseEpisodeLabel(episode.episodeNumber, t().player.allEpisodes)}</span>
                                 <Show when={episode.episodeTitle}>
                                   <span class="phone-revenue-episode-title">{episode.episodeTitle}</span>
                                 </Show>

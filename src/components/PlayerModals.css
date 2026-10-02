@@ -295,3 +295,44 @@
     text-align: center;
   }
 }
+
+/* Whole-series unlock, offered under the single-episode purchase. */
+.popup-series-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px 12px;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 10px;
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.popup-series-or {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.popup-series-hint {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--c-text-muted);
+}
+
+.btn-series {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-series:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -1,3 +1,4 @@
+import { signInWithOAuthCode, signInWithApple, isAppleSignInAvailable } from '../utils/oauthSignIn'
 import { createSignal, Show, Switch, Match } from 'solid-js'
 import { useLocation } from '@solidjs/router'
 import { t } from '../stores/languageStore'
@@ -261,54 +262,35 @@ const LoginModal = (props: LoginModalProps) => {
     setLoading(true)
 
     try {
-      // Exchange code for user info via server
-      const authResponse = await apiPost<{ id: string; name: string; email: string; picture: string }>(
-        `${provider}Auth`,
-        { code, redirectUri: redirectUrl },
-      )
-
-      if (!authResponse.success || !authResponse.data) {
-        setEmailError(authResponse.error || 'OAuth authentication failed')
-        return
-      }
-
-      const { id: oauthId, name, email: oauthEmail, picture } = authResponse.data
-
-      // Check if user exists
-      const checkResponse = await checkEmail(oauthEmail)
-
-      if (checkResponse.success && checkResponse.data?.exists) {
-        // Existing user - login with OAuth
-        const loginResponse = await apiPost<{ user: User; token: string }>('googleLogin', {
-          email: oauthEmail,
-          oauthId,
-          oauthType: provider,
-        })
-        if (loginResponse.success && loginResponse.data) {
-          saveAuthData(loginResponse.data.token, loginResponse.data.user)
-          props.onLoginSuccess(loginResponse.data.user)
-        } else {
-          setEmailError(loginResponse.error || 'Login failed')
-        }
+      const result = await signInWithOAuthCode(provider, code, redirectUrl)
+      if (result.success && result.data) {
+        saveAuthData(result.data.token, result.data.user)
+        props.onLoginSuccess(result.data.user)
       } else {
-        // New user - register with OAuth info
-        const registerResponse = await emailRegister({
-          email: oauthEmail,
-          nickname: name,
-          photoUrl: picture,
-          oauthId,
-          oauthType: provider,
-        })
-        if (registerResponse.success && registerResponse.data) {
-          saveAuthData(registerResponse.data.token, registerResponse.data.user)
-          props.onLoginSuccess(registerResponse.data.user)
-        } else {
-          setEmailError(registerResponse.error || 'Registration failed')
-        }
+        setEmailError(result.error || 'OAuth authentication failed')
       }
     } catch (error) {
       console.error('OAuth processing error:', error)
       setEmailError('OAuth authentication failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Sign in with Apple — native sheet in the iOS app; the server verifies Apple's token.
+  const handleAppleSignIn = async () => {
+    setEmailError('')
+    setLoading(true)
+    try {
+      const result = await signInWithApple()
+      if (result.success && result.data) {
+        saveAuthData(result.data.token, result.data.user)
+        props.onLoginSuccess(result.data.user)
+      } else if (result.error) {
+        setEmailError(result.error)
+      }
+    } catch (error) {
+      setEmailError((error as Error).message || 'Apple sign-in failed')
     } finally {
       setLoading(false)
     }
@@ -424,6 +406,13 @@ const LoginModal = (props: LoginModalProps) => {
             />
           </svg>
         </button>
+        <Show when={isAppleSignInAvailable()}>
+          <button class="login-oauth-btn login-apple-btn" onClick={handleAppleSignIn} title="Sign in with Apple" aria-label="Sign in with Apple">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff" aria-hidden="true">
+              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
+            </svg>
+          </button>
+        </Show>
       </div>
 
       <div class="login-signup">
@@ -516,6 +505,13 @@ const LoginModal = (props: LoginModalProps) => {
             />
           </svg>
         </button>
+        <Show when={isAppleSignInAvailable()}>
+          <button class="login-oauth-btn login-apple-btn" onClick={handleAppleSignIn} title="Sign in with Apple" aria-label="Sign in with Apple">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff" aria-hidden="true">
+              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
+            </svg>
+          </button>
+        </Show>
       </div>
 
       <div class="login-signup">

@@ -1793,3 +1793,24 @@
   background: var(--c-surface2);
   border-radius: 8px;
 }
+
+/* A purchase whose series or episode was deleted, hidden or taken down. */
+.purchase-series-header.unavailable,
+.purchase-episode-card.unavailable,
+.phone-purchase-header.unavailable,
+.phone-purchase-episode.unavailable {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.purchase-episode-count.unavailable,
+.phone-purchase-count.unavailable,
+.purchase-unavailable {
+  color: #cb5b55;
+  font-size: 13px;
+}
+
+.purchase-episode-card.unavailable .purchase-episode-overlay,
+.phone-purchase-episode.unavailable .phone-episode-overlay {
+  display: none;
+}

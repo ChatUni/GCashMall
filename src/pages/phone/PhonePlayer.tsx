@@ -562,6 +562,7 @@ const PhonePlayer = () => {
               userBalance={accountStore.user?.balance || 0}
               isPurchasing={playerPageStore.isPurchasing}
               onConfirm={() => playerPageStoreActions.handlePurchaseConfirm(t())}
+              onConfirmSeries={() => playerPageStoreActions.handleSeriesPurchaseConfirm(t())}
               onCancel={playerPageStoreActions.hidePurchasePopup}
               t={t().player}
             />

@@ -9,6 +9,7 @@ import { toUsd, formatCredits, creditsForTopUp, topUpBreakdown } from '../utils/
 import TopBar from '../components/TopBar'
 import ModerationSection from '../components/ModerationSection'
 import BlockedUsers from '../components/BlockedUsers'
+import DeleteAccount from '../components/DeleteAccount'
 import { ReviewStatusBadge, ReviewStatusModal } from '../components/ReviewStatus'
 import BottomBar from '../components/BottomBar'
 import LoginModal from '../components/LoginModal'
@@ -22,6 +23,7 @@ import {
   FREE_EPISODES_OPTIONS,
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
+  SERIES_COST_OPTIONS,
   NEXT_EPISODE_COST_OPTIONS,
   WELCOME_CREDIT_OPTIONS,
   CHAT_MODEL_OPTIONS,
@@ -44,6 +46,8 @@ import {
   getStatusClass,
   hasProfileChanges,
   groupPurchasesBySeries,
+  isPurchaseUnavailable,
+  sortPurchasedEpisodes,
   getSortedWatchHistoryItems,
   getSortedFavoritesItems,
 } from '../stores/accountStore'
@@ -88,6 +92,7 @@ import {
   fetchMe,
   type ProductionJob,
 } from '../services/dataService'
+import { purchaseEpisodeLabel, purchasedCountLabel } from '../services/dataService'
 import { isLoggedIn, setStoredUser } from '../utils/api'
 import { startFreshQuickCreate } from '../services/quickCreateNav'
 // Default Quick Create cover (Cloudinary — same asset set as the v1 page)
@@ -702,6 +707,9 @@ function SettingsSection() {
         <div class="section-card">
           <BlockedUsers />
         </div>
+        <div class="section-card">
+          <DeleteAccount />
+        </div>
       </Show>
 
       <Show when={accountStore.user?.isAdmin}>
@@ -761,6 +769,20 @@ function SystemSettingsCard() {
           onChange={(e) => systemSettingsStoreActions.save({ episodeCost: Number(e.currentTarget.value) })}
         >
           <For each={EPISODE_COST_OPTIONS}>
+            {(cost) => <option value={cost}>{cost}</option>}
+          </For>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">{settings().seriesCost}</label>
+        <select
+          class="setting-control"
+          value={systemSettingsStore.seriesCost}
+          disabled={systemSettingsStore.saving}
+          onChange={(e) => systemSettingsStoreActions.save({ seriesCost: Number(e.currentTarget.value) })}
+        >
+          <For each={SERIES_COST_OPTIONS}>
             {(cost) => <option value={cost}>{cost}</option>}
           </For>
         </select>
@@ -1016,7 +1038,7 @@ function WalletSection() {
                                 </span>
                                 <Show when={transaction.source}>
                                   <span class="purchase-type-episode">
-                                    EP {transaction.source!.episodeNumber}
+                                    {purchaseEpisodeLabel(transaction.source!.episodeNumber, t().player.allEpisodes)}
                                     {transaction.source!.episodeTitle ? ` ${transaction.source!.episodeTitle}` : ''}
                                   </span>
                                 </Show>
@@ -1027,7 +1049,7 @@ function WalletSection() {
                               <span class="purchase-type-series">{wallet().earning || 'Earning'}</span>
                               <Show when={transaction.source}>
                                 <span class="purchase-type-episode">
-                                  {transaction.source!.seriesName} · EP {transaction.source!.episodeNumber}
+                                  {transaction.source!.seriesName} · {purchaseEpisodeLabel(transaction.source!.episodeNumber, t().player.allEpisodes)}
                                 </span>
                               </Show>
                             </div>
@@ -1036,7 +1058,7 @@ function WalletSection() {
                           <div class="purchase-type-cell">
                             <span class="purchase-type-series">{transaction.purchase!.seriesName}</span>
                             <span class="purchase-type-episode">
-                              EP {transaction.purchase!.episodeNumber}{transaction.purchase!.episodeTitle ? ` ${transaction.purchase!.episodeTitle}` : ''}
+                              {purchaseEpisodeLabel(transaction.purchase!.episodeNumber, t().player.allEpisodes)}{transaction.purchase!.episodeTitle ? ` ${transaction.purchase!.episodeTitle}` : ''}
                             </span>
                           </div>
                         </Show>
@@ -1225,28 +1247,33 @@ function MyPurchasesSection() {
             <For each={seriesList()}>
               {(seriesGroup) => (
                 <div class="purchase-series-group">
-                  <div class="purchase-series-header" onClick={() => navigate(`/player/${seriesGroup.seriesId}`)}>
+                  <div
+                    class={`purchase-series-header ${seriesGroup.unavailable ? 'unavailable' : ''}`}
+                    onClick={() => !seriesGroup.unavailable && navigate(`/player/${seriesGroup.seriesId}`)}
+                  >
                     <div class="purchase-series-cover">
-                      <Show when={seriesGroup.seriesCover} fallback={<div class="purchase-series-placeholder"><Icon name="clapper" /></div>}>
+                      <Show when={seriesGroup.seriesCover && !seriesGroup.unavailable} fallback={<div class="purchase-series-placeholder"><Icon name="clapper" /></div>}>
                         <img src={seriesGroup.seriesCover} alt={seriesGroup.seriesName} />
                       </Show>
                     </div>
                     <div class="purchase-series-info">
                       <h3 class="purchase-series-name">{seriesGroup.seriesName}</h3>
-                      <span class="purchase-episode-count">
-                        {seriesGroup.episodes.length} {seriesGroup.episodes.length === 1 ? (myPurchases().episode || 'episode') : (myPurchases().episodes || 'episodes')}
+                      <span class={`purchase-episode-count ${seriesGroup.unavailable ? 'unavailable' : ''}`}>
+                        {seriesGroup.unavailable
+                          ? myPurchases().seriesUnavailable
+                          : purchasedCountLabel(seriesGroup.episodes, { episode: myPurchases().episode || 'episode', episodes: myPurchases().episodes || 'episodes', allEpisodes: t().player.allEpisodes })}
                       </span>
                     </div>
                   </div>
                   <div class="purchase-episodes-grid">
-                    <For each={[...seriesGroup.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)}>
+                    <For each={sortPurchasedEpisodes(seriesGroup.episodes)}>
                       {(episode) => (
                         <div
-                          class="purchase-episode-card"
-                          onClick={() => navigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber}`)}
+                          class={`purchase-episode-card ${isPurchaseUnavailable(episode) ? 'unavailable' : ''}`}
+                          onClick={() => !isPurchaseUnavailable(episode) && navigate(`/player/${seriesGroup.seriesId}?episode=${episode.episodeNumber || 1}`)}
                         >
                           <div class="purchase-episode-thumbnail">
-                            <Show when={episode.episodeThumbnail} fallback={<div class="purchase-episode-placeholder"><Icon name="play" /></div>}>
+                            <Show when={episode.episodeThumbnail && !isPurchaseUnavailable(episode)} fallback={<div class="purchase-episode-placeholder"><Icon name="ban" /></div>}>
                               <img src={episode.episodeThumbnail} alt={`Episode ${episode.episodeNumber}`} />
                             </Show>
                             <div class="purchase-episode-overlay">
@@ -1256,9 +1283,12 @@ function MyPurchasesSection() {
                             </div>
                           </div>
                           <div class="purchase-episode-info">
-                            <span class="purchase-episode-number">EP {episode.episodeNumber}</span>
+                            <span class="purchase-episode-number">{purchaseEpisodeLabel(episode.episodeNumber, t().player.allEpisodes)}</span>
                             <Show when={episode.episodeTitle}>
                               <span class="purchase-episode-title">{episode.episodeTitle}</span>
+                            </Show>
+                            <Show when={isPurchaseUnavailable(episode)}>
+                              <span class="purchase-unavailable">{myPurchases().unavailable}</span>
                             </Show>
                           </div>
                         </div>
@@ -1842,7 +1872,7 @@ const RevenueSection = (props: RevenueSectionProps) => {
                               {(episode) => (
                                 <tr>
                                   <td class="episode-cell">
-                                    <span class="episode-number">EP {episode.episodeNumber}</span>
+                                    <span class="episode-number">{purchaseEpisodeLabel(episode.episodeNumber, t().player.allEpisodes)}</span>
                                     <Show when={episode.episodeTitle}>
                                       <span class="episode-title">{episode.episodeTitle}</span>
                                     </Show>

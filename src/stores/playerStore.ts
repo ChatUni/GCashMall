@@ -8,6 +8,7 @@ import {
   addToFavorites,
   removeFromFavorites,
   purchaseEpisode,
+  purchaseSeries,
   isEpisodePurchased,
   showToast,
   fetchPlayerData,
@@ -251,6 +252,16 @@ export const isCurrentEpisodeUnlocked = (): boolean => {
   return checkEpisodeUnlocked(episode._id, episode.episodeNumber)
 }
 
+// What the episodes still locked for this viewer would cost bought one by one.
+export const remainingEpisodesCost = (): number =>
+  playerStore.episodes.filter((ep) => !checkEpisodeUnlocked(ep._id, ep.episodeNumber)).length *
+  systemSettingsStore.episodeCost
+
+// Offer the whole-series unlock only when it isn't dearer than buying what's left. At equal
+// cost it still wins: it also covers episodes published later.
+export const isSeriesUnlockWorthIt = (): boolean =>
+  systemSettingsStore.seriesCost > 0 && remainingEpisodesCost() >= systemSettingsStore.seriesCost
+
 export const getFilteredEpisodes = (): Episode[] => {
   return filterEpisodesByRange(playerStore.episodes, playerStore.episodeRange)
 }
@@ -440,6 +451,16 @@ export const hideControlsIfPlaying = () => {
 // Player Page Store Actions
 // ======================
 
+// Close the purchase popup and show how it went.
+const showPurchaseResult = (type: 'success' | 'error', message: string) =>
+  setPlayerPageState({
+    showPurchasePopup: false,
+    isPurchasing: false,
+    showResultModal: true,
+    resultModalType: type,
+    resultModalMessage: message,
+  })
+
 export const playerPageStoreActions = {
   // Initialize player data for a series
   initialize: (seriesId: string, fetchRecommendationsData = false) => {
@@ -598,6 +619,26 @@ export const playerPageStoreActions = {
         resultModalType: 'error',
         resultModalMessage: t.player.purchaseFailed,
       })
+    }
+  },
+
+  // Unlock every episode of the series at the flat series price
+  handleSeriesPurchaseConfirm: async (t: { player: { insufficientBalance: string; seriesPurchaseSuccess: string; purchaseFailed: string } }) => {
+    const seriesId = playerPageState.currentSeriesId
+    if (!seriesId) return
+
+    if ((accountStore.user?.balance || 0) < systemSettingsStore.seriesCost) {
+      showPurchaseResult('error', t.player.insufficientBalance)
+      return
+    }
+
+    setPlayerPageState({ isPurchasing: true })
+    try {
+      const result = await purchaseSeries(seriesId)
+      showPurchaseResult(result.success ? 'success' : 'error', result.success ? t.player.seriesPurchaseSuccess : (result.error || t.player.purchaseFailed))
+    } catch (error) {
+      console.error('Failed to purchase series:', error)
+      showPurchaseResult('error', t.player.purchaseFailed)
     }
   },
 
