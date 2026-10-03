@@ -1,6 +1,7 @@
 // SeriesEdit service - business logic extracted from SeriesEdit page
 // Following Rule #7: React components should be pure - separate business logic from components
 
+import { seriesPriceOrDefault } from '../utils/seriesPrice'
 import { apiGet, apiGetWithAuth, apiPostWithAuth } from '../utils/api'
 import { seriesEditStoreActions, type EpisodeFormData, createNewEpisode } from '../stores/seriesEditStore'
 import { toastStoreActions } from '../stores'
@@ -46,6 +47,7 @@ export const fetchSeries = async (seriesId: string) => {
         cover: series.cover,
         episodes: episodes,
         shelved: series.shelved !== undefined ? series.shelved : false,
+        seriesPrice: seriesPriceOrDefault(series.seriesPrice),
       })
       seriesEditStoreActions.setOriginalCover(series.cover)
       seriesEditStoreActions.setOriginalEpisodes(episodes.map((ep) => ({ ...ep })))
@@ -112,6 +114,7 @@ export const saveSeriesWithConfirmation = async (
       cover: coverUrl,
       genre: state.formData.genreIds,
       shelved: state.formData.shelved,
+      seriesPrice: state.formData.seriesPrice,
       episodes: episodesData.map((ep) => ({
         episodeNumber: ep.episodeNumber,
         title: ep.title,

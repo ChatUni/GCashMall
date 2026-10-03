@@ -23,7 +23,6 @@ import {
   FREE_EPISODES_OPTIONS,
   CREATOR_SHARE_OPTIONS,
   EPISODE_COST_OPTIONS,
-  SERIES_COST_OPTIONS,
   NEXT_EPISODE_COST_OPTIONS,
   WELCOME_CREDIT_OPTIONS,
   CHAT_MODEL_OPTIONS,
@@ -769,20 +768,6 @@ function SystemSettingsCard() {
           onChange={(e) => systemSettingsStoreActions.save({ episodeCost: Number(e.currentTarget.value) })}
         >
           <For each={EPISODE_COST_OPTIONS}>
-            {(cost) => <option value={cost}>{cost}</option>}
-          </For>
-        </select>
-      </div>
-
-      <div class="setting-row">
-        <label class="setting-label">{settings().seriesCost}</label>
-        <select
-          class="setting-control"
-          value={systemSettingsStore.seriesCost}
-          disabled={systemSettingsStore.saving}
-          onChange={(e) => systemSettingsStoreActions.save({ seriesCost: Number(e.currentTarget.value) })}
-        >
-          <For each={SERIES_COST_OPTIONS}>
             {(cost) => <option value={cost}>{cost}</option>}
           </For>
         </select>

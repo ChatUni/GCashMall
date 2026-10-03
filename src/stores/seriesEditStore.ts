@@ -1,6 +1,7 @@
 // SeriesEdit page store - SolidJS store
 // Following Rule #3: States shared by 2+ components must be defined outside the component tree
 
+import { DEFAULT_SERIES_PRICE } from '../utils/seriesPrice'
 import { createStore } from 'solid-js/store'
 import type { Genre, ModerationStatus } from '../types'
 
@@ -31,6 +32,8 @@ export interface SeriesFormData {
   cover: string
   episodes: EpisodeFormData[]
   shelved: boolean
+  // Whole-series unlock price, 300 / 600 / 900 credits (600 when never set).
+  seriesPrice: number
 }
 
 export interface UploadProgress {
@@ -60,6 +63,7 @@ const initialFormData: SeriesFormData = {
   cover: '',
   episodes: [],
   shelved: false,
+  seriesPrice: DEFAULT_SERIES_PRICE,
 }
 
 const getInitialState = (): SeriesEditState => ({
@@ -116,6 +120,10 @@ export const seriesEditStoreActions = {
   // Shelved
   setShelved: (shelved: boolean) =>
     setSeriesEditState('formData', { shelved }),
+
+  // Whole-series price
+  setSeriesPrice: (seriesPrice: number) =>
+    setSeriesEditState('formData', { seriesPrice }),
 
   // Episodes
   setEpisodes: (episodes: EpisodeFormData[]) =>

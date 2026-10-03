@@ -1,6 +1,6 @@
 import { Show } from 'solid-js'
 import { systemSettingsStore } from '../stores/systemSettingsStore'
-import { isSeriesUnlockWorthIt } from '../stores/playerStore'
+import { playerPageStore } from '../stores/playerStore'
 import { toastStore } from '../stores'
 import './PlayerModals.css'
 import { formatCredits } from '../utils/credits'
@@ -25,6 +25,7 @@ interface PurchasePopupProps {
     unlockSeriesOr: string
     unlockSeriesHint: string
     unlockSeriesButton: string
+    unlockSeriesDiscount: string
   }
 }
 
@@ -81,19 +82,27 @@ export const PurchasePopup = (props: PurchasePopupProps) => (
   </div>
 )
 
-// The whole-series alternative under the single-episode purchase. Hidden when buying the
-// remaining locked episodes one by one would cost less.
+// The whole-series alternative under the single-episode purchase. The server decides whether
+// it's offered (only when the episodes still locked would cost more than the creator's price)
+// and the price (minus what this viewer already spent on single episodes).
 const SeriesUnlockOption = (props: {
   isPurchasing: boolean
   onConfirm: () => void
-  t: { unlockSeriesOr: string; unlockSeriesHint: string; unlockSeriesButton: string }
+  t: { unlockSeriesOr: string; unlockSeriesHint: string; unlockSeriesButton: string; unlockSeriesDiscount: string }
 }) => (
-  <Show when={isSeriesUnlockWorthIt()}>
+  <Show when={playerPageStore.seriesQuote?.available}>
     <div class="popup-series-option">
       <span class="popup-series-or">{props.t.unlockSeriesOr}</span>
       <span class="popup-series-hint">{props.t.unlockSeriesHint}</span>
+      <Show when={playerPageStore.seriesQuote!.paid > 0}>
+        <span class="popup-series-hint">
+          {props.t.unlockSeriesDiscount
+            .replace('{list}', formatCredits(playerPageStore.seriesQuote!.listPrice))
+            .replace('{paid}', formatCredits(playerPageStore.seriesQuote!.paid))}
+        </span>
+      </Show>
       <button class="btn-series" onClick={props.onConfirm} disabled={props.isPurchasing}>
-        {props.isPurchasing ? '...' : props.t.unlockSeriesButton.replace('{price}', formatCredits(systemSettingsStore.seriesCost))}
+        {props.isPurchasing ? '...' : props.t.unlockSeriesButton.replace('{price}', formatCredits(playerPageStore.seriesQuote!.price))}
       </button>
     </div>
   </Show>

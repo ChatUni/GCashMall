@@ -418,3 +418,11 @@
   font-size: 14px;
   resize: vertical;
 }
+
+.series-edit-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+}

@@ -9,6 +9,8 @@ import {
   removeFromFavorites,
   purchaseEpisode,
   purchaseSeries,
+  fetchSeriesUnlockQuote,
+  type SeriesUnlockQuote,
   isEpisodePurchased,
   showToast,
   fetchPlayerData,
@@ -143,6 +145,8 @@ interface PlayerPageState {
   // Purchase popup
   showPurchasePopup: boolean
   isPurchasing: boolean
+  // The whole-series offer for this viewer, fetched when the popup opens (null until then).
+  seriesQuote: SeriesUnlockQuote | null
   // Result modal
   showResultModal: boolean
   resultModalType: 'success' | 'error'
@@ -184,6 +188,7 @@ const getInitialState = (): PlayerPageState => ({
   newReleasesFetched: false,
   showPurchasePopup: false,
   isPurchasing: false,
+  seriesQuote: null,
   showResultModal: false,
   resultModalType: 'success',
   resultModalMessage: '',
@@ -251,16 +256,6 @@ export const isCurrentEpisodeUnlocked = (): boolean => {
   if (!episode) return false
   return checkEpisodeUnlocked(episode._id, episode.episodeNumber)
 }
-
-// What the episodes still locked for this viewer would cost bought one by one.
-export const remainingEpisodesCost = (): number =>
-  playerStore.episodes.filter((ep) => !checkEpisodeUnlocked(ep._id, ep.episodeNumber)).length *
-  systemSettingsStore.episodeCost
-
-// Offer the whole-series unlock only when it isn't dearer than buying what's left. At equal
-// cost it still wins: it also covers episodes published later.
-export const isSeriesUnlockWorthIt = (): boolean =>
-  systemSettingsStore.seriesCost > 0 && remainingEpisodesCost() >= systemSettingsStore.seriesCost
 
 export const getFilteredEpisodes = (): Episode[] => {
   return filterEpisodesByRange(playerStore.episodes, playerStore.episodeRange)
@@ -451,6 +446,14 @@ export const hideControlsIfPlaying = () => {
 // Player Page Store Actions
 // ======================
 
+// The whole-series offer for the series on screen. A failed fetch just means no offer.
+const loadSeriesQuote = async () => {
+  const seriesId = playerPageState.currentSeriesId
+  if (!seriesId || checkIsSeriesOwner()) return
+  const result = await fetchSeriesUnlockQuote(seriesId)
+  if (playerPageState.currentSeriesId === seriesId) setPlayerPageState({ seriesQuote: result.success ? result.data ?? null : null })
+}
+
 // Close the purchase popup and show how it went.
 const showPurchaseResult = (type: 'success' | 'error', message: string) =>
   setPlayerPageState({
@@ -577,7 +580,8 @@ export const playerPageStoreActions = {
       loginModalStoreActions.open()
       return
     }
-    setPlayerPageState({ showPurchasePopup: true })
+    setPlayerPageState({ showPurchasePopup: true, seriesQuote: null })
+    loadSeriesQuote()
   },
 
   // Handle purchase confirmation
@@ -622,19 +626,22 @@ export const playerPageStoreActions = {
     }
   },
 
-  // Unlock every episode of the series at the flat series price
+  // Unlock every episode of the series at this viewer's quoted price
   handleSeriesPurchaseConfirm: async (t: { player: { insufficientBalance: string; seriesPurchaseSuccess: string; purchaseFailed: string } }) => {
     const seriesId = playerPageState.currentSeriesId
     if (!seriesId) return
 
-    if ((accountStore.user?.balance || 0) < systemSettingsStore.seriesCost) {
+    const quote = playerPageState.seriesQuote
+    if (!quote?.available) return
+
+    if ((accountStore.user?.balance || 0) < quote.price) {
       showPurchaseResult('error', t.player.insufficientBalance)
       return
     }
 
     setPlayerPageState({ isPurchasing: true })
     try {
-      const result = await purchaseSeries(seriesId)
+      const result = await purchaseSeries(seriesId, quote.price)
       showPurchaseResult(result.success ? 'success' : 'error', result.success ? t.player.seriesPurchaseSuccess : (result.error || t.player.purchaseFailed))
     } catch (error) {
       console.error('Failed to purchase series:', error)

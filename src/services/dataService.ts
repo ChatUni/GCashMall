@@ -1224,9 +1224,22 @@ export const purchaseEpisode = async (
   return result
 }
 
-// Unlock every episode of a series, including later ones, at the flat series price.
-export const purchaseSeries = async (seriesId: string) => {
-  const result = await apiPostWithAuth<User>('purchaseSeries', { seriesId })
+// What this viewer would pay to unlock the whole series, and whether it's offered at all.
+export interface SeriesUnlockQuote {
+  available: boolean
+  price: number // listPrice minus what they already spent on single episodes
+  listPrice: number // the creator's price: 300, 600 or 900
+  paid: number
+  remainingCost: number
+}
+
+export const fetchSeriesUnlockQuote = (seriesId: string) =>
+  apiGetWithAuth<SeriesUnlockQuote>('seriesUnlockQuote', { seriesId })
+
+// Unlock every episode of a series, including later ones. `price` is the quoted price the
+// viewer saw; the server refuses to charge anything different.
+export const purchaseSeries = async (seriesId: string, price: number) => {
+  const result = await apiPostWithAuth<User>('purchaseSeries', { seriesId, price })
   if (result.success && result.data) applyPurchasedUser(result.data)
   return result
 }

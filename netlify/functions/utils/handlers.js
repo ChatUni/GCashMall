@@ -324,6 +324,7 @@ const getUsedGenreIds = async () => {
 
 const saveSeries = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
+  validateSeriesPrice(body)
   await validateUploadPermission(userId)
   validateSaveSeriesBody(body)
 
@@ -2976,41 +2977,102 @@ const validateAddPurchaseBody = (body) => {
 
 // ── Whole-series unlock ──
 //
-// One purchase at the series' flat price unlocks every episode, including ones published
-// later. Stored in `purchases` like an episode purchase, marked scope 'series' with episode
-// number 0 so lists and the creator's revenue can show it as "All episodes".
+// The creator prices the whole series at 300, 600 or 900 credits (600 when unset). One
+// purchase unlocks every episode, including ones published later. Stored in `purchases` like
+// an episode purchase, marked scope 'series' with episode number 0.
+//
+// Never a bad deal for the viewer:
+//   - offered only when the episodes still locked for them would cost MORE than the series
+//     price bought one by one, and
+//   - what they already spent on single episodes of the series comes off the price.
+// The price paid is recorded on the purchase, so a later price change touches nothing bought.
+
+const SERIES_PRICE_OPTIONS = [300, 600, 900]
+const DEFAULT_SERIES_PRICE = 600
+
+const seriesListPrice = (series) =>
+  SERIES_PRICE_OPTIONS.includes(Number(series?.seriesPrice)) ? Number(series.seriesPrice) : DEFAULT_SERIES_PRICE
+
+const validateSeriesPrice = (body) => {
+  if (body?.seriesPrice == null) return
+  if (!SERIES_PRICE_OPTIONS.includes(Number(body.seriesPrice))) throw new Error('Series price must be 300, 600 or 900')
+  body.seriesPrice = Number(body.seriesPrice)
+}
 
 const hasSeriesUnlock = (purchases, seriesId) =>
   (purchases || []).some((p) => p.scope === 'series' && String(p.seriesId) === String(seriesId) && p.status === 'success')
 
+const episodePurchasesOf = (user, seriesId) =>
+  (user?.purchases || []).filter(
+    (p) => p.scope !== 'series' && p.status === 'success' && String(p.seriesId) === String(seriesId),
+  )
+
+// What this viewer would pay for the whole series right now, and whether it's offered.
+const seriesUnlockQuote = async (user, series) => {
+  const { episodeCost, freeEpisodes } = await readSystemSettings()
+  const bought = episodePurchasesOf(user, series._id)
+  const boughtNumbers = new Set(bought.map((p) => Number(p.episodeNumber)))
+  const locked = publicEpisodes(series).filter(
+    (ep) => !isEpisodeFree(ep.episodeNumber, freeEpisodes) && !boughtNumbers.has(Number(ep.episodeNumber)),
+  )
+  const listPrice = seriesListPrice(series)
+  const paid = bought.reduce((sum, p) => sum + (Number(p.price) || 0), 0)
+  const remainingCost = locked.length * episodeCost
+  return {
+    listPrice,
+    paid,
+    price: Math.max(listPrice - paid, 0),
+    remainingCost,
+    available: remainingCost > listPrice && !hasSeriesUnlock(user?.purchases, series._id) && !isOwnSeries(user, series),
+  }
+}
+
+const isOwnSeries = (user, series) => !!user && String(series.uploaderId) === String(user._id)
+
+const loadUserAndSeries = async (userId, seriesId) => {
+  if (!seriesId || !ObjectId.isValid(String(seriesId))) return { error: 'Series ID is required' }
+  const user = (await get('users', { _id: new ObjectId(userId) }, {}, {}, 1))[0]
+  if (!user) return { error: 'User not found' }
+  const series = (await get('series', { _id: new ObjectId(String(seriesId)) }, {}, {}, 1))[0]
+  if (!series) return { error: 'Series not found' }
+  return { user, series }
+}
+
+const getSeriesUnlockQuote = async (params, authHeader) => {
+  const userId = await validateAuth(authHeader)
+  const { user, series, error } = await loadUserAndSeries(userId, params?.seriesId)
+  if (error) return { success: false, error }
+  return { success: true, data: await seriesUnlockQuote(user, series) }
+}
+
+// `price` is what the viewer was shown; charging anything else is refused.
 const purchaseSeries = async (body, authHeader) => {
   const userId = await validateAuth(authHeader)
-  if (!body?.seriesId || !ObjectId.isValid(String(body.seriesId))) return { success: false, error: 'Series ID is required' }
-
-  const user = (await get('users', { _id: new ObjectId(userId) }, {}, {}, 1))[0]
-  if (!user) return { success: false, error: 'User not found' }
-  const series = (await get('series', { _id: new ObjectId(String(body.seriesId)) }, {}, {}, 1))[0]
-  if (!series) return { success: false, error: 'Series not found' }
+  const { user, series, error } = await loadUserAndSeries(userId, body?.seriesId)
+  if (error) return { success: false, error }
 
   const refusal = seriesPurchaseRefusal(user, series)
   if (refusal) return { success: false, error: refusal }
 
-  const { seriesCost: price, creatorShare } = await readSystemSettings()
-  if ((user.balance || 0) < price) return { success: false, error: 'Insufficient balance' }
+  const quote = await seriesUnlockQuote(user, series)
+  if (!quote.available) return { success: false, error: 'Whole-series unlock is not available for this series' }
+  if (Number(body.price) !== quote.price) return { success: false, error: 'The series price has changed, please try again' }
+  if ((user.balance || 0) < quote.price) return { success: false, error: 'Insufficient balance' }
 
   const updated = {
     ...user,
-    balance: (user.balance || 0) - price,
-    purchases: [...(user.purchases || []), seriesPurchaseItem(series, price)],
+    balance: (user.balance || 0) - quote.price,
+    purchases: [...(user.purchases || []), { ...seriesPurchaseItem(series, quote.price), listPrice: quote.listPrice, creditedPaid: quote.paid }],
     updatedAt: new Date(),
   }
   await save('users', updated)
-  await creditCreatorRevenue(series, price, creatorShare, 0)
+  const { creatorShare } = await readSystemSettings()
+  await creditCreatorRevenue(series, quote.price, creatorShare, 0)
   return { success: true, data: await buildUserResponse(updated) }
 }
 
 const seriesPurchaseRefusal = (user, series) => {
-  if (String(series.uploaderId) === String(user._id)) return 'You cannot purchase your own series'
+  if (isOwnSeries(user, series)) return 'You cannot purchase your own series'
   if (hasSeriesUnlock(user.purchases, series._id)) return 'Series already unlocked'
   return null
 }
@@ -4222,6 +4284,7 @@ export {
   getMyRevenue,
   addPurchase,
   purchaseSeries,
+  getSeriesUnlockQuote,
   topUp,
   completeStripeTopUp,
   syncGUSDTopUps,
@@ -5713,7 +5776,6 @@ const DEFAULT_SYSTEM_SETTINGS = {
   freeEpisodes: 5, // episodes at the start of every series that need no purchase
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 10, // credits to unlock an episode (100 credits = 1 USD)
-  seriesCost: 600, // credits to unlock every episode of a series, including later ones
   nextEpisodeCost: 99, // credits to generate a follow-up episode
   welcomeCredit: 10000, // credits granted to a newly registered user
   chatModel: MODEL_DEFAULTS.chatModel, // OpenAI text/story model
@@ -5723,7 +5785,6 @@ const DEFAULT_SYSTEM_SETTINGS = {
 const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
 const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
-const SERIES_COST_OPTIONS = [300, 400, 500, 600, 800, 1000]
 const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
 
 // An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
@@ -5740,7 +5801,6 @@ const readSystemSettings = async () => {
     freeEpisodes: saved.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
     creatorShare: saved.creatorShare ?? DEFAULT_SYSTEM_SETTINGS.creatorShare,
     episodeCost: saved.episodeCost ?? DEFAULT_SYSTEM_SETTINGS.episodeCost,
-    seriesCost: saved.seriesCost ?? DEFAULT_SYSTEM_SETTINGS.seriesCost,
     nextEpisodeCost: saved.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
     welcomeCredit: saved.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
     chatModel: saved.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
@@ -5767,7 +5827,6 @@ const saveSettings = async (body, authHeader) => {
       freeEpisodes: body.freeEpisodes ?? DEFAULT_SYSTEM_SETTINGS.freeEpisodes,
       creatorShare: body.creatorShare,
       episodeCost: body.episodeCost,
-      seriesCost: body.seriesCost ?? DEFAULT_SYSTEM_SETTINGS.seriesCost,
       nextEpisodeCost: body.nextEpisodeCost ?? DEFAULT_SYSTEM_SETTINGS.nextEpisodeCost,
       welcomeCredit: body.welcomeCredit ?? DEFAULT_SYSTEM_SETTINGS.welcomeCredit,
       chatModel: body.chatModel || DEFAULT_SYSTEM_SETTINGS.chatModel,
@@ -5811,9 +5870,6 @@ const validateSystemSettingsBody = (body) => {
   }
   if (!EPISODE_COST_OPTIONS.includes(body.episodeCost)) {
     throw new Error('Invalid episodeCost')
-  }
-  if (body.seriesCost != null && !SERIES_COST_OPTIONS.includes(body.seriesCost)) {
-    throw new Error('Invalid seriesCost')
   }
   if (body.chatModel != null && !CHAT_MODEL_OPTIONS.includes(body.chatModel)) {
     throw new Error('Invalid chatModel')

@@ -1,3 +1,4 @@
+import { SERIES_PRICE_OPTIONS } from '../utils/seriesPrice'
 import { createSignal, Show, For } from 'solid-js'
 import { useParams, useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
@@ -195,6 +196,8 @@ export const SeriesEditContent = (props: SeriesEditContentProps) => {
             label={t().seriesEdit.episodes}
             addLabel={t().seriesEdit.addEpisode}
           />
+
+          <SeriesPriceField />
 
           <ShelvedField
             checked={seriesEditStore.formData.shelved}
@@ -436,6 +439,21 @@ interface ShelvedFieldProps {
   onChange: (checked: boolean) => void
   label: string
 }
+
+// Price to unlock the whole series. Viewers only see the offer when it saves them money.
+const SeriesPriceField = () => (
+  <div class="series-edit-field">
+    <label class="series-edit-label">{t().seriesEdit.seriesPrice}</label>
+    <select
+      class="series-edit-input"
+      value={seriesEditStore.formData.seriesPrice}
+      onChange={(e) => seriesEditStoreActions.setSeriesPrice(Number(e.currentTarget.value))}
+    >
+      <For each={SERIES_PRICE_OPTIONS}>{(price) => <option value={price}>{price}</option>}</For>
+    </select>
+    <span class="series-edit-hint">{t().seriesEdit.seriesPriceHint}</span>
+  </div>
+)
 
 const ShelvedField = (props: ShelvedFieldProps) => (
   <div class="series-edit-field series-edit-field-checkbox">

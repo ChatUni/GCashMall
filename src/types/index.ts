@@ -248,7 +248,6 @@ export interface SystemSettings {
   freeEpisodes: number // episodes at the start of every series that need no purchase
   creatorShare: number // percent of episode revenue paid to the creator
   episodeCost: number // GUSD cost to unlock an episode
-  seriesCost: number // credits to unlock every episode of a series
   nextEpisodeCost: number // GUSD cost to generate a follow-up episode
   welcomeCredit: number // GUSD granted to a newly registered user
   chatModel: string // OpenAI text/story model
