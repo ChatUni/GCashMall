@@ -453,6 +453,7 @@ export const zh = {
     episodeUnlocked: '剧集已解锁',
     trialEnded: '试看结束，解锁以继续观看。',
     unlockSuccess: '剧集解锁成功！',
+    seriesUnlockSuccess: '整部剧已解锁！',
     unlockFailed: '解锁失败',
     goToWallet: '前往钱包',
     addToFavoritesTitle: '添加到收藏',

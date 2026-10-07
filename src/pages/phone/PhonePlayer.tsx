@@ -28,6 +28,7 @@ import {
   getEpisodeRangeOptions,
   checkEpisodePurchased,
   attachPlayerJs,
+  resultModalTitle,
 } from '../../stores/playerStore'
 import { isIOS } from '../../utils/cordova'
 import { getFreeEpisodeCount } from '../../stores/systemSettingsStore'
@@ -585,11 +586,7 @@ const PhonePlayer = () => {
           <Show when={playerPageStore.showResultModal}>
             <ResultModal
               type={playerPageStore.resultModalType}
-              title={
-                playerPageStore.resultModalType === 'success'
-                  ? t().player.unlockSuccess
-                  : t().player.unlockFailed
-              }
+              title={resultModalTitle(t())}
               message={playerPageStore.resultModalMessage}
               buttonText={
                 playerPageStore.resultModalType === 'error' &&

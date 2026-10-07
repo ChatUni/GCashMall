@@ -35,6 +35,7 @@ import {
   handleSpeedChange,
   handleFullscreen,
   attachPlayerJs,
+  resultModalTitle,
 } from '../stores/playerStore'
 import { isEpisodePurchased } from '../services/dataService'
 import { isIOS } from '../utils/cordova'
@@ -148,11 +149,7 @@ const Player = () => {
       <Show when={playerPageStore.showResultModal}>
         <ResultModal
           type={playerPageStore.resultModalType}
-          title={
-            playerPageStore.resultModalType === 'success'
-              ? t().player.unlockSuccess
-              : t().player.unlockFailed
-          }
+          title={resultModalTitle(t())}
           message={playerPageStore.resultModalMessage}
           buttonText={
             playerPageStore.resultModalType === 'error' &&

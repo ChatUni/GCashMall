@@ -5,6 +5,7 @@
 // $1, $5, $10, $20, $50, $100, $200, $500, $1000
 
 import { isCordova, isIOS, isAndroid } from './cordova'
+import { setIAPPrice } from '../stores/iapPriceStore'
 
 // ──────────────────────────────────────────────
 // Types for cordova-plugin-purchase (CdvPurchase)
@@ -235,6 +236,7 @@ export const initializeIAP = (): void => {
       storeReady = true
       console.log('[IAP] Store initialized successfully')
       logProductStatus(store)
+      publishPrices(store)
       // Clear any consumables left unfinished by a previous run so they stop blocking purchases.
       reconcileStuckTransactions(store)
     })
@@ -260,6 +262,7 @@ const setupEventHandlers = (store: CdvPurchaseStore): void => {
     .finished((transaction) => {
       console.log('[IAP] Transaction finished:', transaction.transactionId)
     })
+    .productUpdated((product) => publishPrice(product))
 
   store.error((error) => {
     console.error('[IAP] Store error:', error.code, error.message)
@@ -310,6 +313,14 @@ export const getProduct = (amount: number): CdvPurchaseProduct | undefined => {
   const platform = getStorePlatform()
   if (!store || !platform) return undefined
   return store.get(getProductId(amount), platform)
+}
+
+// Hand each product's storefront price to the UI (iapPriceStore).
+const publishPrices = (store: CdvPurchaseStore): void => store.products?.forEach(publishPrice)
+
+const publishPrice = (product: CdvPurchaseProduct): void => {
+  const price = product?.pricing?.price || product?.offers?.[0]?.pricingPhases?.[0]?.price
+  if (product?.id && price) setIAPPrice(getAmountFromProductId(product.id), price)
 }
 
 // Get localized price string for an amount

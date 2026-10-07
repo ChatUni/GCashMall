@@ -1,3 +1,4 @@
+import { topUpPriceLabel } from '../stores/iapPriceStore'
 import { createSignal, Show, For, type Component, createEffect, onMount } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
@@ -970,7 +971,7 @@ function WalletSection() {
                       </span>
                     </span>
                   </Show>
-                  <span class="amount-usd">${usd().toFixed(2)}</span>
+                  <span class="amount-usd">{accountStore.walletTab === 'withdraw' ? `$${usd().toFixed(2)}` : topUpPriceLabel(amount, isIOS() || isAndroid())}</span>
                 </button>
               )
             }}
@@ -1078,7 +1079,7 @@ function WalletSection() {
               <span>{formatCredits(creditsForTopUp(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}</span>
             </div>
             <p class="popup-usd">
-              {wallet().payAmountUsd.replace('{usd}', `$${(accountStore.selectedTopUpAmount ?? 0).toFixed(2)}`)}
+              {wallet().payAmountUsd.replace('{usd}', topUpPriceLabel(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}
             </p>
             <div class="payment-method-section">
               <p class="payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>

@@ -457,6 +457,7 @@ export const en = {
     episodeUnlocked: 'Episode unlocked',
     trialEnded: 'Trial ended. Unlock to continue watching.',
     unlockSuccess: 'Unlock Episode Successfully!',
+    seriesUnlockSuccess: 'Series Unlocked!',
     unlockFailed: 'Unlock Failed',
     goToWallet: 'Go to Wallet',
     addToFavoritesTitle: 'Add to Favorites',

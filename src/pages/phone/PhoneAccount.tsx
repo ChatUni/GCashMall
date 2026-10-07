@@ -1,3 +1,4 @@
+import { topUpPriceLabel } from '../../stores/iapPriceStore'
 import { createSignal, Show, For, createEffect, onMount } from 'solid-js'
 import { systemSettingsStore, systemSettingsStoreActions, yourShareLabel } from '../../stores/systemSettingsStore'
 import { purchaseEpisodeLabel, purchasedCountLabel } from '../../services/dataService'
@@ -567,7 +568,7 @@ const PhoneWalletSection = () => {
                       </span>
                     </span>
                   </Show>
-                  <span class="phone-amount-usd">${usd().toFixed(2)}</span>
+                  <span class="phone-amount-usd">{accountStore.walletTab === 'withdraw' ? `$${usd().toFixed(2)}` : topUpPriceLabel(amount, isIOS() || isAndroid())}</span>
                 </button>
               )
             }}
@@ -638,7 +639,7 @@ const PhoneWalletSection = () => {
               <span>{formatCredits(creditsForTopUp(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}</span>
             </div>
             <p class="phone-popup-usd">
-              {wallet().payAmountUsd.replace('{usd}', `$${(accountStore.selectedTopUpAmount ?? 0).toFixed(2)}`)}
+              {wallet().payAmountUsd.replace('{usd}', topUpPriceLabel(accountStore.selectedTopUpAmount ?? 0, isIOS() || isAndroid()))}
             </p>
             <div class="phone-payment-method-section">
               <p class="phone-payment-method-label">{wallet().choosePaymentMethod || 'Choose Payment Method'}</p>

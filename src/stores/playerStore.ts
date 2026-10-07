@@ -151,6 +151,8 @@ interface PlayerPageState {
   showResultModal: boolean
   resultModalType: 'success' | 'error'
   resultModalMessage: string
+  // Which purchase the result modal reports, for its title.
+  resultModalScope: 'episode' | 'series'
   // Favorite modal
   showFavoriteModal: boolean
   favoriteModalDontShowAgain: boolean
@@ -192,6 +194,7 @@ const getInitialState = (): PlayerPageState => ({
   showResultModal: false,
   resultModalType: 'success',
   resultModalMessage: '',
+  resultModalScope: 'episode',
   showFavoriteModal: false,
   favoriteModalDontShowAgain: false,
   pendingFavoriteAction: null,
@@ -446,6 +449,12 @@ export const hideControlsIfPlaying = () => {
 // Player Page Store Actions
 // ======================
 
+// Heading for the purchase result modal.
+export const resultModalTitle = (t: { player: { unlockSuccess: string; seriesUnlockSuccess: string; unlockFailed: string } }): string => {
+  if (playerPageState.resultModalType !== 'success') return t.player.unlockFailed
+  return playerPageState.resultModalScope === 'series' ? t.player.seriesUnlockSuccess : t.player.unlockSuccess
+}
+
 // The whole-series offer for the series on screen. A failed fetch just means no offer.
 const loadSeriesQuote = async () => {
   const seriesId = playerPageState.currentSeriesId
@@ -590,6 +599,7 @@ export const playerPageStoreActions = {
     const episode = playerStore.currentEpisode
 
     if (!seriesId || !episode) return
+    setPlayerPageState({ resultModalScope: 'episode' })
 
     const episodeCost = systemSettingsStore.episodeCost
     const userBalance = accountStore.user?.balance || 0
@@ -633,6 +643,7 @@ export const playerPageStoreActions = {
 
     const quote = playerPageState.seriesQuote
     if (!quote?.available) return
+    setPlayerPageState({ resultModalScope: 'series' })
 
     if ((accountStore.user?.balance || 0) < quote.price) {
       showPurchaseResult('error', t.player.insufficientBalance)
