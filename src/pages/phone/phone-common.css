@@ -338,7 +338,11 @@
    ============================================ */
 .phone-toast {
   position: fixed;
-  top: 80px;
+  /* Below the header (56px) and the notch, whatever the device. */
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  text-align: center;
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 20px;
@@ -346,7 +350,7 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--c-text);
-  z-index: 1100;
+  z-index: 3100;
   animation: phoneToastSlideIn 0.3s ease;
 }
 

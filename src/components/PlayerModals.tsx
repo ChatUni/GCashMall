@@ -1,3 +1,4 @@
+import { Portal } from 'solid-js/web'
 import { Show } from 'solid-js'
 import { systemSettingsStore } from '../stores/systemSettingsStore'
 import { playerPageStore } from '../stores/playerStore'
@@ -219,8 +220,12 @@ export const FavoriteModal = (props: FavoriteModalProps) => (
 
 // Toast Notification - subscribes directly to toastStore
 
+// Rendered in a Portal: inside the phone layout's scroll container iOS clips fixed elements
+// to it, which cut the toast off under the header.
 export const Toast = () => (
   <Show when={toastStore.isVisible}>
-    <div class={`toast-notification toast-${toastStore.type}`}>{toastStore.message}</div>
+    <Portal>
+      <div class={`toast-notification toast-${toastStore.type}`}>{toastStore.message}</div>
+    </Portal>
   </Show>
 )

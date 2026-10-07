@@ -244,6 +244,7 @@ export const en = {
       withdrawProcessingMessage: 'Your withdrawal is being processed. {amount} credits will be paid out to you shortly.',
       gotIt: 'Got it',
       topUpFailed: 'Failed to top up',
+      purchaseNotCompleted: "The purchase didn't go through. You haven't been charged.",
       withdraw: 'Withdraw',
       earning: 'Earning',
       quickCreate: 'Quick Create',

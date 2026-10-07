@@ -2,7 +2,7 @@ import { topUpPriceLabel } from '../../stores/iapPriceStore'
 import { createSignal, Show, For, createEffect, onMount } from 'solid-js'
 import { systemSettingsStore, systemSettingsStoreActions, yourShareLabel } from '../../stores/systemSettingsStore'
 import { purchaseEpisodeLabel, purchasedCountLabel } from '../../services/dataService'
-import { Dynamic } from 'solid-js/web'
+import { Portal, Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { APP_DISPLAY_NAME } from '../../utils/config'
 import paymentMethodsIcon from '../../assets/payment-methods2.svg'
@@ -184,8 +184,11 @@ const PhoneAccount = () => {
           <Show when={accountStore.showLoginModal}>
             <LoginModal onClose={onLoginClose} onLoginSuccess={onLoginSuccess} />
           </Show>
+          {/* In a Portal: inside the layout's scroll container iOS clips it under the header */}
           <Show when={toastStore.isVisible}>
-            <div class={`phone-toast phone-toast-${toastStore.type}`}>{toastStore.message}</div>
+            <Portal>
+              <div class={`phone-toast phone-toast-${toastStore.type}`}>{toastStore.message}</div>
+            </Portal>
           </Show>
         </PhoneLayout>
       </Show>

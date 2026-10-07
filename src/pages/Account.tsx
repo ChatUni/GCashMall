@@ -1,6 +1,6 @@
 import { topUpPriceLabel } from '../stores/iapPriceStore'
 import { createSignal, Show, For, type Component, createEffect, onMount } from 'solid-js'
-import { Dynamic } from 'solid-js/web'
+import { Portal, Dynamic } from 'solid-js/web'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import paymentMethodsIcon from '../assets/payment-methods2.svg'
 import applePayIcon from '../assets/apple-pay-icon.svg'
@@ -187,9 +187,11 @@ const Account = () => {
       </Show>
 
       <Show when={toastStore.isVisible}>
-        <div class={`toast-notification toast-${toastStore.type}`}>
-          {toastStore.message}
-        </div>
+        <Portal>
+          <div class={`toast-notification toast-${toastStore.type}`}>
+            {toastStore.message}
+          </div>
+        </Portal>
       </Show>
     </div>
   )

@@ -1183,7 +1183,7 @@
 /* Toast Notification */
 .toast-notification {
   position: fixed;
-  top: 80px;
+  top: calc(env(safe-area-inset-top, 0px) + 80px);
   right: 24px;
   left: auto;
   bottom: auto;

@@ -240,6 +240,7 @@ export const zh = {
       withdrawProcessingMessage: '您的提现正在处理中，{amount} 积分将很快支付给您。',
       gotIt: '知道了',
       topUpFailed: '充值失败',
+      purchaseNotCompleted: '购买未完成，你没有被扣款。',
       withdraw: '提现',
       earning: '收入',
       quickCreate: '快速创作',

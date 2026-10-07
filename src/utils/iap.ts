@@ -4,7 +4,7 @@
 // Product tiers defined in App Store Connect:
 // $1, $5, $10, $20, $50, $100, $200, $500, $1000
 
-import { isCordova, isIOS, isAndroid } from './cordova'
+import { isCordova, isIOS, isAndroid, onResume } from './cordova'
 import { setIAPPrice } from '../stores/iapPriceStore'
 
 // ──────────────────────────────────────────────
@@ -237,6 +237,9 @@ export const initializeIAP = (): void => {
       console.log('[IAP] Store initialized successfully')
       logProductStatus(store)
       publishPrices(store)
+      // The storefront can change while the app is backgrounded (a different Apple / sandbox
+      // account signed in), and with it the prices. Re-read them on every return.
+      onResume(() => refreshPrices(store))
       // Clear any consumables left unfinished by a previous run so they stop blocking purchases.
       reconcileStuckTransactions(store)
     })
@@ -317,6 +320,12 @@ export const getProduct = (amount: number): CdvPurchaseProduct | undefined => {
 
 // Hand each product's storefront price to the UI (iapPriceStore).
 const publishPrices = (store: CdvPurchaseStore): void => store.products?.forEach(publishPrice)
+
+const refreshPrices = (store: CdvPurchaseStore): void => {
+  store.update()
+    .then(() => publishPrices(store))
+    .catch((err: unknown) => console.error('[IAP] Price refresh failed:', err))
+}
 
 const publishPrice = (product: CdvPurchaseProduct): void => {
   const price = product?.pricing?.price || product?.offers?.[0]?.pricingPhases?.[0]?.price

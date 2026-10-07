@@ -1195,6 +1195,12 @@ const isStripePaymentMethod = (method: string): boolean => {
 }
 
 // Handle confirm top up with toast notification
+// The store usually explains a failed purchase in its own dialog and hands the app only a
+// generic "An unknown error occurred". Say what matters — nothing was charged — and keep any
+// specific reason the store did give.
+const iapFailureMessage = (error: string, notCompleted = "The purchase didn't go through. You haven't been charged."): string =>
+  !error || /unknown error/i.test(error) ? notCompleted : `${notCompleted} (${error})`
+
 export const handleConfirmTopUp = async (t: Record<string, unknown>) => {
   const state = accountStoreActions.getState()
   const wallet = t.wallet as Record<string, string> | undefined
@@ -1254,7 +1260,7 @@ const handleIAPTopUp = async (
       closeTopUpPopup()
       // User cancelled or error
       if (iapResult.error && !iapResult.error.includes('cancel')) {
-        toastStoreActions.show(iapResult.error || wallet?.topUpFailed || 'Purchase failed', 'error')
+        toastStoreActions.show(iapFailureMessage(iapResult.error, wallet?.purchaseNotCompleted), 'error')
       }
       return
     }
