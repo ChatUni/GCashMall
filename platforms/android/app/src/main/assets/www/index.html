@@ -2,27 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./favicon.png" />
+    <!-- viewport-fit=cover: without it iOS insets the whole webview, env(safe-area-inset-*)
+         resolves to 0, and the strip above the content is painted with the page background —
+         a white band over the full-bleed video feed. The phone CSS already pads for the
+         insets in seven files; this is what makes those rules do anything. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: http: https: gap: wss: 'unsafe-inline' 'unsafe-eval'; media-src * blob:; img-src 'self' data: blob: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' http: https: ws: wss:;" />
-    <title>GAnime</title>
+    <!-- Google tag (gtag.js) — GA4 (G-YFW2XSQK03). Loaded only on the ganime.io web domain,
+         so native (Cordova app://) and localhost dev sessions don't pollute web analytics. -->
+    <script>
+      (function () {
+        var h = location.hostname
+        if (h !== 'ganime.io' && h !== 'www.ganime.io') return
+        var s = document.createElement('script')
+        s.async = true
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-YFW2XSQK03'
+        document.head.appendChild(s)
+        window.dataLayer = window.dataLayer || []
+        function gtag() { dataLayer.push(arguments) }
+        window.gtag = gtag
+        gtag('js', new Date())
+        gtag('config', 'G-YFW2XSQK03')
+      })()
+    </script>
+    <title>Ganime</title>
     <!-- Default Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="GAnime" />
-    <meta property="og:description" content="Watch anime series on GAnime" />
+    <meta property="og:title" content="Ganime" />
+    <meta property="og:description" content="Watch anime series on Ganime" />
     <meta property="og:image" content="" />
-    <meta property="og:site_name" content="GAnime" />
+    <meta property="og:site_name" content="Ganime" />
     <!-- Default Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="GAnime" />
-    <meta name="twitter:description" content="Watch anime series on GAnime" />
+    <meta name="twitter:title" content="Ganime" />
+    <meta name="twitter:description" content="Watch anime series on Ganime" />
     <meta name="twitter:image" content="" />
     <!-- Player.js for Bunny Stream Playback Control API -->
     <script src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"></script>
     <!-- Cordova.js - only loaded when running in Cordova -->
     <script src="cordova.js"></script>
-    <script type="module" crossorigin src="./assets/index-Cy_n1rhP.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DdTk906h.css">
+    <script type="module" crossorigin src="./assets/index-BJ8doTzZ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CNlrtFJa.css">
   </head>
   <body>
     <div id="root"></div>
