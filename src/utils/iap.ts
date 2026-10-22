@@ -307,7 +307,7 @@ const handleApproved = (transaction: CdvPurchaseTransaction): void => {
 
 // Check if IAP is available
 export const isIAPAvailable = (): boolean => {
-  return isCordova() && isIOS() && storeInitialized
+  return isCordova() && (isIOS() || isAndroid()) && storeInitialized
 }
 
 // Get product info (including localized price)

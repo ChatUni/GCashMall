@@ -461,10 +461,10 @@ const PhoneSettingsSection = () => {
       <div class="phone-setting-item">
         <span class="phone-setting-label">{settings().playbackSpeed}</span>
         <select value={accountStore.playbackSpeed} onChange={(e) => accountStoreActions.setPlaybackSpeed(e.currentTarget.value)} class="phone-setting-select">
-          <option value="0.5">0.5x</option>
-          <option value="1">1x</option>
-          <option value="1.5">1.5x</option>
-          <option value="2">2x</option>
+          <option value="0.5x">0.5x</option>
+          <option value="1x">1x</option>
+          <option value="1.5x">1.5x</option>
+          <option value="2x">2x</option>
         </select>
       </div>
       <div class="phone-setting-item">
@@ -536,7 +536,7 @@ const PhoneWalletSection = () => {
           </div>
         </Show>
         <div class="phone-wallet-amounts">
-          <For each={accountStore.walletTab === 'withdraw' ? withdrawAmounts : isIOS() ? iapWalletAmounts : walletAmounts}>
+          <For each={accountStore.walletTab === 'withdraw' ? withdrawAmounts : isIOS() || isAndroid() ? iapWalletAmounts : walletAmounts}>
             {(amount) => {
               const credits = () =>
                 accountStore.walletTab === 'withdraw'

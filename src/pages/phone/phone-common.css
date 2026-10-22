@@ -339,7 +339,7 @@
 .phone-toast {
   position: fixed;
   /* Below the header (56px) and the notch, whatever the device. */
-  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  top: calc(var(--safe-top) + 64px);
   max-width: calc(100% - 32px);
   box-sizing: border-box;
   text-align: center;

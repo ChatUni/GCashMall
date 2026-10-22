@@ -92,9 +92,9 @@
 }
 
 /* Safe area support */
-@supports (padding-top: env(safe-area-inset-top)) {
+@supports (padding-top: var(--safe-top)) {
   .phone-header {
-    padding-top: env(safe-area-inset-top);
-    height: calc(56px + env(safe-area-inset-top));
+    padding-top: var(--safe-top);
+    height: calc(56px + var(--safe-top));
   }
 }

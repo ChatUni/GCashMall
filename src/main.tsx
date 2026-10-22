@@ -2,7 +2,7 @@ import { render } from 'solid-js/web'
 import './index.css'
 import './theme.css'
 import App from './App'
-import { initOAuthHandler, onDeviceReady, isIOS } from './utils/cordova'
+import { initOAuthHandler, onDeviceReady, isIOS, isAndroid, getPlatform } from './utils/cordova'
 import { initializeIAP } from './utils/iap'
 import { registerIAPReconciliation } from './services/accountService'
 import { initTheme } from './stores/themeStore'
@@ -24,9 +24,13 @@ window.tap = <T,>(x: T): T => {
 // Register custom URL scheme handler for OAuth callbacks (gcashmall://oauth?code=...)
 initOAuthHandler()
 
-// Initialize In-App Purchase store on iOS after device is ready
+// Lets CSS tell the platforms apart (Android ignores the iOS safe-area insets — see index.css).
+// cordova.js loads before this module, so the platform is known before the first render.
+document.documentElement.classList.add(`platform-${getPlatform()}`)
+
+// Initialize the store (Apple IAP on iOS, Google Play Billing on Android) after device is ready
 onDeviceReady(() => {
-  if (isIOS()) {
+  if (isIOS() || isAndroid()) {
     // Register reconciliation before init so orphaned transactions re-delivered during
     // store.initialize() get credited and finished.
     registerIAPReconciliation()

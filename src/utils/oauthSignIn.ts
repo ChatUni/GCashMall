@@ -4,6 +4,7 @@
 // account (merged) or a newly created one.
 
 import { apiPost } from './api'
+import { isIOS } from './cordova'
 import type { User } from '../types'
 
 export interface OAuthSession {
@@ -40,7 +41,8 @@ interface AppleSignInPlugin {
 const applePlugin = (): AppleSignInPlugin | undefined =>
   (window as unknown as { cordova?: { plugins?: { SignInWithApple?: AppleSignInPlugin } } }).cordova?.plugins?.SignInWithApple
 
-export const isAppleSignInAvailable = (): boolean => !!applePlugin()
+// The plugin is installed on Android too, but Sign in with Apple only works on iOS.
+export const isAppleSignInAvailable = (): boolean => isIOS() && !!applePlugin()
 
 // Apple's error 1001 is the user closing the sheet — not worth an error message.
 const APPLE_CANCELLED = '1001'

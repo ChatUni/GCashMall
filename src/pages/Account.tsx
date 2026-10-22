@@ -932,7 +932,7 @@ function WalletSection() {
             each={
               accountStore.walletTab === 'withdraw'
                 ? withdrawAmounts
-                : isIOS()
+                : isIOS() || isAndroid()
                   ? iapWalletAmounts
                   : walletAmounts
             }
