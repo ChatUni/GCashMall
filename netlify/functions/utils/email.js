@@ -17,7 +17,7 @@ const createTransporter = () => {
 // any From that isn't that account or a verified alias — so the brand lives in the display
 // name. Replies are pointed at support instead of that mailbox, which recipients should
 // never need to see or write to.
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ganime.io'
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'ganimesupport@freshroad.com'
 
 const sender = (displayName = 'Ganime') => ({
   from: `${displayName} <${process.env.GMAIL_USER}>`,

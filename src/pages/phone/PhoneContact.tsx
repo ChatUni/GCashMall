@@ -55,8 +55,8 @@ export const PhoneContactContent = () => {
               <span class="phone-contact-icon"><Icon name="envelope" /></span>
               <div>
                 <span class="phone-contact-label">{contact().emailLabel}</span>
-                <a href="mailto:chatuni.ai@gmail.com" class="phone-contact-value">
-                  chatuni.ai@gmail.com
+                <a href="mailto:ganimesupport@freshroad.com" class="phone-contact-value">
+                  ganimesupport@freshroad.com
                 </a>
               </div>
             </div>

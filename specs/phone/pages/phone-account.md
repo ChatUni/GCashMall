@@ -1077,7 +1077,7 @@ When the user is not logged in, the account page shows a login prompt instead of
 - Vertical flex layout, centered
 - 4 pixel gap
 - Label: "Email Address", 13 pixel font, gray (#9CA3AF)
-- Value: "chatuni.ai@gmail.com", 16 pixel font, 600 weight, blue (#3B82F6)
+- Value: "ganimesupport@freshroad.com", 16 pixel font, 600 weight, blue (#3B82F6)
 - Value hover: color #60A5FA, underline
 
 #### CTA Section
@@ -1094,7 +1094,7 @@ When the user is not logged in, the account page shows a login prompt instead of
   - Font weight: 600
   - Icon: ✉️ with 8 pixel gap
   - Hover: translateY(-2px), box-shadow 0 8px 24px rgba(59, 130, 246, 0.4)
-  - Link: mailto:chatuni.ai@gmail.com
+  - Link: mailto:ganimesupport@freshroad.com
 
 ### Footer
 - Font size: 13 pixel

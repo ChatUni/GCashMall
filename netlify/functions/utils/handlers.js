@@ -5777,7 +5777,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
   creatorShare: 50, // percent of episode revenue paid to the creator
   episodeCost: 10, // credits to unlock an episode (100 credits = 1 USD)
   nextEpisodeCost: 99, // credits to generate a follow-up episode
-  welcomeCredit: 10000, // credits granted to a newly registered user
+  welcomeCredit: 120, // credits granted to a newly registered user
   chatModel: MODEL_DEFAULTS.chatModel, // OpenAI text/story model
   imageModel: MODEL_DEFAULTS.imageModel, // OpenAI image model
   seedanceModel: MODEL_DEFAULTS.seedanceModel, // Seedance video model
@@ -5785,7 +5785,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
 const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
 const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
-const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
+const WELCOME_CREDIT_OPTIONS = [0, 120, 500, 1000, 2000, 5000, 10000]
 
 // An episode is free when it is among the first `freeEpisodes` of its series. Replaces the
 // old n-second preview: locked episodes are not playable at all, free ones play in full.
@@ -5887,7 +5887,7 @@ const validateSystemSettingsBody = (body) => {
 
 // ── Feedback ──
 
-const ADMIN_EMAIL = 'chatuni.ai@gmail.com'
+const ADMIN_EMAIL = 'ganimesupport@freshroad.com'
 const FEEDBACK_MAX_LENGTH = 5000
 
 const submitFeedback = async (body) => {

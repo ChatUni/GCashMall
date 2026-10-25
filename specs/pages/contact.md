@@ -83,7 +83,7 @@ The Contact page provides users with a simple and elegant way to reach out to th
 - **Label**: "Email Address"
   - Font Size: 14px
   - Color: Gray (#9CA3AF)
-- **Value**: "chatuni.ai@gmail.com"
+- **Value**: "ganimesupport@freshroad.com"
   - Font Size: 18px
   - Font Weight: 600
   - Color: Blue (#3B82F6)
@@ -120,7 +120,7 @@ The Contact page provides users with a simple and elegant way to reach out to th
 ##### Interaction
 - On submit:
   - If the feedback is empty, show the inline error "Please enter your feedback."
-  - Otherwise call the submit feedback API with the feedback text. The API emails the feedback to the admin address (chatuni.ai@gmail.com).
+  - Otherwise call the submit feedback API with the feedback text. The API emails the feedback to the admin address (ganimesupport@freshroad.com).
     - On success: replace the form with a thank-you message — 48px 🎉 icon and "Thank you for your feedback!" (green #22C55E).
     - On failure: show the inline error "Failed to send feedback. Please try again."
 
@@ -216,7 +216,7 @@ The contact icon (✉️) has a continuous bounce animation:
 - **Implementation**: useEffect hook with window.scrollTo(0, 0) on component mount
 
 ### Email Link Click
-- **Element**: Email address text (chatuni.ai@gmail.com)
+- **Element**: Email address text (ganimesupport@freshroad.com)
 - **Link Type**: mailto link
 - **Behavior**: Opens the user's default email client with the recipient address pre-filled
 - **Platform Behavior**:
@@ -226,7 +226,7 @@ The contact icon (✉️) has a continuous bounce animation:
 
 ### Submit Feedback
 - **Element**: "Submit" button
-- **Behavior**: Sends the feedback text to the backend, which emails it to the admin address (chatuni.ai@gmail.com)
+- **Behavior**: Sends the feedback text to the backend, which emails it to the admin address (ganimesupport@freshroad.com)
 - **On Success**: The form is replaced with a thank-you message
 - **Validation**: Empty feedback shows an inline error; feedback is capped at 5000 characters
 

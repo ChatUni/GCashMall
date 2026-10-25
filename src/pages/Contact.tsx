@@ -64,8 +64,8 @@ const Contact = () => {
                 <span class="contact-info-icon"><Icon name="envelope" /></span>
                 <div class="contact-info-details">
                   <span class="contact-info-label">{contact().emailLabel}</span>
-                  <a href="mailto:chatuni.ai@gmail.com" class="contact-info-value">
-                    chatuni.ai@gmail.com
+                  <a href="mailto:ganimesupport@freshroad.com" class="contact-info-value">
+                    ganimesupport@freshroad.com
                   </a>
                 </div>
               </div>

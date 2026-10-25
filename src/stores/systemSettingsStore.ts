@@ -18,7 +18,7 @@ const getInitialState = (): SystemSettingsState => ({
   creatorShare: 50,
   episodeCost: 10,
   nextEpisodeCost: 99,
-  welcomeCredit: 10000,
+  welcomeCredit: 120,
   chatModel: 'gpt-5-mini',
   imageModel: 'gpt-image-1-mini',
   seedanceModel: 'bytedance/seedance-2.0-mini',
@@ -35,7 +35,7 @@ export const FREE_EPISODES_OPTIONS = [0, 1, 3, 5, 10]
 export const CREATOR_SHARE_OPTIONS = [25, 30, 40, 50, 60, 70, 75]
 export const EPISODE_COST_OPTIONS = [10, 20, 25, 30, 50, 75, 100]
 export const NEXT_EPISODE_COST_OPTIONS = [49, 99, 149, 199, 299]
-export const WELCOME_CREDIT_OPTIONS = [0, 500, 1000, 2000, 5000, 10000]
+export const WELCOME_CREDIT_OPTIONS = [0, 120, 500, 1000, 2000, 5000, 10000]
 // Model options (must match the server's modelConfig option lists)
 export const CHAT_MODEL_OPTIONS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini', 'gpt-4o']
 export const IMAGE_MODEL_OPTIONS = ['gpt-image-1-mini', 'gpt-image-1']

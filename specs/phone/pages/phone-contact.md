@@ -111,7 +111,7 @@ Each method shows:
 **Email**
 - Mail icon
 - Label: "Email"
-- Value: support@gcashtv.com
+- Value: ganimesupport@freshroad.com
 
 **Phone**
 - Phone icon
