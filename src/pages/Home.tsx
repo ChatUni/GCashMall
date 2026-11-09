@@ -4,6 +4,7 @@ import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
+import StaffPicksSection from '../components/StaffPicksSection'
 import { t } from '../stores/languageStore'
 import { featuredStore } from '../stores'
 import { fetchFeaturedSeries } from '../services/dataService'
@@ -32,7 +33,8 @@ const Home = () => {
         </Show>
       </Show>
 
-      <RecommendationSection />
+      <StaffPicksSection />
+      <RecommendationSection title={t().home.trending} />
       <NewReleasesSection />
 
       <BottomBar />

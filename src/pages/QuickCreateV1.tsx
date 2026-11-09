@@ -35,6 +35,7 @@ import {
 import './QuickCreateV1.css'
 import { formatCredits } from '../utils/credits'
 import TierPurchaseDialog from '../components/TierPurchaseDialog'
+import RevenueShareNote from '../components/RevenueShareNote'
 import SettlementDialog from '../components/SettlementDialog'
 import { minTierCost } from '../utils/videoTiers'
 import Icon, { type IconName } from '../components/Icon'
@@ -181,6 +182,8 @@ const Page1Idea = () => {
       <Show when={s.proposalError}>
         <p class="qcv1-error">{s.proposalError}</p>
       </Show>
+
+      <RevenueShareNote class="qcv1-revenue-share" />
 
       <div class="qcv1-popular">
         <h2 class="qcv1-h2">{p1().popularTitle}</h2>

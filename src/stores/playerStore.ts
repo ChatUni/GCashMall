@@ -16,6 +16,8 @@ import {
   fetchPlayerData,
   fetchRecommendations,
   fetchNewReleases,
+  fetchStaffPicks,
+  setStaffPick,
   fetchLikes,
   likeSeries,
   unlikeSeries,
@@ -33,6 +35,7 @@ import { findEpisodeByNumber, filterEpisodesByRange, getEpisodeRanges } from '..
 import { isEpisodeFree, systemSettingsStore, systemSettingsStoreActions } from './systemSettingsStore'
 import { loginModalStoreActions } from './index'
 import { accountStore } from './accountStore'
+import { t } from './languageStore'
 
 // ======================
 // Base Player Store (data layer)
@@ -142,6 +145,9 @@ interface PlayerPageState {
   watchListUpdatedForSeriesId: string | null
   recommendationsFetched: boolean
   newReleasesFetched: boolean
+  staffPicksFetched: boolean
+  // Admin Staff Pick toggle in flight
+  staffPickBusy: boolean
   // Purchase popup
   showPurchasePopup: boolean
   isPurchasing: boolean
@@ -188,6 +194,8 @@ const getInitialState = (): PlayerPageState => ({
   watchListUpdatedForSeriesId: null,
   recommendationsFetched: false,
   newReleasesFetched: false,
+  staffPicksFetched: false,
+  staffPickBusy: false,
   showPurchasePopup: false,
   isPurchasing: false,
   seriesQuote: null,
@@ -482,6 +490,7 @@ export const playerPageStoreActions = {
         currentSeriesId: seriesId,
         recommendationsFetched: playerPageState.recommendationsFetched,
         newReleasesFetched: playerPageState.newReleasesFetched,
+        staffPicksFetched: playerPageState.staffPicksFetched,
       })
       basePlayerStoreActions.reset()
       fetchPlayerData(seriesId)
@@ -500,6 +509,27 @@ export const playerPageStoreActions = {
         setPlayerPageState({ newReleasesFetched: true })
         fetchNewReleases()
       }
+      if (!playerPageState.staffPicksFetched) {
+        setPlayerPageState({ staffPicksFetched: true })
+        fetchStaffPicks()
+      }
+    }
+  },
+
+  // Admin only: add the open series to, or remove it from, Staff Picks
+  toggleStaffPick: async () => {
+    const series = playerState.series
+    if (!series || playerPageState.staffPickBusy) return
+    setPlayerPageState({ staffPickBusy: true })
+    try {
+      const staffPick = await setStaffPick(series._id, !series.staffPick)
+      basePlayerStoreActions.setSeries({ ...series, staffPick })
+      fetchStaffPicks()
+    } catch (error) {
+      console.error('Failed to update staff pick:', error)
+      showToast(t().player.staffPickFailed, 'error')
+    } finally {
+      setPlayerPageState({ staffPickBusy: false })
     }
   },
 
@@ -865,7 +895,6 @@ export const playerPageStoreActions = {
     try {
       const data = await fetchLikes(seriesId)
       setPlayerPageState({ likeCount: data.count, isLiked: data.isLiked })
-      //setPlayerPageState({ likeCount: 43876, isLiked: true }) // TODO: revert hardcode - was { likeCount: data.count, isLiked: data.isLiked }
     } catch (error) {
       console.error('Failed to load likes:', error)
     }

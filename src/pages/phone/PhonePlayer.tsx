@@ -7,6 +7,9 @@ import LoginModal from '../../components/LoginModal'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../../components/PlayerModals'
 import { RatingSection, RatingModal } from '../../components/StarRating'
 import SafetyDialogs, { SeriesSafetyButton } from '../../components/SafetyDialogs'
+import StaffPickButton from '../../components/StaffPickButton'
+import NewBadge from '../../components/NewBadge'
+import { showViewCount, showLikeCount, showShareCount } from '../../utils/engagement'
 import { t } from '../../stores/languageStore'
 import {
   playerStore,
@@ -14,6 +17,7 @@ import {
   playerStoreActions,
   loginModalStoreActions,
   recommendationsStore,
+  staffPicksStore,
   newReleasesStore,
 } from '../../stores'
 import { accountStore, accountStoreActions } from '../../stores/accountStore'
@@ -254,9 +258,11 @@ const PhonePlayer = () => {
 
               {/* Action Buttons */}
               <div class="phone-player-actions">
-                  <span class="phone-player-views">
-                    {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
-                  </span>
+                  <Show when={showViewCount(playerPageStore.viewCount)} fallback={<NewBadge />}>
+                    <span class="phone-player-views">
+                      {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
+                    </span>
+                  </Show>
                   {/* Share Button */}
                   <button
                     class="phone-action-btn phone-action-btn-large phone-share-btn"
@@ -270,7 +276,9 @@ const PhonePlayer = () => {
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                     </svg>
-                    <span class="phone-share-count">{formatLikeCount(playerPageStore.shareCount)}</span>
+                    <Show when={showShareCount(playerPageStore.shareCount)}>
+                      <span class="phone-share-count">{formatLikeCount(playerPageStore.shareCount)}</span>
+                    </Show>
                   </button>
 
                   <button
@@ -285,7 +293,9 @@ const PhonePlayer = () => {
                         d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
                       />
                     </svg>
-                    <span class="phone-like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+                    <Show when={showLikeCount(playerPageStore.likeCount)}>
+                      <span class="phone-like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+                    </Show>
                   </button>
 
                   <button
@@ -302,6 +312,7 @@ const PhonePlayer = () => {
                     </svg>
                   </button>
                   <SeriesSafetyButton iconOnly />
+                  <StaffPickButton />
                   <Show when={!isPurchased()}>
                     <button
                       class="phone-action-btn phone-action-btn-large locked"
@@ -445,6 +456,15 @@ const PhonePlayer = () => {
 
             {/* Comments */}
             <CommentSection />
+
+            {/* Staff Picks (hidden until an admin picks a series) */}
+            <Show when={staffPicksStore.series.length > 0}>
+              <PhoneSeriesCarousel
+                title={t().home.staffPicks}
+                series={staffPicksStore.series}
+                excludeSeriesId={params.id}
+              />
+            </Show>
 
             {/* Recommendations */}
             <PhoneSeriesCarousel

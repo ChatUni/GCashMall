@@ -13,10 +13,12 @@ interface SystemSettingsState extends SystemSettings {
   saving: boolean
 }
 
+// Shown until the live settings arrive, so they match the live values (Nov 2026) to avoid a
+// flash of a wrong share or price.
 const getInitialState = (): SystemSettingsState => ({
   freeEpisodes: DEFAULT_FREE_EPISODES,
-  creatorShare: 50,
-  episodeCost: 10,
+  creatorShare: 70,
+  episodeCost: 25,
   nextEpisodeCost: 99,
   welcomeCredit: 120,
   chatModel: 'gpt-5-mini',
@@ -56,6 +58,20 @@ export const isEpisodeFree = (episodeNumber: number): boolean =>
 // "Your Share (70%)" — the revenue label with the live creator share filled in.
 export const yourShareLabel = (template: string): string =>
   template.replace('{pct}', String(state.creatorShare))
+
+// Fill every {pct} (creator share) and {platformPct} (Ganime's share) in a string.
+export const fillShare = (template: string): string =>
+  template
+    .replaceAll('{pct}', String(state.creatorShare))
+    .replaceAll('{platformPct}', String(100 - state.creatorShare))
+
+// Load the settings once, for pages that show live values but don't otherwise load them.
+let settingsRequested = false
+export const ensureSystemSettings = () => {
+  if (settingsRequested || state.loaded) return
+  settingsRequested = true
+  systemSettingsStoreActions.load()
+}
 
 // GUSD cost to generate a follow-up episode
 export const getNextEpisodeCost = (): number => state.nextEpisodeCost ?? 99

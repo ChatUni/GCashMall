@@ -47,6 +47,25 @@ export const newReleasesStoreActions = {
   getState: () => newReleasesState,
 }
 
+// Staff picks store
+interface StaffPicksState {
+  series: Series[]
+  loading: boolean
+}
+
+const [staffPicksState, setStaffPicksState] = createStore<StaffPicksState>({
+  series: [],
+  loading: true,
+})
+
+export const staffPicksStore = staffPicksState
+
+export const staffPicksStoreActions = {
+  setSeries: (series: Series[]) => setStaffPicksState({ series }),
+  setLoading: (loading: boolean) => setStaffPicksState({ loading }),
+  getState: () => staffPicksState,
+}
+
 // Login modal store
 interface LoginModalState {
   isOpen: boolean

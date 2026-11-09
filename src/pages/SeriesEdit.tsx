@@ -27,6 +27,7 @@ import { toastStoreActions } from '../stores'
 import { requestEpisodeReview } from '../services/dataService'
 import './SeriesEdit.css'
 import Icon from '../components/Icon'
+import RevenueShareNote from '../components/RevenueShareNote'
 
 // Track initialization per series ID
 const initializedIds = new Set<string | undefined>()
@@ -452,6 +453,7 @@ const SeriesPriceField = () => (
       <For each={SERIES_PRICE_OPTIONS}>{(price) => <option value={price}>{price}</option>}</For>
     </select>
     <span class="series-edit-hint">{t().seriesEdit.seriesPriceHint}</span>
+    <RevenueShareNote class="series-edit-revenue-share" />
   </div>
 )
 

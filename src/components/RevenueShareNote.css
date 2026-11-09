@@ -1,0 +1,19 @@
+.revenue-share-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+}
+
+.revenue-share-note-icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.revenue-share-note-link {
+  color: #3b82f6;
+  white-space: nowrap;
+}

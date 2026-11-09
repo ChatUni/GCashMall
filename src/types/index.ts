@@ -38,6 +38,8 @@ export interface Series {
   languages?: string[]
   uploaderId?: string
   shelved?: boolean
+  // Hand-picked by an admin for the Staff Picks rail.
+  staffPick?: boolean
   createdAt?: Date
   updatedAt?: Date
 }

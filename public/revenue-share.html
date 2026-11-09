@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Creator Revenue Share Agreement — Ganime</title>
+<!-- The rates below are filled in from the live system settings (GET api?type=settings), so
+     the page always states the creator share and episode cost the server actually credits.
+     The numbers written into the HTML are the settings at the time of writing and only show
+     if that request fails. -->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #0B0B0E; color: #E5E7EB;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.65; font-size: 16px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 96px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; color: #fff; }
+  .org { color: #D1D5DB; font-size: 15px; margin: 0 0 32px; }
+  h2 { font-size: 20px; color: #fff; margin: 36px 0 10px; }
+  p, li { color: #D1D5DB; }
+  a { color: #3B82F6; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  .rates { background: #15161B; border: 1px solid #23262E; border-radius: 12px; padding: 6px 22px; margin: 0; }
+  .rates div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #23262E; }
+  .rates div:last-child { border-bottom: none; }
+  .rates dt { color: #D1D5DB; }
+  .rates dd { margin: 0; color: #fff; font-weight: 600; text-align: right; }
+  .muted { color: #9CA3AF; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Creator Revenue Share Agreement</h1>
+  <p class="org">Ganime, by Fresh Road Studio Inc. · Effective November 9, 2026</p>
+
+  <p>This agreement is between Fresh Road Studio Inc. ("Ganime", "we", "us") and you, the creator who
+  publishes a series on Ganime ("you"). It explains how you earn from your series and how you get paid.
+  It applies to every series you publish, whether you uploaded it or made it with Quick Create. By
+  uploading or publishing a series, you accept it, along with our
+  <a href="/privacy">Privacy Policy</a>.</p>
+
+  <h2>1. Current rates</h2>
+  <dl class="rates">
+    <div><dt>Your share of each purchase</dt><dd><span data-setting="creatorShare">70</span>%</dd></div>
+    <div><dt>Free episodes at the start of every series</dt><dd><span data-setting="freeEpisodes">5</span></dd></div>
+    <div><dt>Price of each later episode</dt><dd><span data-setting="episodeCost">25</span> credits</dd></div>
+    <div><dt>Whole-series price (you choose)</dt><dd>300, 600 or 900 credits</dd></div>
+    <div><dt>Credit value</dt><dd>100 credits = US$1.00</dd></div>
+    <div><dt>Hold before earnings can be withdrawn</dt><dd>30 days</dd></div>
+  </dl>
+
+  <h2>2. How viewers pay</h2>
+  <ul>
+    <li>Viewers unlock episodes with Ganime credits. They buy credits in the app or on the website.</li>
+    <li>The first <span data-setting="freeEpisodes">5</span> episodes of every series are free to watch.
+    Each episode after that costs <span data-setting="episodeCost">25</span> credits. Ganime sets these
+    for all series.</li>
+    <li>You choose a whole-series price of 300, 600 or 900 credits (600 if you don't choose). A viewer is
+    offered it only when it costs less than buying the remaining episodes one by one. Whatever they
+    already spent on single episodes of the series is taken off. A whole-series unlock includes
+    episodes you add later.</li>
+  </ul>
+
+  <h2>3. Your share</h2>
+  <ul>
+    <li>You earn <span data-setting="creatorShare">70</span>% of the credits a viewer pays to unlock an
+    episode or a whole series of yours.</li>
+    <li>Your share is worked out on the credit price, before app store and payment fees. Ganime pays those fees.</li>
+    <li>Examples at the current rates: a single episode earns you
+    <span data-example="episode">17.5</span> credits (US$<span data-example="episodeUsd">0.175</span>).
+    A whole series bought at 600 credits earns you <span data-example="series">420</span> credits
+    (US$<span data-example="seriesUsd">4.20</span>). A whole series sold at a discount, because the
+    viewer already bought some episodes, earns your share of the discounted price.</li>
+    <li>Free episodes earn nothing.</li>
+  </ul>
+
+  <h2>4. When you are credited</h2>
+  <ul>
+    <li>Your share is added to your Ganime wallet the moment a viewer makes the purchase. It appears as
+    an earning transaction in Account → Wallet.</li>
+    <li>Each earning uses the rate in effect when the purchase was made. If the rates change later,
+    earnings already credited do not change.</li>
+  </ul>
+
+  <h2>5. Getting paid</h2>
+  <ul>
+    <li>Earnings can be withdrawn 30 days after they are credited. This hold covers refunds and fraud checks.</li>
+    <li>You withdraw from Account → Wallet → Withdraw. Withdrawals are paid in US dollars through our
+    payment partner GUSD, at 100 credits = US$1.00.</li>
+    <li>The welcome bonus credits given to new accounts can't be withdrawn.</li>
+    <li>You are responsible for any taxes on your earnings. We may ask for the tax information the law
+    requires before paying you.</li>
+  </ul>
+
+  <h2>6. Refunds, fraud and rule breaking</h2>
+  <ul>
+    <li>If a purchase of your content is refunded, charged back or reversed, we may take the matching
+    earning back out of your wallet.</li>
+    <li>We may withhold or cancel earnings that come from fraud or manipulation. Examples include buying
+    your own episodes through other accounts, using fake accounts, or paying people to buy.</li>
+    <li>We may withhold earnings from a series that breaks our content rules, and may remove that series.</li>
+  </ul>
+
+  <h2>7. Your content</h2>
+  <ul>
+    <li>You keep the rights you have in your series. You confirm you have the rights to everything you
+    upload, including video, audio, music, images and text.</li>
+    <li>You give Ganime a non-exclusive, worldwide, royalty-free license to host, stream, sell, translate
+    and subtitle your series. The license also covers making thumbnails and previews, and promoting your
+    series on Ganime and elsewhere.</li>
+    <li>Uploads are reviewed before they go public, unless your account has been verified. We may decline
+    or remove content that breaks our rules.</li>
+    <li>A series that viewers have bought stays available to those viewers, even if you later unpublish
+    it or delete your account. They paid for it.</li>
+  </ul>
+
+  <h2>8. Ending the agreement</h2>
+  <ul>
+    <li>You can stop at any time by unpublishing your series or deleting your account.</li>
+    <li>Withdraw your balance before you delete your account. Credits left in a deleted account are
+    forfeited and can't be refunded.</li>
+    <li>We may end this agreement, or suspend payouts, if you break it or our content rules.</li>
+  </ul>
+
+  <h2>9. Changes</h2>
+  <p>We may change the rates or this agreement. We will post the new version on this page. If we lower
+  your share, we will tell you in the app or by email at least 30 days before the change takes effect.
+  Changes never affect earnings already credited. If you keep publishing after a change takes effect,
+  you accept the new version.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions about earnings or payouts:
+  <a href="mailto:ganimesupport@freshroad.com?subject=Creator%20revenue%20share">ganimesupport@freshroad.com</a>.</p>
+
+  <p class="muted">The rates on this page come from Ganime's live settings, so they are always the rates
+  in effect today.</p>
+</div>
+<script>
+  // Replace the written-in rates with the live settings, and recompute the examples from them.
+  ;(function () {
+    var EXAMPLE_SERIES_PRICE = 600
+    var CREDITS_PER_USD = 100
+
+    var setText = function (attr, key, value) {
+      document.querySelectorAll('[' + attr + '="' + key + '"]').forEach(function (el) {
+        el.textContent = value
+      })
+    }
+    var trim = function (n) { return String(Number(n.toFixed(2))) }
+    // Whole cents as 0.00; a fraction of a cent (17.5 credits) as 0.175.
+    var usd = function (credits) {
+      var v = Number((credits / CREDITS_PER_USD).toFixed(3))
+      return Number(v.toFixed(2)) === v ? v.toFixed(2) : String(v)
+    }
+
+    var apply = function (s) {
+      if (!s || s.creatorShare == null || s.episodeCost == null) return
+      ;['creatorShare', 'freeEpisodes', 'episodeCost'].forEach(function (key) {
+        if (s[key] != null) setText('data-setting', key, s[key])
+      })
+      var episode = (s.episodeCost * s.creatorShare) / 100
+      var series = (EXAMPLE_SERIES_PRICE * s.creatorShare) / 100
+      setText('data-example', 'episode', trim(episode))
+      setText('data-example', 'episodeUsd', usd(episode))
+      setText('data-example', 'series', trim(series))
+      setText('data-example', 'seriesUsd', usd(series))
+    }
+
+    fetch('/.netlify/functions/api?type=settings')
+      .then(function (r) { return r.json() })
+      .then(function (r) { if (r && r.success) apply(r.data) })
+      .catch(function () {})
+  })()
+</script>
+</body>
+</html>

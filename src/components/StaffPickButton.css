@@ -1,0 +1,27 @@
+.staff-pick-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-text-muted);
+  cursor: pointer;
+}
+
+.staff-pick-btn:hover {
+  color: var(--c-text);
+}
+
+.staff-pick-btn.active {
+  color: #ffd700;
+}
+
+.staff-pick-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

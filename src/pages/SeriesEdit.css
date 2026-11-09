@@ -419,6 +419,10 @@
   resize: vertical;
 }
 
+.series-edit-revenue-share {
+  margin-top: 10px;
+}
+
 .series-edit-hint {
   display: block;
   margin-top: 6px;

@@ -626,8 +626,8 @@ const shuffleArray = (array) => {
 
 const getFeaturedSeries = async (params) => {
   try {
-    // Get all series and pick a random one as featured (exclude shelved)
-    const allSeries = await get('series', { shelved: { $ne: true } }, {}, {})
+    // A random staff pick when there is one, otherwise any public series (exclude shelved)
+    const allSeries = await getFeaturedCandidates()
     
     if (!allSeries || allSeries.length === 0) {
       return {
@@ -653,7 +653,7 @@ const getFeaturedSeries = async (params) => {
 const getRecommendations = async (params) => {
   try {
     const targetCount = 10
-    const seriesIds = await getSeriesIdsSortedByLikes(targetCount)
+    const seriesIds = await getTrendingSeriesIds(targetCount)
     const series = await getSeriesByIds(seriesIds)
     const orderedSeries = orderSeriesByIds(series, seriesIds)
     const filledSeries = await backfillWithRandomSeries(
@@ -696,14 +696,45 @@ const seriesWithVideoFilter = () => ({
   ],
 })
 
-const getSeriesIdsSortedByLikes = async (limit) => {
-  const pipeline = [
-    { $group: { _id: '$seriesId', likeCount: { $sum: 1 } } },
-    { $sort: { likeCount: -1 } },
-    { $limit: limit },
-  ]
-  const results = await aggregate('likes', pipeline)
-  return results.map((r) => r._id)
+const getFeaturedCandidates = async () => {
+  const picks = await get('series', { staffPick: true, shelved: { $ne: true } }, {}, {})
+  if (picks.length > 0) return picks
+  return await get('series', { shelved: { $ne: true } }, {}, {})
+}
+
+// Trending = real activity in the last TRENDING_DAYS: views, plus likes weighted higher
+// because a like takes a deliberate tap. Counts are never shown here, only the order.
+const TRENDING_DAYS = 14
+const TRENDING_LIKE_WEIGHT = 3
+
+const getTrendingSeriesIds = async (limit) => {
+  const since = new Date(Date.now() - TRENDING_DAYS * 24 * 60 * 60 * 1000)
+  const [views, likes] = await Promise.all([
+    countRecentBySeries('views', since),
+    countRecentBySeries('likes', since),
+  ])
+  const scores = new Map()
+  addScores(scores, views, 1)
+  addScores(scores, likes, TRENDING_LIKE_WEIGHT)
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([id]) => id)
+}
+
+const countRecentBySeries = (collection, since) =>
+  aggregate(collection, [
+    { $match: { createdAt: { $gte: since } } },
+    { $group: { _id: '$seriesId', count: { $sum: 1 } } },
+  ])
+
+const addScores = (scores, counts, weight) => {
+  counts
+    .filter((c) => c._id && ObjectId.isValid(String(c._id)))
+    .forEach((c) => {
+      const id = String(c._id)
+      scores.set(id, (scores.get(id) || 0) + c.count * weight)
+    })
 }
 
 const getSeriesByIds = async (seriesIds) => {
@@ -734,10 +765,9 @@ const backfillWithRandomSeries = async (existingSeries, targetCount) => {
 
 const getNewReleases = async (params) => {
   try {
-    // Get series and randomize the order (exclude shelved)
-    const series = await get('series', { shelved: { $ne: true } }, {}, {}, 20)
-    const shuffledSeries = shuffleArray(series).slice(0, 10)
-    const populatedSeries = await populateSeriesGenres(shuffledSeries)
+    // Newest public series first (exclude shelved)
+    const series = await get('series', { shelved: { $ne: true } }, {}, { createdAt: -1 }, 10)
+    const populatedSeries = await populateSeriesGenres(series)
     return {
       success: true,
       data: populatedSeries
@@ -745,6 +775,44 @@ const getNewReleases = async (params) => {
   } catch (error) {
     throw new Error(`Failed to get new releases: ${error.message}`)
   }
+}
+
+// Series an admin hand-picked, most recently picked first (exclude shelved)
+const getStaffPicks = async () => {
+  try {
+    const series = await get(
+      'series',
+      { staffPick: true, shelved: { $ne: true } },
+      {},
+      { staffPickedAt: -1 },
+      10,
+    )
+    const populatedSeries = await populateSeriesGenres(series)
+    return { success: true, data: populatedSeries }
+  } catch (error) {
+    throw new Error(`Failed to get staff picks: ${error.message}`)
+  }
+}
+
+// Admin only: add a series to, or remove it from, the Staff Picks rail
+const setStaffPick = async (body, authHeader) => {
+  await requireAdmin(authHeader)
+  validateStaffPickBody(body)
+
+  const staffPick = body.staffPick
+  const result = await update(
+    'series',
+    { _id: new ObjectId(body.seriesId) },
+    { $set: { staffPick, staffPickedAt: staffPick ? new Date() : null } },
+  )
+  if (result.matchedCount === 0) return { success: false, error: 'Series not found' }
+  return { success: true, data: { seriesId: body.seriesId, staffPick } }
+}
+
+const validateStaffPickBody = (body) => {
+  if (!body) throw new Error('Request body is required')
+  if (!body.seriesId || !ObjectId.isValid(body.seriesId)) throw new Error('Valid seriesId is required')
+  if (typeof body.staffPick !== 'boolean') throw new Error('staffPick must be true or false')
 }
 
 const getSearchSuggestions = async (params) => {
@@ -951,7 +1019,7 @@ const emailRegister = async (body) => {
     }
 
     // Grant the admin-configured welcome credit as the new user's initial balance
-    await applyWelcomeCredit(newUser)
+    await applyNewUserDefaults(newUser)
 
     const result = await save('users', newUser)
 
@@ -974,6 +1042,14 @@ const emailRegister = async (body) => {
   } catch (error) {
     throw new Error(`Registration failed: ${error.message}`)
   }
+}
+
+// Defaults every new account starts with, whichever way it signed up. Mutates in place.
+// Uploading is open to everyone: the Creator Program is no longer the gate, and uploads
+// from anyone not yet verified still go through moderation before they are public.
+const applyNewUserDefaults = async (newUser) => {
+  newUser.allowUpload = true
+  await applyWelcomeCredit(newUser)
 }
 
 // Set the new user's starting balance + a matching transaction from the admin-configured
@@ -1165,7 +1241,7 @@ const createOAuthAccount = async (idKey, identity, extra) => {
     createdAt: new Date(),
     updatedAt: new Date(),
   }
-  await applyWelcomeCredit(newUser)
+  await applyNewUserDefaults(newUser)
   const result = await save('users', newUser)
   return { ...newUser, _id: result.insertedId }
 }
@@ -4254,6 +4330,8 @@ export {
   getRecommendations,
   getVideoFeed,
   getNewReleases,
+  getStaffPicks,
+  setStaffPick,
   getSearchSuggestions,
   getEpisodes,
   getFavorites,

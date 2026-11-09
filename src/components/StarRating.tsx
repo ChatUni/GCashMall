@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 import { playerPageStore, playerPageStoreActions } from '../stores/playerStore'
 import { t } from '../stores/languageStore'
+import { showRatingAverage } from '../utils/engagement'
 import './StarRating.css'
 
 const STAR_PATH =
@@ -37,14 +38,25 @@ export const Stars = (props: { rating: number; size?: number }) => (
 )
 
 // Star rating section shown in the episode metadata: average, stars and number of votes.
-// Clicking opens the rating modal (login modal if the user isn't logged in).
+// Until there are enough votes for an average to mean anything, it shows empty stars and an
+// invitation to rate instead. Clicking opens the rating modal (login modal if logged out).
 export const RatingSection = () => (
   <div class="rating-section" onClick={playerPageStoreActions.openRatingModal}>
-    <span class="rating-average">{playerPageStore.ratingAverage.toFixed(1)}</span>
-    <Stars rating={playerPageStore.ratingAverage} />
-    <span class="rating-votes">
-      {playerPageStore.ratingCount} {t().player.rating.votes}
-    </span>
+    <Show
+      when={showRatingAverage(playerPageStore.ratingCount)}
+      fallback={
+        <>
+          <Stars rating={0} />
+          <span class="rating-votes">{t().player.rating.ratePrompt}</span>
+        </>
+      }
+    >
+      <span class="rating-average">{playerPageStore.ratingAverage.toFixed(1)}</span>
+      <Stars rating={playerPageStore.ratingAverage} />
+      <span class="rating-votes">
+        {playerPageStore.ratingCount} {t().player.rating.votes}
+      </span>
+    </Show>
   </div>
 )
 

@@ -14,6 +14,7 @@ import {
   featuredStoreActions,
   recommendationsStoreActions,
   newReleasesStoreActions,
+  staffPicksStoreActions,
   playerStoreActions,
   toastStoreActions,
   videoFeedStoreActions,
@@ -51,6 +52,23 @@ export const fetchNewReleases = async () => {
     newReleasesStoreActions.setSeries(data.data)
   }
   newReleasesStoreActions.setLoading(false)
+}
+
+// Staff picks
+export const fetchStaffPicks = async () => {
+  staffPicksStoreActions.setLoading(true)
+  const data = await apiGet<Series[]>('staffPicks')
+  if (data.success && data.data) {
+    staffPicksStoreActions.setSeries(data.data)
+  }
+  staffPicksStoreActions.setLoading(false)
+}
+
+// Admin only: add a series to, or remove it from, Staff Picks
+export const setStaffPick = async (seriesId: string, staffPick: boolean): Promise<boolean> => {
+  const result = await apiPostWithAuth<{ staffPick: boolean }>('setStaffPick', { seriesId, staffPick })
+  if (!result.success) throw new Error(result.error || 'Failed to update staff pick')
+  return !!result.data?.staffPick
 }
 
 // Video feed for TikTok-style home page

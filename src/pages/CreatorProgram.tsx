@@ -21,6 +21,7 @@ import {
   canAdvanceJoin,
   BIO_MAX,
 } from '../stores/creatorProgramStore'
+import { fillShare, ensureSystemSettings } from '../stores/systemSettingsStore'
 import './CreatorProgram.css'
 import Icon, { type IconName } from '../components/Icon'
 
@@ -62,6 +63,8 @@ const Landing = () => {
   const why = () => cp().why as Record<string, string>
   const how = () => cp().how as Record<string, string>
   const faq = () => cp().faq as Record<string, string>
+  // The revenue figures are the live creator share, not a number written into the copy.
+  ensureSystemSettings()
 
   return (
     <div class="cpp-content">
@@ -96,7 +99,7 @@ const Landing = () => {
           <img src={HERO_ART} alt="" />
           <div class="cpp-hero-earn">
             <span class="cpp-hero-earn-label">{cp().hero.earnUpTo}</span>
-            <b class="cpp-hero-earn-value">{cp().hero.earnPercent}</b>
+            <b class="cpp-hero-earn-value">{fillShare(cp().hero.earnPercent)}</b>
             <img class="cpp-coin" src={GUSD_LOGO} alt="GUSD" />
           </div>
         </div>
@@ -123,8 +126,8 @@ const Landing = () => {
           {(w) => (
             <div class="cpp-why-card">
               <span class={`cpp-why-icon ${w.cls}`}><Icon name={w.icon as IconName} /></span>
-              <b class="cpp-why-title">{why()[`${w.k}Title`]}</b>
-              <p class="cpp-why-desc">{why()[`${w.k}Desc`]}</p>
+              <b class="cpp-why-title">{fillShare(why()[`${w.k}Title`])}</b>
+              <p class="cpp-why-desc">{fillShare(why()[`${w.k}Desc`])}</p>
             </div>
           )}
         </For>
@@ -214,7 +217,7 @@ const Landing = () => {
                   <span class="cpp-faq-chevron">⌄</span>
                 </button>
                 <Show when={openFaq() === q}>
-                  <p class="cpp-faq-a">{faq()[a]}</p>
+                  <p class="cpp-faq-a">{fillShare(faq()[a])}</p>
                 </Show>
               </div>
             )

@@ -4,6 +4,10 @@ import TopBar from '../components/TopBar'
 import BottomBar from '../components/BottomBar'
 import RecommendationSection from '../components/RecommendationSection'
 import NewReleasesSection from '../components/NewReleasesSection'
+import StaffPicksSection from '../components/StaffPicksSection'
+import StaffPickButton from '../components/StaffPickButton'
+import NewBadge from '../components/NewBadge'
+import { showViewCount, showLikeCount } from '../utils/engagement'
 import LoginModal from '../components/LoginModal'
 import CommentSection from '../components/CommentSection'
 import { PurchasePopup, ResultModal, FavoriteModal, Toast } from '../components/PlayerModals'
@@ -106,6 +110,7 @@ const Player = () => {
             <EpisodeSidebar />
           </main>
 
+          <StaffPicksSection excludeSeriesId={params.id} />
           <RecommendationSection excludeSeriesId={params.id} />
           <NewReleasesSection excludeSeriesId={params.id} />
 
@@ -480,9 +485,11 @@ const EpisodeMetadata = () => {
         </div>
 
         <div class="metadata-buttons">
-          <div class="view-count">
-            {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
-          </div>
+          <Show when={showViewCount(playerPageStore.viewCount)} fallback={<NewBadge />}>
+            <div class="view-count">
+              {t().player.views.replace('{count}', formatLikeCount(playerPageStore.viewCount))}
+            </div>
+          </Show>
 
           <RatingSection />
 
@@ -499,7 +506,9 @@ const EpisodeMetadata = () => {
                 d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
               />
             </svg>
-            <span class="like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+            <Show when={showLikeCount(playerPageStore.likeCount)}>
+              <span class="like-count">{formatLikeCount(playerPageStore.likeCount)}</span>
+            </Show>
           </button>
 
           <button
@@ -518,6 +527,7 @@ const EpisodeMetadata = () => {
           </button>
 
           <SeriesSafetyButton iconOnly />
+          <StaffPickButton />
 
           <Show when={!isPurchased()}>
             <button class="unlock-button" onClick={playerPageStoreActions.handleUnlockClick} title="Unlock episode">
