@@ -18,7 +18,7 @@ Prepare before a full pass. Several behaviors are gated by env vars / admin sett
 | **`MODERATION_ENABLED`** | Netlify env. `false` = uploads auto-approve (subtitles still run); unset/true = full moderation. Test both. |
 | **`VITE_GUSD_TEST_MODE`** | Adds small 0.1 / 0.2 / 0.5 / 1 top-up & withdraw amounts for cheap testing. |
 | **Admin model settings** | Account → System Settings: chat / image / Seedance model. Defaults `gpt-5-mini` / `gpt-image-1-mini` / `doubao-seedance-2-0-mini`. Changes take ~30s. |
-| **`VITE_COMING_SOON`** | `1` shows the Coming-Soon splash on ganime.io (privacy.html still reachable). Confirm off for functional testing. |
+| **`VITE_COMING_SOON`** | `1` shows the Coming-Soon splash on ganime.io (the legal pages, e.g. privacy-policy.html, stay reachable). Confirm off for functional testing. |
 | **Payment matrix** | **Card + GUSD = Web only.** **IAP (Apple/Google) = native only.** **Withdraw = Web only** (hidden on native). |
 
 ## 1. Authentication
@@ -145,8 +145,8 @@ Platform-specific behaviors most likely to regress between builds.
 |---|---|---|---|---|---|
 | XP-01 | P0 | iOS | iOS store & plugins | Fresh TestFlight install: IAP products load, Google sign-in opens Safari, social share opens browser, native share works | All work (these broke historically when Cordova plugins dropped: purchase, inappbrowser, customurlscheme, socialsharing) |
 | XP-02 | P0 | And | Android build | Install: sign-in, Google Play IAP, playback, share | Core flows work; no GUSD/withdraw shown |
-| XP-03 | P1 | Web | Coming-soon mode | Set `VITE_COMING_SOON=1` on ganime.io | Splash shown; `/privacy.html` still loads directly |
-| XP-04 | P2 | Web | Privacy policy | Open `ganime.io/privacy.html` | Full policy renders (not the SPA shell) |
+| XP-03 | P1 | Web | Coming-soon mode | Set `VITE_COMING_SOON=1` on ganime.io | Splash shown; `/privacy-policy.html` still loads directly |
+| XP-04 | P2 | Web | Privacy policy | Open `ganime.io/privacy-policy.html` (and the old `/privacy.html`, which redirects) | Full policy renders (not the SPA shell) |
 | XP-05 | P1 | Web | Analytics | Load ganime.io; check Network / GA4 Realtime | gtag loads & session registers (`G-YFW2XSQK03`); native/localhost do NOT send |
 
 ## 12. Email & misc

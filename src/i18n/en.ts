@@ -420,7 +420,7 @@ export const en = {
   },
   revenueShare: {
     note: 'You earn {pct}% of what viewers pay to unlock your episodes and series.',
-    link: 'Revenue share agreement',
+    link: 'Creator Agreement',
   },
   home: {
     play: 'Play',

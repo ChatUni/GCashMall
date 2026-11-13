@@ -416,7 +416,7 @@ export const zh = {
   },
   revenueShare: {
     note: '观众为解锁你的剧集或整部剧支付的金额，你可获得 {pct}%。',
-    link: '收益分成协议',
+    link: '创作者协议',
   },
   home: {
     play: '播放',

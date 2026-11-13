@@ -250,7 +250,7 @@ platform :ios do
   # build; deliver's :app_icon option is inert, flagged "Removed after the migration to
   # the new App Store Connect API in June 2020". Ship a build to change the icon.
 
-  PRIVACY_POLICY_URL = "https://ganime.io/privacy.html"
+  PRIVACY_POLICY_URL = "https://ganime.io/privacy-policy.html"
 
   # Attach an already-uploaded build to the App Store version.
   #

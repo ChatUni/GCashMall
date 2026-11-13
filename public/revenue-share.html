@@ -3,11 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Creator Revenue Share Agreement — Ganime</title>
-<!-- The rates below are filled in from the live system settings (GET api?type=settings), so
-     the page always states the creator share and episode cost the server actually credits.
-     The numbers written into the HTML are the settings at the time of writing and only show
-     if that request fails. -->
+<title>Creator Agreement — Ganime</title>
+<!-- Generated from "Ganime Creator Agreement.docx" (~/Documents/GCash/docs). Edit the Word document and
+     regenerate rather than editing this file by hand. -->
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -16,165 +14,239 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.65; font-size: 16px;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 96px; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 22px 96px; }
+  nav.legal { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; padding-bottom: 18px; margin-bottom: 36px; border-bottom: 1px solid #23262E; }
+  nav.legal a { color: #9CA3AF; text-decoration: none; }
+  nav.legal a:hover { color: #fff; }
+  nav.legal span { color: #fff; font-weight: 600; }
   h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; color: #fff; }
-  .org { color: #D1D5DB; font-size: 15px; margin: 0 0 32px; }
-  h2 { font-size: 20px; color: #fff; margin: 36px 0 10px; }
+  .org { color: #9CA3AF; font-size: 15px; margin: 0; }
+  .org:last-of-type { margin-bottom: 32px; }
+  h2 { font-size: 20px; line-height: 1.3; color: #fff; margin: 40px 0 10px; }
+  h3 { font-size: 17px; color: #fff; margin: 26px 0 8px; }
   p, li { color: #D1D5DB; }
+  strong { color: #fff; }
   a { color: #3B82F6; }
   ol, ul { padding-left: 22px; }
   li { margin: 6px 0; }
-  .rates { background: #15161B; border: 1px solid #23262E; border-radius: 12px; padding: 6px 22px; margin: 0; }
-  .rates div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #23262E; }
-  .rates div:last-child { border-bottom: none; }
-  .rates dt { color: #D1D5DB; }
-  .rates dd { margin: 0; color: #fff; font-weight: 600; text-align: right; }
-  .muted { color: #9CA3AF; font-size: 14px; }
+  .table { overflow-x: auto; margin: 14px 0; border: 1px solid #23262E; border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid #23262E; }
+  th { background: #15161B; color: #fff; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td { color: #D1D5DB; }
+  mark.todo { background: #7C2D12; color: #FED7AA; padding: 0 4px; border-radius: 4px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Creator Revenue Share Agreement</h1>
-  <p class="org">Ganime, by Fresh Road Studio Inc. · Effective November 9, 2026</p>
-
-  <p>This agreement is between Fresh Road Studio Inc. ("Ganime", "we", "us") and you, the creator who
-  publishes a series on Ganime ("you"). It explains how you earn from your series and how you get paid.
-  It applies to every series you publish, whether you uploaded it or made it with Quick Create. By
-  uploading or publishing a series, you accept it, along with our
-  <a href="/privacy">Privacy Policy</a>.</p>
-
-  <h2>1. Current rates</h2>
-  <dl class="rates">
-    <div><dt>Your share of each purchase</dt><dd><span data-setting="creatorShare">70</span>%</dd></div>
-    <div><dt>Free episodes at the start of every series</dt><dd><span data-setting="freeEpisodes">5</span></dd></div>
-    <div><dt>Price of each later episode</dt><dd><span data-setting="episodeCost">25</span> credits</dd></div>
-    <div><dt>Whole-series price (you choose)</dt><dd>300, 600 or 900 credits</dd></div>
-    <div><dt>Credit value</dt><dd>100 credits = US$1.00</dd></div>
-    <div><dt>Hold before earnings can be withdrawn</dt><dd>30 days</dd></div>
-  </dl>
-
-  <h2>2. How viewers pay</h2>
-  <ul>
-    <li>Viewers unlock episodes with Ganime credits. They buy credits in the app or on the website.</li>
-    <li>The first <span data-setting="freeEpisodes">5</span> episodes of every series are free to watch.
-    Each episode after that costs <span data-setting="episodeCost">25</span> credits. Ganime sets these
-    for all series.</li>
-    <li>You choose a whole-series price of 300, 600 or 900 credits (600 if you don't choose). A viewer is
-    offered it only when it costs less than buying the remaining episodes one by one. Whatever they
-    already spent on single episodes of the series is taken off. A whole-series unlock includes
-    episodes you add later.</li>
-  </ul>
-
-  <h2>3. Your share</h2>
-  <ul>
-    <li>You earn <span data-setting="creatorShare">70</span>% of the credits a viewer pays to unlock an
-    episode or a whole series of yours.</li>
-    <li>Your share is worked out on the credit price, before app store and payment fees. Ganime pays those fees.</li>
-    <li>Examples at the current rates: a single episode earns you
-    <span data-example="episode">17.5</span> credits (US$<span data-example="episodeUsd">0.175</span>).
-    A whole series bought at 600 credits earns you <span data-example="series">420</span> credits
-    (US$<span data-example="seriesUsd">4.20</span>). A whole series sold at a discount, because the
-    viewer already bought some episodes, earns your share of the discounted price.</li>
-    <li>Free episodes earn nothing.</li>
-  </ul>
-
-  <h2>4. When you are credited</h2>
-  <ul>
-    <li>Your share is added to your Ganime wallet the moment a viewer makes the purchase. It appears as
-    an earning transaction in Account → Wallet.</li>
-    <li>Each earning uses the rate in effect when the purchase was made. If the rates change later,
-    earnings already credited do not change.</li>
-  </ul>
-
-  <h2>5. Getting paid</h2>
-  <ul>
-    <li>Earnings can be withdrawn 30 days after they are credited. This hold covers refunds and fraud checks.</li>
-    <li>You withdraw from Account → Wallet → Withdraw. Withdrawals are paid in US dollars through our
-    payment partner GUSD, at 100 credits = US$1.00.</li>
-    <li>The welcome bonus credits given to new accounts can't be withdrawn.</li>
-    <li>You are responsible for any taxes on your earnings. We may ask for the tax information the law
-    requires before paying you.</li>
-  </ul>
-
-  <h2>6. Refunds, fraud and rule breaking</h2>
-  <ul>
-    <li>If a purchase of your content is refunded, charged back or reversed, we may take the matching
-    earning back out of your wallet.</li>
-    <li>We may withhold or cancel earnings that come from fraud or manipulation. Examples include buying
-    your own episodes through other accounts, using fake accounts, or paying people to buy.</li>
-    <li>We may withhold earnings from a series that breaks our content rules, and may remove that series.</li>
-  </ul>
-
-  <h2>7. Your content</h2>
-  <ul>
-    <li>You keep the rights you have in your series. You confirm you have the rights to everything you
-    upload, including video, audio, music, images and text.</li>
-    <li>You give Ganime a non-exclusive, worldwide, royalty-free license to host, stream, sell, translate
-    and subtitle your series. The license also covers making thumbnails and previews, and promoting your
-    series on Ganime and elsewhere.</li>
-    <li>Uploads are reviewed before they go public, unless your account has been verified. We may decline
-    or remove content that breaks our rules.</li>
-    <li>A series that viewers have bought stays available to those viewers, even if you later unpublish
-    it or delete your account. They paid for it.</li>
-  </ul>
-
-  <h2>8. Ending the agreement</h2>
-  <ul>
-    <li>You can stop at any time by unpublishing your series or deleting your account.</li>
-    <li>Withdraw your balance before you delete your account. Credits left in a deleted account are
-    forfeited and can't be refunded.</li>
-    <li>We may end this agreement, or suspend payouts, if you break it or our content rules.</li>
-  </ul>
-
-  <h2>9. Changes</h2>
-  <p>We may change the rates or this agreement. We will post the new version on this page. If we lower
-  your share, we will tell you in the app or by email at least 30 days before the change takes effect.
-  Changes never affect earnings already credited. If you keep publishing after a change takes effect,
-  you accept the new version.</p>
-
-  <h2>10. Contact</h2>
-  <p>Questions about earnings or payouts:
-  <a href="mailto:ganimesupport@freshroad.com?subject=Creator%20revenue%20share">ganimesupport@freshroad.com</a>.</p>
-
-  <p class="muted">The rates on this page come from Ganime's live settings, so they are always the rates
-  in effect today.</p>
+  <nav class="legal" aria-label="Ganime legal documents">
+    <a href="/terms-of-service.html">Terms of Service</a>
+    <a href="/privacy-policy.html">Privacy Policy</a>
+    <span aria-current="page">Creator Agreement</span>
+    <a href="/copyright-policy.html">Copyright &amp; DMCA</a>
+    <a href="/community-guidelines.html">Community Guidelines</a>
+  </nav>
+  <h1>Ganime Creator Agreement</h1>
+  <p class="org">Publishing, Monetization &amp; Revenue Share Terms</p>
+  <p class="org">Operated by Fresh Road Studio Inc.</p>
+  <p class="org">Version 2.0 — Effective November 11, 2026</p>
+<p>Welcome to Ganime!</p>
+<p>Ganime is a platform where creators can create, publish, share, and earn from anime series. Whether you upload your own videos or create them using Ganime's AI tools, this Agreement explains your rights, responsibilities, earnings, and payments.</p>
+<p>This Agreement is between <strong>Fresh Road Studio Inc.</strong> ("Ganime," "we," "us," or "our") and you ("Creator" or "you").</p>
+<p>By publishing content on Ganime, you agree to this Agreement, our Terms of Service, Privacy Policy, and applicable Content Guidelines.</p>
+<h2>1. Creator Earnings at a Glance</h2>
+<div class="table"><table><thead><tr><th>Item</th><th>Current Rate</th></tr></thead><tbody>
+<tr><td><strong>Your revenue share</strong></td><td><strong>70%</strong></td></tr>
+<tr><td>Ganime platform share</td><td>30%</td></tr>
+<tr><td>Free episodes per series</td><td>First 5 episodes</td></tr>
+<tr><td>Price per additional episode</td><td>25 Credits</td></tr>
+<tr><td>Whole-series price</td><td>300 / 600 / 900 Credits</td></tr>
+<tr><td>Default whole-series price</td><td>600 Credits</td></tr>
+<tr><td>Credit value for earnings</td><td>100 Credits = US$1.00</td></tr>
+<tr><td>Earnings holding period</td><td>30 days</td></tr>
+<tr><td>Minimum withdrawal</td><td>US$10 (1,000 Credits)</td></tr>
+</tbody></table></div>
+<p><strong>You create. You publish. You earn.</strong></p>
+<p>Ganime handles viewer payments, payment processing, hosting, and delivery. You earn a share when viewers pay to unlock your content.</p>
+<h2>2. Who Can Become a Creator</h2>
+<p><strong>You must be at least 18 years old to become a Ganime Creator.</strong></p>
+<p>Users under 18 are not permitted to create, upload, publish, or monetize content through Ganime's creator features, even with parental or guardian consent.</p>
+<p>By becoming a Creator, you confirm that:</p>
+<ul><li>You are at least 18 years old.</li><li>You have the legal capacity to enter into this Agreement.</li><li>You provide accurate account and payment information.</li><li>You comply with applicable laws and Ganime's policies.</li></ul>
+<p>Ganime may require identity and age verification before allowing publication, monetization, or withdrawals.</p>
+<p>If Ganime determines that a Creator is under 18, we may disable creator access, remove or unpublish content, and restrict monetization. Any valid outstanding earnings will be handled in accordance with applicable law.</p>
+<h2>3. How Viewers Pay</h2>
+<p>Viewers use Ganime Credits to unlock episodes and series.</p>
+<h3>Individual episodes</h3>
+<ul><li>The first five episodes of every series are free to watch.</li><li>Each additional episode costs 25 Credits.</li><li>Ganime sets these episode prices for all creators.</li></ul>
+<h3>Whole-series purchases</h3>
+<p>You may choose a whole-series price of 300, 600, or 900 Credits. If you do not choose, the default is 600 Credits.</p>
+<p>A whole-series purchase is offered only when it costs less than purchasing the viewer's remaining locked episodes individually.</p>
+<p>Credits the viewer has already spent unlocking individual episodes in that series are deducted from the whole-series price, up to the amount of that price.</p>
+<p><strong>Important:</strong> A whole-series purchase includes all currently available episodes and future episodes added to the same series, without additional episode charges.</p>
+<p>Creators should consider this when selecting a whole-series price.</p>
+<p>Ganime may introduce additional purchase options, including season passes, subscriptions, promotional bundles, or other monetization features. Any additional monetization terms will be disclosed before they apply.</p>
+<h2>4. Your Revenue Share</h2>
+<p>You earn <strong>70% of eligible Credits</strong> viewers spend unlocking your episodes or series.</p>
+<p>Ganime keeps the remaining 30%.</p>
+<p>Your share is calculated before applicable app store commissions and payment-processing fees. Ganime covers those fees.</p>
+<h3>Examples</h3>
+<div class="table"><table><thead><tr><th>Viewer purchase</th><th>Your earnings</th></tr></thead><tbody>
+<tr><td>1 episode — 25 Credits</td><td>17.5 Credits ($0.175)</td></tr>
+<tr><td>Whole series — 300 Credits</td><td>210 Credits ($2.10)</td></tr>
+<tr><td>Whole series — 600 Credits</td><td>420 Credits ($4.20)</td></tr>
+<tr><td>Whole series — 900 Credits</td><td>630 Credits ($6.30)</td></tr>
+</tbody></table></div>
+<p>If a whole-series purchase is discounted because the viewer already bought individual episodes, your 70% share applies to the additional eligible Credits actually paid.</p>
+<p>Free episodes do not generate earnings.</p>
+<h3>Paid and Promotional Credits</h3>
+<ul><li><strong>Paid Credits:</strong> Credits purchased by viewers are eligible for normal creator earnings.</li><li><strong>Promotional Credits:</strong> Free Credits, welcome bonuses, rewards, and complimentary Credits issued by Ganime do not generate Creator Earnings unless Ganime expressly states otherwise for a particular promotion.</li><li><strong>Mixed payments:</strong> When a purchase uses both Paid Credits and Promotional Credits, Creator Earnings are calculated only on the eligible Paid Credit portion, unless different promotional terms are disclosed.</li></ul>
+<p>Ganime may offer special promotional programs that compensate creators differently. Any applicable creator compensation will be disclosed in the promotion's terms.</p>
+<p>Creator Earnings are calculated using <strong>100 Creator Earnings Credits = US$1.00</strong>, even if viewers purchase Credits through different pricing packages or payment channels.</p>
+<h2>5. When You Earn</h2>
+<p>Your share is credited to your Ganime wallet when an eligible viewer purchase is completed.</p>
+<p>You can view your earnings in:</p>
+<p><strong>Account → Wallet</strong></p>
+<p>Each transaction may show the relevant series, purchase, eligible Credits, creator share, and transaction status.</p>
+<p>Earnings may appear as:</p>
+<ul><li><strong>Pending:</strong> Within the 30-day holding period.</li><li><strong>Available:</strong> Eligible for withdrawal.</li><li><strong>Adjusted:</strong> Changed because of a refund, chargeback, reversal, or other permitted adjustment.</li></ul>
+<p>Earnings are calculated using the revenue-share rate in effect when the purchase occurs.</p>
+<p>Changes to future rates do not retroactively reduce earnings already credited from valid transactions, except for adjustments permitted under this Agreement.</p>
+<h2>6. Getting Paid</h2>
+<p>Creator Earnings become eligible for withdrawal after a <strong>30-day holding period</strong>, provided the related transaction remains valid.</p>
+<p>The holding period allows time for refunds, chargebacks, fraud prevention, and payment verification.</p>
+<p>To request a withdrawal:</p>
+<p><strong>Account → Wallet → Withdraw</strong></p>
+<p>The minimum withdrawal amount is <strong>US$10, equivalent to 1,000 Creator Earnings Credits</strong>.</p>
+<p>Eligible earnings are converted at:</p>
+<p><strong>100 Creator Earnings Credits = US$1.00</strong></p>
+<p>Withdrawal requests below US$10 are generally not processed, except where applicable law requires otherwise or Ganime permits a final account-closure payout.</p>
+<p>Withdrawals are processed through Ganime's supported payout providers, subject to their terms and applicable requirements.</p>
+<p>Available payout methods, processing times, and any withdrawal fees will be displayed before you confirm a withdrawal.</p>
+<p>Ganime may require identity verification, age verification, tax information, payment-account verification, or other legally required checks.</p>
+<p>You are responsible for applicable taxes on your Creator Earnings. Ganime may make legally required tax withholdings or issue tax reporting documents.</p>
+<p>Withdrawals may be unavailable or restricted in certain countries or regions.</p>
+<p>Purchased viewer Credits, welcome bonuses, and Promotional Credits are not withdrawable as Creator Earnings merely because they are held in your wallet.</p>
+<p>Ganime may delay a withdrawal when reasonably necessary to investigate suspected fraud, comply with law, resolve a payment dispute, or complete required verification.</p>
+<h2>7. Refunds, Fraud &amp; Earnings Adjustments</h2>
+<p>If a viewer's purchase is refunded, charged back, reversed, or otherwise invalidated, Ganime may deduct the corresponding Creator Earnings from your wallet.</p>
+<p>If the earnings have already been withdrawn, Ganime may offset the adjustment against future earnings or seek repayment where legally permitted.</p>
+<p>You may not artificially generate earnings through fraudulent or manipulative activity.</p>
+<p>Examples include:</p>
+<ul><li>Purchasing your own content using fake or controlled accounts.</li><li>Creating multiple accounts to claim Promotional Credits.</li><li>Using bots or automated purchasing schemes.</li><li>Coordinating fraudulent purchases to generate Creator Earnings.</li><li>Manipulating refund systems, payment processes, or viewership activity.</li></ul>
+<p>Ganime may investigate suspicious activity, withhold related earnings, remove content, suspend monetization, or terminate accounts.</p>
+<p>We will not arbitrarily cancel legitimate Creator Earnings. Any withholding or adjustment must be connected to a reasonable contractual, legal, fraud-prevention, or payment-related basis.</p>
+<p>Where appropriate, creators may contact Ganime Support to request a review of an earnings adjustment.</p>
+<h2>8. Your Content &amp; Ownership</h2>
+<p><strong>You keep the rights you have in your content.</strong></p>
+<p>Ganime does not take ownership of your original stories, characters, scripts, artwork, videos, or other creative work merely because you publish them on the platform.</p>
+<p>You are responsible for ensuring that you have the rights and permissions needed to upload, publish, distribute, and monetize your content.</p>
+<p>This includes the rights to any:</p>
+<ul><li>Videos, illustrations, characters, and animation.</li><li>Scripts, stories, dialogue, and other written material.</li><li>Music, audio, sound effects, and voice recordings.</li><li>Names, logos, trademarks, and other protected materials.</li><li>Images, voices, identities, and likenesses of real people.</li></ul>
+<p>You may not publish or monetize content that infringes another person's intellectual-property, privacy, publicity, or other legal rights.</p>
+<p>Using Ganime does not grant you permission to use copyrighted characters, franchises, songs, artwork, or other third-party material.</p>
+<p>Content based on existing anime franchises or characters may require permission from the relevant rights holders, particularly when monetized.</p>
+<h2>9. AI-Generated Content &amp; Quick Create</h2>
+<p>Ganime provides AI-powered creation features, including Quick Create, to help creators produce anime content.</p>
+<p>These tools may use AI models and services provided by third parties.</p>
+<h3>Ownership of AI-generated content</h3>
+<p>As between you and Ganime, Ganime does not claim ownership of content you generate using Ganime's AI creation tools, except for any Ganime-owned materials or technology included in those outputs.</p>
+<p>Your ability to own, protect, commercially use, or license AI-generated content depends on applicable law and the relevant AI-provider terms.</p>
+<p>AI-generated content may not qualify for copyright protection in every jurisdiction.</p>
+<p>AI outputs may also resemble content generated by other users. Ganime does not guarantee that generated content is unique or exclusive.</p>
+<h3>Your responsibilities</h3>
+<p>Before publishing AI-generated content, you are responsible for reviewing it and making sure it complies with applicable law and Ganime's Content Guidelines.</p>
+<p>You may not knowingly use Ganime's AI tools to:</p>
+<ul><li>Infringe copyrighted or trademarked material.</li><li>Impersonate another person in a misleading or unauthorized way.</li><li>Clone a person's voice or likeness without required permission.</li><li>Create or distribute unlawful, deceptive, or otherwise prohibited content.</li></ul>
+<p>Ganime does not guarantee that any AI-generated output is free from errors, third-party claims, or similarities to existing works.</p>
+<p>Where required by law or Ganime's Content Guidelines, you must disclose that content was generated or materially altered using AI.</p>
+<h2>10. License You Give Ganime</h2>
+<p>You retain your ownership rights, but Ganime needs permission to operate the platform and distribute your content.</p>
+<p>By uploading or publishing content, you grant Ganime a <strong>non-exclusive, worldwide, sublicensable license</strong> to:</p>
+<ul><li>Host, store, reproduce, distribute, display, and stream your content.</li><li>Make your content available to viewers under Ganime's purchase and access features.</li><li>Create thumbnails, previews, trailers, and promotional excerpts.</li><li>Translate, subtitle, and format your content for different languages, devices, and playback requirements.</li><li>Promote your content and Ganime through websites, apps, social media, advertising, and other marketing channels.</li><li>Allow service providers to perform these activities on Ganime's behalf.</li></ul>
+<p>This license does not transfer ownership of your content to Ganime.</p>
+<p>No separate licensing royalty is owed for these permitted uses beyond Creator Earnings payable under this Agreement.</p>
+<h3>Previously purchased content</h3>
+<p>If viewers have already purchased access to an episode or series, Ganime may continue making that content available to those viewers after you unpublish the content or close your account.</p>
+<p>The license survives termination to the extent reasonably necessary to honor previously granted viewer access, process outstanding transactions, maintain legally required records, and meet applicable legal obligations.</p>
+<p>Ganime may remove or restrict access to previously purchased content where necessary because of copyright infringement, legal requirements, safety concerns, or other valid reasons.</p>
+<p>This license does not give Ganime unrestricted permission to create new commercial stories or episodes using your original characters without separate authorization.</p>
+<h2>11. Content Review &amp; Community Rules</h2>
+<p>Ganime aims to provide a safe and creative environment for viewers and creators.</p>
+<p>Your content must comply with Ganime's Content Guidelines and applicable laws.</p>
+<p>Content may be reviewed before publication. Verified creator accounts may qualify for faster or reduced pre-publication review, but verification does not exempt content from Ganime's rules.</p>
+<p>Ganime may reject, restrict, demonetize, remove, or disable content that violates its policies or applicable law.</p>
+<p>Prohibited content may include unlawful material, copyright infringement, prohibited sexual content, exploitation of minors, nonconsensual intimate imagery, unlawful threats, fraud, and other content identified in our Content Guidelines.</p>
+<p>Ganime may use automated systems and human reviewers to help enforce its policies.</p>
+<p>Where appropriate, creators may contact Ganime Support to request a review of a content moderation decision.</p>
+<p>Ganime does not guarantee approval, visibility, recommendations, views, or earnings for any published content.</p>
+<h2>12. Copyright Complaints &amp; Enforcement</h2>
+<p>Ganime respects intellectual-property rights and expects all creators to do the same.</p>
+<p>Creators must own or have appropriate permission to use the material included in their published content.</p>
+<h3>Copyright reporting</h3>
+<p>Copyright owners or authorized representatives may report suspected infringement through Ganime's published copyright reporting process.</p>
+<p>Ganime may remove or disable access to content following a valid copyright complaint or when reasonably necessary to address suspected infringement.</p>
+<h3>DMCA compliance</h3>
+<p>Ganime maintains a copyright complaint and counter-notification process consistent with applicable law, including the U.S. Digital Millennium Copyright Act (DMCA).</p>
+<p>Copyright notices should include the information required by applicable law. Notices intended for Ganime's designated DMCA agent must be delivered using the contact details listed in Ganime's published Copyright Policy and DMCA agent registration.</p>
+<p>Creators whose content has been removed may submit a valid counter-notification if they believe the removal resulted from mistake or misidentification.</p>
+<p>Where applicable, Ganime will follow the statutory process for notifying the complainant and restoring material, unless the complainant provides notice of qualifying legal action within the applicable period.</p>
+<h3>Repeat infringers</h3>
+<p>Ganime maintains and reasonably implements a policy for terminating accounts of repeat copyright infringers in appropriate circumstances.</p>
+<p>Depending on the violation, Ganime may:</p>
+<ul><li>Remove or disable infringing content.</li><li>Restrict publishing or monetization.</li><li>Suspend or terminate creator accounts.</li><li>Take additional actions required by applicable law.</li></ul>
+<p>Serious infringement may result in account termination without a prior warning.</p>
+<p>Creators remain responsible for copyright infringement arising from content they submit.</p>
+<p>Ganime may retain records necessary to investigate complaints, respond to legal claims, and comply with applicable law.</p>
+<h2>13. Unpublishing Content &amp; Closing Your Account</h2>
+<p>You may stop publishing on Ganime at any time.</p>
+<p>You may unpublish your series or request account deletion, subject to any continuing obligations under this Agreement.</p>
+<p>Unpublishing a series generally prevents new purchases but does not automatically cancel access previously purchased by viewers.</p>
+<h3>Outstanding Creator Earnings</h3>
+<p>Before closing your account, we recommend withdrawing your available earnings.</p>
+<p>Closing your account does not automatically cause otherwise valid, earned Creator Earnings to become Ganime's property.</p>
+<p>The standard minimum withdrawal is US$10. For account closure, Ganime may permit a final withdrawal below this threshold, and will do so where required by applicable law.</p>
+<p>Subject to required verification, fraud investigations, refunds, legal restrictions, and applicable law, Ganime will provide a reasonable process for requesting payment of eligible outstanding earnings.</p>
+<p>If a payout cannot legally or technically be completed, the funds will be handled in accordance with applicable law, including any unclaimed-property requirements.</p>
+<p>Ganime may suspend or terminate your publishing or monetization privileges if you materially violate this Agreement, our policies, or applicable law.</p>
+<p>Termination does not remove obligations or rights that are expressly intended to survive, including applicable payment adjustments, intellectual-property obligations, and previously granted viewer access.</p>
+<h2>14. Platform Changes &amp; Availability</h2>
+<p>Ganime may update its features, pricing, creation tools, payment methods, and monetization programs.</p>
+<p>We may also modify or discontinue features as the platform evolves.</p>
+<p>We aim to keep Ganime available and reliable, but cannot guarantee uninterrupted access or that every feature will remain available indefinitely.</p>
+<p>Ganime does not guarantee that creators will earn any particular amount or receive any particular level of exposure, promotion, or audience engagement.</p>
+<p>If a service change materially affects creator rights or earnings, we will provide appropriate notice.</p>
+<h2>15. Responsibility &amp; Liability</h2>
+<p>You are responsible for the content you upload, publish, and monetize.</p>
+<p>You agree to defend and indemnify Ganime and its affiliates, officers, and employees against third-party claims, damages, and reasonable legal costs arising from your content's infringement of another person's rights, your unlawful conduct, or your material breach of this Agreement, to the extent permitted by applicable law.</p>
+<p>Ganime is responsible for fulfilling its own obligations under this Agreement, including properly accounting for valid Creator Earnings.</p>
+<p>To the extent permitted by applicable law, Ganime is not liable for indirect, incidental, consequential, special, or punitive damages arising from your use of the platform.</p>
+<p>Except for obligations that cannot legally be limited, Ganime's total liability under this Agreement will not exceed the greater of US$100 or the Creator Earnings paid or payable to you during the 12 months before the event giving rise to the claim.</p>
+<p>Nothing in this Agreement limits liability that cannot legally be excluded or restricted.</p>
+<h2>16. Changes to This Agreement</h2>
+<p>Ganime may update this Agreement and its monetization terms as the platform develops.</p>
+<p>The latest version will be available on the Ganime website with its effective date.</p>
+<p>If we reduce the standard creator revenue-share percentage, we will notify affected creators through the app or email at least <strong>30 days before</strong> the change takes effect.</p>
+<p>We will also provide reasonable advance notice of other material changes, except where immediate changes are needed for legal, security, or fraud-prevention reasons.</p>
+<p>Changes do not retroactively reduce valid earnings from purchases completed before the new terms take effect, except for permitted refunds, reversals, or fraud adjustments.</p>
+<p>If you continue publishing or monetizing content after updated terms take effect, you accept the updated Agreement.</p>
+<h2>17. Governing Law &amp; Disputes</h2>
+<p>This Agreement is governed by the laws of the State of California, United States, without regard to conflict-of-law principles, except where mandatory consumer or other applicable laws require otherwise.</p>
+<p>If a dispute arises, we encourage you to contact Ganime Support first so we can try to resolve it.</p>
+<p>If a dispute cannot be resolved informally, disputes under this Agreement may be brought before the appropriate state or federal courts located in Santa Clara County, California, subject to applicable law.</p>
+<p>Nothing in this Agreement waives rights or remedies that cannot legally be waived.</p>
+<p>If any provision is found unenforceable, the remaining provisions will continue to apply.</p>
+<p>This Agreement, together with the policies expressly incorporated into it, forms the agreement governing your creator activities on Ganime. If there is a conflict between this Agreement and general Terms of Service regarding Creator Earnings, this Agreement controls.</p>
+<p>Ganime may assign this Agreement as part of a merger, acquisition, reorganization, or transfer of the platform, subject to applicable law. You may not assign your creator account or payment rights without Ganime's prior consent, except where legally required.</p>
+<h2>18. Contact Us</h2>
+<p>For questions about creator earnings, withdrawals, intellectual-property concerns, or this Agreement:</p>
+<p><strong>Ganime — Fresh Road Studio Inc.</strong></p>
+<p>Email: <a href="mailto:ganimesupport@freshroad.com">ganimesupport@freshroad.com</a></p>
+<p>Mail: 530 Lawrence Expressway #511, Sunnyvale, CA 94085, USA</p>
+<p>Website: <a href="https://ganime.io">https://ganime.io</a></p>
+<p><strong>Create your story. Share it with the world. Earn with Ganime.</strong></p>
+<p>We want Ganime to be a place where anyone aged 18 or older with a story can become a creator. Our goal is to make creating and publishing anime easier, while giving creators a clear and fair way to earn from their work.</p>
 </div>
-<script>
-  // Replace the written-in rates with the live settings, and recompute the examples from them.
-  ;(function () {
-    var EXAMPLE_SERIES_PRICE = 600
-    var CREDITS_PER_USD = 100
-
-    var setText = function (attr, key, value) {
-      document.querySelectorAll('[' + attr + '="' + key + '"]').forEach(function (el) {
-        el.textContent = value
-      })
-    }
-    var trim = function (n) { return String(Number(n.toFixed(2))) }
-    // Whole cents as 0.00; a fraction of a cent (17.5 credits) as 0.175.
-    var usd = function (credits) {
-      var v = Number((credits / CREDITS_PER_USD).toFixed(3))
-      return Number(v.toFixed(2)) === v ? v.toFixed(2) : String(v)
-    }
-
-    var apply = function (s) {
-      if (!s || s.creatorShare == null || s.episodeCost == null) return
-      ;['creatorShare', 'freeEpisodes', 'episodeCost'].forEach(function (key) {
-        if (s[key] != null) setText('data-setting', key, s[key])
-      })
-      var episode = (s.episodeCost * s.creatorShare) / 100
-      var series = (EXAMPLE_SERIES_PRICE * s.creatorShare) / 100
-      setText('data-example', 'episode', trim(episode))
-      setText('data-example', 'episodeUsd', usd(episode))
-      setText('data-example', 'series', trim(series))
-      setText('data-example', 'seriesUsd', usd(series))
-    }
-
-    fetch('/.netlify/functions/api?type=settings')
-      .then(function (r) { return r.json() })
-      .then(function (r) { if (r && r.success) apply(r.data) })
-      .catch(function () {})
-  })()
-</script>
 </body>
 </html>

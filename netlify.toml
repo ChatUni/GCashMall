@@ -58,6 +58,24 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Old privacy-policy URLs (the App Store and Google Play listings link privacy.html).
+# force = true so the redirect wins over any file left at that path.
+[[redirects]]
+  from = "/privacy.html"
+  to = "/privacy-policy.html"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy-policy.html"
+  status = 301
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms-of-service.html"
+  status = 301
+
 # SPA fallback - must come last
 [[redirects]]
   from = "/*"
