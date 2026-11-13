@@ -5,6 +5,7 @@
 import { For, Show, Switch, Match, createSignal, onMount } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import TopBar from '../components/TopBar'
+import BottomBar from '../components/BottomBar'
 import { t } from '../stores/languageStore'
 import { accountStore } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
@@ -492,6 +493,7 @@ const CreatorProgram = () => {
           <JoinWizard />
         </Match>
       </Switch>
+      <BottomBar />
     </div>
   )
 }

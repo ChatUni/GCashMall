@@ -1,24 +1,8 @@
 import { For } from 'solid-js'
 import { t } from '../stores/languageStore'
 import LegalLink from './LegalLink'
-import {
-  PRIVACY_POLICY_PAGE,
-  TERMS_PAGE,
-  GUIDELINES_PAGE,
-  REVENUE_SHARE_PAGE,
-  COPYRIGHT_PAGE,
-} from '../utils/cordova'
+import { LEGAL_PAGES } from '../utils/legalPages'
 import './LegalLinksCard.css'
-
-type LegalKey = 'privacy' | 'terms' | 'guidelines' | 'creatorAgreement' | 'copyright'
-
-const LEGAL_PAGES: { key: LegalKey; page: string }[] = [
-  { key: 'privacy', page: PRIVACY_POLICY_PAGE },
-  { key: 'terms', page: TERMS_PAGE },
-  { key: 'guidelines', page: GUIDELINES_PAGE },
-  { key: 'creatorAgreement', page: REVENUE_SHARE_PAGE },
-  { key: 'copyright', page: COPYRIGHT_PAGE },
-]
 
 // "Legal" card listing every public legal page. The phone layout and the native apps have no
 // footer, so this is where app users reach the privacy policy and terms.

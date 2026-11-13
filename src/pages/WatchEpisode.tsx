@@ -5,6 +5,7 @@
 import { Show, createSignal, onMount } from 'solid-js'
 import { useParams } from '@solidjs/router'
 import TopBar from '../components/TopBar'
+import BottomBar from '../components/BottomBar'
 import { fetchSharedEpisode, type SharedEpisode } from '../services/dataService'
 import './WatchEpisode.css'
 
@@ -54,6 +55,7 @@ const WatchEpisode = () => {
           </Show>
         </Show>
       </div>
+      <BottomBar />
     </div>
   )
 }
