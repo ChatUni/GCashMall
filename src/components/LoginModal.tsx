@@ -12,6 +12,7 @@ import {
 import { isCordova, openOAuthSystemBrowser, getWebOrigin, MOBILE_OAUTH_REDIRECT } from '../utils/cordova'
 import { loginModalStore } from '../stores'
 import type { OAuthType, ResetPasswordResponse, User } from '../types'
+import LegalConsentNote from './LegalConsentNote'
 import './LoginModal.css'
 
 interface LoginModalProps {
@@ -425,6 +426,8 @@ const LoginModal = (props: LoginModalProps) => {
           {t().login.signUp}
         </button>
       </div>
+
+      <LegalConsentNote />
     </>
   )
 
@@ -524,6 +527,8 @@ const LoginModal = (props: LoginModalProps) => {
           {t().login.logIn || 'Log in'}
         </button>
       </div>
+
+      <LegalConsentNote />
     </>
   )
 

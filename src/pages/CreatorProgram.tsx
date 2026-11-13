@@ -9,12 +9,8 @@ import { t } from '../stores/languageStore'
 import { accountStore } from '../stores/accountStore'
 import { toastStoreActions } from '../stores'
 import { getStoredUser } from '../utils/api'
-import {
-  isCordova,
-  openSystemBrowser,
-  legalPageUrl,
-  PRIVACY_POLICY_PAGE,
-} from '../utils/cordova'
+import LegalLink from '../components/LegalLink'
+import { PRIVACY_POLICY_PAGE, TERMS_PAGE } from '../utils/cordova'
 import {
   creatorProgramStore as store,
   creatorProgramStoreActions as actions,
@@ -245,15 +241,6 @@ const Landing = () => {
 
 // ── Join wizard ──
 
-// The policy is a static page outside the SPA, opened in a new tab so the creator doesn't
-// lose the half-filled signup flow. In Cordova a plain target="_blank" is hijacked into an
-// embedded WebView with no way back, so hand the URL to the system browser instead.
-const openPrivacyPolicy = (e: MouseEvent) => {
-  if (!isCordova()) return
-  e.preventDefault()
-  openSystemBrowser(legalPageUrl(PRIVACY_POLICY_PAGE))
-}
-
 const StepAgreement = () => {
   const j = () => cp().join
   return (
@@ -282,16 +269,14 @@ const StepAgreement = () => {
           onChange={(e) => actions.setAgreement(e.currentTarget.checked)}
         />
         <span>
-          {j().accept} <a class="cpp-link inline">{j().tos}</a> {j().and}{' '}
-          <a
-            class="cpp-link inline"
-            href={legalPageUrl(PRIVACY_POLICY_PAGE)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={openPrivacyPolicy}
-          >
+          {j().accept}{' '}
+          <LegalLink class="cpp-link inline" page={TERMS_PAGE}>
+            {j().tos}
+          </LegalLink>{' '}
+          {j().and}{' '}
+          <LegalLink class="cpp-link inline" page={PRIVACY_POLICY_PAGE}>
             {j().privacy}
-          </a>
+          </LegalLink>
         </span>
       </label>
 

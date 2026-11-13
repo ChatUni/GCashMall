@@ -15,6 +15,15 @@ export const en = {
     about: 'About',
     contact: 'Contact',
   },
+  legal: {
+    title: 'Legal',
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Service',
+    guidelines: 'Community Guidelines',
+    creatorAgreement: 'Creator Agreement',
+    copyright: 'Copyright & DMCA',
+    consent: 'By continuing, you agree to the {terms} and {privacy}.',
+  },
   languages: {
     en: 'English',
     zh: '中文',

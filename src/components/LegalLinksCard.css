@@ -1,0 +1,46 @@
+.legal-links-card {
+  background: var(--c-surface);
+  border-radius: 12px;
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.legal-links-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin: 12px 0 4px;
+  text-align: center;
+}
+
+.legal-links-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  color: var(--c-text);
+  font-size: 15px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.legal-links-row:last-child {
+  border-bottom: none;
+}
+
+.legal-links-row:active {
+  opacity: 0.6;
+}
+
+/* A plain CSS chevron (no emoji or glyph, which render as tofu in the iOS Simulator). */
+.legal-links-chevron {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--c-text-muted);
+  border-right: 2px solid var(--c-text-muted);
+  transform: rotate(45deg);
+  margin-right: 4px;
+}

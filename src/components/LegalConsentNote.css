@@ -1,0 +1,16 @@
+.legal-consent-note {
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+  text-align: center;
+}
+
+.legal-consent-link {
+  color: var(--c-text-muted);
+  text-decoration: underline;
+}
+
+.legal-consent-link:hover {
+  color: #3b82f6;
+}

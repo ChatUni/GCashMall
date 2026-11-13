@@ -15,6 +15,15 @@ export const zh = {
     about: '关于我们',
     contact: '联系我们',
   },
+  legal: {
+    title: '法律信息',
+    privacy: '隐私政策',
+    terms: '服务条款',
+    guidelines: '社区准则',
+    creatorAgreement: '创作者协议',
+    copyright: '版权与 DMCA',
+    consent: '继续即表示你同意{terms}和{privacy}。',
+  },
   languages: {
     en: 'English',
     zh: '中文',

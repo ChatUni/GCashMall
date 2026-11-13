@@ -14,6 +14,7 @@ import LoginModal from '../../components/LoginModal'
 import ModerationSection from '../../components/ModerationSection'
 import BlockedUsers from '../../components/BlockedUsers'
 import DeleteAccount from '../../components/DeleteAccount'
+import LegalLinksCard from '../../components/LegalLinksCard'
 import { SeriesEditContent } from '../SeriesEdit'
 import { PhoneContactContent } from './PhoneContact'
 import { BRAND_MARK } from '../../utils/brand'
@@ -1139,6 +1140,7 @@ const PhoneAboutSection = () => {
           </For>
         </div>
       </div>
+      <LegalLinksCard />
       <p class="phone-about-footer">{about().footerText || `Thank you for choosing ${APP_DISPLAY_NAME}. Happy watching!`}</p>
     </div>
   )

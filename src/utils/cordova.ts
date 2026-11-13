@@ -58,6 +58,9 @@ export const getWebOrigin = (): string =>
 // In Cordova the app origin is app://localhost, so they must be addressed on the public site.
 export const PRIVACY_POLICY_PAGE = 'privacy-policy.html'
 export const REVENUE_SHARE_PAGE = 'revenue-share.html'
+export const TERMS_PAGE = 'terms-of-service.html'
+export const COPYRIGHT_PAGE = 'copyright-policy.html'
+export const GUIDELINES_PAGE = 'community-guidelines.html'
 
 export const legalPageUrl = (page: string): string => `${getWebOrigin()}/${page}`
 
