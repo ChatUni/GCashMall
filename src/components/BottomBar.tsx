@@ -31,13 +31,6 @@ const FOOTER_COLUMNS: { title: FooterKey; links: FooterLink[] }[] = [
     ],
   },
   {
-    title: 'creators',
-    links: [
-      { label: 'creatorProgram', href: '/creator-program' },
-      { label: 'uploadSeries', href: '/series/new' },
-    ],
-  },
-  {
     title: 'company',
     links: [
       { label: 'about', href: '/about' },

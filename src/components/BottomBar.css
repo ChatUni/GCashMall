@@ -17,7 +17,7 @@
 
 .site-footer-top {
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr)) auto;
+  grid-template-columns: repeat(2, minmax(140px, 1fr)) auto;
   gap: 32px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--c-border);
@@ -170,7 +170,7 @@
 
 @media (max-width: 960px) {
   .site-footer-top {
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .site-footer-apps {
