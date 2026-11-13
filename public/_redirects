@@ -1,1 +1,8 @@
+# Netlify reads this file before netlify.toml, so redirects must live here, above the SPA fallback.
+# Old privacy-policy URLs: the App Store and Google Play listings link privacy.html.
+/privacy.html  /privacy-policy.html   301!
+/privacy       /privacy-policy.html   301
+/terms         /terms-of-service.html 301
+
+# SPA fallback - must come last
 /*    /index.html   200
