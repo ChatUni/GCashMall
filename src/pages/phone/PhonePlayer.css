@@ -17,12 +17,14 @@
 }
 
 /* Video Container */
+/* 9:16 at full width, capped at 70vh. When the cap applies the box is wider than the video,
+   so the iframe below is sized to the video and centered: the Bunny embed fills any spare
+   width with its own white background, which can't be styled from out here. */
 .phone-video-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 16;
-  max-height: 70vh;
-  background: #000;
+  height: min(calc(100vw * 16 / 9), 70vh);
+  background: var(--c-bg);
 }
 
 .phone-player-back {
@@ -53,9 +55,14 @@
 }
 
 .phone-video-iframe {
-  width: 100%;
+  display: block;
   height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 9 / 16;
+  margin: 0 auto;
   border: none;
+  background: #000;
 }
 
 .phone-preview-lock {
