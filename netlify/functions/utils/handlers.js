@@ -3021,11 +3021,11 @@ const addPurchase = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Credit the creator (uploader) their revenue share (in GUSD), unless the buyer
+    // Credit the creator (uploader) their revenue share of the paid part, unless the buyer
     // is the uploader themselves. Based on the Creator Share percentage setting.
     if (series.uploaderId && String(series.uploaderId) !== String(userId)) {
       const { creatorShare } = await readSystemSettings()
-      await creditCreatorRevenue(series, price, creatorShare, episodeNumber)
+      await creditCreatorRevenue(series, paidPortionOf(price, currentUser), creatorShare, episodeNumber)
     }
 
     return {
@@ -3143,7 +3143,7 @@ const purchaseSeries = async (body, authHeader) => {
   }
   await save('users', updated)
   const { creatorShare } = await readSystemSettings()
-  await creditCreatorRevenue(series, quote.price, creatorShare, 0)
+  await creditCreatorRevenue(series, paidPortionOf(quote.price, user), creatorShare, 0)
   return { success: true, data: await buildUserResponse(updated) }
 }
 
@@ -3816,31 +3816,46 @@ const WITHDRAW_HOLD_DAYS = 30
 // credited that is no longer in the balance — and wasn't withdrawn — has been spent.
 // Failed withdrawals are refunded, so only settled/in-flight ones hold the balance down.
 const getMaxWithdrawAmount = (balance, transactions) => {
-  const txns = transactions || []
   const cutoff = Date.now() - WITHDRAW_HOLD_DAYS * 24 * 60 * 60 * 1000
-  const sum = (list) => list.reduce((total, t) => total + (Number(t.amount) || 0), 0)
+  const bonusRemaining = welcomeBonusRemaining(balance, transactions)
 
-  const credits = txns.filter(
-    (t) => (t.type === 'topup' || t.type === 'earning') && t.status === 'success',
-  )
-  const withdrawn = sum(
-    txns.filter(
-      (t) => t.type === 'withdraw' && (t.status === 'success' || t.status === 'processing'),
-    ),
-  )
-
-  const welcomeTotal = sum(credits.filter((t) => t.method === 'welcome'))
-  const spent = Math.max(0, sum(credits) - balance - withdrawn)
-  const bonusRemaining = Math.max(0, welcomeTotal - spent)
-
-  const heldCredits = sum(
-    credits.filter(
+  const heldCredits = sumAmounts(
+    walletCredits(transactions).filter(
       (t) => t.method !== 'welcome' && new Date(t.createdAt).getTime() >= cutoff,
     ),
   )
 
   return Math.max(0, Number((balance - bonusRemaining - heldCredits).toFixed(2)))
 }
+
+const sumAmounts = (list) => list.reduce((total, t) => total + (Number(t.amount) || 0), 0)
+
+const walletCredits = (transactions) =>
+  (transactions || []).filter(
+    (t) => (t.type === 'topup' || t.type === 'earning') && t.status === 'success',
+  )
+
+const settledWithdrawals = (transactions) =>
+  sumAmounts(
+    (transactions || []).filter(
+      (t) => t.type === 'withdraw' && (t.status === 'success' || t.status === 'processing'),
+    ),
+  )
+
+// Welcome-bonus credits still unspent in the balance. The bonus is spent first (see
+// getMaxWithdrawAmount), and spending is derived by conservation.
+const welcomeBonusRemaining = (balance, transactions) => {
+  const credits = walletCredits(transactions)
+  const welcomeTotal = sumAmounts(credits.filter((t) => t.method === 'welcome'))
+  const spent = Math.max(0, sumAmounts(credits) - (balance || 0) - settledWithdrawals(transactions))
+  return Math.max(0, welcomeTotal - spent)
+}
+
+// The part of a `price` the buyer pays with real (non-bonus) credits. Because the welcome
+// bonus is spent first, it covers the first spends; creators earn nothing on that part,
+// since no money came in for it. Call with the buyer as they were BEFORE the deduction.
+const paidPortionOf = (price, buyer) =>
+  Math.max(0, price - welcomeBonusRemaining(buyer?.balance || 0, buyer?.transactions))
 
 // Create a GUSD one-time withdrawal link (30-min, single claim). Mirrors createGUSDPayOrder
 // but hits create_withdraw_order; the final result comes async via notify_url. Returns the
@@ -4090,8 +4105,8 @@ const purchaseEpisode = async (body, authHeader) => {
 
     await save('users', updateData)
 
-    // Credit the creator (uploader) their revenue share (in GUSD) of this purchase
-    await creditCreatorRevenue(series, episodeCost, creatorShare, parseInt(episodeNumber))
+    // Credit the creator (uploader) their revenue share of the paid part of this purchase
+    await creditCreatorRevenue(series, paidPortionOf(episodeCost, currentUser), creatorShare, parseInt(episodeNumber))
 
     return {
       success: true,
@@ -4138,7 +4153,8 @@ const creatorEarningsByEpisode = async (userId) => {
 }
 
 // Credit the creator (series uploader) their revenue share of an episode purchase.
-// The amount (creatorShare% of the episode cost) is added to the creator's balance
+// `episodeCost` is the paid part only (paidPortionOf), so welcome-bonus spends earn nothing.
+// The amount (creatorShare% of it) is added to the creator's balance
 // in GUSD along with an 'earning' transaction. Failures here must not fail the buyer's
 // purchase, so errors are logged and swallowed.
 const creditCreatorRevenue = async (series, episodeCost, creatorSharePercent, episodeNumber) => {
