@@ -17,13 +17,15 @@
 }
 
 /* Video Container */
-/* Full width at exactly 9:16, never height-capped: a box of any other shape makes the Bunny
-   embed fill the spare space with its own white background, which can't be styled from out
-   here. The episode info scrolls up from under the video. */
+/* Full width at the episodes' own shape, never height-capped: a box of any other shape makes
+   the Bunny embed fill the spare space with its own white background, which can't be styled
+   from out here. Episodes are 1080x1964 (or 1440x2618, the same shape), slightly narrower
+   than 9:16, which is what left a thin white edge each side. The episode info scrolls up
+   from under the video. */
 .phone-video-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 1080 / 1964;
   background: #000;
 }
 
